@@ -98,7 +98,19 @@
       "archive",
       "opaque_binary"
     ],
-    "extensions": ["pdf", "docx", "xlsx", "csv", "jpg", "png", "tif", "eml", "xml", "json", "zip"],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "tif",
+      "eml",
+      "xml",
+      "json",
+      "zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -111,7 +123,12 @@
         "operations 10 to 40 carry operator initials, dates and quantity-good entries; 50 to 70 are structurally identical and empty",
         "footer reconciliation block Good / Scrap / Rework with two of three cells filled"
       ],
-      "facts_legal": ["work_order", "product", "batch_lot where a lot slot is populated", "site where a plant slot is populated"],
+      "facts_legal": [
+        "work_order",
+        "product",
+        "batch_lot where a lot slot is populated",
+        "site where a plant slot is populated"
+      ],
       "must_not_conclude": [
         "a folder path",
         "that the empty operation rows mean the order was cancelled or the data is missing",
@@ -132,7 +149,12 @@
         "in-process check entries interleaved with steps",
         "final yield reconciliation and a QA release block with signature and date"
       ],
-      "facts_legal": ["batch_lot", "product", "work_order where an order slot is populated", "site"],
+      "facts_legal": [
+        "batch_lot",
+        "product",
+        "work_order where an order slot is populated",
+        "site"
+      ],
       "must_not_conclude": [
         "that the QA release block makes this an inspection record",
         "that the embedded procedure text makes this a work instruction",
@@ -150,7 +172,9 @@
         "OCR recovers the tokens WO-2026-4471, OP 30, and several handwritten initials; column headers do not survive",
         "visible ruled rows with a filled upper region and a blank lower region"
       ],
-      "facts_legal": ["work_order only if the OCR token is confirmed by the surviving routed-operation structure"],
+      "facts_legal": [
+        "work_order only if the OCR token is confirmed by the surviving routed-operation structure"
+      ],
       "must_not_conclude": [
         "the order fact from the recovered token alone",
         "a screenshot origin from missing or unusual metadata",
@@ -168,7 +192,10 @@
         "a repeated order reference in a header row or a constant column",
         "row count consistent with the order quantity"
       ],
-      "facts_legal": ["work_order", "product"],
+      "facts_legal": [
+        "work_order",
+        "product"
+      ],
       "must_not_conclude": [
         "that the serialised units constitute a controlled asset population",
         "an asset fact for each serial",
@@ -221,7 +248,9 @@
         "one lot identifier repeated as a constant",
         "no operation sequence and no routing"
       ],
-      "facts_legal": ["batch_lot as a shared reference only"],
+      "facts_legal": [
+        "batch_lot as a shared reference only"
+      ],
       "must_not_conclude": [
         "a work_order fact",
         "that a lot shared with a traveller makes this file part of the traveller"
@@ -255,7 +284,10 @@
         "one identified line as the constant; order numbers appear only as passing references, several per shift",
         "no routed operation sequence"
       ],
-      "facts_legal": ["site", "product where a single product runs the shift"],
+      "facts_legal": [
+        "site",
+        "product where a single product runs the shift"
+      ],
       "must_not_conclude": [
         "a work_order fact from the order references that pass through the shift",
         "that a line-primary record is an order-primary record"
@@ -272,7 +304,9 @@
         "body states a hold has been lifted; no routed structure",
         "attachment named for a release form"
       ],
-      "facts_legal": ["batch_lot from the exact labelled reference, pending the attachment"],
+      "facts_legal": [
+        "batch_lot from the exact labelled reference, pending the attachment"
+      ],
       "must_not_conclude": [
         "a work_order fact",
         "a release status as an authoritative outcome",
@@ -290,7 +324,10 @@
         "every member filename repeats the same order identifier",
         "the archive is read for type, contained paths, filenames, extensions, count and size without being unpacked to disk"
       ],
-      "facts_legal": ["work_order", "product"],
+      "facts_legal": [
+        "work_order",
+        "product"
+      ],
       "must_not_conclude": [
         "member-level facts that the manifest does not evidence",
         "that a deviation member converts the packet into a nonconformance file"
@@ -307,7 +344,11 @@
         "start and stop timestamps, station identifier, good and reject counts per operation",
         "no human signature slot"
       ],
-      "facts_legal": ["work_order", "product", "site"],
+      "facts_legal": [
+        "work_order",
+        "product",
+        "site"
+      ],
       "must_not_conclude": [
         "an operator identity where only a station identifier exists",
         "a schema activation from the .json extension"
@@ -352,17 +393,17 @@
   "also_holds_with": [
     {
       "domain": "manufacturing.nonconformance-capa",
-      "why": "One traveller page can carry both on disjoint slots: the routed operation rows and reconciliation are this row's evidence, while a labelled nonconformance identifier with a requirement-versus-observed condition, containment and disposition raised at that operation is the NCR row's evidence in the same bytes. Neither copies the other's anchor.",
+      "signal": "One traveller page can carry both on disjoint slots: the routed operation rows and reconciliation are this row's evidence, while a labelled nonconformance identifier with a requirement-versus-observed condition, containment and disposition raised at that operation is the NCR row's evidence in the same bytes. Neither copies the other's anchor.",
       "provenance": "inference"
     },
     {
       "domain": "logistics",
-      "why": "A released-order packet may contain the execution record and shipment custody evidence together. Each schema activates from its own slots; the order or lot fact is never copied onto a sparse packing list merely because the files group.",
+      "signal": "A released-order packet may contain the execution record and shipment custody evidence together. Each schema activates from its own slots; the order or lot fact is never copied onto a sparse packing list merely because the files group.",
       "provenance": "inference"
     },
     {
       "domain": "engineering",
-      "why": "A traveller header that names a change effectivity, or a deviation note that requests a design change, carries manufacturing execution evidence and engineering definition evidence in one file. Actual quantities and signoffs support this row; from/to revisions and design rationale support engineering.",
+      "signal": "A traveller header that names a change effectivity, or a deviation note that requests a design change, carries manufacturing execution evidence and engineering definition evidence in one file. Actual quantities and signoffs support this row; from/to revisions and design rationale support engineering.",
       "provenance": "inference"
     }
   ],

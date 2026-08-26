@@ -474,17 +474,17 @@
   "also_holds_with": [
     {
       "domain": "creative.podcast-episode",
-      "why": "Reciprocates the edge that row authored: a branded episode is both a production and a programme deliverable. That row owns the audio lifecycle; this row owns the calendar slot, the show-notes page slug and the send that distributes it. Shared bytes copy no facts in either direction.",
+      "signal": "Reciprocates the edge that row authored: a branded episode is both a production and a programme deliverable. That row owns the audio lifecycle; this row owns the calendar slot, the show-notes page slug and the send that distributes it. Shared bytes copy no facts in either direction.",
       "provenance": "inference"
     },
     {
       "domain": "creative.licensing-rights",
-      "why": "A stock image licence, a music licence for a social cutdown, an influencer or contributor agreement, and a customer's approval to be quoted are rights instruments that are also programme members. That row owns the grant, territory and term observations; this row owns programme membership and infers no legal effect from either.",
+      "signal": "A stock image licence, a music licence for a social cutdown, an influencer or contributor agreement, and a customer's approval to be quoted are rights instruments that are also programme members. That row owns the grant, territory and term observations; this row owns programme membership and infers no legal effect from either.",
       "provenance": "inference"
     },
     {
       "domain": "creative.deliverable-handoff",
-      "why": "An agency delivering a content programme to a brand produces a handoff set whose members are this row's pieces. The handoff row owns the delivery event and its manifest; this row owns the pieces' own making record. A file may legally carry both.",
+      "signal": "An agency delivering a content programme to a brand produces a handoff set whose members are this row's pieces. The handoff row owns the delivery event and its manifest; this row owns the pieces' own making record. A file may legally carry both.",
       "provenance": "inference"
     }
   ],

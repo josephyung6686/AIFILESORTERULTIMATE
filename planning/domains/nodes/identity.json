@@ -403,22 +403,22 @@
   "also_holds_with": [
     {
       "domain": "college_applications",
-      "why": "00's own packet list contains an identification document: 'An accepted Columbia application packet may include an essay draft, admissions checklist, portal screenshot, transcript, resume, certificate, and identification document', and the purpose sentence repeats it - 'an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission'. Disjoint evidence: the packet supplies purpose and target_university, the ID supplies its own labelled identity slots. The identity side writes no field rows, so today the join carries protection, not co-extraction. Reciprocal: college_applications.json already names identity. Provenance: design.",
+      "signal": "00's own packet list contains an identification document: 'An accepted Columbia application packet may include an essay draft, admissions checklist, portal screenshot, transcript, resume, certificate, and identification document', and the purpose sentence repeats it - 'an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission'. Disjoint evidence: the packet supplies purpose and target_university, the ID supplies its own labelled identity slots. The identity side writes no field rows, so today the join carries protection, not co-extraction. Reciprocal: college_applications.json already names identity. Provenance: design.",
       "provenance": "design"
     },
     {
       "domain": "code",
-      "why": "A credential-bearing configuration or environment file inside a real project root is a code artifact and protected identity material at once. 00 places 'authentication key' among the material that 'should enter a protected state immediately', while the project-root marker independently evidences the code schema - disjoint evidence, both readings kept, neither erasing the other. Reciprocal: code.json already names identity from its side. Provenance: inference.",
+      "signal": "A credential-bearing configuration or environment file inside a real project root is a code artifact and protected identity material at once. 00 places 'authentication key' among the material that 'should enter a protected state immediately', while the project-root marker independently evidences the code schema - disjoint evidence, both readings kept, neither erasing the other. Reciprocal: code.json already names identity from its side. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "A naturalization certificate, a visa refusal notice or a name-change order is identity material and legal material on one file; 00's privacy sentence names 'identity documents' and 'legal records' in the same corpus list, and the roster's own immigration-visa template records that this situation 'Crosses identity and legal safety domains'. Both sides are field-less safety placeholders, so the join carries co-activation and protection only - the same shape CONNECTION uses for finance/medical under PR-8. Provenance: inference.",
+      "signal": "A naturalization certificate, a visa refusal notice or a name-change order is identity material and legal material on one file; 00's privacy sentence names 'identity documents' and 'legal records' in the same corpus list, and the roster's own immigration-visa template records that this situation 'Crosses identity and legal safety domains'. Both sides are field-less safety placeholders, so the join carries co-activation and protection only - the same shape CONNECTION uses for finance/medical under PR-8. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A record can carry a financial institution's labelled statement structure AND a taxpayer or national identification number in a labelled slot - a tax filing is the clearest case. 00's privacy sentence names 'identity documents, account statements, tax records' together, and its protected-state sentence names 'A scanned passport, tax statement, medical document, authentication key, or account record' in one breath. The finance fields extract at launch under local-only rules (PR-2) while identity contributes protection and no fields. This pair ALSO collides on a name-plus-number item, which is why that collision carries a discriminating signal. Provenance: inference.",
+      "signal": "A record can carry a financial institution's labelled statement structure AND a taxpayer or national identification number in a labelled slot - a tax filing is the clearest case. 00's privacy sentence names 'identity documents, account statements, tax records' together, and its protected-state sentence names 'A scanned passport, tax statement, medical document, authentication key, or account record' in one breath. The finance fields extract at launch under local-only rules (PR-2) while identity contributes protection and no fields. This pair ALSO collides on a name-plus-number item, which is why that collision carries a discriminating signal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

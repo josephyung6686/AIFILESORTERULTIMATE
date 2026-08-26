@@ -40,10 +40,43 @@
     ]
   },
   "proposed_context_terms": [
-    "episode brief", "show notes", "guest release", "recording session", "multitrack", "host", "guest", "season", "episode number", "transcript", "captions", "mix", "master", "RSS", "enclosure", "publish", "scheduled", "takedown", "sponsor read", "ad marker"
+    "episode brief",
+    "show notes",
+    "guest release",
+    "recording session",
+    "multitrack",
+    "host",
+    "guest",
+    "season",
+    "episode number",
+    "transcript",
+    "captions",
+    "mix",
+    "master",
+    "RSS",
+    "enclosure",
+    "publish",
+    "scheduled",
+    "takedown",
+    "sponsor read",
+    "ad marker"
   ],
   "work_types": [
-    "episode pitch or brief", "guest booking", "research notes", "recording consent or release", "raw interview recording", "multitrack session", "edit project", "rough cut", "mix or mastered episode", "transcript or captions", "show notes", "cover or episode artwork", "publication/feed record", "sponsor or ad-read record", "episode archive"
+    "episode pitch or brief",
+    "guest booking",
+    "research notes",
+    "recording consent or release",
+    "raw interview recording",
+    "multitrack session",
+    "edit project",
+    "rough cut",
+    "mix or mastered episode",
+    "transcript or captions",
+    "show notes",
+    "cover or episode artwork",
+    "publication/feed record",
+    "sponsor or ad-read record",
+    "episode archive"
   ],
   "grouping_reasons": [
     "one episode from accepted pitch or booking through recording, edit, transcript, release, and archive",
@@ -58,17 +91,62 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "presentation", "email", "calendar", "contacts", "image", "ocr", "audio_video", "design_creative", "archive", "opaque_binary"],
-    "extensions": [".wav", ".mp3", ".m4a", ".flac", ".mp4", ".mov", ".aup3", ".sesx", ".rpp", ".als", ".pdf", ".docx", ".md", ".txt", ".vtt", ".srt", ".rss", ".xml", ".ics", ".vcf", ".png", ".jpg", ".zip"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "contacts",
+      "image",
+      "ocr",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".wav",
+      ".mp3",
+      ".m4a",
+      ".flac",
+      ".mp4",
+      ".mov",
+      ".aup3",
+      ".sesx",
+      ".rpp",
+      ".als",
+      ".pdf",
+      ".docx",
+      ".md",
+      ".txt",
+      ".vtt",
+      ".srt",
+      ".rss",
+      ".xml",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
     {
       "filename": "S03E04 - Rivers and Resilience - episode brief.docx",
       "source_type": "text_document",
-      "observations": ["labelled episode title and planned guest", "sections cover angle, questions, record date, ad-read, deliverables, and release window", "a host or producer is named in a role-bearing slot"],
+      "observations": [
+        "labelled episode title and planned guest",
+        "sections cover angle, questions, record date, ad-read, deliverables, and release window",
+        "a host or producer is named in a role-bearing slot"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that the interview happened", "that a release window is a publication fact", "a folder path"],
+      "must_not_conclude": [
+        "that the interview happened",
+        "that a release window is a publication fact",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -76,9 +154,17 @@
     {
       "filename": "Rivers_Resilience_guest-release_signed.pdf",
       "source_type": "text_document",
-      "observations": ["release identifies guest, show, episode subject, recording date, and permitted uses", "signature block is present", "no audio is embedded"],
+      "observations": [
+        "release identifies guest, show, episode subject, recording date, and permitted uses",
+        "signature block is present",
+        "no audio is embedded"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that recording or publication occurred", "ownership or exclusivity beyond the text", "a folder path"],
+      "must_not_conclude": [
+        "that recording or publication occurred",
+        "ownership or exclusivity beyond the text",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -86,9 +172,17 @@
     {
       "filename": "S03E04_remote-recording_multitrack.zip",
       "source_type": "archive",
-      "observations": ["manifest lists host and guest WAV tracks, room tone, a session file, and a cue sheet", "member stems share the episode identifier", "archive is readable without extraction"],
+      "observations": [
+        "manifest lists host and guest WAV tracks, room tone, a session file, and a cue sheet",
+        "member stems share the episode identifier",
+        "archive is readable without extraction"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that the takes are edited or approved", "that every archive member belongs to the episode solely from its path", "a folder path"],
+      "must_not_conclude": [
+        "that the takes are edited or approved",
+        "that every archive member belongs to the episode solely from its path",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -96,9 +190,17 @@
     {
       "filename": "S03E04_Rivers_Resilience_edit_v2.rpp",
       "source_type": "audio_video",
-      "observations": ["DAW project contains labelled voice tracks, edit regions, and an episode title marker", "references raw recordings by matching stems", "filename has a version token"],
+      "observations": [
+        "DAW project contains labelled voice tracks, edit regions, and an episode title marker",
+        "references raw recordings by matching stems",
+        "filename has a version token"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that v2 is the released or approved version", "that referenced files are present or licensed", "a folder path"],
+      "must_not_conclude": [
+        "that v2 is the released or approved version",
+        "that referenced files are present or licensed",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -106,9 +208,17 @@
     {
       "filename": "S03E04_Rivers_Resilience_master.mp3",
       "source_type": "audio_video",
-      "observations": ["audio metadata has title and show-like album fields", "speech content includes host introduction and guest interview", "content hash differs from the edit project"],
+      "observations": [
+        "audio metadata has title and show-like album fields",
+        "speech content includes host introduction and guest interview",
+        "content hash differs from the edit project"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["public release or approval from master in the name", "rights ownership from embedded tags", "a folder path"],
+      "must_not_conclude": [
+        "public release or approval from master in the name",
+        "rights ownership from embedded tags",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -116,9 +226,17 @@
     {
       "filename": "S03E04_Rivers_Resilience_transcript.vtt",
       "source_type": "text_document",
-      "observations": ["caption cues contain time-coded host and guest speech", "header names show and episode", "cue timing aligns with the master duration"],
+      "observations": [
+        "caption cues contain time-coded host and guest speech",
+        "header names show and episode",
+        "cue timing aligns with the master duration"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that the transcript is an authoritative verbatim record", "publication status", "a folder path"],
+      "must_not_conclude": [
+        "that the transcript is an authoritative verbatim record",
+        "publication status",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -126,9 +244,17 @@
     {
       "filename": "S03E04_show-notes-and-links.md",
       "source_type": "text_document",
-      "observations": ["front matter names episode and season", "body includes summary, guest links, sponsor copy, and chapter timestamps", "a draft marker appears in metadata"],
+      "observations": [
+        "front matter names episode and season",
+        "body includes summary, guest links, sponsor copy, and chapter timestamps",
+        "a draft marker appears in metadata"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that linked guests or sponsors endorse the episode", "that draft notes were published", "a folder path"],
+      "must_not_conclude": [
+        "that linked guests or sponsors endorse the episode",
+        "that draft notes were published",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -136,9 +262,17 @@
     {
       "filename": "podcast-feed-export-2026-08-24.xml",
       "source_type": "text_document",
-      "observations": ["RSS item contains title, description, enclosure URL, GUID, and explicit publication status/date", "enclosure URL resolves in the export to the episode master name", "feed contains neighboring episode items"],
+      "observations": [
+        "RSS item contains title, description, enclosure URL, GUID, and explicit publication status/date",
+        "enclosure URL resolves in the export to the episode master name",
+        "feed contains neighboring episode items"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that a cached enclosure is the canonical local master", "that all feed items belong to one local production packet", "a folder path"],
+      "must_not_conclude": [
+        "that a cached enclosure is the canonical local master",
+        "that all feed items belong to one local production packet",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -146,9 +280,18 @@
     {
       "filename": "Guest interview booking.ics",
       "source_type": "calendar",
-      "observations": ["event title names a guest and proposed episode topic", "organizer and attendees are present", "event has not been linked to a recording or release"],
+      "observations": [
+        "event title names a guest and proposed episode topic",
+        "organizer and attendees are present",
+        "event has not been linked to a recording or release"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that the booking was accepted or attended", "that the topic became an episode", "a guest fact copied from the calendar title", "a folder path"],
+      "must_not_conclude": [
+        "that the booking was accepted or attended",
+        "that the topic became an episode",
+        "a guest fact copied from the calendar title",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -156,31 +299,86 @@
     {
       "filename": "Brief.pdf",
       "source_type": "text_document",
-      "observations": ["filename contains only a generic document word", "pages contain legal argument headings and a tribunal caption"],
+      "observations": [
+        "filename contains only a generic document word",
+        "pages contain legal argument headings and a tribunal caption"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that it is a podcast brief; the tribunal caption discriminates it as legal", "any episode fact from the word brief", "a folder path"],
+      "must_not_conclude": [
+        "that it is a podcast brief; the tribunal caption discriminates it as legal",
+        "any episode fact from the word brief",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
     }
   ],
   "collides_with": [
-    {"domain": "creative.music-session", "signal": "Both may contain multitrack WAVs, DAW sessions, and mixes. An episode packet has speech-led host/guest continuity plus show notes, transcript/captions, or feed evidence; a music session has song, performer, instrument, take, or album-production evidence. The same raw WAV must not be assigned by extension.", "provenance": "inference"},
-    {"domain": "creative.sound-design", "signal": "Both may contain edited audio and stems. Podcast evidence is an episode lifecycle and spoken-program release; sound-design evidence is a brief or picture/sound cue, designed effects, library delivery, or post-production asset without a show episode anchor.", "provenance": "inference"},
-    {"domain": "photos", "signal": "Both may contain video recordings and still artwork. Positive screen/camera capture evidence and a photo/video capture event support photos; transcript, host/guest continuity, show notes, and feed linkage support this template. Missing EXIF is not a podcast signal.", "provenance": "inference"},
-    {"domain": "career", "signal": "A guest biography, media kit, or appearance may mention the episode. Career owns the person's professional record; this template owns the production packet. A guest name alone cannot activate either relationship.", "provenance": "inference"},
-    {"domain": "code", "signal": "Podcast websites, RSS generators, or episode automation may include XML, JSON, scripts, and repositories. Repository/package/test structure supports code; episode media, transcript, and publication evidence supports this template.", "provenance": "inference"}
+    {
+      "domain": "creative.music-session",
+      "signal": "Both may contain multitrack WAVs, DAW sessions, and mixes. An episode packet has speech-led host/guest continuity plus show notes, transcript/captions, or feed evidence; a music session has song, performer, instrument, take, or album-production evidence. The same raw WAV must not be assigned by extension.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.sound-design",
+      "signal": "Both may contain edited audio and stems. Podcast evidence is an episode lifecycle and spoken-program release; sound-design evidence is a brief or picture/sound cue, designed effects, library delivery, or post-production asset without a show episode anchor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "Both may contain video recordings and still artwork. Positive screen/camera capture evidence and a photo/video capture event support photos; transcript, host/guest continuity, show notes, and feed linkage support this template. Missing EXIF is not a podcast signal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "signal": "A guest biography, media kit, or appearance may mention the episode. Career owns the person's professional record; this template owns the production packet. A guest name alone cannot activate either relationship.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "Podcast websites, RSS generators, or episode automation may include XML, JSON, scripts, and repositories. Repository/package/test structure supports code; episode media, transcript, and publication evidence supports this template.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [
-    {"domain": "legal", "why": "A guest release, music licence, or takedown notice can be legal evidence and an episode-packet member; legal owns instrument and rights observations while this template owns episode membership without inferring legal effect.", "provenance": "inference"},
-    {"domain": "creative.content-marketing", "why": "A branded podcast episode can be a content-marketing deliverable as well as a production episode. Content-marketing owns campaign purpose and distribution context; this template owns the audio lifecycle. Shared bytes do not copy campaign facts.", "provenance": "inference"},
-    {"domain": "photos", "why": "Episode artwork or a behind-the-scenes photograph can retain positive capture evidence while joining an episode group. Photo facts remain photo facts; group membership does not establish capture details.", "provenance": "inference"}
+    {
+      "domain": "legal",
+      "signal": "A guest release, music licence, or takedown notice can be legal evidence and an episode-packet member; legal owns instrument and rights observations while this template owns episode membership without inferring legal effect.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.content-marketing",
+      "signal": "A branded podcast episode can be a content-marketing deliverable as well as a production episode. Content-marketing owns campaign purpose and distribution context; this template owns the audio lifecycle. Shared bytes do not copy campaign facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "Episode artwork or a behind-the-scenes photograph can retain positive capture evidence while joining an episode group. Photo facts remain photo facts; group membership does not establish capture details.",
+      "provenance": "inference"
+    }
   ],
   "falls_through_to": [
-    {"residual_template": "Independent Records", "why": "A standalone master, transcript, show-notes draft, or feed export without episode lifecycle anchors remains an independent record.", "provenance": "design"},
-    {"residual_template": "Review Later", "why": "A pitch, booking, generic audio file, or mixed archive with unresolved role or episode linkage needs review rather than invented production facts.", "provenance": "design"},
-    {"residual_template": "Protected Records", "why": "A consent, release, private guest correspondence, or unreleased recording may require protection even when the episode node does not activate.", "provenance": "design"},
-    {"residual_template": "Unsupported or Encrypted", "why": "An encrypted DAW project or unreadable archive is indexed safely without inferring episode membership from its name.", "provenance": "design"}
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone master, transcript, show-notes draft, or feed export without episode lifecycle anchors remains an independent record.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A pitch, booking, generic audio file, or mixed archive with unresolved role or episode linkage needs review rather than invented production facts.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A consent, release, private guest correspondence, or unreleased recording may require protection even when the episode node does not activate.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An encrypted DAW project or unreadable archive is indexed safely without inferring episode membership from its name.",
+      "provenance": "design"
+    }
   ],
   "role_split": [],
   "sensitivity": "potentially_sensitive",

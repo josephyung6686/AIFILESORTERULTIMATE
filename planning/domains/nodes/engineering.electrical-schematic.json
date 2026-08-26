@@ -333,32 +333,32 @@
   "collides_with": [
     {
       "domain": "engineering.pcb-layout",
-      "why": "Same schema, same design item, same evidence. main-board.net is the fixture on both sides: it is the netlist handed from schematic capture to board layout and both ids would claim it in full. The only discriminator anyone can name is which artifact-type value the file carries — symbols and nets with no physical geometry versus footprints, copper and drill data — and a discriminator between values is not a boundary between rows. This is a collision that resolves by DELETING BOTH ROWS into the engineering schema's default template, not by drawing a line.",
+      "signal": "Same schema, same design item, same evidence. main-board.net is the fixture on both sides: it is the netlist handed from schematic capture to board layout and both ids would claim it in full. The only discriminator anyone can name is which artifact-type value the file carries — symbols and nets with no physical geometry versus footprints, copper and drill data — and a discriminator between values is not a boundary between rows. This is a collision that resolves by DELETING BOTH ROWS into the engineering schema's default template, not by drawing a line.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.drawing-package",
-      "why": "A schematic printed to a controlled sheet IS a drawing-package sheet. Fixture: HarnessB_Wire-List_RevA.csv with its part number, issue letter and checker — a drawing-package row claims it as an associated list, this row would claim it as wiring design, and the engineering anchor's own title-block signal already fires on it without either. Same recommendation: the discipline is a value on one node.",
+      "signal": "A schematic printed to a controlled sheet IS a drawing-package sheet. Fixture: HarnessB_Wire-List_RevA.csv with its part number, issue letter and checker — a drawing-package row claims it as an associated list, this row would claim it as wiring design, and the engineering anchor's own title-block signal already fires on it without either. Same recommendation: the discipline is a value on one node.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.cad-model",
-      "why": "An EDA project is a model container the same way a mechanical CAD project is. Fixture: power-supply.kicad_sch beside its .kicad_pcb and .kicad_pro — indistinguishable in kind from an assembly model beside its part models. Both ids would be claiming the same relation, which is the engineering schema's relation.",
+      "signal": "An EDA project is a model container the same way a mechanical CAD project is. Fixture: power-supply.kicad_sch beside its .kicad_pcb and .kicad_pro — indistinguishable in kind from an assembly model beside its part models. Both ids would be claiming the same relation, which is the engineering schema's relation.",
       "provenance": "inference"
     },
     {
       "domain": "construction_property.drawings-revisions",
-      "why": "RECIPROCAL, and the sharpest boundary this refusal has to state. E-102_Lighting-and-Power-Layout_Rev4_IFC.pdf is an electrical schematic sheet by every surface test and belongs to construction_property. FROM THIS SIDE: circuit symbols, cable references and a distribution-board schedule are not enough; where the title block joins a SITE ADDRESS to an ISSUE STATUS in a professional instruction lifecycle, the sheet is site information for one property and this material must not be claimed. FROM THAT SIDE: the same drawing conventions on a sheet that identifies a reusable designed product or assembly with no site, client or issue-for-construction relation are engineering's controlled definition, and construction_property must not claim it merely because a consulting practice drew it. Neither side may infer the other's relation from the shared drawing vocabulary.",
+      "signal": "RECIPROCAL, and the sharpest boundary this refusal has to state. E-102_Lighting-and-Power-Layout_Rev4_IFC.pdf is an electrical schematic sheet by every surface test and belongs to construction_property. FROM THIS SIDE: circuit symbols, cable references and a distribution-board schedule are not enough; where the title block joins a SITE ADDRESS to an ISSUE STATUS in a professional instruction lifecycle, the sheet is site information for one property and this material must not be claimed. FROM THAT SIDE: the same drawing conventions on a sheet that identifies a reusable designed product or assembly with no site, client or issue-for-construction relation are engineering's controlled definition, and construction_property must not claim it merely because a consulting practice drew it. Neither side may infer the other's relation from the shared drawing vocabulary.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.work-instruction",
-      "why": "RECIPROCAL. PanelA_Terminal-Schedule.xlsx is the shared fixture. FROM THIS SIDE: a from/to terminal table with no identified controlled item, no issue and no approval is a build aid — this material must not be claimed as design definition on the strength of the wiring vocabulary alone. FROM THAT SIDE: the same table joined to an identified assembly with an issue letter and an approver (HarnessB_Wire-List_RevA.csv) is design definition and manufacturing must not claim it as an instruction merely because someone will wire from it. The seam is the identified controlled item, not the table shape.",
+      "signal": "RECIPROCAL. PanelA_Terminal-Schedule.xlsx is the shared fixture. FROM THIS SIDE: a from/to terminal table with no identified controlled item, no issue and no approval is a build aid — this material must not be claimed as design definition on the strength of the wiring vocabulary alone. FROM THAT SIDE: the same table joined to an identified assembly with an issue letter and an approver (HarnessB_Wire-List_RevA.csv) is design definition and manufacturing must not claim it as an instruction merely because someone will wire from it. The seam is the identified controlled item, not the table shape.",
       "provenance": "inference"
     },
     {
       "domain": "code.software-project",
-      "why": "RECIPROCAL, and the reason leg 3c fails. FROM THIS SIDE: power-supply.kicad_sch is text-bearing and sits under a repository root with a .git directory and project manifests; 00 routes text-bearing structured files through the structured-text extractor and tells code to rely on repository roots and package files, so the repository evidence is code's and this row must not claim the directory because its files describe hardware. FROM THAT SIDE: a repository is not the whole story where an identified design item, issue status and approval structure also appear — code must not swallow a controlled design definition merely because it is version-controlled in git.",
+      "signal": "RECIPROCAL, and the reason leg 3c fails. FROM THIS SIDE: power-supply.kicad_sch is text-bearing and sits under a repository root with a .git directory and project manifests; 00 routes text-bearing structured files through the structured-text extractor and tells code to rely on repository roots and package files, so the repository evidence is code's and this row must not claim the directory because its files describe hardware. FROM THAT SIDE: a repository is not the whole story where an identified design item, issue status and approval structure also appear — code must not swallow a controlled design definition merely because it is version-controlled in git.",
       "provenance": "inference"
     }
   ],

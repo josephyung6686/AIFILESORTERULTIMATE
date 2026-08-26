@@ -22,7 +22,32 @@
   "proposed_fields": [],
   "proposed_fields_note": "Deliberately empty. Two keys were genuinely tempting and are parked as NEEDS-JOSEPH rather than minted. `structure` (the fixed work) would be a near-synonym of the schema's own unadjudicated `design_item` proposal, and minting a variant of a key that is still before R1c is the exact failure the brief names. `design_code` is not a field at all: one design is checked against several codes at once (a Eurocode suite is EN 1990 + 1992 + 1993 + 1997 simultaneously), so it is multi-valued and can never be a destination dimension; it is a search fact at most.",
   "proposed_context_terms": [
-    "load takedown", "load combination", "characteristic load", "ultimate limit state", "serviceability limit state", "utilisation", "design capacity", "clause", "partial factor", "grid reference", "member mark", "bar mark", "shape code", "cover", "concrete grade", "section size", "bearing capacity", "settlement", "pile schedule", "retaining wall check", "return period", "attenuation storage", "temporary works design", "design certificate", "structural adequacy", "as-designed"
+    "load takedown",
+    "load combination",
+    "characteristic load",
+    "ultimate limit state",
+    "serviceability limit state",
+    "utilisation",
+    "design capacity",
+    "clause",
+    "partial factor",
+    "grid reference",
+    "member mark",
+    "bar mark",
+    "shape code",
+    "cover",
+    "concrete grade",
+    "section size",
+    "bearing capacity",
+    "settlement",
+    "pile schedule",
+    "retaining wall check",
+    "return period",
+    "attenuation storage",
+    "temporary works design",
+    "design certificate",
+    "structural adequacy",
+    "as-designed"
   ],
   "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only; it does not list these. Their presence is plausibility, never proof — the row's best false positive is a textbook containing every one of them.",
   "recognition": {
@@ -93,8 +118,33 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["filesystem", "text_document", "spreadsheet", "presentation", "image", "ocr", "email", "design_creative", "archive", "opaque_binary"],
-    "extensions": [".pdf", ".xlsx", ".xlsm", ".csv", ".docx", ".dwg", ".dxf", ".ifc", ".rvt", ".pptx", ".eml", ".zip", ".png"],
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".xlsm",
+      ".csv",
+      ".docx",
+      ".dwg",
+      ".dxf",
+      ".ifc",
+      ".rvt",
+      ".pptx",
+      ".eml",
+      ".zip",
+      ".png"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -106,8 +156,18 @@
         "result rows pair a computed demand and capacity with a cited code clause and a utilisation figure for named member marks",
         "a footer block records prepared-by, checked-by and approved-by with a chartered registration number"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["domain fields before R1c licenses them", "a lifecycle stage from the P2 suffix", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c licenses them",
+        "a lifecycle stage from the P2 suffix",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -120,8 +180,18 @@
         "a general notes panel states concrete grade and the code the detailing follows",
         "the title block carries a drawing number, a revision letter and an issue status"
       ],
-      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["activation from `.dwg` alone", "the issue/transmittal relation that belongs to construction_property.drawings-revisions", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from `.dwg` alone",
+        "the issue/transmittal relation that belongs to construction_property.drawings-revisions",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": "construction_property",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Unsupported or Encrypted"
@@ -134,8 +204,19 @@
         "a header cell names the governing drawing number and revision",
         "no parent-assembly or child-part relation is stated anywhere"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["that a quantity schedule is a design-authoritative bill of materials", "procurement or production facts", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a quantity schedule is a design-authoritative bill of materials",
+        "procurement or production facts",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -148,8 +229,19 @@
         "capacity and settlement checks are performed against those values and a pile schedule PC-01..PC-12 results",
         "the same PDF reproduces two borehole logs as an appendix"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["that reproducing a log makes this the investigation record", "that adopting a parameter transfers the investigation's own facts onto this file", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that reproducing a log makes this the investigation record",
+        "that adopting a parameter transfers the investigation's own facts onto this file",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": "construction_property",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -162,8 +254,17 @@
         "formula cells reference clause numbers of the named standard in adjacent comment cells",
         "outputs are design pressures per level; no project name, client or structure identifier appears anywhere in the workbook"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["a scheme or structure copied from a sibling file in the same folder", "that the standard's name identifies the work", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a scheme or structure copied from a sibling file in the same folder",
+        "that the standard's name identifies the work",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -176,8 +277,17 @@
         "a design storm and return period are stated and pipe sizes and gradients follow from them",
         "an attenuation volume and a discharge rate limit are given for a named outfall"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["that the discharge consent apparatus is here — that is a permit record", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the discharge consent apparatus is here — that is a permit record",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -190,8 +300,18 @@
         "a certificate page names the temporary works designer, an independent checker, a check category and a scope of design responsibility",
         "signatures and a registration number are reproduced as images"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["the construction-phase safety apparatus that belongs to construction_property.site-health-safety", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the construction-phase safety apparatus that belongs to construction_property.site-health-safety",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": "construction_property",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -204,8 +324,18 @@
         "measured member dimensions and assumed material properties are checked against current loading, and one element's capacity ratio exceeds unity",
         "a conclusion records an adequacy verdict and an occupancy recommendation"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["that an existing-building assessment is a survey record without a design step", "any handling class", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an existing-building assessment is a survey record without a design step",
+        "any handling class",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": "construction_property",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -218,8 +348,18 @@
         "object names repeat the same member marks that appear in the calculation and the schedule",
         "no member has been extracted and no view has been rendered"
       ],
-      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["facts from uninspected model contents", "activation from `.ifc` alone", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from uninspected model contents",
+        "activation from `.ifc` alone",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Unsupported or Encrypted"
@@ -232,8 +372,18 @@
         "an attached one-page calculation extract carries the same member mark",
         "the subject line's mark-shaped token is the only structured evidence in the mail itself"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["activation from the mark-shaped token in a subject line", "a scheme from the sender's employer", "domain fields before R1c", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from the mark-shaped token in a subject line",
+        "a scheme from the sender's employer",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -246,8 +396,18 @@
         "the title block carries a works order number and a fabricator's job reference rather than a design responsibility statement",
         "no code clause, no utilisation and no load case appears anywhere on the sheet"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["this row from piece marks that look exactly like member marks", "that citing the design drawing number transfers the design step", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from piece marks that look exactly like member marks",
+        "that citing the design drawing number transfers the design step",
+        "a folder path"
+      ],
       "also_schema": "manufacturing",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -260,8 +420,17 @@
         "the worked structures are named Example 3.1 and Example 3.2 and have no address, client, scheme number or responsible engineer",
         "front matter is a publisher, an ISBN and a chapter contents list"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["activation from a complete set of context terms", "a design step where the subject is instruction", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from a complete set of context terms",
+        "a design step where the subject is instruction",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Reading Inbox"
@@ -274,37 +443,127 @@
         "no member mark, scheme number, code clause or title is visible in the crop",
         "no EXIF is present; two accepted calculation PDFs sit in the same folder"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["activation from an engineering-looking table", "a structure or mark copied from neighbouring files", "screenshot status from missing EXIF", "a folder path"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from an engineering-looking table",
+        "a structure or mark copied from neighbouring files",
+        "screenshot status from missing EXIF",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "One-Off Images"
     }
   ],
   "collides_with": [
-    {"domain": "construction_property.site-survey", "why": "Reciprocal, and that row wrote its half first: 'an analysis, a calculation, a design assumption or a proposed solution supports the engineering row; a record of what was found with no design step supports this row'. This side agrees on the same fixture bytes and adds the harder case: Foundation-Design-Report_1042_Pile-Layout_RevB.pdf reproduces borehole logs as an appendix and is still this row, because the operative structure is adopted parameters plus capacity checks plus a resulting schedule; a Ground-Investigation-Report with the same logs and no design step is theirs. Where one PDF genuinely contains both a factual log and a design recommendation, both hold on disjoint evidence.", "provenance": "inference"},
-    {"domain": "construction_property.drawings-revisions", "why": "Same fixture on both sides: 1042-S-201_RevC_Ground-Floor-Slab-Reinforcement.dwg. This row owns the design CONTENT — bar marks, shape codes, cover, grade, grid — and the calculation that justifies it. That row owns the ISSUE APPARATUS — drawing register, revision sequence, issue status, transmittal, who received which revision when. A transmittal listing that same sheet is theirs and not this row's; a detail with no revision history is still this row's.", "provenance": "inference"},
-    {"domain": "manufacturing", "why": "The collision fixture of this node: Fabrication-Drawing_Assembly-B12_WO-8871.pdf. Piece marks, steel grades, a drawing number and a revision make it look identical to design evidence. The discriminators are a works order or job reference in place of a design responsibility statement, and the total absence of a load case, a code clause and a utilisation. Execution against a definition — fabrication, erection, inspection, heat and NDT records — is manufacturing; the definition and its justification are this row.", "provenance": "inference"},
-    {"domain": "engineering.simulation-analysis", "why": "Same-schema sibling collision, fixture Wind-Loading-ASCE7-22_Calc.xlsm and any frame FE model. That row's relation is a numerical simulation run: model, mesh, solver, load case, post-processed result. This row's relation is compliance: a demand and a capacity reconciled against a cited clause of a published code for a fixed work. A frame analysis whose output feeds member checks is legitimately in both neighbourhoods; a mesh convergence study is only theirs; a hand or spreadsheet code check with no model is only this row's.", "provenance": "inference"},
-    {"domain": "engineering.drawing-package", "why": "Same-schema sibling collision on every drawing this row touches. That row is the discipline-neutral controlled drawing SET — title blocks, sheet numbering, register, package issue. This row is the fixed-work design and its calculation justification, of which drawings are one output. Fixture: the same rebar sheet is package evidence to that row and design evidence here; neither reading requires the other.", "provenance": "inference"},
-    {"domain": "engineering.bill-of-materials", "why": "Fixture: Bar-Bending-Schedule_1042-S-201_RevC.xlsx. That row keys on a parent-assembly to child-part relation with quantities and drawing revisions — a product structure. A bar schedule has no parent assembly: it is a per-drawing, per-member quantity take-off under a published bending-shape catalogue. This row concedes any schedule that does state a parent/child product structure.", "provenance": "inference"},
-    {"domain": "engineering.process-plant-design", "why": "Fixture: a pipe rack or a plant support structure. Process apparatus — P&ID, line list, equipment schedule, stream data — is that row; the structure that carries it, designed by load takedown and member check, is this row. Both may hold on one plant package because both relations are explicitly evidenced.", "provenance": "inference"},
-    {"domain": "engineering.standards-library", "why": "Fixture: any file whose most conspicuous string is a design-code designation. The published standard, code handbook or design manual itself is that row. This row's files CITE codes as the authority for a result about a specific work. This is the reason 'a design-code name alone' is on never_alone.", "provenance": "inference"},
-    {"domain": "government.planning-application", "why": "Fixture: the structural calculation appended to a submission pack. An application reference, a validation letter, a consultee response or an officer's report supports that row; the calculation deliverable itself supports this row. The same seam construction_property.site-survey already declared against that row, stated identically here.", "provenance": "inference"},
-    {"domain": "code", "why": "Fixture: beam_check.py, a script that performs the same code checks. A repository root, a manifest, a test suite and source structure activate code; a produced calculation with a design responsibility statement activates this row. A design office's calculation script is code even though its employer designs bridges — the mirror of the practice-name never_alone rule.", "provenance": "inference"},
-    {"domain": "research", "why": "Fixture: a capacity study of a structural product. Knowledge-producing work with a venue, citations and generalisable claims is research; an adequacy verdict on a named existing structure at an address is this row. The tell is whether the object is a proposition or a work.", "provenance": "inference"}
+    {
+      "domain": "construction_property.site-survey",
+      "signal": "Reciprocal, and that row wrote its half first: 'an analysis, a calculation, a design assumption or a proposed solution supports the engineering row; a record of what was found with no design step supports this row'. This side agrees on the same fixture bytes and adds the harder case: Foundation-Design-Report_1042_Pile-Layout_RevB.pdf reproduces borehole logs as an appendix and is still this row, because the operative structure is adopted parameters plus capacity checks plus a resulting schedule; a Ground-Investigation-Report with the same logs and no design step is theirs. Where one PDF genuinely contains both a factual log and a design recommendation, both hold on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "signal": "Same fixture on both sides: 1042-S-201_RevC_Ground-Floor-Slab-Reinforcement.dwg. This row owns the design CONTENT — bar marks, shape codes, cover, grade, grid — and the calculation that justifies it. That row owns the ISSUE APPARATUS — drawing register, revision sequence, issue status, transmittal, who received which revision when. A transmittal listing that same sheet is theirs and not this row's; a detail with no revision history is still this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "The collision fixture of this node: Fabrication-Drawing_Assembly-B12_WO-8871.pdf. Piece marks, steel grades, a drawing number and a revision make it look identical to design evidence. The discriminators are a works order or job reference in place of a design responsibility statement, and the total absence of a load case, a code clause and a utilisation. Execution against a definition — fabrication, erection, inspection, heat and NDT records — is manufacturing; the definition and its justification are this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "signal": "Same-schema sibling collision, fixture Wind-Loading-ASCE7-22_Calc.xlsm and any frame FE model. That row's relation is a numerical simulation run: model, mesh, solver, load case, post-processed result. This row's relation is compliance: a demand and a capacity reconciled against a cited clause of a published code for a fixed work. A frame analysis whose output feeds member checks is legitimately in both neighbourhoods; a mesh convergence study is only theirs; a hand or spreadsheet code check with no model is only this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Same-schema sibling collision on every drawing this row touches. That row is the discipline-neutral controlled drawing SET — title blocks, sheet numbering, register, package issue. This row is the fixed-work design and its calculation justification, of which drawings are one output. Fixture: the same rebar sheet is package evidence to that row and design evidence here; neither reading requires the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "Fixture: Bar-Bending-Schedule_1042-S-201_RevC.xlsx. That row keys on a parent-assembly to child-part relation with quantities and drawing revisions — a product structure. A bar schedule has no parent assembly: it is a per-drawing, per-member quantity take-off under a published bending-shape catalogue. This row concedes any schedule that does state a parent/child product structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.process-plant-design",
+      "signal": "Fixture: a pipe rack or a plant support structure. Process apparatus — P&ID, line list, equipment schedule, stream data — is that row; the structure that carries it, designed by load takedown and member check, is this row. Both may hold on one plant package because both relations are explicitly evidenced.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "signal": "Fixture: any file whose most conspicuous string is a design-code designation. The published standard, code handbook or design manual itself is that row. This row's files CITE codes as the authority for a result about a specific work. This is the reason 'a design-code name alone' is on never_alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.planning-application",
+      "signal": "Fixture: the structural calculation appended to a submission pack. An application reference, a validation letter, a consultee response or an officer's report supports that row; the calculation deliverable itself supports this row. The same seam construction_property.site-survey already declared against that row, stated identically here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "Fixture: beam_check.py, a script that performs the same code checks. A repository root, a manifest, a test suite and source structure activate code; a produced calculation with a design responsibility statement activates this row. A design office's calculation script is code even though its employer designs bridges — the mirror of the practice-name never_alone rule.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Fixture: a capacity study of a structural product. Knowledge-producing work with a venue, citations and generalisable claims is research; an adequacy verdict on a named existing structure at an address is this row. The tell is whether the object is a proposition or a work.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [
-    {"domain": "construction_property", "why": "Schema-level, per the contract's restriction on this edge. A fixed-work design is frequently also a site record: the rebar sheet is issued for construction under a contract, the adequacy assessment concerns a managed property, the temporary works certificate belongs to a site file. Both relations are separately evidenced — a design step on one side, a property or instruction on the other — and neither is inferred from the other.", "provenance": "inference"},
-    {"domain": "manufacturing", "why": "Schema-level. A precast or structural steel package can carry a design definition and a fabrication execution record in one bundle; the works order and the code check are disjoint evidence and both may be true.", "provenance": "inference"},
-    {"domain": "research", "why": "Schema-level. An instrumented structure or a monitored trial can both verify a design assumption for a named work and produce generalisable knowledge with its own project and artifact facts.", "provenance": "inference"}
+    {
+      "domain": "construction_property",
+      "signal": "Schema-level, per the contract's restriction on this edge. A fixed-work design is frequently also a site record: the rebar sheet is issued for construction under a contract, the adequacy assessment concerns a managed property, the temporary works certificate belongs to a site file. Both relations are separately evidenced — a design step on one side, a property or instruction on the other — and neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "Schema-level. A precast or structural steel package can carry a design definition and a fabrication execution record in one bundle; the works order and the code check are disjoint evidence and both may be true.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Schema-level. An instrumented structure or a monitored trial can both verify a design assumption for a named work and produce generalisable knowledge with its own project and artifact facts.",
+      "provenance": "inference"
+    }
   ],
   "falls_through_to": [
-    {"residual_template": "Independent Records", "why": "A sealed calculation, a design certificate or a standalone assessment with durable meaning but no reliably evidenced structure or accepted project belongs here rather than activating from discipline words.", "provenance": "design", "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."},
-    {"residual_template": "Review Later", "why": "The correct home for the ambiguous technical workbook: Wind-Loading-ASCE7-22_Calc.xlsm is recognisably a code check and identifies no work, so whether it designs, checks, prices or teaches cannot be settled from its own evidence. 00 requires that 'conflicting signals should lead to abstention rather than an invented classification'.", "provenance": "design", "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."},
-    {"residual_template": "Unsupported or Encrypted", "why": "Native analysis and BIM containers — proprietary frame-analysis models, IFC and vendor model files — retain basic metadata without filename-only purpose inference.", "provenance": "design", "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."},
-    {"residual_template": "Reading Inbox", "why": "Where the row's context terms are all present but the subject is instruction rather than a work — the worked-examples fixture. Context terms are not evidence.", "provenance": "design", "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."},
-    {"residual_template": "One-Off Images", "why": "The cropped utilisation screenshot with no mark, scheme or title visible, which must not borrow facts from the accepted calculations beside it.", "provenance": "design", "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."}
+    {
+      "residual_template": "Independent Records",
+      "why": "A sealed calculation, a design certificate or a standalone assessment with durable meaning but no reliably evidenced structure or accepted project belongs here rather than activating from discipline words.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The correct home for the ambiguous technical workbook: Wind-Loading-ASCE7-22_Calc.xlsm is recognisably a code check and identifies no work, so whether it designs, checks, prices or teaches cannot be settled from its own evidence. 00 requires that 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Native analysis and BIM containers — proprietary frame-analysis models, IFC and vendor model files — retain basic metadata without filename-only purpose inference.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Where the row's context terms are all present but the subject is instruction rather than a work — the worked-examples fixture. Context terms are not evidence.",
+      "provenance": "design",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The cropped utilisation screenshot with no mark, scheme or title visible, which must not borrow facts from the accepted calculations beside it.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
   ],
   "role_split": [],
   "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is DESIGNER against INDEPENDENT CHECKER — both named, both registered, both signing the same temporary works certificate. There is no canonical key for either role, authorship is never a destination under 00, and minting a producer-side key to solve one template's problem is precisely the move that generated thousands of private field names. It is recorded in the temporary works fixture's observations instead.",

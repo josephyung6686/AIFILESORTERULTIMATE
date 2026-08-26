@@ -469,17 +469,17 @@
   "also_holds_with": [
     {
       "domain": "engineering",
-      "why": "A supplier-issued declaration or a submitted study is simultaneously relationship evidence here and a substantive statement about a material or a characteristic there. Shared fixture: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — supplier-issued and therefore approval evidence on this side, while its substance table is a material-content statement on the engineering side; both hold on disjoint evidence rather than fighting, as engineering.material-specification already stated reciprocally.",
+      "signal": "A supplier-issued declaration or a submitted study is simultaneously relationship evidence here and a substantive statement about a material or a characteristic there. Shared fixture: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — supplier-issued and therefore approval evidence on this side, while its substance table is a material-content statement on the engineering side; both hold on disjoint evidence rather than fighting, as engineering.material-specification already stated reciprocally.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "Supplier approval is both a quality control and an organisational control. An audit-finding tracker with owners, due dates and management review carries both the assessment structure this row needs and the workflow business_operations owns, when one file genuinely contains both.",
+      "signal": "Supplier approval is both a quality control and an organisational control. An audit-finding tracker with owners, due dates and management review carries both the assessment structure this row needs and the workflow business_operations owns, when one file genuinely contains both.",
       "provenance": "inference"
     },
     {
       "domain": "logistics",
-      "why": "A received consignment may carry a certificate of conformance that is both custody evidence for the shipment and standing evidence for the supplier. Each schema activates from its own slots; a supplier-approval fact is never copied onto a sparse packing list because the files arrived together.",
+      "signal": "A received consignment may carry a certificate of conformance that is both custody evidence for the shipment and standing evidence for the supplier. Each schema activates from its own slots; a supplier-approval fact is never copied onto a sparse packing list because the files arrived together.",
       "provenance": "inference"
     }
   ],

@@ -545,22 +545,22 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "The commonest co-activation here and the reason the row can stay narrow. A production volume's members include executed instruments and filed proceeding records that carry `legal`'s own structure; the volume apparatus carries this row's. Disjoint evidence, one corpus, both schemas fieldless, so the join carries protection and co-activation rather than fields. `legal` is a safety domain, so where they co-activate the protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The commonest co-activation here and the reason the row can stay narrow. A production volume's members include executed instruments and filed proceeding records that carry `legal`'s own structure; the volume apparatus carries this row's. Disjoint evidence, one corpus, both schemas fieldless, so the join carries protection and co-activation rather than fields. `legal` is a safety domain, so where they co-activate the protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A produced ledger, statement or invoice run is Finance evidence on Finance's own institution-and-account slots AND a member of a production range on this row's. Being inside a control-number range is a relationship and never a reclassification; Finance keeps its slots and this row keeps its anchor. Provenance: inference.",
+      "signal": "A produced ledger, statement or invoice run is Finance evidence on Finance's own institution-and-account slots AND a member of a production range on this row's. Being inside a control-number range is a relationship and never a reclassification; Finance keeps its slots and this row keeps its anchor. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "medical.personal-health-records",
-      "why": "Named because it is the most consequential co-activation and the one the row's privacy argument rests on. Fixture `Produced records - Marsh - HN0007712-HN0007990.pdf` is a clinical record on Medical's evidence and a production member on this row's. Production membership must not strip the clinical protection, and the clinical protection must not hide the fact that the file is part of a bounded disclosed set. Provenance: inference.",
+      "signal": "Named because it is the most consequential co-activation and the one the row's privacy argument rests on. Fixture `Produced records - Marsh - HN0007712-HN0007990.pdf` is a clinical record on Medical's evidence and a production member on this row's. Production membership must not strip the clinical protection, and the clinical protection must not hide the fact that the file is part of a bounded disclosed set. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity.core-documents",
-      "why": "Identity documents are collected and produced in volume in immigration, family, insurance and fraud matters. Identity keeps its own evidence and its own protection; this row adds only range membership. Provenance: inference.",
+      "signal": "Identity documents are collected and produced in volume in immigration, family, insurance and fraud matters. Identity keeps its own evidence and its own protection; this row adds only range membership. Provenance: inference.",
       "provenance": "inference"
     }
   ],

@@ -101,8 +101,29 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "archive", "design_creative", "filesystem"],
-    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".pptx", ".eml", ".msg", ".zip", ".dwg", ".png"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "design_creative",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".dwg",
+      ".png"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -115,7 +136,12 @@
         "labelled Reason for Change block naming a supplier obsolescence and a field-return trend",
         "Requested By and Date slots filled; Disposition slot present and EMPTY"
       ],
-      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
       "must_not_conclude": [
         "a folder path",
         "that the change was approved — the disposition slot is empty and a request is not an order",
@@ -135,7 +161,12 @@
         "Effectivity slot reading `from serial 4400`",
         "Disposition slot reading Approved with four named approver roles and dates"
       ],
-      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
       "must_not_conclude": [
         "a folder path",
         "that the four artifacts named in the affected-documents table have acquired this file's facts — they are links, and each must be evidenced on its own",
@@ -155,7 +186,10 @@
         "Status column values are dispositions, not lifecycle gates",
         "no title block, no approval block, no single affected item"
       ],
-      "facts_legal": ["project", "engineering_artifact_type"],
+      "facts_legal": [
+        "project",
+        "engineering_artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "a single design_item — the sheet spans many, and picking the most frequent would be an invented fact",
@@ -174,7 +208,12 @@
         "labelled recipient list spanning engineering, purchasing and production distribution groups",
         "one attachment named for the approved order"
       ],
-      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
       "must_not_conclude": [
         "a folder path",
         "facts about the attachment without opening it — the mail's claim about the attachment is context, not extraction",
@@ -194,7 +233,11 @@
         "approval roster with two named roles",
         "no new revision is created anywhere on the page"
       ],
-      "facts_legal": ["project", "design_item", "engineering_artifact_type"],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "a revision change — a deviation permits a bounded departure and explicitly does NOT supersede the definition",
@@ -213,7 +256,10 @@
         "each agenda item carries an affected item and a decision word (approved, deferred, rejected)",
         "actions and owners recorded at the end"
       ],
-      "facts_legal": ["project", "engineering_artifact_type"],
+      "facts_legal": [
+        "project",
+        "engineering_artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "a single design_item — the minutes disposition several",
@@ -231,7 +277,12 @@
         "member paths repeat one change identifier",
         "manifest read without extraction"
       ],
-      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
       "must_not_conclude": [
         "a folder path",
         "member-level facts that only extraction could establish",
@@ -249,7 +300,12 @@
         "clouded regions and revision triangles overlaid on two views",
         "a stamp in the margin referencing the change identifier"
       ],
-      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
       "must_not_conclude": [
         "a folder path",
         "that this is the released Rev D drawing — a redline is change evidence and the released sheet is engineering.drawing-package's file",
@@ -267,7 +323,11 @@
         "every slot is empty or carries placeholder text",
         "sits in a folder beside two filled change requests"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "a folder path",
         "a design_item, a revision or a disposition — labels without values evidence a template, not a change",
@@ -286,7 +346,11 @@
         "OCR yields an item-shaped token, the word REV and dense but broken text",
         "no camera EXIF present"
       ],
-      "facts_legal": ["file_type", "creation_date", "media_type"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "that missing EXIF proves a screenshot — 00: `the system must not mistake the absence of EXIF for proof that an image is a screenshot`",
@@ -401,12 +465,12 @@
   "also_holds_with": [
     {
       "domain": "business_operations",
-      "why": "Restricted to the engineering schema row's declared co-activations. A change board's minutes can be simultaneously a governed meeting record (attendance, actions, decisions) and a change record (dispositions bound to identified items and change identifiers). Both relations are independently evidenced on `CCB_2026-05-12_Minutes.docx`; neither is inferred from the other.",
+      "signal": "Restricted to the engineering schema row's declared co-activations. A change board's minutes can be simultaneously a governed meeting record (attendance, actions, decisions) and a change record (dispositions bound to identified items and change identifiers). Both relations are independently evidenced on `CCB_2026-05-12_Minutes.docx`; neither is inferred from the other.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing",
-      "why": "An effectivity-bearing change order is genuinely both: it alters the released definition (this row) and instructs production from a stated serial or lot (execution evidence). The two relations sit in different labelled slots on the same page, which is why this is co-activation and not the nonconformance collision above.",
+      "signal": "An effectivity-bearing change order is genuinely both: it alters the released definition (this row) and instructs production from a stated serial or lot (execution evidence). The two relations sit in different labelled slots on the same page, which is why this is co-activation and not the nonconformance collision above.",
       "provenance": "inference"
     }
   ],

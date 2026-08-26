@@ -440,7 +440,7 @@
   "also_holds_with": [
     {
       "domain": "business_operations.board-governance",
-      "why": "A committee risk paper carrying BOTH a committee footer and a register table holds two independent structures in one file, on genuinely disjoint evidence - neither is being mistaken for the other, which is 00's co-activation case rather than a collision. The `collides_with` entry is KEPT, because the narrative risk paper with no register table in it really is contested; this entry covers the disjoint case only. EDGE TYPE REVERSED IN THIS PASS from a pure collision. Authored ONE-WAY here; that row does not name this one and R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A committee risk paper carrying BOTH a committee footer and a register table holds two independent structures in one file, on genuinely disjoint evidence - neither is being mistaken for the other, which is 00's co-activation case rather than a collision. The `collides_with` entry is KEPT, because the narrative risk paper with no register table in it really is contested; this entry covers the disjoint case only. EDGE TYPE REVERSED IN THIS PASS from a pure collision. Authored ONE-WAY here; that row does not name this one and R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

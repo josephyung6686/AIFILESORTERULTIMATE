@@ -148,7 +148,14 @@
         "tasks include contract returned, right to work checked, payroll set up, laptop issued, building access granted, induction booked",
         "one start date appears in the title and again in a labelled header cell"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any hr fact as canonical - the schema declares none under PR-6",
         "that the laptop task makes this an asset record",
@@ -167,7 +174,12 @@
         "separate owner columns assign HR, IT, payroll and facilities tasks",
         "the same fixture bytes the hr schema anchor carries; named identically here so both rows agree"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "a workforce_member or people_cycle fact before R1c promotes the keys",
         "that the embedded equipment column makes the workbook an IT inventory",
@@ -186,7 +198,12 @@
         "a start date slot and a signature block",
         "no employer process structure beyond the form itself"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the bank slot makes this a finance account record",
         "that the identifier slot makes this an identity core document - it is a COPY of one datum, not the document",
@@ -205,7 +222,11 @@
         "no form, no checklist, no employer letterhead, no task or owner structure in the bytes",
         "OCR would recover a machine-readable zone and a document number"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this row fired - it did not; the folder name is never-alone and the bytes are an identity document",
         "that a joiner process exists because a right-to-work task exists somewhere else",
@@ -224,7 +245,13 @@
         "an org-chart slide and a floor-plan slide reused from other decks",
         "no employee named anywhere; no course code, module structure, syllabus or assessment"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the org-chart slide makes this an establishment plan",
         "that the benefits slide makes this a compensation record",
@@ -243,7 +270,12 @@
         "the governing handbook text is not contained in the file",
         "the same fixture bytes business_operations.policy-handbook names on its side of the boundary"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this row owns the governing handbook; business_operations.policy-handbook owns the controlled document",
         "a workforce_member fact before R1c",
@@ -261,7 +293,12 @@
         "an issue-or-return checkbox, a date, and signatures from custodian and IT",
         "the same fixture bytes business_operations.it-asset-inventory names, which already records this as a co-activation"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "which of this row and business_operations.it-asset-inventory owns it - both anchors can be present and P10 chooses from an accepted group later",
         "an employment fact from a signature block",
@@ -280,7 +317,13 @@
         "a last working day in a labelled header cell",
         "a knowledge-handover row pointing at a separate document"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "a reason for leaving; the file states a date, not a cause",
         "an employee-relations case from the existence of a departure",
@@ -299,7 +342,12 @@
         "three managers named and criticised by name",
         "no case reference, no allegation framing, no investigator"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that criticism of a named manager constitutes a grievance; hr.employee-relations needs case structure",
         "the leaver's identity from the managers named in the prose",
@@ -318,7 +366,12 @@
         "tasks are KYC check, conflict check, engagement letter signed, credit terms agreed, portal access granted, kickoff booked, welcome pack sent",
         "the subject of every task is a company, and an engagement reference appears in the header"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this row fired - it did not; the word onboarding and the checklist shape are both never-alone",
         "an employment status change; no natural person acquires one here",
@@ -336,7 +389,12 @@
         "members span five different schemas and share no topic",
         "one person's name recurs across four of the seven member filenames"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that purpose coherence licenses absorbing the right-to-work scan or the contract into an hr group; each member keeps its own schema and the strictest side governs exposure",
         "that every member shares every fact carried by any other member",
@@ -355,7 +413,12 @@
         "no date, no year, no employer, no person, no letterhead",
         "sits in a directory beside an induction deck and two signed acknowledgements"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "a people cycle, a workforce unit or an employee copied from the neighbouring files",
         "that neighbourhood membership is activation; a file may join a group without this template firing on its own bytes",
@@ -416,15 +479,15 @@
   "also_holds_with": [
     {
       "domain": "business_operations",
-      "why": "A joiner or leaver checklist is simultaneously an employer personnel process and an IT, facilities and access-management work record; an acknowledgement simultaneously evidences a controlled policy version. Both schemas may hold disjoint facts about the same bytes. This row's stricter handling governs the person-identifying members. Inherited from the hr schema row's own also_holds_with; this row narrows it to the joiner and leaver fixtures."
+      "signal": "A joiner or leaver checklist is simultaneously an employer personnel process and an IT, facilities and access-management work record; an acknowledgement simultaneously evidences a controlled policy version. Both schemas may hold disjoint facts about the same bytes. This row's stricter handling governs the person-identifying members. Inherited from the hr schema row's own also_holds_with; this row narrows it to the joiner and leaver fixtures."
     },
     {
       "domain": "identity",
-      "why": "A completed new-starter form and a right-to-work packet member carry statutory identifiers and identity documents inside an employer process. Co-activation is lawful and necessary, but it is asymmetric: identity's protection runs first, identity facts stay identity's, and nothing in this row licenses copying an identifier into a process fact. Inherited from the hr schema row's protection posture and narrowed to this situation."
+      "signal": "A completed new-starter form and a right-to-work packet member carry statutory identifiers and identity documents inside an employer process. Co-activation is lawful and necessary, but it is asymmetric: identity's protection runs first, identity facts stay identity's, and nothing in this row licenses copying an identifier into a process fact. Inherited from the hr schema row's protection posture and narrowed to this situation."
     },
     {
       "domain": "legal",
-      "why": "A contract of employment, a settlement agreement and a restrictive-covenant reminder issued on departure are both process members and legal instruments. Legal status does not erase the joiner or leaver process structure around them, and process membership does not make this row the owner of the instrument. Inherited from the hr schema row."
+      "signal": "A contract of employment, a settlement agreement and a restrictive-covenant reminder issued on departure are both process members and legal instruments. Legal status does not erase the joiner or leaver process structure around them, and process membership does not make this row the owner of the instrument. Inherited from the hr schema row."
     }
   ],
   "falls_through_to": [

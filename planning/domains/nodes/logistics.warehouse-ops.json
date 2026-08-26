@@ -394,12 +394,12 @@
   "also_holds_with": [
     {
       "domain": "manufacturing",
-      "why": "A quarantine hold notice records a storage disposition and a fitness disposition in the same bytes, and a goods-received note at a factory door is a put-away trigger and a lot acceptance at once. Each schema activates from its own slots; a lot-quality fact is never copied onto a put-away task, nor a location fact onto a genealogy sheet, merely because the files group. `00`: “One file may hold facts from more than one domain without losing information.”",
+      "signal": "A quarantine hold notice records a storage disposition and a fitness disposition in the same bytes, and a goods-received note at a factory door is a put-away trigger and a lot acceptance at once. Each schema activates from its own slots; a lot-quality fact is never copied onto a put-away task, nor a location fact onto a genealogy sheet, merely because the files group. `00`: “One file may hold facts from more than one domain without losing information.”",
       "provenance": "design"
     },
     {
       "domain": "photos",
-      "why": "A damage or condition photograph taken at a pick face is a capture with EXIF and a business record of the state of goods. It is written here as an image whose site and stock facts must come from an accepted group and never from the frame, so the double reading costs nothing.",
+      "signal": "A damage or condition photograph taken at a pick face is a capture with EXIF and a business record of the state of goods. It is written here as an image whose site and stock facts must come from an accepted group and never from the frame, so the double reading costs nothing.",
       "provenance": "inference"
     }
   ],

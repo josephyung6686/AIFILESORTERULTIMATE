@@ -179,9 +179,24 @@
     {
       "filename": "March 2026 payroll register - FINAL.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["header row contains employee ID, employee name, department, gross pay, deductions, employer contributions, and net pay", "one row per worker and employer-side control totals", "workbook labels the March 2026 pay run"],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["any HR fact as canonical because this placeholder declares no fields", "that this is one employee's career record or a bank account statement", "a folder path"],
+      "observations": [
+        "header row contains employee ID, employee name, department, gross pay, deductions, employer contributions, and net pay",
+        "one row per worker and employer-side control totals",
+        "workbook labels the March 2026 pay run"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any HR fact as canonical because this placeholder declares no fields",
+        "that this is one employee's career record or a bank account statement",
+        "a folder path"
+      ],
       "also_schema": "finance",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -189,9 +204,23 @@
     {
       "filename": "FY27 establishment and headcount plan v5.pptx",
       "source_type": "presentation",
-      "observations": ["slides show current and proposed reporting lines", "tables label approved posts, vacancies, grades, locations, and headcount deltas", "no project work packages or delivery milestones"],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["workforce_unit or people_cycle while those keys remain proposals", "that every named person belongs to the proposed structure", "a folder path"],
+      "observations": [
+        "slides show current and proposed reporting lines",
+        "tables label approved posts, vacancies, grades, locations, and headcount deltas",
+        "no project work packages or delivery milestones"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "workforce_unit or people_cycle while those keys remain proposals",
+        "that every named person belongs to the proposed structure",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -199,9 +228,22 @@
     {
       "filename": "New joiners - September intake tracker.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["columns combine joiner name, employee ID, start date, manager, department, induction, equipment, payroll, and completion status", "one row per joiner", "separate owner columns assign HR, IT, payroll, and facilities tasks"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["a workforce_member fact or people_cycle fact before R1c", "that the embedded equipment task makes the entire workbook an IT inventory", "a folder path"],
+      "observations": [
+        "columns combine joiner name, employee ID, start date, manager, department, induction, equipment, payroll, and completion status",
+        "one row per joiner",
+        "separate owner columns assign HR, IT, payroll, and facilities tasks"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a workforce_member fact or people_cycle fact before R1c",
+        "that the embedded equipment task makes the entire workbook an IT inventory",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -209,9 +251,22 @@
     {
       "filename": "Annual review calibration - Customer Ops.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["labelled review period and business unit", "rows contain employee, manager, proposed rating, calibrated rating, promotion recommendation, and comments", "formula cells summarize rating distribution"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["that a corporate OKR or strategy workbook is HR merely because people own objectives", "any rating or recommendation as a canonical fact", "a folder path"],
+      "observations": [
+        "labelled review period and business unit",
+        "rows contain employee, manager, proposed rating, calibrated rating, promotion recommendation, and comments",
+        "formula cells summarize rating distribution"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a corporate OKR or strategy workbook is HR merely because people own objectives",
+        "any rating or recommendation as a canonical fact",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -219,9 +274,23 @@
     {
       "filename": "Grievance GRV-2026-014 investigation pack.zip",
       "source_type": "archive",
-      "observations": ["manifest lists grievance form, acknowledgement email, interview notes, evidence screenshots, findings report, outcome letter, and appeal", "outer name and several members repeat a case reference", "members include private correspondence and third-party statements"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
-      "must_not_conclude": ["personnel_case as a stored fact while it remains proposed", "that every member shares every person's identity or allegation", "that the archive may be sent to a cloud model", "a folder path"],
+      "observations": [
+        "manifest lists grievance form, acknowledgement email, interview notes, evidence screenshots, findings report, outcome letter, and appeal",
+        "outer name and several members repeat a case reference",
+        "members include private correspondence and third-party statements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "personnel_case as a stored fact while it remains proposed",
+        "that every member shares every person's identity or allegation",
+        "that the archive may be sent to a cloud model",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -229,9 +298,23 @@
     {
       "filename": "Employee engagement survey raw responses.csv",
       "source_type": "spreadsheet",
-      "observations": ["headers contain survey item, response scale, business unit, location, tenure band, and free-text comment", "rows represent responses rather than customers", "small population cuts and free text may permit re-identification"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["that aggregation or removed names makes the file non-sensitive", "a generic market-research purpose", "demographic attributes as schema facts", "a folder path"],
+      "observations": [
+        "headers contain survey item, response scale, business unit, location, tenure band, and free-text comment",
+        "rows represent responses rather than customers",
+        "small population cuts and free text may permit re-identification"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that aggregation or removed names makes the file non-sensitive",
+        "a generic market-research purpose",
+        "demographic attributes as schema facts",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -239,9 +322,23 @@
     {
       "filename": "Incident 26-031 - warehouse fall report.pdf",
       "source_type": "ocr",
-      "observations": ["OCR recovers labelled employee/injured-person, site, date/time, witnesses, injury description, immediate action, investigation, and corrective action slots", "scan has no extractable text layer", "a medical attachment is named in the form but is not embedded"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["a clinical diagnosis from the injury description", "that absence of a text layer proves this is a scan", "personnel_case while it remains proposed", "a folder path"],
+      "observations": [
+        "OCR recovers labelled employee/injured-person, site, date/time, witnesses, injury description, immediate action, investigation, and corrective action slots",
+        "scan has no extractable text layer",
+        "a medical attachment is named in the form but is not embedded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a clinical diagnosis from the injury description",
+        "that absence of a text layer proves this is a scan",
+        "personnel_case while it remains proposed",
+        "a folder path"
+      ],
       "also_schema": "clinical_practice",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -249,9 +346,22 @@
     {
       "filename": "Handbook acknowledgement - J Patel - signed.pdf",
       "source_type": "text_document",
-      "observations": ["document identifies one employee and one handbook version", "signature and acknowledgement date are in labelled slots", "the governing handbook text is not contained in the file"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["that HR owns the governing handbook; business_operations owns the controlled policy", "workforce_member before R1c", "a folder path"],
+      "observations": [
+        "document identifies one employee and one handbook version",
+        "signature and acknowledgement date are in labelled slots",
+        "the governing handbook text is not contained in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that HR owns the governing handbook; business_operations owns the controlled policy",
+        "workforce_member before R1c",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -259,9 +369,22 @@
     {
       "filename": "Offer Letter - Summer Analyst.pdf",
       "source_type": "text_document",
-      "observations": ["employer letterhead", "labelled role, start date, compensation, and acceptance signature", "one individual's copy with no roster, HR workflow, or employer-side case context"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["HR activation from employer authorship or employee-identifying content alone", "that the employer is the organizing entity merely because it issued the letter", "a folder path"],
+      "observations": [
+        "employer letterhead",
+        "labelled role, start date, compensation, and acceptance signature",
+        "one individual's copy with no roster, HR workflow, or employer-side case context"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "HR activation from employer authorship or employee-identifying content alone",
+        "that the employer is the organizing entity merely because it issued the letter",
+        "a folder path"
+      ],
       "also_schema": "career",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -269,32 +392,80 @@
     {
       "filename": "Project Phoenix resource plan.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["rows assign named people to work packages", "columns contain allocation percentage, milestone, start, end, and project role", "allocations terminate at project closure and no establishment posts or grades appear"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["HR activation from names, job titles, or utilization percentages", "a workforce plan when the structure is bounded project delivery", "a folder path"],
+      "observations": [
+        "rows assign named people to work packages",
+        "columns contain allocation percentage, milestone, start, end, and project role",
+        "allocations terminate at project closure and no establishment posts or grades appear"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "HR activation from names, job titles, or utilization percentages",
+        "a workforce plan when the structure is bounded project delivery",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
     }
   ],
   "collides_with": [
-    {"domain": "career", "signal": "Shared fixture: `Offer Letter - Summer Analyst.pdf`, a performance review, separation letter, payslip, or training certificate. CAREER MUST NOT TAKE an employer-side roster, multi-employee cycle, or personnel case merely because each member could be copied to an individual. HR MUST NOT TAKE one individual's own employment evidence merely because the issuer is their employer. The discriminator is employer-side process/population/case structure, not whose laptop holds the bytes."},
-    {"domain": "business_operations", "signal": "Shared fixtures: `FY27 establishment and headcount plan v5.pptx`, `Project Phoenix resource plan.xlsx`, `Employee Handbook v4.2.pdf`, and `Handbook acknowledgement - J Patel - signed.pdf`. BUSINESS_OPERATIONS MUST NOT TAKE the workforce-subject side: establishment posts, employee cycles, named personnel cases, or signed acknowledgements. HR MUST NOT TAKE the project allocation, governing policy, generic survey, budget, risk register, meeting, or retrospective without a workforce population/process/case anchor."},
-    {"domain": "finance", "signal": "Shared fixture: `March 2026 payroll register - FINAL.xlsx`. FINANCE MUST NOT reduce an employer payroll roster to generic transactions and accounts; HR MUST NOT take a household's payslip, bank statement, tax record, or benefits statement merely because it names an employer. Multi-employee payroll-run structure supports HR; account/statement ownership and the individual's own receipt support finance or career."}
+    {
+      "domain": "career",
+      "signal": "Shared fixture: `Offer Letter - Summer Analyst.pdf`, a performance review, separation letter, payslip, or training certificate. CAREER MUST NOT TAKE an employer-side roster, multi-employee cycle, or personnel case merely because each member could be copied to an individual. HR MUST NOT TAKE one individual's own employment evidence merely because the issuer is their employer. The discriminator is employer-side process/population/case structure, not whose laptop holds the bytes."
+    },
+    {
+      "domain": "business_operations",
+      "signal": "Shared fixtures: `FY27 establishment and headcount plan v5.pptx`, `Project Phoenix resource plan.xlsx`, `Employee Handbook v4.2.pdf`, and `Handbook acknowledgement - J Patel - signed.pdf`. BUSINESS_OPERATIONS MUST NOT TAKE the workforce-subject side: establishment posts, employee cycles, named personnel cases, or signed acknowledgements. HR MUST NOT TAKE the project allocation, governing policy, generic survey, budget, risk register, meeting, or retrospective without a workforce population/process/case anchor."
+    },
+    {
+      "domain": "finance",
+      "signal": "Shared fixture: `March 2026 payroll register - FINAL.xlsx`. FINANCE MUST NOT reduce an employer payroll roster to generic transactions and accounts; HR MUST NOT take a household's payslip, bank statement, tax record, or benefits statement merely because it names an employer. Multi-employee payroll-run structure supports HR; account/statement ownership and the individual's own receipt support finance or career."
+    }
   ],
   "also_holds_with": [
-    {"domain": "business_operations", "why": "A joiner tracker can also be an IT/facilities task record; an acknowledgement can also evidence a controlled policy version; a headcount plan can also support a budget. Both schemas may hold disjoint facts, while HR's stricter handling governs employee-identifying members."},
-    {"domain": "finance", "why": "An employer payroll register is simultaneously a workforce administration record and evidence for ledger, cash, tax, and remittance processes. Co-activation is lawful; neither side copies its facts into the other."},
-    {"domain": "clinical_practice", "why": "An occupational-health, adjustment, fitness, or injury file can be both an employer process record and a clinical record. Clinical facts remain clinical and the stricter privacy posture governs."},
-    {"domain": "legal", "why": "Employment agreements, formal investigations, collective consultation, and grievance packs may be both personnel records and legal instruments or matter evidence. Legal status does not erase the employee-subject structure."}
+    {
+      "domain": "business_operations",
+      "signal": "A joiner tracker can also be an IT/facilities task record; an acknowledgement can also evidence a controlled policy version; a headcount plan can also support a budget. Both schemas may hold disjoint facts, while HR's stricter handling governs employee-identifying members."
+    },
+    {
+      "domain": "finance",
+      "signal": "An employer payroll register is simultaneously a workforce administration record and evidence for ledger, cash, tax, and remittance processes. Co-activation is lawful; neither side copies its facts into the other."
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "An occupational-health, adjustment, fitness, or injury file can be both an employer process record and a clinical record. Clinical facts remain clinical and the stricter privacy posture governs."
+    },
+    {
+      "domain": "legal",
+      "signal": "Employment agreements, formal investigations, collective consultation, and grievance packs may be both personnel records and legal instruments or matter evidence. Legal status does not erase the employee-subject structure."
+    }
   ],
   "falls_through_to": [
-    {"template": "Protected Records", "when": "employee-identifying, payroll, grievance, performance, health, safety, demographic, or free-text workforce material is sensitive but HR activation is absent or uncertain"},
-    {"template": "Independent Records", "when": "a durable standalone employment or administrative document has no employer-side personnel process, workforce population, or accepted group"}
+    {
+      "template": "Protected Records",
+      "when": "employee-identifying, payroll, grievance, performance, health, safety, demographic, or free-text workforce material is sensitive but HR activation is absent or uncertain"
+    },
+    {
+      "template": "Independent Records",
+      "when": "a durable standalone employment or administrative document has no employer-side personnel process, workforce population, or accepted group"
+    }
   ],
   "role_split": [
-    {"domain": "career", "this_role": "employer-side administrator of a workforce process, population, or personnel case", "other_role": "the individual's own recruiting, employment, achievement, and work-history evidence"},
-    {"domain": "business_operations", "this_role": "people as the governed workforce subject", "other_role": "the organisation, project, policy, asset, contract, budget, or operational process being run"}
+    {
+      "domain": "career",
+      "this_role": "employer-side administrator of a workforce process, population, or personnel case",
+      "other_role": "the individual's own recruiting, employment, achievement, and work-history evidence"
+    },
+    {
+      "domain": "business_operations",
+      "this_role": "people as the governed workforce subject",
+      "other_role": "the organisation, project, policy, asset, contract, budget, or operational process being run"
+    }
   ],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Employee identity joined to pay, performance, allegations, investigation evidence, health or injury, absence, demographic cuts, survey free text, or termination status can expose material harm even when each datum looks ordinary alone. Aggregated workforce files can remain re-identifiable through small populations and comments. Therefore employee-identifying content must be protected before any cloud step, raw content must not appear in general summaries, and automated movement requires explicit policy. This catalogue value does not invent a handling class or claim every policy/training document is sensitive; governing documents without person-side evidence remain on business_operations with that row's posture.",

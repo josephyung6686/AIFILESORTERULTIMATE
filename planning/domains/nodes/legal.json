@@ -443,22 +443,22 @@
   "also_holds_with": [
     {
       "domain": "career",
-      "why": "an executed employment agreement, NDA or separation agreement is career material and legal material on one file, on disjoint evidence: the role and employer context is career's, the party recital and execution block is legal's. 00's privacy sentence names both in one corpus list - 'identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. The landed career node authors the same edge from its side, so this pair is reciprocal today. Both schemas are field-less placeholders, so the join carries co-activation and protection rather than fields. Provenance: inference.",
+      "signal": "an executed employment agreement, NDA or separation agreement is career material and legal material on one file, on disjoint evidence: the role and employer context is career's, the party recital and execution block is legal's. 00's privacy sentence names both in one corpus list - 'identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. The landed career node authors the same edge from its side, so this pair is reciprocal today. Both schemas are field-less placeholders, so the join carries co-activation and protection rather than fields. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "one closing or financing packet legally carries both fact sets: the finance schema's institution, account_type, record_type and tax_year from the disclosure and statement members, and the legal reading from the deed and note members. Same structure as 00's abstract that is Research and Applications at once - 'One file may hold facts from more than one domain without losing information.' Disjoint evidence, so this is not the collision above; the collision signal exists for the single shared institution name. Provenance: inference.",
+      "signal": "one closing or financing packet legally carries both fact sets: the finance schema's institution, account_type, record_type and tax_year from the disclosure and statement members, and the legal reading from the deed and note members. Same structure as 00's abstract that is Research and Applications at once - 'One file may hold facts from more than one domain without losing information.' Disjoint evidence, so this is not the collision above; the collision signal exists for the single shared institution name. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "a civil-status certificate (marriage, divorce decree, name change) both establishes a person's status for identity purposes and is an instrument of record; and 00 already licenses the packet case on the neighbouring side, since an application packet legitimately contains an identity document. Disjoint evidence activates both; neither is a merge. Both are field-less placeholders, so the join carries co-activation and protection. Provenance: inference.",
+      "signal": "a civil-status certificate (marriage, divorce decree, name change) both establishes a person's status for identity purposes and is an instrument of record; and 00 already licenses the packet case on the neighbouring side, since an application packet legitimately contains an identity document. Disjoint evidence activates both; neither is a merge. Both are field-less placeholders, so the join carries co-activation and protection. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "medical",
-      "why": "an advance directive, medical power of attorney or a settlement built on a medical record is a legal instrument whose content is medical information. 00's privacy sentence names 'medical information' and 'legal records' in the same corpus list, and CONNECTION PR-8 uses exactly this shape for the healthcare-insurance case, where the medical safety placeholder co-activates via also_holds_with and still writes no fields. Two safety placeholders co-activating means protection is applied twice over and no fields are written on either side. Provenance: inference.",
+      "signal": "an advance directive, medical power of attorney or a settlement built on a medical record is a legal instrument whose content is medical information. 00's privacy sentence names 'medical information' and 'legal records' in the same corpus list, and CONNECTION PR-8 uses exactly this shape for the healthcare-insurance case, where the medical safety placeholder co-activates via also_holds_with and still writes no fields. Two safety placeholders co-activating means protection is applied twice over and no fields are written on either side. Provenance: inference.",
       "provenance": "inference"
     }
   ],

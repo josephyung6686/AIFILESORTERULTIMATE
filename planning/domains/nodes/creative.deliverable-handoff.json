@@ -125,9 +125,17 @@
     {
       "filename": "Northwind_Final_Artwork_Delivery_Manifest_v2.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["rows name exact files, formats, colour spaces, intended channels and checksums", "header names sender, recipient, package revision and transmittal date", "matching files exist beside the manifest"],
+      "observations": [
+        "rows name exact files, formats, colour spaces, intended channels and checksums",
+        "header names sender, recipient, package revision and transmittal date",
+        "matching files exist beside the manifest"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["a client, project, stage, rights grant or delivery date fact because the schema declares none", "that intended use is legal permission", "a folder path"],
+      "must_not_conclude": [
+        "a client, project, stage, rights grant or delivery date fact because the schema declares none",
+        "that intended use is legal permission",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -135,9 +143,17 @@
     {
       "filename": "RE Northwind final artwork received.eml",
       "source_type": "email",
-      "observations": ["receiver-side sender says the named manifest revision and listed files were downloaded", "message quotes the transfer identifier", "no quality acceptance language appears"],
+      "observations": [
+        "receiver-side sender says the named manifest revision and listed files were downloaded",
+        "message quotes the transfer identifier",
+        "no quality acceptance language appears"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that receipt equals creative or legal acceptance", "that payment is due", "a folder path"],
+      "must_not_conclude": [
+        "that receipt equals creative or legal acceptance",
+        "that payment is due",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -145,9 +161,18 @@
     {
       "filename": "Northwind_Identity_Master_R3_acceptance-signed.pdf",
       "source_type": "text_document",
-      "observations": ["acceptance block identifies the exact R3 proof and manifest v2", "client-side approver and studio representative occupy labelled roles", "exceptions section is blank rather than inferred absent"],
+      "observations": [
+        "acceptance block identifies the exact R3 proof and manifest v2",
+        "client-side approver and studio representative occupy labelled roles",
+        "exceptions section is blank rather than inferred absent"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["contract validity", "acceptance of unlisted source files", "transfer of copyright", "a folder path"],
+      "must_not_conclude": [
+        "contract validity",
+        "acceptance of unlisted source files",
+        "transfer of copyright",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -155,9 +180,18 @@
     {
       "filename": "Northwind_Usage_and_Third-Party_Assets_Schedule.pdf",
       "source_type": "text_document",
-      "observations": ["table maps named delivered assets to media, territory, term and attribution", "font and stock-image rows identify separate licensors", "document cites the delivery manifest revision"],
+      "observations": [
+        "table maps named delivered assets to media, territory, term and attribution",
+        "font and stock-image rows identify separate licensors",
+        "document cites the delivery manifest revision"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["copyright ownership", "that every restriction is enforceable", "that this rights document alone proves delivery", "a folder path"],
+      "must_not_conclude": [
+        "copyright ownership",
+        "that every restriction is enforceable",
+        "that this rights document alone proves delivery",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -165,9 +199,18 @@
     {
       "filename": "Source_Files_Custody_Receipt_Studio-to-Northwind.pdf",
       "source_type": "ocr",
-      "observations": ["scanned form lists an SSD serial, editable source filenames and font package", "labelled received-by signature and timestamp appear", "return, retention and deletion boxes are visible but OCR is uncertain"],
+      "observations": [
+        "scanned form lists an SSD serial, editable source filenames and font package",
+        "labelled received-by signature and timestamp appear",
+        "return, retention and deletion boxes are visible but OCR is uncertain"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["the selected custody condition where OCR is ambiguous", "ownership transfer", "that a signature image identifies an authorised approver", "a folder path"],
+      "must_not_conclude": [
+        "the selected custody condition where OCR is ambiguous",
+        "ownership transfer",
+        "that a signature image identifies an authorised approver",
+        "a folder path"
+      ],
       "also_schema": "logistics",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
@@ -175,9 +218,18 @@
     {
       "filename": "Northwind_Rebrand_Handoff_v2.zip",
       "source_type": "archive",
-      "observations": ["readable archive manifest lists deliverables, readme, acceptance and rights schedule", "member hashes match the external manifest", "one unlisted invoice is present as a separate member"],
+      "observations": [
+        "readable archive manifest lists deliverables, readme, acceptance and rights schedule",
+        "member hashes match the external manifest",
+        "one unlisted invoice is present as a separate member"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["member facts from archive paths", "that the invoice amount is a creative fact", "that archive completeness proves acceptance", "a folder path"],
+      "must_not_conclude": [
+        "member facts from archive paths",
+        "that the invoice amount is a creative fact",
+        "that archive completeness proves acceptance",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -185,9 +237,17 @@
     {
       "filename": "HANDOFF_README_Northwind_v2.md",
       "source_type": "text_document",
-      "observations": ["sections identify package revision, opening instructions and required linked fonts", "a table distinguishes included sources from flattened exports", "third-party restrictions point to the named rights schedule"],
+      "observations": [
+        "sections identify package revision, opening instructions and required linked fonts",
+        "a table distinguishes included sources from flattened exports",
+        "third-party restrictions point to the named rights schedule"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that technical inclusion transfers ownership", "that all links remain available", "a folder path"],
+      "must_not_conclude": [
+        "that technical inclusion transfers ownership",
+        "that all links remain available",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -195,9 +255,17 @@
     {
       "filename": "Northwind_logo_master_FINAL.ai",
       "source_type": "design_creative",
-      "observations": ["filename contains master and FINAL", "artboards and linked fonts are readable", "no manifest, recipient, receipt, acceptance, rights or custody reference appears inside"],
+      "observations": [
+        "filename contains master and FINAL",
+        "artboards and linked fonts are readable",
+        "no manifest, recipient, receipt, acceptance, rights or custody reference appears inside"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["activation of this row from an export or stage word", "that the file was delivered or accepted", "a folder path"],
+      "must_not_conclude": [
+        "activation of this row from an export or stage word",
+        "that the file was delivered or accepted",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -205,9 +273,17 @@
     {
       "filename": "Project Phoenix Closure and Benefits Review.pdf",
       "source_type": "text_document",
-      "observations": ["milestone completion, risk closure, lessons learned and benefits-owner sections", "sponsor signs project closure", "no creative member list, creative acceptance target, rights schedule or custody record appears"],
+      "observations": [
+        "milestone completion, risk closure, lessons learned and benefits-owner sections",
+        "sponsor signs project closure",
+        "no creative member list, creative acceptance target, rights schedule or custody record appears"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that terminal project state is a creative handoff", "that the word deliverables denotes exported media", "a folder path"],
+      "must_not_conclude": [
+        "that terminal project state is a creative handoff",
+        "that the word deliverables denotes exported media",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -215,9 +291,18 @@
     {
       "filename": "Courier POD - SSD SN-A1B2C3.pdf",
       "source_type": "text_document",
-      "observations": ["carrier tracking number, delivery address, timestamp and signature image", "parcel description says SSD only", "no creative package, member manifest or custody conditions are identified"],
+      "observations": [
+        "carrier tracking number, delivery address, timestamp and signature image",
+        "parcel description says SSD only",
+        "no creative package, member manifest or custody conditions are identified"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that physical delivery proves creative handoff or acceptance", "the contents of the SSD", "that a signatory is a creative approver", "a folder path"],
+      "must_not_conclude": [
+        "that physical delivery proves creative handoff or acceptance",
+        "the contents of the SSD",
+        "that a signatory is a creative approver",
+        "a folder path"
+      ],
       "also_schema": "logistics",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -225,9 +310,17 @@
     {
       "filename": "StockPhoto_84721_License.pdf",
       "source_type": "text_document",
-      "observations": ["licensor, licensee, asset identifier and permitted-use terms", "no delivery manifest or client recipient is named", "the licensed image is not present nearby"],
+      "observations": [
+        "licensor, licensee, asset identifier and permitted-use terms",
+        "no delivery manifest or client recipient is named",
+        "the licensed image is not present nearby"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["activation of this handoff row", "that the asset was used or transferred", "a folder path"],
+      "must_not_conclude": [
+        "activation of this handoff row",
+        "that the asset was used or transferred",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -263,12 +356,12 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A signed acceptance, rights schedule, licence, release, escrow instruction, or custody undertaking may remain legal evidence while also documenting the handoff lifecycle. Legal effect is never inferred by this row.",
+      "signal": "A signed acceptance, rights schedule, licence, release, escrow instruction, or custody undertaking may remain legal evidence while also documenting the handoff lifecycle. Legal effect is never inferred by this row.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A final invoice or payment confirmation may be enclosed in the same package and independently carry finance facts, but payment neither proves nor substitutes for receipt, acceptance, rights, or custody.",
+      "signal": "A final invoice or payment confirmation may be enclosed in the same package and independently carry finance facts, but payment neither proves nor substitutes for receipt, acceptance, rights, or custody.",
       "provenance": "inference"
     }
   ],

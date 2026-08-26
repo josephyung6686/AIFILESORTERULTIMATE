@@ -474,22 +474,22 @@
   "also_holds_with": [
     {
       "domain": "law_practice",
-      "why": "The parent-schema co-activation, and it is the normal case rather than the exception: this row's three-role structure is strictly additive on top of the schema's two-role default, so a funded matter activates both and the schema's own default holds everything that is not a funding artefact. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The parent-schema co-activation, and it is the normal case rather than the exception: this row's three-role structure is strictly additive on top of the schema's two-role default, so a funded matter activates both and the schema's own default holds everything that is not a funding artefact. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "Eligibility and gateway evidence routinely arrives as another person's identity documents, benefit award letters and proofs of address. Those are `identity`'s on `identity`'s own evidence and remain protected there; this row recognises only the FILING of them against a scheme criterion. `identity` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Eligibility and gateway evidence routinely arrives as another person's identity documents, benefit award letters and proofs of address. Those are `identity`'s on `identity`'s own evidence and remain protected there; this row recognises only the FILING of them against a scheme criterion. `identity` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "medical",
-      "why": "The gateway-evidence structure frequently carries a health professional's letter about a third party, and a prior-authority request frequently proposes a psychiatric or medical report. The clinical content is `medical`'s and stays there; this row holds the authorisation and the criterion reference only. `medical` is a safety domain and runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The gateway-evidence structure frequently carries a health professional's letter about a third party, and a prior-authority request frequently proposes a psychiatric or medical report. The clinical content is `medical`'s and stays there; this row holds the authorisation and the criterion reference only. `medical` is a safety domain and runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A claim to a funder, its assessment and the receipt of scheme payments are simultaneously this row's authority-payer structure and `finance`'s issuer-and-amount evidence, on disjoint slots. `finance` is a safety domain and runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A claim to a funder, its assessment and the receipt of scheme payments are simultaneously this row's authority-payer structure and `finance`'s issuer-and-amount evidence, on disjoint slots. `finance` is a safety domain and runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

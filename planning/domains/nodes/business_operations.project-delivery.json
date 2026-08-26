@@ -495,7 +495,7 @@
   "also_holds_with": [
     {
       "domain": "career",
-      "why": "A delivery record the holder authored is simultaneously their own work sample and their employer's or client's project record - disjoint evidence in one file: an internal sponsor and a stage gate for this schema, the holder's own authorship and role for career. This is 00's abstract-and-application shape in a working-life setting, not a mutex. AUTHORED ONE-WAY HERE; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A delivery record the holder authored is simultaneously their own work sample and their employer's or client's project record - disjoint evidence in one file: an internal sponsor and a stage gate for this schema, the holder's own authorship and role for career. This is 00's abstract-and-application shape in a working-life setting, not a mutex. AUTHORED ONE-WAY HERE; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

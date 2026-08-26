@@ -108,7 +108,58 @@
     ]
   },
   "proposed_context_terms": [
-    "consignor", "consignee", "notify party", "shipper", "carrier", "haulier", "freight forwarder", "place of taking over", "place of delivery", "goods description", "gross weight", "net weight", "number of packages", "marks and numbers", "seal number", "container number", "vessel", "voyage", "received in apparent good order", "clean on board", "incoterm", "ex works", "delivered duty paid", "commodity code", "tariff heading", "country of origin", "customs procedure code", "declarant", "movement reference", "bonded", "proof of delivery", "delivered at", "carded", "refused", "shortage", "damage in transit", "run sheet", "drop sequence", "walkaround check", "defect report", "operator licence", "driving hours", "tachograph", "daily rest", "periodic training", "goods in", "put-away", "bin location", "pick", "book out", "cross-dock", "bailment"
+    "consignor",
+    "consignee",
+    "notify party",
+    "shipper",
+    "carrier",
+    "haulier",
+    "freight forwarder",
+    "place of taking over",
+    "place of delivery",
+    "goods description",
+    "gross weight",
+    "net weight",
+    "number of packages",
+    "marks and numbers",
+    "seal number",
+    "container number",
+    "vessel",
+    "voyage",
+    "received in apparent good order",
+    "clean on board",
+    "incoterm",
+    "ex works",
+    "delivered duty paid",
+    "commodity code",
+    "tariff heading",
+    "country of origin",
+    "customs procedure code",
+    "declarant",
+    "movement reference",
+    "bonded",
+    "proof of delivery",
+    "delivered at",
+    "carded",
+    "refused",
+    "shortage",
+    "damage in transit",
+    "run sheet",
+    "drop sequence",
+    "walkaround check",
+    "defect report",
+    "operator licence",
+    "driving hours",
+    "tachograph",
+    "daily rest",
+    "periodic training",
+    "goods in",
+    "put-away",
+    "bin location",
+    "pick",
+    "book out",
+    "cross-dock",
+    "bailment"
   ],
   "work_types": [
     "consignment note, waybill, CMR or air waybill",
@@ -148,17 +199,57 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "image", "ocr", "email", "code_structured", "archive", "opaque_binary", "filesystem"],
-    "extensions": ["pdf", "docx", "xlsx", "csv", "jpg", "png", "heic", "eml", "xml", "json", "edi", "zip", "ddd"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "heic",
+      "eml",
+      "xml",
+      "json",
+      "edi",
+      "zip",
+      "ddd"
+    ],
     "never_alone": true
   },
   "file_examples": [
     {
       "filename": "CMR_2026-04-11_DE-HK.pdf",
       "source_type": "text_document",
-      "observations": ["numbered boxes labelled Sender, Consignee and Carrier hold three different organizations", "goods description with number of packages and gross weight", "place of taking over and place of delivery in separate boxes", "a received-in-apparent-good-order clause with a signature box, and no price anywhere on the page"],
-      "facts_legal": ["file_type", "creation_date", "language", "consignment (proposed)", "carrier (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["that the consignee organization is the record-owning organization", "an amount owed, from a declared value for carriage", "a folder path"],
+      "observations": [
+        "numbered boxes labelled Sender, Consignee and Carrier hold three different organizations",
+        "goods description with number of packages and gross weight",
+        "place of taking over and place of delivery in separate boxes",
+        "a received-in-apparent-good-order clause with a signature box, and no price anywhere on the page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "consignment (proposed)",
+        "carrier (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that the consignee organization is the record-owning organization",
+        "an amount owed, from a declared value for carriage",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -166,9 +257,24 @@
     {
       "filename": "BL_MAEU5512884.pdf",
       "source_type": "text_document",
-      "observations": ["Shipper, Consignee and Notify Party slots", "container and seal numbers, vessel and voyage", "clean-on-board notation and a number-of-originals statement", "endorsement space on the reverse"],
-      "facts_legal": ["file_type", "creation_date", "consignment (proposed)", "carrier (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["that possession of the file means possession of title to the goods", "the notify party as the consignee", "a folder path"],
+      "observations": [
+        "Shipper, Consignee and Notify Party slots",
+        "container and seal numbers, vessel and voyage",
+        "clean-on-board notation and a number-of-originals statement",
+        "endorsement space on the reverse"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed)",
+        "carrier (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that possession of the file means possession of title to the goods",
+        "the notify party as the consignee",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -176,9 +282,22 @@
     {
       "filename": "Packing list SO-9912.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["rows are cartons, not priced lines: carton number, marks and numbers, contents, net and gross weight, dimensions", "a totals row for packages and weight", "no unit price, tax column or amount due", "a lot column is present on some rows"],
-      "facts_legal": ["file_type", "consignment (proposed, where a labelled reference appears)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["a sales order value from the SO reference", "a batch_lot fact for the shipment as a whole from lots on some rows", "a folder path"],
+      "observations": [
+        "rows are cartons, not priced lines: carton number, marks and numbers, contents, net and gross weight, dimensions",
+        "a totals row for packages and weight",
+        "no unit price, tax column or amount due",
+        "a lot column is present on some rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "consignment (proposed, where a labelled reference appears)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a sales order value from the SO reference",
+        "a batch_lot fact for the shipment as a whole from lots on some rows",
+        "a folder path"
+      ],
       "also_schema": "manufacturing",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -186,9 +305,25 @@
     {
       "filename": "POD_export_2026-03.csv",
       "source_type": "spreadsheet",
-      "observations": ["one row per consignment: waybill reference, depot code, delivered-at timestamp, latitude and longitude, signatory surname, status code", "many rows, one carrier network", "no job, plot, site or works reference in any column"],
-      "facts_legal": ["file_type", "creation_date", "consignment (proposed)", "carrier (proposed)", "site (proposed, from the depot column only)", "sensitivity_status"],
-      "must_not_conclude": ["a delivery address as `site`", "a signatory surname as a folder dimension", "a construction job from a delivery postcode", "a folder path"],
+      "observations": [
+        "one row per consignment: waybill reference, depot code, delivered-at timestamp, latitude and longitude, signatory surname, status code",
+        "many rows, one carrier network",
+        "no job, plot, site or works reference in any column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed)",
+        "carrier (proposed)",
+        "site (proposed, from the depot column only)",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a delivery address as `site`",
+        "a signatory surname as a folder dimension",
+        "a construction job from a delivery postcode",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -196,9 +331,23 @@
     {
       "filename": "Export declaration MRN 26GB1234567890.pdf",
       "source_type": "text_document",
-      "observations": ["movement reference number in a labelled slot", "commodity code, country of origin, customs procedure code and incoterm", "declarant and representative slots distinct from exporter", "declared value for duty"],
-      "facts_legal": ["file_type", "creation_date", "consignment (proposed, where the transport reference is labelled)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["the declared value as a paid amount or a tax_year fact", "the declarant as the carrier", "a folder path"],
+      "observations": [
+        "movement reference number in a labelled slot",
+        "commodity code, country of origin, customs procedure code and incoterm",
+        "declarant and representative slots distinct from exporter",
+        "declared value for duty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed, where the transport reference is labelled)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "the declared value as a paid amount or a tax_year fact",
+        "the declarant as the carrier",
+        "a folder path"
+      ],
       "also_schema": "government",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -206,9 +355,21 @@
     {
       "filename": "Tacho_driver_0429_2026-W16.ddd",
       "source_type": "opaque_binary",
-      "observations": ["a digital tachograph card download, unreadable as text without a decoder", "filename carries a driver number and an ISO week", "sibling files in the same folder are weekly downloads for several driver numbers"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["a named driver, a vehicle or an hours infringement from the filename", "that the week token is a tax_year or a version number", "a folder path"],
+      "observations": [
+        "a digital tachograph card download, unreadable as text without a decoder",
+        "filename carries a driver number and an ISO week",
+        "sibling files in the same folder are weekly downloads for several driver numbers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a named driver, a vehicle or an hours infringement from the filename",
+        "that the week token is a tax_year or a version number",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
@@ -216,9 +377,21 @@
     {
       "filename": "Driver medical certificate - D Okonkwo 2026.pdf",
       "source_type": "text_document",
-      "observations": ["a named individual, a licence category and a fitness-to-drive opinion signed by a clinician", "an expiry date", "no consignment, vehicle or carrier structure of any kind"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["the driver's name as a destination dimension", "an employment fact, an employer or a fleet", "a folder path"],
+      "observations": [
+        "a named individual, a licence category and a fitness-to-drive opinion signed by a clinician",
+        "an expiry date",
+        "no consignment, vehicle or carrier structure of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the driver's name as a destination dimension",
+        "an employment fact, an employer or a fleet",
+        "a folder path"
+      ],
       "also_schema": "medical",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -226,9 +399,23 @@
     {
       "filename": "Vehicle_MOT_YK71ABC_2026.pdf",
       "source_type": "text_document",
-      "observations": ["a statutory test certificate keyed on one registration and VIN", "advisory and failure items with an outcome", "an expiry date", "nothing on the page says whether the vehicle is operated commercially"],
-      "facts_legal": ["file_type", "creation_date", "asset (reuse of the manufacturing proposal)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["a fleet from a single vehicle", "a carrier or an operator from a garage name", "a folder path"],
+      "observations": [
+        "a statutory test certificate keyed on one registration and VIN",
+        "advisory and failure items with an outcome",
+        "an expiry date",
+        "nothing on the page says whether the vehicle is operated commercially"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (reuse of the manufacturing proposal)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a fleet from a single vehicle",
+        "a carrier or an operator from a garage name",
+        "a folder path"
+      ],
       "also_schema": "finance",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -236,9 +423,24 @@
     {
       "filename": "Run sheet Route 12 2026-04-11.pdf",
       "source_type": "text_document",
-      "observations": ["one date, one vehicle registration and one driver name in labelled slots", "an ORDERED drop sequence with addresses, planned windows and actual times", "a debrief column recording failed attempts and reasons"],
-      "facts_legal": ["file_type", "creation_date", "asset (reuse proposed)", "site (proposed, from a labelled departure depot)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["a consignment fact for every drop from the sequence alone", "customer addresses as destination dimensions", "the driver's name as a folder level", "a folder path"],
+      "observations": [
+        "one date, one vehicle registration and one driver name in labelled slots",
+        "an ORDERED drop sequence with addresses, planned windows and actual times",
+        "a debrief column recording failed attempts and reasons"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (reuse proposed)",
+        "site (proposed, from a labelled departure depot)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a consignment fact for every drop from the sequence alone",
+        "customer addresses as destination dimensions",
+        "the driver's name as a folder level",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -246,9 +448,23 @@
     {
       "filename": "Goods in 2026-04 Depot B.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["rows are custody events: inbound reference, received quantity, bin location, timestamp, handler initials", "a put-away column distinct from the receipt column", "an exception column for damage and quarantine", "no unit cost, retail price or stock valuation column anywhere"],
-      "facts_legal": ["file_type", "site (proposed)", "consignment (proposed, from a labelled inbound reference)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["a stock valuation or an owned-inventory fact", "that the depot operator owns the goods", "a folder path"],
+      "observations": [
+        "rows are custody events: inbound reference, received quantity, bin location, timestamp, handler initials",
+        "a put-away column distinct from the receipt column",
+        "an exception column for damage and quarantine",
+        "no unit cost, retail price or stock valuation column anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (proposed)",
+        "consignment (proposed, from a labelled inbound reference)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a stock valuation or an owned-inventory fact",
+        "that the depot operator owns the goods",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -256,9 +472,24 @@
     {
       "filename": "IMG_20260411_1432.jpg",
       "source_type": "image",
-      "observations": ["a parcel photographed on a doorstep", "EXIF capture time and GPS coordinates", "a house number and a front door are legible in the frame", "no reference, label or barcode readable in the image"],
-      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates", "sensitivity_status"],
-      "must_not_conclude": ["a consignment, a carrier or a recipient from the image", "the GPS coordinate as `site`", "that missing GPS would prove a screenshot", "a folder path"],
+      "observations": [
+        "a parcel photographed on a doorstep",
+        "EXIF capture time and GPS coordinates",
+        "a house number and a front door are legible in the frame",
+        "no reference, label or barcode readable in the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a consignment, a carrier or a recipient from the image",
+        "the GPS coordinate as `site`",
+        "that missing GPS would prove a screenshot",
+        "a folder path"
+      ],
       "also_schema": "photos",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "One-Off Images"
@@ -266,9 +497,21 @@
     {
       "filename": "Shipping docs pack MAEU5512884.zip",
       "source_type": "archive",
-      "observations": ["manifest lists a bill of lading, a packing list, a certificate of origin and a declaration, all carrying one container reference", "mixed PDF and XLSX members", "the archive itself carries no labelled slot"],
-      "facts_legal": ["file_type", "creation_date", "consignment (proposed, possible from the manifest)"],
-      "must_not_conclude": ["facts read from members that were not inspected", "that every member concerns the same consignment merely because the archive does", "a folder path"],
+      "observations": [
+        "manifest lists a bill of lading, a packing list, a certificate of origin and a declaration, all carrying one container reference",
+        "mixed PDF and XLSX members",
+        "the archive itself carries no labelled slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed, possible from the manifest)"
+      ],
+      "must_not_conclude": [
+        "facts read from members that were not inspected",
+        "that every member concerns the same consignment merely because the archive does",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
@@ -276,9 +519,21 @@
     {
       "filename": "Freight invoice 88214 - Kuehne.pdf",
       "source_type": "text_document",
-      "observations": ["consignment references appear as line-item descriptions", "an amount due, a fuel surcharge, a VAT treatment, payment terms and a remit-to block", "an invoice number and a due date", "no acknowledgement of receipt of goods and no consignee role slot"],
-      "facts_legal": ["file_type", "creation_date"],
-      "must_not_conclude": ["logistics activation from consignment references in a line-item description", "a proof of delivery from a billed movement", "a folder path"],
+      "observations": [
+        "consignment references appear as line-item descriptions",
+        "an amount due, a fuel surcharge, a VAT treatment, payment terms and a remit-to block",
+        "an invoice number and a due date",
+        "no acknowledgement of receipt of goods and no consignee role slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "logistics activation from consignment references in a line-item description",
+        "a proof of delivery from a billed movement",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -286,9 +541,21 @@
     {
       "filename": "Shipping confirmation - order 10093.eml",
       "source_type": "email",
-      "observations": ["a retailer's templated mail saying an order has shipped", "a tracking number and a courier brand name", "an order number, an item and a price", "one recipient, one purchase, no role structure and no acknowledgement of arrival"],
-      "facts_legal": ["file_type", "creation_date"],
-      "must_not_conclude": ["logistics activation from a tracking number and a courier brand", "a consignment fact from a tracking-shaped token in a marketing template", "a folder path"],
+      "observations": [
+        "a retailer's templated mail saying an order has shipped",
+        "a tracking number and a courier brand name",
+        "an order number, an item and a price",
+        "one recipient, one purchase, no role structure and no acknowledgement of arrival"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "logistics activation from a tracking number and a courier brand",
+        "a consignment fact from a tracking-shaped token in a marketing template",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -296,9 +563,20 @@
     {
       "filename": "DN-448120 - Marsh Lane.pdf",
       "source_type": "text_document",
-      "observations": ["a merchant's delivery note keyed to a job reference and a plot", "a received-by signature from a site manager and a hand-annotated shortage", "no consignment, waybill, depot or leg reference of any kind"],
-      "facts_legal": ["file_type", "creation_date"],
-      "must_not_conclude": ["logistics activation from the word delivery or from a received-by signature", "a carrier from the merchant's name", "a folder path"],
+      "observations": [
+        "a merchant's delivery note keyed to a job reference and a plot",
+        "a received-by signature from a site manager and a hand-annotated shortage",
+        "no consignment, waybill, depot or leg reference of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "logistics activation from the word delivery or from a received-by signature",
+        "a carrier from the merchant's name",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -344,32 +622,32 @@
   "also_holds_with": [
     {
       "domain": "construction_property.materials-delivery",
-      "why": "A carrier's proof of delivery for a merchant delivery to a named site genuinely carries a consignment key and a job key at once. That row wrote it as “on the gate itself” and said both families should retrieve it; this row agrees and does not attempt a discriminator, because there is no honest one in the bytes. `00`: “One file may hold facts from more than one domain without losing information.”",
+      "signal": "A carrier's proof of delivery for a merchant delivery to a named site genuinely carries a consignment key and a job key at once. That row wrote it as “on the gate itself” and said both families should retrieve it; this row agrees and does not attempt a discriminator, because there is no honest one in the bytes. `00`: “One file may hold facts from more than one domain without losing information.”",
       "provenance": "design"
     },
     {
       "domain": "manufacturing",
-      "why": "A released-lot packet holds genealogy and custody evidence in the same bytes, and a goods-received note is a consignment receipt and a lot acceptance at once. Each schema activates from its own slots; a lot fact is never copied into a sparse packing list, nor a consignment fact into a genealogy sheet, merely because the files group.",
+      "signal": "A released-lot packet holds genealogy and custody evidence in the same bytes, and a goods-received note is a consignment receipt and a lot acceptance at once. Each schema activates from its own slots; a lot fact is never copied into a sparse packing list, nor a consignment fact into a genealogy sheet, merely because the files group.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "A customs declaration is simultaneously a consignment's travelling document and a submission to a public authority, on disjoint evidence — the transport reference on one side, the declarant, procedure code and authority on the other.",
+      "signal": "A customs declaration is simultaneously a consignment's travelling document and a submission to a public authority, on disjoint evidence — the transport reference on one side, the declarant, procedure code and authority on the other.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "A bill of lading is a transport record and a negotiable instrument in the same bytes; so is a delivery order.",
+      "signal": "A bill of lading is a transport record and a negotiable instrument in the same bytes; so is a delivery order.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "A doorstep proof-of-delivery image is a capture with EXIF and a business record of an arrival. It is written here as an image whose consignment must come from an accepted group and never from the frame, so the double reading costs nothing.",
+      "signal": "A doorstep proof-of-delivery image is a capture with EXIF and a business record of an arrival. It is written here as an image whose consignment must come from an accepted group and never from the frame, so the double reading costs nothing.",
       "provenance": "inference"
     },
     {
       "domain": "medical",
-      "why": "A driver medical-fitness certificate is health information about a named person and a statutory entitlement record. It is carried here only so that the privacy posture travels with it; on this schema's side it fires nothing without an entitlement structure.",
+      "signal": "A driver medical-fitness certificate is health information about a named person and a statutory entitlement record. It is carried here only so that the privacy posture travels with it; on this schema's side it fires nothing without an entitlement structure.",
       "provenance": "inference"
     }
   ],

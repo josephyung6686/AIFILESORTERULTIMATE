@@ -418,12 +418,12 @@
   "also_holds_with": [
     {
       "domain": "hr",
-      "why": "A signed device handover form is one file under two situations on disjoint evidence - the asset identifier and its custody transfer for this row, the joiner-or-leaver process and the named employee for hr. This is co-activation, not a mutex, and where it happens the hr side governs the individual-identifying members, per the schema row's rule that where one file crosses, the stricter side wins. AUTHORED ONE-WAY HERE: the hr schema is not yet written and R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A signed device handover form is one file under two situations on disjoint evidence - the asset identifier and its custody transfer for this row, the joiner-or-leaver process and the named employee for hr. This is co-activation, not a mutex, and where it happens the hr side governs the individual-identifying members, per the schema row's rule that where one file crosses, the stricter side wins. AUTHORED ONE-WAY HERE: the hr schema is not yet written and R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "An estate export that carries a real credential column holds both an inventory structure and credential material, on genuinely disjoint evidence. identity is a safety domain, so its activation unlocks protection before any model or placement path; this row's activation unlocks nothing beyond a field-less schema. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "An estate export that carries a real credential column holds both an inventory structure and credential material, on genuinely disjoint evidence. identity is a safety domain, so its activation unlocks protection before any model or placement path; this row's activation unlocks nothing beyond a field-less schema. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

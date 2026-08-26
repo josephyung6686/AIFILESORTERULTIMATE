@@ -116,7 +116,33 @@
     ]
   },
   "proposed_context_terms": [
-    "batch record", "lot genealogy", "traveller", "router", "work instruction", "bill of materials", "yield", "scrap", "rework", "line clearance", "in-process inspection", "final inspection", "nonconformance", "deviation", "disposition", "containment", "corrective action", "effectiveness check", "as found", "as left", "calibration due", "traceability", "preventive maintenance", "returned to service", "downtime", "lockout", "permit to work"
+    "batch record",
+    "lot genealogy",
+    "traveller",
+    "router",
+    "work instruction",
+    "bill of materials",
+    "yield",
+    "scrap",
+    "rework",
+    "line clearance",
+    "in-process inspection",
+    "final inspection",
+    "nonconformance",
+    "deviation",
+    "disposition",
+    "containment",
+    "corrective action",
+    "effectiveness check",
+    "as found",
+    "as left",
+    "calibration due",
+    "traceability",
+    "preventive maintenance",
+    "returned to service",
+    "downtime",
+    "lockout",
+    "permit to work"
   ],
   "work_types": [
     "production order, traveller, router or batch production record",
@@ -149,17 +175,56 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "archive", "opaque_binary"],
-    "extensions": ["pdf", "docx", "xlsx", "csv", "pptx", "jpg", "png", "eml", "ics", "xml", "json", "zip"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "pptx",
+      "jpg",
+      "png",
+      "eml",
+      "ics",
+      "xml",
+      "json",
+      "zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
     {
       "filename": "BPR_AX410_L240817-03.pdf",
       "source_type": "text_document",
-      "observations": ["labelled Product and Lot slots", "sequential operation table with planned and actual quantities", "operator and quality-release signoffs"],
-      "facts_legal": ["file_type", "creation_date", "language", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["a customer or supplier", "a folder path", "that every file in the same folder has this lot"],
+      "observations": [
+        "labelled Product and Lot slots",
+        "sequential operation table with planned and actual quantities",
+        "operator and quality-release signoffs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "product (proposed)",
+        "batch_lot (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a customer or supplier",
+        "a folder path",
+        "that every file in the same folder has this lot"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -167,9 +232,22 @@
     {
       "filename": "Lot genealogy L240817-03.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["output lot in a labelled header", "rows link component lot, issued quantity and operation to output lot", "several material lots feed one output lot"],
-      "facts_legal": ["file_type", "creation_date", "batch_lot (proposed)", "product (proposed)"],
-      "must_not_conclude": ["that a component supplier is the record-owning organization", "a shipment from lot numbers alone", "a folder path"],
+      "observations": [
+        "output lot in a labelled header",
+        "rows link component lot, issued quantity and operation to output lot",
+        "several material lots feed one output lot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "batch_lot (proposed)",
+        "product (proposed)"
+      ],
+      "must_not_conclude": [
+        "that a component supplier is the record-owning organization",
+        "a shipment from lot numbers alone",
+        "a folder path"
+      ],
       "also_schema": "logistics",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -177,9 +255,22 @@
     {
       "filename": "Final inspection AX410 lot L240817-03.csv",
       "source_type": "spreadsheet",
-      "observations": ["columns for characteristic, lower/upper limit, measured value and disposition", "instrument and inspector slots", "labelled product and lot"],
-      "facts_legal": ["file_type", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["that every measurement passed", "an engineering design revision", "a folder path"],
+      "observations": [
+        "columns for characteristic, lower/upper limit, measured value and disposition",
+        "instrument and inspector slots",
+        "labelled product and lot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "product (proposed)",
+        "batch_lot (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that every measurement passed",
+        "an engineering design revision",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -187,9 +278,23 @@
     {
       "filename": "NCR-2026-041 cracked housing.pdf",
       "source_type": "ocr",
-      "observations": ["OCR reads labelled NCR, affected lot and observed-condition slots", "containment and disposition boxes", "approval signatures"],
-      "facts_legal": ["file_type", "language", "quality_event (proposed)", "batch_lot (proposed)", "product (proposed)"],
-      "must_not_conclude": ["root cause from the defect title", "that the disposition was approved if the checkbox is unreadable", "a folder path"],
+      "observations": [
+        "OCR reads labelled NCR, affected lot and observed-condition slots",
+        "containment and disposition boxes",
+        "approval signatures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language",
+        "quality_event (proposed)",
+        "batch_lot (proposed)",
+        "product (proposed)"
+      ],
+      "must_not_conclude": [
+        "root cause from the defect title",
+        "that the disposition was approved if the checkbox is unreadable",
+        "a folder path"
+      ],
       "also_schema": "engineering",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -197,9 +302,21 @@
     {
       "filename": "CAPA-2026-012 effectiveness review.docx",
       "source_type": "text_document",
-      "observations": ["labelled problem, root cause, action, owner and effectiveness sections", "quality-event identifier repeated in header", "closure approval slot"],
-      "facts_legal": ["file_type", "quality_event (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["the named owner as a destination", "closure unless the status slot says closed", "a folder path"],
+      "observations": [
+        "labelled problem, root cause, action, owner and effectiveness sections",
+        "quality-event identifier repeated in header",
+        "closure approval slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "quality_event (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "the named owner as a destination",
+        "closure unless the status slot says closed",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -207,9 +324,22 @@
     {
       "filename": "Calibration certificate CNC-07 2026.pdf",
       "source_type": "text_document",
-      "observations": ["instrument asset and serial slots", "as-found and as-left results", "traceability reference and calibration due date"],
-      "facts_legal": ["file_type", "asset (proposed)", "site (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["that 2026 is a tax year", "that the laboratory issuer is the manufacturing site", "a folder path"],
+      "observations": [
+        "instrument asset and serial slots",
+        "as-found and as-left results",
+        "traceability reference and calibration due date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "asset (proposed)",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that 2026 is a tax year",
+        "that the laboratory issuer is the manufacturing site",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -217,9 +347,22 @@
     {
       "filename": "WO-8814 CNC-07 spindle alarm.xml",
       "source_type": "code_structured",
-      "observations": ["labelled work-order and equipment fields", "failure code and work-performed payload", "returned-to-service status"],
-      "facts_legal": ["file_type", "asset (proposed)", "site (proposed)", "record_type (reuse proposed)"],
-      "must_not_conclude": ["a software repository from XML format", "a purchased replacement part as the product made", "a folder path"],
+      "observations": [
+        "labelled work-order and equipment fields",
+        "failure code and work-performed payload",
+        "returned-to-service status"
+      ],
+      "facts_legal": [
+        "file_type",
+        "asset (proposed)",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a software repository from XML format",
+        "a purchased replacement part as the product made",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -227,9 +370,21 @@
     {
       "filename": "Line 2 shift log 2026-08-17.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["hourly rows for output, scrap and downtime", "labelled line and shift slots", "changeover and reason-code columns"],
-      "facts_legal": ["file_type", "site (proposed)", "product (proposed where labelled)"],
-      "must_not_conclude": ["a batch_lot where the sheet has none", "that Line 2 is a postal address", "a folder path"],
+      "observations": [
+        "hourly rows for output, scrap and downtime",
+        "labelled line and shift slots",
+        "changeover and reason-code columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (proposed)",
+        "product (proposed where labelled)"
+      ],
+      "must_not_conclude": [
+        "a batch_lot where the sheet has none",
+        "that Line 2 is a postal address",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -237,9 +392,21 @@
     {
       "filename": "Release packet L240817-03.zip",
       "source_type": "archive",
-      "observations": ["manifest lists batch record, inspection results, deviation and release certificate sharing one lot token", "mixed PDF and CSV members", "archive itself has no labelled slots"],
-      "facts_legal": ["file_type", "creation_date", "batch_lot (proposed, possible from manifest)"],
-      "must_not_conclude": ["facts from unread members", "that every member passed release", "a folder path"],
+      "observations": [
+        "manifest lists batch record, inspection results, deviation and release certificate sharing one lot token",
+        "mixed PDF and CSV members",
+        "archive itself has no labelled slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "batch_lot (proposed, possible from manifest)"
+      ],
+      "must_not_conclude": [
+        "facts from unread members",
+        "that every member passed release",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
@@ -247,9 +414,21 @@
     {
       "filename": "PO 45001982 - AX410 castings.pdf",
       "source_type": "text_document",
-      "observations": ["buyer and supplier blocks", "purchase-order number", "line items, price and delivery terms", "no production lot, execution, inspection or release structure"],
-      "facts_legal": ["file_type", "creation_date"],
-      "must_not_conclude": ["manufacturing activation from a part name", "batch_lot from the purchase-order number", "a folder path"],
+      "observations": [
+        "buyer and supplier blocks",
+        "purchase-order number",
+        "line items, price and delivery terms",
+        "no production lot, execution, inspection or release structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "manufacturing activation from a part name",
+        "batch_lot from the purchase-order number",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -257,9 +436,21 @@
     {
       "filename": "ECN-1042 housing wall thickness.pdf",
       "source_type": "text_document",
-      "observations": ["from/to drawing revision slots", "design-change rationale and approvals", "affected part number", "no lot, executed operation or disposition"],
-      "facts_legal": ["file_type", "creation_date"],
-      "must_not_conclude": ["manufacturing activation from an affected part", "quality_event from a change number", "a folder path"],
+      "observations": [
+        "from/to drawing revision slots",
+        "design-change rationale and approvals",
+        "affected part number",
+        "no lot, executed operation or disposition"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "manufacturing activation from an affected part",
+        "quality_event from a change number",
+        "a folder path"
+      ],
       "also_schema": "engineering",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -267,9 +458,21 @@
     {
       "filename": "Defect photo IMG_8841.jpg",
       "source_type": "image",
-      "observations": ["image shows a cracked metal housing", "EXIF capture time and camera data", "no visible label, lot, asset tag or site marker"],
-      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates"],
-      "must_not_conclude": ["product, lot, quality event or site from visual appearance", "that missing GPS means screenshot", "a folder path"],
+      "observations": [
+        "image shows a cracked metal housing",
+        "EXIF capture time and camera data",
+        "no visible label, lot, asset tag or site marker"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates"
+      ],
+      "must_not_conclude": [
+        "product, lot, quality event or site from visual appearance",
+        "that missing GPS means screenshot",
+        "a folder path"
+      ],
       "also_schema": "photos",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "One-Off Images"
@@ -277,9 +480,22 @@
     {
       "filename": "Site safety inspection Plant 2.pdf",
       "source_type": "text_document",
-      "observations": ["labelled facility and inspection-area slots", "hazard/control/action table", "responsible-role and closeout fields"],
-      "facts_legal": ["file_type", "site (proposed)", "record_type (reuse proposed)", "sensitivity_status"],
-      "must_not_conclude": ["named staff as folder dimensions", "a construction site from the word site", "a folder path"],
+      "observations": [
+        "labelled facility and inspection-area slots",
+        "hazard/control/action table",
+        "responsible-role and closeout fields"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (proposed)",
+        "record_type (reuse proposed)",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "named staff as folder dimensions",
+        "a construction site from the word site",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -310,17 +526,17 @@
   "also_holds_with": [
     {
       "domain": "engineering",
-      "why": "An NCR can document an actual manufactured nonconformance and request a design change in the same bytes. Actual lot/measurement/disposition supports manufacturing; revision/change rationale supports engineering.",
+      "signal": "An NCR can document an actual manufactured nonconformance and request a design change in the same bytes. Actual lot/measurement/disposition supports manufacturing; revision/change rationale supports engineering.",
       "provenance": "inference"
     },
     {
       "domain": "logistics",
-      "why": "A released-lot packet may contain manufacturing genealogy and shipment custody evidence. Each schema activates from its own slots; a lot fact is not copied into a sparse packing list merely because the files group.",
+      "signal": "A released-lot packet may contain manufacturing genealogy and shipment custody evidence. Each schema activates from its own slots; a lot fact is not copied into a sparse packing list merely because the files group.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "CAPA action tracking and site HSE closeout are organisational controls as well as manufacturing-quality records when one file contains both the controlled event/asset anchor and the management workflow.",
+      "signal": "CAPA action tracking and site HSE closeout are organisational controls as well as manufacturing-quality records when one file contains both the controlled event/asset anchor and the management workflow.",
       "provenance": "inference"
     }
   ],

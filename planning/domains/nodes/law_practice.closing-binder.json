@@ -466,27 +466,27 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "The commonest co-activation here and the reason this row can be narrow without losing the corpus. One completion folder holds an agenda, a CP checklist, a funds flow and an index (this row, on the status-matrix and manifest structures) beside executed deeds, share transfers and a settlement agreement (`legal`, on the party-pair-plus-execution structure). Disjoint evidence, one purpose-coherent set - 'The documents are content-incoherent but purpose-coherent.' `legal` is a safety domain, so where they co-activate protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The commonest co-activation here and the reason this row can be narrow without losing the corpus. One completion folder holds an agenda, a CP checklist, a funds flow and an index (this row, on the status-matrix and manifest structures) beside executed deeds, share transfers and a settlement agreement (`legal`, on the party-pair-plus-execution structure). Disjoint evidence, one purpose-coherent set - 'The documents are content-incoherent but purpose-coherent.' `legal` is a safety domain, so where they co-activate protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "The funds flow and the completion statement are both: `finance` on its own account-and-amount structure, this row on the deal reference plus completion date. `finance` is a safety schema and its protective ordering runs first. This row writes no financial fact. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The funds flow and the completion statement are both: `finance` on its own account-and-amount structure, this row on the deal reference plus completion date. `finance` is a safety schema and its protective ordering runs first. This row writes no financial fact. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.board-governance",
-      "why": "Corporate authorisations - board minutes, written resolutions, register extracts - are a standard opening section of a closing binder AND the company's own governance record. The governance structure activates that row on its own evidence; the tab-stamped delivered copy is also a completion member. Membership copies no governance fact and no deal fact either way. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Corporate authorisations - board minutes, written resolutions, register extracts - are a standard opening section of a closing binder AND the company's own governance record. The governance structure activates that row on its own evidence; the tab-stamped delivered copy is also a completion member. Membership copies no governance fact and no deal fact either way. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "Post-completion registry, tax and authority filings sit in the binder's last section while the authority-side submission and receipt structures activate `government`. Neither reading erases the other, and a public registry destination does not lower the local file's posture. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Post-completion registry, tax and authority filings sit in the binder's last section while the authority-side submission and receipt structures activate `government`. Neither reading erases the other, and a public registry destination does not lower the local file's posture. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "Individual signatories, directors and guarantors supply identity verification into a completion set, and detached signature pages themselves carry names, addresses, occupations and reusable signature images. The identity material is `identity`'s and stays protected on its evidence; only the delivery record around it is this row's. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Individual signatories, directors and guarantors supply identity verification into a completion set, and detached signature pages themselves carry names, addresses, occupations and reusable signature images. The identity material is `identity`'s and stays protected on its evidence; only the delivery record around it is this row's. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

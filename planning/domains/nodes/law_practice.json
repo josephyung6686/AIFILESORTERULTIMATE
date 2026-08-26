@@ -648,37 +648,37 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "The commonest co-activation in the family and the reason this schema can be narrow without losing coverage. One matter folder holds an intake screen, a time export and a review log (this schema, on the matter-and-role apparatus) beside a pleading, an order and an executed settlement (`legal`, on the caption and execution structure) - disjoint evidence, one corpus, and both schemas fieldless so the join carries protection and co-activation on both sides rather than fields. `legal` is a safety domain, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The commonest co-activation in the family and the reason this schema can be narrow without losing coverage. One matter folder holds an intake screen, a time export and a review log (this schema, on the matter-and-role apparatus) beside a pleading, an order and an executed settlement (`legal`, on the caption and execution structure) - disjoint evidence, one corpus, and both schemas fieldless so the join carries protection and co-activation on both sides rather than fields. `legal` is a safety domain, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A matter budget reconciled against a bill and a disbursement ledger in one workbook is both, on disjoint evidence - the issuer-and-billed-to or institution-and-account structure for finance, the matter-reference column for this schema. finance is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A matter budget reconciled against a bill and a disbursement ledger in one workbook is both, on disjoint evidence - the issuer-and-billed-to or institution-and-account structure for finance, the matter-reference column for this schema. finance is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "Client identity verification is a mandatory part of matter opening in most jurisdictions, so a practitioner's corpus contains other people's passports and proofs of address as a matter of routine. The identity documents are `identity`'s and remain protected on its evidence; the verification record that lists them is this schema's. 00's own packet reasoning licenses the join, and `legal.practice-matter-file` already carries the passport fixture from the neighbouring side. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Client identity verification is a mandatory part of matter opening in most jurisdictions, so a practitioner's corpus contains other people's passports and proofs of address as a matter of routine. The identity documents are `identity`'s and remain protected on its evidence; the verification record that lists them is this schema's. 00's own packet reasoning licenses the join, and `legal.practice-matter-file` already carries the passport fixture from the neighbouring side. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "medical",
-      "why": "Personal-injury, clinical-negligence, employment and family matters routinely contain another person's medical records inside a practitioner's disclosure set. The records are `medical`'s and clinical_practice's on their own evidence and at their own protection; the review log and the bundle index around them are this schema's. Two safety-adjacent readings on one packet means protection applied twice and no fields written anywhere. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Personal-injury, clinical-negligence, employment and family matters routinely contain another person's medical records inside a practitioner's disclosure set. The records are `medical`'s and clinical_practice's on their own evidence and at their own protection; the review log and the bundle index around them are this schema's. Two safety-adjacent readings on one packet means protection applied twice and no fields written anywhere. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "A practitioner's matter file carries the tribunal's or regulator's own notices, listings and decisions inside it. The authority-side structures activate government; the practitioner-side apparatus activates this schema. Disjoint evidence in one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A practitioner's matter file carries the tribunal's or regulator's own notices, listings and decisions inside it. The authority-side structures activate government; the practitioner-side apparatus activates this schema. Disjoint evidence in one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "An in-house legal function's corpus holds a matter list and an outside-counsel instruction beside the contract register, the policy set and the board papers of the same company. Disjoint evidence, one corpus, and neither promotes the other: a legal-department folder does not move a policy here, and a matter reference does not move a board paper there. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "An in-house legal function's corpus holds a matter list and an outside-counsel instruction beside the contract register, the policy set and the board papers of the same company. Disjoint evidence, one corpus, and neither promotes the other: a legal-department folder does not move a policy here, and a matter reference does not move a board paper there. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "clinical_practice",
-      "why": "A clinical-negligence or capacity matter is genuinely both worlds on one file set, and co-activation is the safe outcome rather than a failure to discriminate. The stricter side governs the members that identify a patient. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A clinical-negligence or capacity matter is genuinely both worlds on one file set, and co-activation is the safe outcome rather than a failure to discriminate. The stricter side governs the members that identify a patient. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

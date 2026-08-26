@@ -624,17 +624,17 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A claim, a notice under a clause and an adjudication referral are legal material as well as construction records, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and PROTECTIVE ORDERING APPLIES - the legal reading protects first and this row's organising reading is additive. “One file may hold facts from more than one domain without losing information.” The gist row expressed this only as also_schema on two fixtures and noted that also_holds_with joins schemas; the landed spine carries schema-level entries on a template-kind row, so this row follows the family rather than diverging. Provenance: inference.",
+      "signal": "A claim, a notice under a clause and an adjudication referral are legal material as well as construction records, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and PROTECTIVE ORDERING APPLIES - the legal reading protects first and this row's organising reading is additive. “One file may hold facts from more than one domain without losing information.” The gist row expressed this only as also_schema on two fixtures and noted that also_holds_with joins schemas; the landed spine carries schema-level entries on a template-kind row, so this row follows the family rather than diverging. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "An agreed variation sum and a settlement figure are genuinely finance records for whoever's books they land in, and genuinely this situation's. Neither reading displaces the other, and finance being a safety domain means its posture is not weakened by this row's. Provenance: inference.",
+      "signal": "An agreed variation sum and a settlement figure are genuinely finance records for whoever's books they land in, and genuinely this situation's. Neither reading displaces the other, and finance being a safety domain means its posture is not weakened by this row's. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "A contractor's claim file is simultaneously an entry in the firm's own contract-administration record, which is why business_operations.contract-administration is carried as a collision at row level. Both readings are true of the same bytes at schema level and neither is a collision there. Provenance: inference.",
+      "signal": "A contractor's claim file is simultaneously an entry in the firm's own contract-administration record, which is why business_operations.contract-administration is carried as a collision at row level. Both readings are true of the same bytes at schema level and neither is a collision there. Provenance: inference.",
       "provenance": "inference"
     }
   ],

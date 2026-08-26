@@ -517,27 +517,27 @@
   "also_holds_with": [
     {
       "domain": "finance",
-      "why": "Common and on disjoint evidence: a valuation certificate is a payment record and a works record at once; an appraisal carries a funding structure; a service-charge reconciliation is an account. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE: the landed finance rows do not name construction_property, and R1c owes the reciprocal.",
+      "signal": "Common and on disjoint evidence: a valuation certificate is a payment record and a works record at once; an appraisal carries a funding structure; a service-charge reconciliation is an account. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE: the landed finance rows do not name construction_property, and R1c owes the reciprocal.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "A signed building contract, a lease, a collateral warranty or a party-wall award is one file under two schemas on disjoint evidence — the execution structure for legal, the works and property apparatus for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal.",
+      "signal": "A signed building contract, a lease, a collateral warranty or a party-wall award is one file under two schemas on disjoint evidence — the execution structure for legal, the works and property apparatus for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "A site photograph set is legitimately a photo event AND a professional record on disjoint evidence: camera EXIF and a GPS cluster for photos, a job reference and a diary entry for this schema. Neither half may be assumed from the other. One-way here; R1c owes the reciprocal.",
+      "signal": "A site photograph set is legitimately a photo event AND a professional record on disjoint evidence: camera EXIF and a GPS cluster for photos, a job reference and a diary entry for this schema. Neither half may be assumed from the other. One-way here; R1c owes the reciprocal.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "A contractor's own running record is both: a subcontract sits in a contract register (business_operations contract administration) and in a job file (this schema), on disjoint evidence. One-way here; R1c owes the reciprocal.",
+      "signal": "A contractor's own running record is both: a subcontract sits in a contract register (business_operations contract administration) and in a job file (this schema), on disjoint evidence. One-way here; R1c owes the reciprocal.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "An applicant's copy of a decision notice is an authority record and a project record at once when the holder is genuinely both (a council developing its own housing). Disjoint evidence, both true. One-way here; R1c owes the reciprocal.",
+      "signal": "An applicant's copy of a decision notice is an authority record and a project record at once when the holder is genuinely both (a council developing its own housing). Disjoint evidence, both true. One-way here; R1c owes the reciprocal.",
       "provenance": "inference"
     }
   ],

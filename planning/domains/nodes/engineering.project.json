@@ -224,32 +224,32 @@
   "collides_with": [
     {
       "domain": "business_operations.project-delivery",
-      "why": "Fixture bytes Harbour-Works_Engineering-Programme-Plan_v7.xlsx and Project Closeout Report - Harbour Works.pptx. Direction one: everything this refused row would have held whose evidence is schedule, budget, resource, milestone, status, risk or governance belongs to that row, whatever the industry of the team producing it — the engineering schema's own never_alone already says so. Direction two: that row does not become engineering when its project happens to be an engineering programme; it crosses onto the engineering schema only when controlled technical-definition evidence appears in the same file, and then the engineering schema's DEFAULT TEMPLATE or a named sibling holds it, never a project-root row.",
+      "signal": "Fixture bytes Harbour-Works_Engineering-Programme-Plan_v7.xlsx and Project Closeout Report - Harbour Works.pptx. Direction one: everything this refused row would have held whose evidence is schedule, budget, resource, milestone, status, risk or governance belongs to that row, whatever the industry of the team producing it — the engineering schema's own never_alone already says so. Direction two: that row does not become engineering when its project happens to be an engineering programme; it crosses onto the engineering schema only when controlled technical-definition evidence appears in the same file, and then the engineering schema's DEFAULT TEMPLATE or a named sibling holds it, never a project-root row.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.stage-gate-review",
-      "why": "Fixture bytes BPA-210_Design-Review-Pack_CDR.pptx. Direction one: gate packs, review decisions and phase-exit evidence were the most template-shaped material this row could have claimed, and that row already owns the gate-and-decision relation. Direction two: that row does not extend to a programme's whole file population merely because a gate names the programme; material outside a gate decision returns to the schema default, to another sibling, or to a residual.",
+      "signal": "Fixture bytes BPA-210_Design-Review-Pack_CDR.pptx. Direction one: gate packs, review decisions and phase-exit evidence were the most template-shaped material this row could have claimed, and that row already owns the gate-and-decision relation. Direction two: that row does not extend to a programme's whole file population merely because a gate names the programme; material outside a gate decision returns to the schema default, to another sibling, or to a residual.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.commissioning-handover",
-      "why": "Fixture bytes Project Closeout Report - Harbour Works.pptx. Direction one: project close-out and handover language overlap almost exactly, and that landed row already states this boundary against business_operations.project-delivery; a project-root row inserted between them would give the same deck a third claimant with no discriminating evidence of its own. Direction two: that row holds technical acceptance of an installed instance — tag-level acceptance results and a takeover date — and does not absorb a programme's design-definition or schedule material just because the programme is closing.",
+      "signal": "Fixture bytes Project Closeout Report - Harbour Works.pptx. Direction one: project close-out and handover language overlap almost exactly, and that landed row already states this boundary against business_operations.project-delivery; a project-root row inserted between them would give the same deck a third claimant with no discriminating evidence of its own. Direction two: that row holds technical acceptance of an installed instance — tag-level acceptance results and a takeover date — and does not absorb a programme's design-definition or schedule material just because the programme is closing.",
       "provenance": "inference"
     },
     {
       "domain": "construction_property.construction-project",
-      "why": "Fixture bytes 2027 Harbour Works Engineering Project/. Direction one: when the project identity resolves to a site or premises joined to a professional instruction or contract, the coverage is that row's, not an engineering project root's — the engineering schema already draws the definition-versus-site line. Direction two: that row does not gain the engineering schema when a site package contains equipment design definition; both relations may hold, and each is evidenced separately.",
+      "signal": "Fixture bytes 2027 Harbour Works Engineering Project/. Direction one: when the project identity resolves to a site or premises joined to a professional instruction or contract, the coverage is that row's, not an engineering project root's — the engineering schema already draws the definition-versus-site line. Direction two: that row does not gain the engineering schema when a site package contains equipment design definition; both relations may hold, and each is evidenced separately.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.production-record",
-      "why": "Fixture bytes LOT-24-081_Final-Inspection.xlsx. Direction one: execution records citing a released revision stay on that row; a project-root row would have pulled them in on the shared programme name alone. Direction two: that row does not become engineering by citing Rev C, and it does not own the change record that altered Rev C — that is engineering.change-order, which may also hold manufacturing when a nonconformance triggered it.",
+      "signal": "Fixture bytes LOT-24-081_Final-Inspection.xlsx. Direction one: execution records citing a released revision stay on that row; a project-root row would have pulled them in on the shared programme name alone. Direction two: that row does not become engineering by citing Rev C, and it does not own the change record that altered Rev C — that is engineering.change-order, which may also hold manufacturing when a nonconformance triggered it.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.automotive-program",
-      "why": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: that row is already refused, and part of its refusal routes programme identity to this row. Direction two: this row is now refused for the same structural reason one level up — it is the schema's default template with a project noun, exactly as that row is this row with an industry adjective. The two refusals must not route to each other; both route to the engineering schema's default template, to the named siblings, and to business_operations.project-delivery. Recorded for R1c as a cross-row repair, not edited here.",
+      "signal": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: that row is already refused, and part of its refusal routes programme identity to this row. Direction two: this row is now refused for the same structural reason one level up — it is the schema's default template with a project noun, exactly as that row is this row with an industry adjective. The two refusals must not route to each other; both route to the engineering schema's default template, to the named siblings, and to business_operations.project-delivery. Recorded for R1c as a cross-row repair, not edited here.",
       "provenance": "inference"
     }
   ],

@@ -162,7 +162,18 @@
       "archive",
       "opaque_binary"
     ],
-    "extensions": ["pdf", "xlsx", "csv", "docx", "eml", "jpg", "png", "ics", "xml", "zip"],
+    "extensions": [
+      "pdf",
+      "xlsx",
+      "csv",
+      "docx",
+      "eml",
+      "jpg",
+      "png",
+      "ics",
+      "xml",
+      "zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -202,7 +213,14 @@
         "a release-point table listing Outfall 001, Stack A2 and their receiving media",
         "a variation preamble citing the conditions it replaces"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "authorisation (proposed)", "emission_point (proposed)", "site (schema proposal)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "authorisation (proposed)",
+        "emission_point (proposed)",
+        "site (schema proposal)"
+      ],
       "must_not_conclude": [
         "the issuing authority as the record-owning organisation",
         "that the permit is currently in force, or that later variations have not superseded it",
@@ -221,7 +239,12 @@
         "results compared against a stated emission limit value",
         "testing-body accreditation identifier and a named test engineer"
       ],
-      "facts_legal": ["file_type", "creation_date", "emission_point (proposed)", "authorisation (proposed, where the report cites a permit reference)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "emission_point (proposed)",
+        "authorisation (proposed, where the report cites a permit reference)"
+      ],
       "must_not_conclude": [
         "that the testing body or its accreditation number identifies the holder of the permit",
         "asset from the word boiler alone, in the absence of an asset-register anchor",
@@ -240,7 +263,12 @@
         "sample type recorded as a 24-hour composite with a collection date and time",
         "accreditation schedule reference and an authorising analyst signature"
       ],
-      "facts_legal": ["file_type", "creation_date", "emission_point (proposed)", "reporting_period (proposed, only where a labelled period slot exists)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "emission_point (proposed)",
+        "reporting_period (proposed, only where a labelled period slot exists)"
+      ],
       "must_not_conclude": [
         "product or batch_lot: a sample point is not a product and a sample identifier is not a lot",
         "that the laboratory is the site",
@@ -259,7 +287,12 @@
         "the labelled slot is Product and Batch, not Sample Point",
         "results are compared to a product specification and a release disposition is stated"
       ],
-      "facts_legal": ["file_type", "creation_date", "product (schema proposal)", "batch_lot (schema proposal)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "product (schema proposal)",
+        "batch_lot (schema proposal)"
+      ],
       "must_not_conclude": [
         "this row: a certificate of analysis is not environmental evidence merely because it is a laboratory result",
         "emission_point from a sample or specimen identifier",
@@ -278,7 +311,11 @@
         "an analysis-requested checklist and a turnaround field",
         "several handwritten cells are only partly legible"
       ],
-      "facts_legal": ["file_type", "language", "emission_point (proposed, only where the sample-point cell is legible)"],
+      "facts_legal": [
+        "file_type",
+        "language",
+        "emission_point (proposed, only where the sample-point cell is legible)"
+      ],
       "must_not_conclude": [
         "a result: a custody form carries no measurement",
         "emission_point from an illegible cell",
@@ -298,7 +335,12 @@
         "a header row naming one stack",
         "no permit reference appears in the file itself"
       ],
-      "facts_legal": ["file_type", "creation_date", "emission_point (proposed)", "reporting_period (proposed, from the labelled month range only)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "emission_point (proposed)",
+        "reporting_period (proposed, from the labelled month range only)"
+      ],
       "must_not_conclude": [
         "authorisation, which is absent from this export; the file may join a permit packet without acquiring the permit reference as a fact",
         "compliance or exceedance from raw values without the applicable limit",
@@ -317,7 +359,12 @@
         "collection address, vehicle registration and successive signatures with dates",
         "a duty-of-care declaration paragraph"
       ],
-      "facts_legal": ["file_type", "creation_date", "site (schema proposal, from the producer address block)", "authorisation (proposed, only where the note cites the producer's own permit or registration)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (schema proposal, from the producer address block)",
+        "authorisation (proposed, only where the note cites the producer's own permit or registration)"
+      ],
       "must_not_conclude": [
         "that the consignee's permit reference is the holder's authorisation — it belongs to the receiving facility",
         "logistics activation from vehicle and carrier slots alone in the absence of shipment or freight structure",
@@ -335,7 +382,11 @@
         "a site header and a totals block by waste code",
         "a retention note referencing a duty-of-care obligation"
       ],
-      "facts_legal": ["file_type", "site (schema proposal)", "reporting_period (proposed)"],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "reporting_period (proposed)"
+      ],
       "must_not_conclude": [
         "carrier or consignee organisations as folder dimensions",
         "authorisation, unless a permit reference appears in a labelled slot",
@@ -354,7 +405,10 @@
         "a site header naming one plant",
         "no permit reference, no measurement and no release point"
       ],
-      "facts_legal": ["file_type", "site (schema proposal)"],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)"
+      ],
       "must_not_conclude": [
         "authorisation or emission_point, neither of which appears",
         "that the named responsible roles become folder dimensions",
@@ -374,7 +428,13 @@
         "recipient is a named regulator mailbox; sender is an operator role",
         "one attachment named as a laboratory certificate"
       ],
-      "facts_legal": ["file_type", "creation_date", "authorisation (proposed)", "emission_point (proposed)", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "authorisation (proposed)",
+        "emission_point (proposed)",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a breach occurred, that a penalty followed, or that the notification satisfied any duty",
         "facts from the attachment without reading the attachment",
@@ -392,7 +452,11 @@
         "EXIF capture time and camera data present",
         "no signage, point marking, permit reference or document visible in frame"
       ],
-      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates"
+      ],
       "must_not_conclude": [
         "emission_point, authorisation or an exceedance from visual appearance",
         "that missing GPS proves the image is a screenshot",
@@ -411,7 +475,12 @@
         "a verification tab naming a verification body and an opinion date",
         "the same meter readings also feed a consumption-and-savings tab"
       ],
-      "facts_legal": ["file_type", "site (schema proposal)", "reporting_period (proposed)", "authorisation (proposed, only where a scheme registration or permit reference is labelled)"],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "reporting_period (proposed)",
+        "authorisation (proposed, only where a scheme registration or permit reference is labelled)"
+      ],
       "must_not_conclude": [
         "this row from energy meter data alone; the statutory-scheme frame is what activates it",
         "that the verification opinion is unqualified",
@@ -429,7 +498,10 @@
         "the description quotes an exact permit reference and the conditions under discussion",
         "location is a site address"
       ],
-      "facts_legal": ["file_type", "authorisation (proposed)"],
+      "facts_legal": [
+        "file_type",
+        "authorisation (proposed)"
+      ],
       "must_not_conclude": [
         "that a renewal was granted or that a deadline was met",
         "attendee names as folder dimensions",
@@ -447,7 +519,12 @@
         "mixed PDF and CSV members",
         "the archive itself carries no labelled slots"
       ],
-      "facts_legal": ["file_type", "creation_date", "authorisation (proposed, possible from the manifest)", "reporting_period (proposed, possible from the manifest)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "authorisation (proposed, possible from the manifest)",
+        "reporting_period (proposed, possible from the manifest)"
+      ],
       "must_not_conclude": [
         "facts from unread members",
         "that every member was submitted or accepted",
@@ -465,7 +542,10 @@
         "net, tax and total blocks and payment terms",
         "no sample point, no result, no permit reference and no limit"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "this row from the words effluent and analysis in a line item",
         "emission_point or reporting_period from an invoice period",
@@ -511,17 +591,17 @@
   "also_holds_with": [
     {
       "domain": "manufacturing.quality-management-system",
-      "why": "An integrated management system manual can be one controlled document that is simultaneously the quality system's and the environmental system's governing text. Clause-level environmental obligations activate this row; the document-control, revision and training structure activates the quality-management row. Neither erases the other, and neither propagates its anchor onto the other's members.",
+      "signal": "An integrated management system manual can be one controlled document that is simultaneously the quality system's and the environmental system's governing text. Clause-level environmental obligations activate this row; the document-control, revision and training structure activates the quality-management row. Neither erases the other, and neither propagates its anchor onto the other's members.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.process-plant-design",
-      "why": "An abatement design basis — a scrubber sizing calculation, an effluent treatment plant P&ID — is engineering design evidence and, when it cites a permit condition and a limit value as its design duty, is also this row's evidence of how a condition is met. The design revision belongs to engineering; the condition reference belongs here.",
+      "signal": "An abatement design basis — a scrubber sizing calculation, an effluent treatment plant P&ID — is engineering design evidence and, when it cites a permit condition and a limit value as its design duty, is also this row's evidence of how a condition is met. The design revision belongs to engineering; the condition reference belongs here.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.corporate-regulatory-filings",
-      "why": "A verified statutory emissions report can be both a scheme return under an environmental authorisation and a component of an annual corporate filing. The scheme registration and verification opinion activate this row; the corporate filing structure activates the business-operations row.",
+      "signal": "A verified statutory emissions report can be both a scheme return under an environmental authorisation and a component of an annual corporate filing. The scheme registration and verification opinion activate this row; the corporate filing structure activates the business-operations row.",
       "provenance": "inference"
     }
   ],

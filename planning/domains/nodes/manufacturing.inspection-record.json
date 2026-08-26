@@ -116,8 +116,28 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "image", "ocr", "email", "archive", "code_structured", "opaque_binary"],
-    "extensions": ["pdf", "xlsx", "csv", "txt", "docx", "jpg", "png", "eml", "zip", "xml"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "xlsx",
+      "csv",
+      "txt",
+      "docx",
+      "jpg",
+      "png",
+      "eml",
+      "zip",
+      "xml"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -130,7 +150,13 @@
         "a form set numbered in parts, with a signed conformity page",
         "no produced-lot slot anywhere on the form"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "product (proposed)", "record_type (reuse proposed)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "product (proposed)",
+        "record_type (reuse proposed)"
+      ],
       "must_not_conclude": [
         "a batch_lot fact: the form has none, and the purchase-order number is not a lot",
         "that the design revision named here is current",
@@ -148,7 +174,12 @@
         "labelled lot and product headers, a cited drawing revision, an instrument column",
         "several rows disposition REJECT among mostly ACCEPT rows"
       ],
-      "facts_legal": ["file_type", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
+      "facts_legal": [
+        "file_type",
+        "product (proposed)",
+        "batch_lot (proposed)",
+        "record_type (reuse proposed)"
+      ],
       "must_not_conclude": [
         "that the lot as a whole passed or failed; the verdict here is per characteristic",
         "a quality_event: a REJECT row is a measurement, not an opened case",
@@ -167,7 +198,11 @@
         "chemical composition and mechanical property tables with specified ranges beside actual values",
         "a purchaser and order reference naming the holder"
       ],
-      "facts_legal": ["file_type", "creation_date", "record_type (reuse proposed)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "record_type (reuse proposed)"
+      ],
       "must_not_conclude": [
         "that the issuing mill is the holder's site",
         "a produced batch_lot from a supplier heat number",
@@ -186,7 +221,12 @@
         "a header block naming the measurement program and machine",
         "part and serial identifiers in the filename and repeated in the header block"
       ],
-      "facts_legal": ["file_type", "creation_date", "product (proposed)", "asset (proposed, for the measuring machine)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "product (proposed)",
+        "asset (proposed, for the measuring machine)"
+      ],
       "must_not_conclude": [
         "that the measuring machine is the article being controlled",
         "a design revision from the program name",
@@ -204,7 +244,12 @@
         "a sampling-plan column naming a plan and sample size",
         "no single article identity; each row is a different consignment"
       ],
-      "facts_legal": ["file_type", "creation_date", "site (proposed, where a receiving location is labelled)", "record_type (reuse proposed)"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (proposed, where a receiving location is labelled)",
+        "record_type (reuse proposed)"
+      ],
       "must_not_conclude": [
         "a single product or batch_lot fact for the whole workbook",
         "that a named supplier is qualified or disqualified",
@@ -222,7 +267,12 @@
         "a batch identifier, a manufacture date and a retest date",
         "an authorized signature and a conformity statement"
       ],
-      "facts_legal": ["file_type", "batch_lot (proposed)", "product (proposed)", "record_type (reuse proposed)"],
+      "facts_legal": [
+        "file_type",
+        "batch_lot (proposed)",
+        "product (proposed)",
+        "record_type (reuse proposed)"
+      ],
       "must_not_conclude": [
         "that the batch was released; a conformity statement is not a release decision record",
         "that the retest date is a document expiry",
@@ -240,7 +290,10 @@
         "handwritten header partially legible; a date and initials survive",
         "column headers do not survive OCR"
       ],
-      "facts_legal": ["file_type", "language"],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
       "must_not_conclude": [
         "which numeric column is the limit and which is the actual",
         "an article identity from the initials or the sheet number",
@@ -258,7 +311,11 @@
         "EXIF capture time and camera model present",
         "no visible part marking, traveller, serial tag or label in frame"
       ],
-      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates"
+      ],
       "must_not_conclude": [
         "product, serial, heat or lot from visual appearance",
         "that the weld was accepted or rejected",
@@ -277,7 +334,10 @@
         "one serial identifier repeats across manifest entries",
         "the archive itself carries no labelled slots"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "facts drawn from members that were not read",
         "that every member concerns the same serial merely because the manifest name does",
@@ -296,7 +356,10 @@
         "an instrument serial, a calibration date and a due date",
         "an accreditation reference and a conformity statement"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "that this row activates: the measured article IS the measuring instrument",
         "an inspected product or lot from the instrument serial",
@@ -314,7 +377,10 @@
         "columns for part, operator, trial and measured value",
         "variance components and a repeatability percentage, with no specification limits at all"
       ],
-      "facts_legal": ["file_type", "asset (proposed, for the gauge under study)"],
+      "facts_legal": [
+        "file_type",
+        "asset (proposed, for the gauge under study)"
+      ],
       "must_not_conclude": [
         "that the parts measured here were inspected for conformance",
         "an article-conformance verdict; the study scores the measurement system",
@@ -332,7 +398,12 @@
         "requirement-versus-observed-condition statement",
         "containment, disposition, approval and closure slots"
       ],
-      "facts_legal": ["file_type", "quality_event (proposed)", "batch_lot (proposed)", "product (proposed)"],
+      "facts_legal": [
+        "file_type",
+        "quality_event (proposed)",
+        "batch_lot (proposed)",
+        "product (proposed)"
+      ],
       "must_not_conclude": [
         "that this row activates: the observed condition is narrated, not measured against a stated limit per characteristic",
         "root cause from the title",
@@ -351,7 +422,10 @@
         "a verification-method column naming test standards",
         "no heat, lot, serial or measured value anywhere"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "that this row activates: naming a test method is not performing one",
         "an inspected article from the material grade",
@@ -369,7 +443,10 @@
         "line items with the same lot token that appears on the final inspection sheet",
         "quantities shipped, no limits and no measured values"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "that this row activates from a shared lot token",
         "that the lot passed inspection because it shipped",
@@ -388,7 +465,11 @@
         "capability indices summarized per characteristic",
         "no single inspected article"
       ],
-      "facts_legal": ["file_type", "site (proposed, where the line is labelled)", "product (proposed)"],
+      "facts_legal": [
+        "file_type",
+        "site (proposed, where the line is labelled)",
+        "product (proposed)"
+      ],
       "must_not_conclude": [
         "an article, serial or consignment anchor; the subject is a process characteristic over time",
         "that a control limit is a specification limit",
@@ -434,17 +515,17 @@
   "also_holds_with": [
     {
       "domain": "manufacturing.supplier-qualification",
-      "why": "A supplier-issued material test report or certificate of analysis is measurement evidence about a consignment here and relationship evidence about a supplier there, on disjoint slots in the same bytes: the composition and property tables activate this row, the issuer identity plus any approval scope or scorecard context activates supplier-qualification. Neither may write the other's fact — a conforming certificate does not make a supplier approved, and an approved supplier does not make an unread certificate an accepted inspection.",
+      "signal": "A supplier-issued material test report or certificate of analysis is measurement evidence about a consignment here and relationship evidence about a supplier there, on disjoint slots in the same bytes: the composition and property tables activate this row, the issuer identity plus any approval scope or scorecard context activates supplier-qualification. Neither may write the other's fact — a conforming certificate does not make a supplier approved, and an approved supplier does not make an unread certificate an accepted inspection.",
       "provenance": "inference"
     },
     {
       "domain": "engineering",
-      "why": "A first-article report is simultaneously production-conformance evidence and a characteristic-by-characteristic record against one named drawing revision; the balloon column is engineering's anchor and the actual-value column is this row's. Coactivation is on disjoint evidence and must not transfer a design-revision currency judgement onto the inspection, nor an article identity onto the drawing.",
+      "signal": "A first-article report is simultaneously production-conformance evidence and a characteristic-by-characteristic record against one named drawing revision; the balloon column is engineering's anchor and the actual-value column is this row's. Coactivation is on disjoint evidence and must not transfer a design-revision currency judgement onto the inspection, nor an article identity onto the drawing.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "An inspection photograph carries genuine capture evidence — capture time, camera information — and can activate Photos independently while being a member of an inspection packet. Membership never converts capture facts into article facts, and a photo with no visible marking contributes no article identity to the packet it joins.",
+      "signal": "An inspection photograph carries genuine capture evidence — capture time, camera information — and can activate Photos independently while being a member of an inspection packet. Membership never converts capture facts into article facts, and a photo with no visible marking contributes no article identity to the packet it joins.",
       "provenance": "inference"
     }
   ],

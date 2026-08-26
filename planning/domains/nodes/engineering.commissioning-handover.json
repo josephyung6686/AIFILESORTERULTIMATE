@@ -423,59 +423,59 @@
   "collides_with": [
     {
       "domain": "construction_property.construction-project",
-      "why": "That row explicitly retains the handover envelope as its own: a handover, O&M or building-manual pack assembled against ONE contract at ONE site. The same bytes can satisfy both. THIS SIDE fires when the pack is anchored to an identified installed SYSTEM or plant instance reconciled against a controlled design definition - tags, loop checks, SAT results, setpoints, an as-built P&ID superseding an issued-for-construction revision. THAT SIDE fires when the pack is anchored to a JOB - a contract at a property, with contract parties, a contract sum, a programme and a practical-completion certificate closing the works. Shared fixture bytes: 'Handover Pack - Harbour Works.zip'. Its manifest naming as-built drawings, commissioning results, warranties and a health-and-safety file is that row's own signal; the same archive activates this row only if the manifest also resolves to tagged systems with witnessed acceptance results. Second shared fixture: 'Practical Completion Certificate - Harbour Works.pdf' is theirs in both directions and is this row's collision fixture. Where a plant package genuinely carries both relations explicitly, the schema anchors already allow engineering and construction_property to coexist.",
+      "signal": "That row explicitly retains the handover envelope as its own: a handover, O&M or building-manual pack assembled against ONE contract at ONE site. The same bytes can satisfy both. THIS SIDE fires when the pack is anchored to an identified installed SYSTEM or plant instance reconciled against a controlled design definition - tags, loop checks, SAT results, setpoints, an as-built P&ID superseding an issued-for-construction revision. THAT SIDE fires when the pack is anchored to a JOB - a contract at a property, with contract parties, a contract sum, a programme and a practical-completion certificate closing the works. Shared fixture bytes: 'Handover Pack - Harbour Works.zip'. Its manifest naming as-built drawings, commissioning results, warranties and a health-and-safety file is that row's own signal; the same archive activates this row only if the manifest also resolves to tagged systems with witnessed acceptance results. Second shared fixture: 'Practical Completion Certificate - Harbour Works.pdf' is theirs in both directions and is this row's collision fixture. Where a plant package genuinely carries both relations explicitly, the schema anchors already allow engineering and construction_property to coexist.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.verification-validation",
-      "why": "The nearest sibling and the most dangerous one, because both hold witnessed test evidence with pass/fail columns. THAT SIDE's object is the REQUIREMENT: a verification matrix or test report linking stable requirement identifiers to method, procedure, configuration-under-test and result, proving that the DESIGN satisfies what was asked of it. THIS SIDE's object is the INSTANCE: proving that the unit actually installed at a location behaves as its design definition says, and that a named party accepts it. Shared fixture bytes: 'SAT-Report_Chiller-CH-02_2026-06-14_witnessed.pdf'. A SAT sheet carrying only tags, setpoints and witness signatures is this row; the same sheet extended with SYS-REQ identifiers and a verification-method column legitimately holds both. A design verification report on a prototype with no located instance and no counterparty is never this row.",
+      "signal": "The nearest sibling and the most dangerous one, because both hold witnessed test evidence with pass/fail columns. THAT SIDE's object is the REQUIREMENT: a verification matrix or test report linking stable requirement identifiers to method, procedure, configuration-under-test and result, proving that the DESIGN satisfies what was asked of it. THIS SIDE's object is the INSTANCE: proving that the unit actually installed at a location behaves as its design definition says, and that a named party accepts it. Shared fixture bytes: 'SAT-Report_Chiller-CH-02_2026-06-14_witnessed.pdf'. A SAT sheet carrying only tags, setpoints and witness signatures is this row; the same sheet extended with SYS-REQ identifiers and a verification-method column legitimately holds both. A design verification report on a prototype with no located instance and no counterparty is never this row.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.drawing-package",
-      "why": "As-built drawings are the contested set, and this row absorbed the legacy as-built record. THAT SIDE owns the controlled issued drawing set and the transmittal sequence that releases revisions. THIS SIDE owns the terminal reconciliation: the sheet stamped AS BUILT that records what was actually installed against the issue it supersedes, delivered as part of a transfer. Shared fixture bytes: '210-PID-004 Rev D (AS BUILT).pdf'. The discriminator is whether the sheet is one issue in a live controlled sequence, still subject to change control (drawing-package), or the final reconciled record travelling inside a pack with an acceptance act (this row). An AS BUILT stamp with no pack and no acceptance evidence is drawing-package, not this row.",
+      "signal": "As-built drawings are the contested set, and this row absorbed the legacy as-built record. THAT SIDE owns the controlled issued drawing set and the transmittal sequence that releases revisions. THIS SIDE owns the terminal reconciliation: the sheet stamped AS BUILT that records what was actually installed against the issue it supersedes, delivered as part of a transfer. Shared fixture bytes: '210-PID-004 Rev D (AS BUILT).pdf'. The discriminator is whether the sheet is one issue in a live controlled sequence, still subject to change control (drawing-package), or the final reconciled record travelling inside a pack with an acceptance act (this row). An AS BUILT stamp with no pack and no acceptance evidence is drawing-package, not this row.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.project-delivery",
-      "why": "Project close-out and handover language overlap almost exactly. THAT SIDE owns schedule, budget, governance and delivery-status evidence, including a close-out report with lessons learned and a final cost position. THIS SIDE owns technical acceptance of an installed instance. Shared fixture bytes: 'Project Closeout Report - Harbour Works.pptx'. Slides reporting milestones met, spend against budget and outstanding actions are that row even when the project was an engineering project and the word handover appears on every slide; the same deck becomes contested only if it embeds tag-level acceptance results and a takeover date, and then both may hold.",
+      "signal": "Project close-out and handover language overlap almost exactly. THAT SIDE owns schedule, budget, governance and delivery-status evidence, including a close-out report with lessons learned and a final cost position. THIS SIDE owns technical acceptance of an installed instance. Shared fixture bytes: 'Project Closeout Report - Harbour Works.pptx'. Slides reporting milestones met, spend against budget and outstanding actions are that row even when the project was an engineering project and the word handover appears on every slide; the same deck becomes contested only if it embeds tag-level acceptance results and a takeover date, and then both may hold.",
       "provenance": "inference"
     },
     {
       "domain": "resource_operations.grid-connection",
-      "why": "Energisation, witness testing, commissioning and takeover are that row's native vocabulary for a connection to a network. THAT SIDE fires on the connection agreement, the network operator relationship, the connection point and the energisation of a supply. THIS SIDE fires on the plant or system being handed to whoever will run it, whether or not a network is involved. Shared fixture bytes: 'RE Energisation window and witness attendance - SS-03.eml'. A substation energised as part of a plant handover to the plant's own operator is this row; the same substation energised under a distribution network operator's connection process, with a connection reference and network-operator counterparty, is theirs. Both may hold when a single package contains both relations.",
+      "signal": "Energisation, witness testing, commissioning and takeover are that row's native vocabulary for a connection to a network. THAT SIDE fires on the connection agreement, the network operator relationship, the connection point and the energisation of a supply. THIS SIDE fires on the plant or system being handed to whoever will run it, whether or not a network is involved. Shared fixture bytes: 'RE Energisation window and witness attendance - SS-03.eml'. A substation energised as part of a plant handover to the plant's own operator is this row; the same substation energised under a distribution network operator's connection process, with a connection reference and network-operator counterparty, is theirs. Both may hold when a single package contains both relations.",
       "provenance": "inference"
     },
     {
       "domain": "construction_property.compliance-certificate",
-      "why": "That row is REFUSED, and its refusal routes certificates by the situation they evidence rather than activating a certificate node. The overlap is real because it lists a boiler or heating commissioning certificate, a water-hygiene or pressure-test certificate and a calibration certificate among its values. A domestic boiler commissioning certificate or a landlord gas safety record is NOT this row and must not be captured by the word commissioning: it evidences a dwelling's compliance situation and routes as that refusal directs. This row takes such a certificate only when it arrives as a member of an engineered installation's transfer, and even then the certificate keeps its own independent meaning rather than becoming an engineering fact.",
+      "signal": "That row is REFUSED, and its refusal routes certificates by the situation they evidence rather than activating a certificate node. The overlap is real because it lists a boiler or heating commissioning certificate, a water-hygiene or pressure-test certificate and a calibration certificate among its values. A domestic boiler commissioning certificate or a landlord gas safety record is NOT this row and must not be captured by the word commissioning: it evidences a dwelling's compliance situation and routes as that refusal directs. This row takes such a certificate only when it arrives as a member of an engineered installation's transfer, and even then the certificate keeps its own independent meaning rather than becoming an engineering fact.",
       "provenance": "inference"
     }
   ],
   "also_holds_with": [
     {
       "domain": "manufacturing",
-      "why": "Calibration certificates, spares lists and equipment data sheets travelling inside a handover pack are independently manufacturing evidence about the equipment. Membership in the pack does not erase that, and manufacturing evidence does not make the pack.",
+      "signal": "Calibration certificates, spares lists and equipment data sheets travelling inside a handover pack are independently manufacturing evidence about the equipment. Membership in the pack does not erase that, and manufacturing evidence does not make the pack.",
       "provenance": "inference"
     },
     {
       "domain": "construction_property",
-      "why": "A plant or infrastructure handover can be simultaneously the transfer of an engineered system and the closing record of a contract at a site. Both relations must be independently evidenced; neither is inferred from the other.",
+      "signal": "A plant or infrastructure handover can be simultaneously the transfer of an engineered system and the closing record of a contract at a site. Both relations must be independently evidenced; neither is inferred from the other.",
       "provenance": "inference"
     },
     {
       "domain": "code",
-      "why": "A control-system backup delivered at handover may also be a genuine repository artifact when repository structure is independently present. Controller logic is not a repository merely because it is code-shaped.",
+      "signal": "A control-system backup delivered at handover may also be a genuine repository artifact when repository structure is independently present. Controller logic is not a repository merely because it is code-shaped.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "A handover meeting pack can carry governed project decisions and tag-level technical acceptance in one file.",
+      "signal": "A handover meeting pack can carry governed project decisions and tag-level technical acceptance in one file.",
       "provenance": "inference"
     },
     {
       "domain": "resource_operations",
-      "why": "A generation or network asset handed to an operator can carry both an energy-operations relation and an engineering transfer relation on disjoint evidence.",
+      "signal": "A generation or network asset handed to an operator can carry both an energy-operations relation and an engineering transfer relation on disjoint evidence.",
       "provenance": "inference"
     }
   ],

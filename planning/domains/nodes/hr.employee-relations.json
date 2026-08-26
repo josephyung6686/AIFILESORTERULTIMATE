@@ -116,7 +116,14 @@
         "a sentence stating a right to be accompanied by a work colleague or trade union representative",
         "a stated possible outcome and a citation of the employer's disciplinary procedure"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any hr fact as canonical while the schema declares no fields",
         "that the allegations are true, that a sanction followed, or that the procedure cited is the one that applies",
@@ -135,7 +142,13 @@
         "a reporting deadline and a confidentiality undertaking",
         "a case reference repeated in the header"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the investigating officer is the decision-maker",
         "that the case reference identifies any particular employee",
@@ -153,7 +166,12 @@
         "signature and date block at the end",
         "case reference in the header and references to exhibits"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this file belongs in A Okafor's own employment or personnel file",
         "that the account is accurate, or that the named witness is the case subject",
@@ -171,7 +189,13 @@
         "an investigating officer named as author and a commissioning manager named as recipient",
         "the subject under review is a named individual, not an effort or an outage"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a findings-and-actions structure alone makes this a personnel case",
         "that a recommendation is a decision",
@@ -189,7 +213,12 @@
         "questions put to the employee and their responses recorded",
         "an adjournment recorded before a decision"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that an attendee list plus agreed actions is enough to activate this row",
         "the outcome of the hearing from the notes' existence",
@@ -207,7 +236,13 @@
         "a sanction with a stated period for which it remains live",
         "a right of appeal with a deadline and a named appeal manager"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the sanction is currently live, expired, spent, or lawful",
         "that the employee's own copy of this letter belongs to this row rather than to their employment records",
@@ -225,7 +260,12 @@
         "an appeal hearer named who is not the original decision-maker",
         "a closing sentence stating that the internal procedure is concluded"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the case is closed for retention or deletion purposes",
         "that exhaustion of the internal procedure has any legal consequence",
@@ -244,7 +284,13 @@
         "an independent-adviser certification block and a confidentiality clause",
         "tracked changes between two firms' drafts"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the agreement is executed, effective, or enforceable",
         "that a without-prejudice marking establishes any protection",
@@ -262,7 +308,12 @@
         "the holder's organisation named as respondent",
         "numbered responses to numbered particulars of claim"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a law practice holds this as a client matter file",
         "any view on the merits, jurisdiction, or time limits",
@@ -281,7 +332,13 @@
         "sections on the selection pool, the selection criteria, and alternatives to the proposal",
         "no individual employee named as a subject"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that any individual is at risk, selected, or dismissed",
         "that a consultation period is adequate or complete",
@@ -299,7 +356,12 @@
         "candidates, votes cast, and elected representatives",
         "a returning officer and a date"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "individual voting behaviour, union membership, or that any consultation followed",
         "a folder path"
@@ -317,7 +379,13 @@
         "a handler column, an opened date, and a days-open measure",
         "the layout is indistinguishable from a service-desk ticket export"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a case-reference plus status plus handler layout is sufficient - the process-name and subject-employee columns are what discriminate",
         "outcomes, patterns, or judgements about any named subject",
@@ -335,7 +403,12 @@
         "a clinician's opinion on fitness, adjustments, and likely return",
         "clinical detail beyond the fitness question"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any clinical fact as an hr fact, or any diagnosis at all",
         "that a fitness opinion determines the capability outcome",
@@ -353,7 +426,13 @@
         "spoken identification of attendees and the process at the start",
         "a case reference in the filename only"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the recording was consented to or is admissible anywhere",
         "the case subject from the filename reference alone",
@@ -370,7 +449,11 @@
         "an archive whose member list cannot be read",
         "a case-shaped reference in the filename"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "case membership, subject, or contents from the filename",
         "that the archive should be unpacked to improve classification",
@@ -388,7 +471,11 @@
         "OCR reveals a table of case references, process names, and stages",
         "the same layout is used by the internal service desk"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that missing EXIF proves a screenshot",
         "that a portal queue proves this row rather than support operations",
@@ -407,7 +494,12 @@
         "a document version and an effective date; no named subject and no case reference",
         "applies to the whole workforce"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "that this row is active - THIS IS THE COLLISION FIXTURE and it belongs to the policy and handbook row",
         "that procedure vocabulary is case evidence",
@@ -425,7 +517,13 @@
         "no procedure citation, no warning-equivalent status, and no stated consequence of failure",
         "carries the annual review-round header"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a plan about an underperforming person is a capability case - without the procedure citation and the stated consequence it is a performance-cycle output",
         "a folder path"
@@ -495,15 +593,15 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A settlement instrument and a tribunal claim or response are simultaneously employer-side case members and legal documents. Both schemas may hold disjoint facts; neither copies the other's, and this row draws no conclusion about validity, merits, privilege, or time limits."
+      "signal": "A settlement instrument and a tribunal claim or response are simultaneously employer-side case members and legal documents. Both schemas may hold disjoint facts; neither copies the other's, and this row draws no conclusion about validity, merits, privilege, or time limits."
     },
     {
       "domain": "clinical_practice",
-      "why": "An occupational-health report commissioned for an absence or capability process is both a case member and a clinical record. Clinical facts remain clinical, and the stricter privacy posture of the two governs the file."
+      "signal": "An occupational-health report commissioned for an absence or capability process is both a case member and a clinical record. Clinical facts remain clinical, and the stricter privacy posture of the two governs the file."
     },
     {
       "domain": "business_operations",
-      "why": "Collective consultation minutes are also a governance meeting record, and a served procedure extract is also a controlled policy version. Co-activation is lawful and the case membership does not overwrite the operational reading."
+      "signal": "Collective consultation minutes are also a governance meeting record, and a served procedure extract is also a controlled policy version. Co-activation is lawful and the case membership does not overwrite the operational reading."
     }
   ],
   "falls_through_to": [

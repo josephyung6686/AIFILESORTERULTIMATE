@@ -494,27 +494,27 @@
   "also_holds_with": [
     {
       "domain": "medical",
-      "why": "The collision above is the mutex on ONE evidence item; this edge is the disjoint-evidence case, and there is a real one. When the holder is BOTH clinician and patient in the same system - a clinician who treats and is treated at their own hospital, or a practice's own occupational-health file on a staff member - a single corpus, and occasionally a single packet, carries both roles on separate evidence. “A file may validly belong to more than one accepted group”. Both rows are field-less placeholders, so today this join carries protection on both sides and fields on neither. AUTHORED ONE-WAY HERE: the landed medical.json does not name clinical_practice, and R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The collision above is the mutex on ONE evidence item; this edge is the disjoint-evidence case, and there is a real one. When the holder is BOTH clinician and patient in the same system - a clinician who treats and is treated at their own hospital, or a practice's own occupational-health file on a staff member - a single corpus, and occasionally a single packet, carries both roles on separate evidence. “A file may validly belong to more than one accepted group”. Both rows are field-less placeholders, so today this join carries protection on both sides and fields on neither. AUTHORED ONE-WAY HERE: the landed medical.json does not name clinical_practice, and R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "A clinical incident that becomes a claim is one file family under two schemas at once: the clinical account on its clinical evidence, the claim on its legal-process evidence. legal is a field-less safety placeholder too, so the join carries protection on both sides and fields on neither. One-way here; R1c owes the reciprocal on legal.json. Provenance: inference.",
+      "signal": "A clinical incident that becomes a claim is one file family under two schemas at once: the clinical account on its clinical evidence, the claim on its legal-process evidence. legal is a field-less safety placeholder too, so the join carries protection on both sides and fields on neither. One-way here; R1c owes the reciprocal on legal.json. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "career",
-      "why": "A credentialing or revalidation packet is simultaneously the holder's professional-standing record (career) and a practitioner-side clinical obligation carrying case logs and audit returns about patients (this schema), on disjoint evidence within one archive. One-way here; R1c owes the reciprocal on career.json. Provenance: inference.",
+      "signal": "A credentialing or revalidation packet is simultaneously the holder's professional-standing record (career) and a practitioner-side clinical obligation carrying case logs and audit returns about patients (this schema), on disjoint evidence within one archive. One-way here; R1c owes the reciprocal on career.json. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "CONNECTION PR-8 read for this world: professional indemnity cover, payer enrolment, and practice billing are templates over the Finance schema vocabulary, and where they touch patient-identifying material this schema co-activates for protection while writing no fields (PR-6). One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "CONNECTION PR-8 read for this world: professional indemnity cover, payer enrolment, and practice billing are templates over the Finance schema vocabulary, and where they touch patient-identifying material this schema co-activates for protection while writing no fields (PR-6). One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "research",
-      "why": "A clinician-investigator's file can be a study artifact (project, stage, artifact_type on research's evidence) and a practitioner-side record about a real patient in routine care at the same time - a source note verified against a case report form is the standard example. Disjoint evidence, one file, no merge. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A clinician-investigator's file can be a study artifact (project, stage, artifact_type on research's evidence) and a practitioner-side record about a real patient in routine care at the same time - a source note verified against a case report form is the standard example. Disjoint evidence, one file, no merge. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

@@ -37,10 +37,38 @@
     ]
   },
   "proposed_context_terms": [
-    "preflight", "soft proof", "contract proof", "hard proof", "colour proof", "press approval", "imposition", "plate", "output intent", "stock", "finish", "print run", "job number", "printer", "delivery manifest", "proof of delivery"
+    "preflight",
+    "soft proof",
+    "contract proof",
+    "hard proof",
+    "colour proof",
+    "press approval",
+    "imposition",
+    "plate",
+    "output intent",
+    "stock",
+    "finish",
+    "print run",
+    "job number",
+    "printer",
+    "delivery manifest",
+    "proof of delivery"
   ],
   "work_types": [
-    "preflight report", "soft proof", "contract proof", "press sheet", "imposition plan", "colour separation", "plate record", "press specification", "approval/sign-off", "printer estimate", "print run record", "packing list", "delivery manifest", "proof of delivery"
+    "preflight report",
+    "soft proof",
+    "contract proof",
+    "press sheet",
+    "imposition plan",
+    "colour separation",
+    "plate record",
+    "press specification",
+    "approval/sign-off",
+    "printer estimate",
+    "print run record",
+    "packing list",
+    "delivery manifest",
+    "proof of delivery"
   ],
   "grouping_reasons": [
     "one print job from supplied artwork through preflight, proof, approval, press record and delivery",
@@ -55,17 +83,53 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "presentation", "email", "image", "ocr", "design_creative", "archive", "opaque_binary"],
-    "extensions": [".pdf", ".ps", ".eps", ".ai", ".indd", ".tif", ".png", ".xlsx", ".docx", ".eml", ".msg", ".zip"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "image",
+      "ocr",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".ps",
+      ".eps",
+      ".ai",
+      ".indd",
+      ".tif",
+      ".png",
+      ".xlsx",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
     {
       "filename": "Northwind_Brochure_Contract-Proof_R3.pdf",
       "source_type": "text_document",
-      "observations": ["filename names an artwork family and proof round", "PDF contains colour bars, trim/bleed and a labelled approval panel", "printer job reference is printed on the proof"],
-      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["approval without a signed or role-bearing approval block", "client or printer role from a logo alone", "a folder path"],
+      "observations": [
+        "filename names an artwork family and proof round",
+        "PDF contains colour bars, trim/bleed and a labelled approval panel",
+        "printer job reference is printed on the proof"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "approval without a signed or role-bearing approval block",
+        "client or printer role from a logo alone",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -73,9 +137,21 @@
     {
       "filename": "NW-4817_Preflight_Report.pdf",
       "source_type": "text_document",
-      "observations": ["report names job NW-4817 and the supplied PDF", "checks fonts, image resolution, output intent and page boxes", "status is marked passed with a timestamp"],
-      "facts_legal": ["file_type", "creation_date", "version_family"],
-      "must_not_conclude": ["that passed preflight means client approval or press completion", "that the report's vendor is the client", "a folder path"],
+      "observations": [
+        "report names job NW-4817 and the supplied PDF",
+        "checks fonts, image resolution, output intent and page boxes",
+        "status is marked passed with a timestamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that passed preflight means client approval or press completion",
+        "that the report's vendor is the client",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -83,9 +159,21 @@
     {
       "filename": "NW-4817_Imposition_v2.pdf",
       "source_type": "design_creative",
-      "observations": ["pages show signatures, page order and sheet layout", "file repeats job NW-4817", "notes identify folding and binding"],
-      "facts_legal": ["file_type", "creation_date", "version_family"],
-      "must_not_conclude": ["that the imposition was used on press", "that binding notes define a project field", "a folder path"],
+      "observations": [
+        "pages show signatures, page order and sheet layout",
+        "file repeats job NW-4817",
+        "notes identify folding and binding"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the imposition was used on press",
+        "that binding notes define a project field",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -93,9 +181,22 @@
     {
       "filename": "RE: NW-4817 press approval.eml",
       "source_type": "email",
-      "observations": ["message identifies the exact proof filename", "sender is labelled client approver and recipient printer account", "body approves printing with one named quantity"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["legal acceptance or payment status", "that unrelated attachments share the job", "a folder path"],
+      "observations": [
+        "message identifies the exact proof filename",
+        "sender is labelled client approver and recipient printer account",
+        "body approves printing with one named quantity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "legal acceptance or payment status",
+        "that unrelated attachments share the job",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -103,9 +204,21 @@
     {
       "filename": "NW-4817_Press_Sheet_Inspection.jpg",
       "source_type": "image",
-      "observations": ["photograph shows a printed sheet with registration marks and colour bars", "job number is handwritten beside the sheet", "no metadata proves who inspected it"],
-      "facts_legal": ["file_type", "creation_date", "media_type"],
-      "must_not_conclude": ["that the photographed sheet is the final run", "a press date from image metadata alone", "a folder path"],
+      "observations": [
+        "photograph shows a printed sheet with registration marks and colour bars",
+        "job number is handwritten beside the sheet",
+        "no metadata proves who inspected it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that the photographed sheet is the final run",
+        "a press date from image metadata alone",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "One-Off Images"
@@ -113,9 +226,21 @@
     {
       "filename": "NW-4817_Run_Record.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["rows record quantity, stock, machine and spoilage", "header names printer job NW-4817", "operator sign-off and run date are labelled"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["that quantity was delivered to the customer", "that an invoice is a production record", "a folder path"],
+      "observations": [
+        "rows record quantity, stock, machine and spoilage",
+        "header names printer job NW-4817",
+        "operator sign-off and run date are labelled"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that quantity was delivered to the customer",
+        "that an invoice is a production record",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -123,9 +248,21 @@
     {
       "filename": "Northwind_Brochure_Delivery_Manifest.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["manifest lists cartons, quantity, recipient and delivery address", "rows cite NW-4817 and a packing-list number", "carrier tracking is present but no proof-of-delivery signature"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["delivery completion without receipt evidence", "that the carrier is the printer", "a folder path"],
+      "observations": [
+        "manifest lists cartons, quantity, recipient and delivery address",
+        "rows cite NW-4817 and a packing-list number",
+        "carrier tracking is present but no proof-of-delivery signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "delivery completion without receipt evidence",
+        "that the carrier is the printer",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -133,9 +270,22 @@
     {
       "filename": "Print_Job_NW-4817_packet.zip",
       "source_type": "archive",
-      "observations": ["manifest contains supplied artwork, preflight report, proof, approval email export, run record and manifest", "one job number recurs across members", "archive also contains an invoice and courier label"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["member facts from archive paths alone", "invoice amount as a production fact", "proof of delivery from a courier label", "a folder path"],
+      "observations": [
+        "manifest contains supplied artwork, preflight report, proof, approval email export, run record and manifest",
+        "one job number recurs across members",
+        "archive also contains an invoice and courier label"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member facts from archive paths alone",
+        "invoice amount as a production fact",
+        "proof of delivery from a courier label",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -143,26 +293,70 @@
     {
       "filename": "Museum poster on gallery wall.jpg",
       "source_type": "image",
-      "observations": ["flat photograph depicts a finished poster", "EXIF contains capture time but no printer or job reference", "no source, proof or production paperwork is present"],
-      "facts_legal": ["file_type", "creation_date", "media_type"],
-      "must_not_conclude": ["print production from the depicted poster", "that the photographer made the artwork", "a folder path"],
+      "observations": [
+        "flat photograph depicts a finished poster",
+        "EXIF contains capture time but no printer or job reference",
+        "no source, proof or production paperwork is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "print production from the depicted poster",
+        "that the photographer made the artwork",
+        "a folder path"
+      ],
       "also_schema": "photos",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "One-Off Images"
     }
   ],
   "collides_with": [
-    {"domain_id": "creative.graphic-design-project", "why": "A press-ready export, proof or artwork PDF may be the ordinary design-making record. Print production requires linked proof, press, run or delivery evidence; a format or CMYK property alone stays with graphic design or the creative default.", "provenance": "inference"},
-    {"domain_id": "business_operations.vendor-management", "why": "Printer quotes, supplier onboarding and invoices may concern the vendor relationship rather than a specific creative job. Vendor management owns the counterparty administration; this template owns job-specific proof-to-run evidence.", "provenance": "inference"},
-    {"domain_id": "manufacturing.production-record", "why": "A press run record resembles a manufacturing batch record. Print production requires artwork/proof context and a print job; generic shop-floor production records belong to manufacturing.", "provenance": "inference"},
-    {"domain_id": "logistics.shipment", "why": "Packing lists, tracking and delivery manifests can be logistics records. They enter this workflow only when tied to the print job's production packet; transport-only evidence belongs to shipment.", "provenance": "inference"}
+    {
+      "domain": "creative.graphic-design-project",
+      "signal": "A press-ready export, proof or artwork PDF may be the ordinary design-making record. Print production requires linked proof, press, run or delivery evidence; a format or CMYK property alone stays with graphic design or the creative default.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "Printer quotes, supplier onboarding and invoices may concern the vendor relationship rather than a specific creative job. Vendor management owns the counterparty administration; this template owns job-specific proof-to-run evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "A press run record resembles a manufacturing batch record. Print production requires artwork/proof context and a print job; generic shop-floor production records belong to manufacturing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "Packing lists, tracking and delivery manifests can be logistics records. They enter this workflow only when tied to the print job's production packet; transport-only evidence belongs to shipment.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [],
   "falls_through_to": [
-    {"residual_template": "Independent Records", "why": "A lone proof, report or manifest without a coherent job neighbourhood remains an independent record.", "provenance": "inference"},
-    {"residual_template": "Review Later", "why": "Conflicting proof, approval or delivery evidence requires review rather than an automatic production grouping.", "provenance": "inference"},
-    {"residual_template": "One-Off Images", "why": "A photograph or scan of a printed object without production evidence is an isolated image.", "provenance": "inference"},
-    {"residual_template": "Receipts and Confirmations", "why": "A printer invoice or courier confirmation without artwork and production linkage is a transactional record.", "provenance": "inference"}
+    {
+      "residual_template": "Independent Records",
+      "why": "A lone proof, report or manifest without a coherent job neighbourhood remains an independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Conflicting proof, approval or delivery evidence requires review rather than an automatic production grouping.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photograph or scan of a printed object without production evidence is an isolated image.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A printer invoice or courier confirmation without artwork and production linkage is a transactional record.",
+      "provenance": "inference"
+    }
   ],
   "role_split": [],
   "sensitivity": "potentially_sensitive",

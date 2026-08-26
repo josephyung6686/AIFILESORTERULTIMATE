@@ -415,49 +415,49 @@
   "collides_with": [
     {
       "domain": "engineering.standards-library",
-      "why": "Same bytes-shaped evidence: both sides are normative documents with shall clauses, a designation, an issue letter and a referenced-document list. The discriminator is issuer role, not content. A document issued by a standards body or a regulator and held as received reference is standards-library; the specification of one material, process or product issued by the holder's engineering function or by the material's own producer is this row. Shared fixture: AMS2750G-Pyrometry.pdf is standards-library on both sides of this boundary; MS-4120 Rev D and the LM317T datasheet are this row on both sides. The datasheet placement is the contested case and is raised as NJ-MS-2.",
+      "signal": "Same bytes-shaped evidence: both sides are normative documents with shall clauses, a designation, an issue letter and a referenced-document list. The discriminator is issuer role, not content. A document issued by a standards body or a regulator and held as received reference is standards-library; the specification of one material, process or product issued by the holder's engineering function or by the material's own producer is this row. Shared fixture: AMS2750G-Pyrometry.pdf is standards-library on both sides of this boundary; MS-4120 Rev D and the LM317T datasheet are this row on both sides. The datasheet placement is the contested case and is raised as NJ-MS-2.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.requirements-specification",
-      "why": "Both sides use shall statements, a verification-method column and a document issue, and a reader cannot separate them from vocabulary. The discriminator is the specified object: a system's or product's behaviour and performance is requirements-specification; a substance, a bought component or a process operation is this row. Shared fixture: a single Product Specification.docx whose functional-requirement sections are requirements-specification and whose finish and material clauses invoke MS-4120 by reference — the invocation is a link to this row, not a relocation of the document. Reciprocally, MS-4120 Rev D never becomes a requirements-specification merely because a system requirement cites it.",
+      "signal": "Both sides use shall statements, a verification-method column and a document issue, and a reader cannot separate them from vocabulary. The discriminator is the specified object: a system's or product's behaviour and performance is requirements-specification; a substance, a bought component or a process operation is this row. Shared fixture: a single Product Specification.docx whose functional-requirement sections are requirements-specification and whose finish and material clauses invoke MS-4120 by reference — the invocation is a link to this row, not a relocation of the document. Reciprocally, MS-4120 Rev D never becomes a requirements-specification merely because a system requirement cites it.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.inspection-record",
-      "why": "The same property names, the same material grade and the same referenced test standards appear on both sides. The discriminator is measured result plus lot identity: a specification states criteria and names methods and carries no heat, lot, batch or serial number; an inspection record reports measured values for one identified consignment. Shared fixture: Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf is manufacturing.inspection-record on both sides, and the ASTM A276 designation it cites does not pull it here. Reciprocally, MS-4120 Rev D is this row on both sides and does not become an inspection record because it names a test method.",
+      "signal": "The same property names, the same material grade and the same referenced test standards appear on both sides. The discriminator is measured result plus lot identity: a specification states criteria and names methods and carries no heat, lot, batch or serial number; an inspection record reports measured values for one identified consignment. Shared fixture: Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf is manufacturing.inspection-record on both sides, and the ASTM A276 designation it cites does not pull it here. Reciprocally, MS-4120 Rev D is this row on both sides and does not become an inspection record because it names a test method.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.supplier-qualification",
-      "why": "Supplier-issued material declarations, certificates of conformance and process-approval scope letters sit between the two. The discriminator is what the document governs: a normative definition of the material or process governs any supplier, and belongs here; evidence that one named supplier is approved and remains approved governs the relationship, and belongs to supplier-qualification. Shared fixture: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — it is supplier-issued and therefore relationship evidence to supplier-qualification, while its substance table is a material-content statement here; both sides may hold it on disjoint evidence rather than fighting.",
+      "signal": "Supplier-issued material declarations, certificates of conformance and process-approval scope letters sit between the two. The discriminator is what the document governs: a normative definition of the material or process governs any supplier, and belongs here; evidence that one named supplier is approved and remains approved governs the relationship, and belongs to supplier-qualification. Shared fixture: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — it is supplier-issued and therefore relationship evidence to supplier-qualification, while its substance table is a material-content statement here; both sides may hold it on disjoint evidence rather than fighting.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.work-instruction",
-      "why": "A special-process specification and a shop work instruction can describe the same physical operation with the same parameters. The discriminator is normative-versus-executional voice and audience: a specification states what the process must achieve and how that is demonstrated, is invoked by many jobs, and carries a qualification regime; a work instruction tells one operator the ordered steps at one station and is controlled by the production system. Shared fixture: PS-217 Rev 3 - Solution Heat Treat and Age is this row on both sides; a `Furnace 2 - Load and Unload Steps Rev B.docx` naming station, fixture and per-load sequence is manufacturing.work-instruction on both sides even when it repeats PS-217's temperatures verbatim.",
+      "signal": "A special-process specification and a shop work instruction can describe the same physical operation with the same parameters. The discriminator is normative-versus-executional voice and audience: a specification states what the process must achieve and how that is demonstrated, is invoked by many jobs, and carries a qualification regime; a work instruction tells one operator the ordered steps at one station and is controlled by the production system. Shared fixture: PS-217 Rev 3 - Solution Heat Treat and Age is this row on both sides; a `Furnace 2 - Load and Unload Steps Rev B.docx` naming station, fixture and per-load sequence is manufacturing.work-instruction on both sides even when it repeats PS-217's temperatures verbatim.",
       "provenance": "inference"
     },
     {
       "domain": "construction_property.materials-delivery",
-      "why": "Both worlds carry material grades, supplier names and specification citations. The discriminator is transactional versus normative: an order, delivery note or goods-received record has quantities, prices or a signature of receipt and no acceptance criteria; a specification has criteria, test methods and an issue and no quantity. Shared fixture: Materials Delivery Note 88231 - 316L bar 20mm - signed.pdf is construction_property.materials-delivery on both sides, and the grade token 316L does not activate this row. Reciprocally, a coating specification cited on a delivery note stays here and is not absorbed into the delivery record.",
+      "signal": "Both worlds carry material grades, supplier names and specification citations. The discriminator is transactional versus normative: an order, delivery note or goods-received record has quantities, prices or a signature of receipt and no acceptance criteria; a specification has criteria, test methods and an issue and no quantity. Shared fixture: Materials Delivery Note 88231 - 316L bar 20mm - signed.pdf is construction_property.materials-delivery on both sides, and the grade token 316L does not activate this row. Reciprocally, a coating specification cited on a delivery note stays here and is not absorbed into the delivery record.",
       "provenance": "inference"
     }
   ],
   "also_holds_with": [
     {
       "domain": "manufacturing",
-      "why": "A deviation or waiver against a specification is simultaneously a departure record in a production world and a document in this specification's issue neighbourhood. Both relations are separately evidenced; neither is inferred from the other.",
+      "signal": "A deviation or waiver against a specification is simultaneously a departure record in a production world and a document in this specification's issue neighbourhood. Both relations are separately evidenced; neither is inferred from the other.",
       "provenance": "inference"
     },
     {
       "domain": "research",
-      "why": "A material qualification report can legitimately be both a knowledge-producing study and the qualification evidence that a specification issue depends on. The study's project and artifact facts stay independently evidenced and are not copied onto the specification.",
+      "signal": "A material qualification report can legitimately be both a knowledge-producing study and the qualification evidence that a specification issue depends on. The study's project and artifact facts stay independently evidenced and are not copied onto the specification.",
       "provenance": "inference"
     },
     {
       "domain": "engineering",
-      "why": "A restricted-substance declaration is material-content evidence here and regulatory-conformance evidence for engineering.product-certification at the same time. Neither side should erase the other or convert the other's evidence into its own facts.",
+      "signal": "A restricted-substance declaration is material-content evidence here and regulatory-conformance evidence for engineering.product-certification at the same time. Neither side should erase the other or convert the other's evidence into its own facts.",
       "provenance": "inference"
     }
   ],

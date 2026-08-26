@@ -117,8 +117,25 @@
     "time_first_why": "A standard's most conspicuous date is an edition, not an occurrence. Time-first would file ASME Y14.5-2018 under 2018 and its 2009 predecessor under 2009, splitting one document's series across the tree — the exact opposite of what a reference shelf is for."
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "image", "ocr", "archive", "email", "opaque_binary"],
-    "extensions": [".pdf", ".xlsx", ".csv", ".docx", ".jpg", ".png", ".zip", ".eml"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".eml"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -132,7 +149,14 @@
         "the pages are dense in dimensioning and tolerancing notation",
         "no title block, no approval or signature slot, no affected-item slot anywhere in the file"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family", "file_type", "creation_date", "language"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "a folder path",
         "design_item or project — the document names no item and belongs to no undertaking",
@@ -151,7 +175,11 @@
         "foreword names the technical committee and the member bodies that approved the document",
         "a normative-references clause and a terms-and-definitions clause precede the requirements clauses"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
       "must_not_conclude": [
         "capture_year or a project year from 2768",
         "a folder path",
@@ -169,7 +197,11 @@
         "shall-clauses under a numbered hierarchy, with instrumentation and calibration requirements",
         "issued by a standards body's aerospace committee; no holder approval slot and no affected-item slot"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
       "must_not_conclude": [
         "engineering.material-specification membership; this is the shared fixture and both rows place it HERE, because the issuing organization is a standards body running a consensus process, not a producer describing its own product",
         "manufacturing.calibration-record membership from the pyrometry and calibration vocabulary; this document states requirements, it records no instrument, no date and no result",
@@ -187,7 +219,11 @@
         "body is replacement and new paragraph text keyed to the base code's paragraph numbering",
         "no finding column, no effectivity list, no certificate holder slot"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
       "must_not_conclude": [
         "engineering.aerospace-airworthiness membership; that row holds documents WRITTEN AGAINST this code, and its own edge places this file here in both directions",
         "an approval or a finding, because none of those slots exist in the file",
@@ -205,7 +241,11 @@
         "content is a short table of nationally determined parameters keyed to the base standard's clause numbers",
         "a national standards body's cover, with a foreword referring to the base European standard"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
       "must_not_conclude": [
         "location = United Kingdom from the country token; the token names the jurisdiction whose parameters the annex sets, and it is not where anything was captured or done",
         "that this is the base standard; it is a separate library member that is unreadable without its base document",
@@ -224,7 +264,12 @@
         "designation, edition ordinal, committee foreword and normative-references clause all present",
         "the file is DRM-protected and refuses text extraction on some readers"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "authored_by from the licence stamp; the named party is a licensed READER, and 00 keeps authorship as metadata and never a collector in any case",
         "a folder path",
@@ -243,7 +288,11 @@
         "status values are drawn from current / superseded / withdrawn",
         "hundreds of designations across many publishers; no clause text anywhere in the sheet"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "one issuing_body or one standard_designation for the sheet; it is the catalogue, not a member, and adopting any row's designation as the file's own fact would be the sparse-file error in reverse",
         "a folder path",
@@ -261,7 +310,12 @@
         "OCR yields numbered clause headings and a partial running header reading Y14.5",
         "no cover, no foreword, no licence notice, no committee name is legible"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "media_type"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "media_type"
+      ],
       "must_not_conclude": [
         "standard_designation from a partial running header alone",
         "issuing_body, which does not appear anywhere in the legible text",
@@ -280,7 +334,11 @@
         "members include three designation-named PDFs, one in-house deviation note against one of them, and one reseller invoice PDF",
         "one archive-level purchase reference in the manifest"
       ],
-      "facts_legal": ["file_type", "creation_date", "download_session"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "download_session"
+      ],
       "must_not_conclude": [
         "one issuing_body or one standard_designation for the archive; its members carry different publishers and different roles",
         "that the deviation-note member is a published standard because it sits in this packet; it is authored by the holder against a standard and is the material-specification / change side of the boundary",
@@ -299,7 +357,11 @@
         "line items each name a designation and an edition",
         "download links, no attached normative content"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "issuing_body from the reseller, which distributes many publishers' catalogues and authored none of them",
         "standard_designation as a fact OF this file; the designations here are line items of a transaction",
@@ -318,7 +380,11 @@
         "an approval block naming the holder's quality manager, with a revision number and an effective date",
         "sections state what THIS organization does, in the first person plural"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "standard_designation as this file's identity; the designation names the standard the manual conforms TO",
         "engineering.standards-library membership; the approval block and effective date are exactly the slots a published standard never has, and the document is manufacturing.quality-management-system's",
@@ -336,7 +402,11 @@
         "article and section numbering, a scope article, and a licence notice",
         "no jurisdiction-specific enacting instrument inside the file"
       ],
-      "facts_legal": ["issuing_body", "standard_designation", "version_family"],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
       "must_not_conclude": [
         "a jurisdiction fact; D4 keeps jurisdiction a value and never a field name or a dimension, and the adopting jurisdictions are not named in this file",
         "legal or government membership from adoption; the enacting instrument is a different document",
@@ -412,7 +482,7 @@
   "also_holds_with": [
     {
       "domain": "government",
-      "why": "A regulator-issued code held on the engineering shelf can simultaneously be a published instrument of a public authority. Both relations are separately evidenced — the clause architecture on one side, the issuing authority's publication apparatus on the other — and neither is inferred from the other. Fixture: NFPA-70-2023_National-Electrical-Code.pdf and Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf.",
+      "signal": "A regulator-issued code held on the engineering shelf can simultaneously be a published instrument of a public authority. Both relations are separately evidenced — the clause architecture on one side, the issuing authority's publication apparatus on the other — and neither is inferred from the other. Fixture: NFPA-70-2023_National-Electrical-Code.pdf and Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf.",
       "provenance": "inference"
     }
   ],

@@ -396,64 +396,64 @@
   "collides_with": [
     {
       "domain": "business_operations.risk-register",
-      "why": "Fixture bytes Risk-Register-Q1-2026.xlsx and DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx. That row authored this boundary one-way toward this one and left the reciprocal owing; this is it, and it agrees on the discriminator without restating it loosely. Direction one: an organisational exposure scored on likelihood and impact, carrying a treatment and an internal owner, with no technical object and no revision anchor, is business_operations.risk-register — Risk-Register-Q1-2026.xlsx never activates here however risk-shaped it looks. Direction two: a part, function or process step scored into a ranking triple against a design or process revision anchor is this row — the DFMEA never activates there however scored it looks. The column vocabulary is not the discriminator, because it is frequently identical; the OBJECT IN THE ROW is.",
+      "signal": "Fixture bytes Risk-Register-Q1-2026.xlsx and DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx. That row authored this boundary one-way toward this one and left the reciprocal owing; this is it, and it agrees on the discriminator without restating it loosely. Direction one: an organisational exposure scored on likelihood and impact, carrying a treatment and an internal owner, with no technical object and no revision anchor, is business_operations.risk-register — Risk-Register-Q1-2026.xlsx never activates here however risk-shaped it looks. Direction two: a part, function or process step scored into a ranking triple against a design or process revision anchor is this row — the DFMEA never activates there however scored it looks. The column vocabulary is not the discriminator, because it is frequently identical; the OBJECT IN THE ROW is.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.failure-analysis",
-      "why": "Fixture bytes 8D_Report_Field-Return-4471.pdf. The discriminator is tense, and it is decidable from labelled slots. Direction one: a failure that has OCCURRED, carrying an occurrence identifier — a returned serial, a lot, a complaint reference or an incident date — is manufacturing.failure-analysis, even when the report enumerates failure modes and cites the DFMEA by name. Direction two: a failure that is HYPOTHESISED, carrying no occurrence identifier and instead a ranked enumeration against a revision anchor, is this row, even when the analysis was triggered by a field return. The two documents routinely reference each other; a citation is not an anchor in either direction.",
+      "signal": "Fixture bytes 8D_Report_Field-Return-4471.pdf. The discriminator is tense, and it is decidable from labelled slots. Direction one: a failure that has OCCURRED, carrying an occurrence identifier — a returned serial, a lot, a complaint reference or an incident date — is manufacturing.failure-analysis, even when the report enumerates failure modes and cites the DFMEA by name. Direction two: a failure that is HYPOTHESISED, carrying no occurrence identifier and instead a ranked enumeration against a revision anchor, is this row, even when the analysis was triggered by a field return. The two documents routinely reference each other; a citation is not an anchor in either direction.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.safety-case",
-      "why": "Fixture bytes HAZOP_Unit-200_Node-12_Worksheet.docx. Direction one: a structured argument that a system is acceptably safe, assembling and CITING analyses beneath a claim-and-evidence structure, is manufacturing.safety-case. Direction two: the worksheet the safety case cites — guide-word grid, node reference, per-row consequences — is this row. The worksheet does not become a safety case by being cited, and the safety case does not become an analysis by containing one.",
+      "signal": "Fixture bytes HAZOP_Unit-200_Node-12_Worksheet.docx. Direction one: a structured argument that a system is acceptably safe, assembling and CITING analyses beneath a claim-and-evidence structure, is manufacturing.safety-case. Direction two: the worksheet the safety case cites — guide-word grid, node reference, per-row consequences — is this row. The worksheet does not become a safety case by being cited, and the safety case does not become an analysis by containing one.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.nonconformance-capa",
-      "why": "Fixture bytes a CAPA record carrying a risk-assessment section. Direction one: a nonconformance with a disposition and a corrective-action loop closed against an occurrence is manufacturing.nonconformance-capa, and its embedded risk grading is a section, not a document. Direction two: a standalone ranked enumeration against a revision anchor is this row even when a CAPA triggered it.",
+      "signal": "Fixture bytes a CAPA record carrying a risk-assessment section. Direction one: a nonconformance with a disposition and a corrective-action loop closed against an occurrence is manufacturing.nonconformance-capa, and its embedded risk grading is a section, not a document. Direction two: a standalone ranked enumeration against a revision anchor is this row even when a CAPA triggered it.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.process-plant-design",
-      "why": "Fixture bytes the P&ID that HAZOP_Unit-200_Node-12_Worksheet.docx names in its node header. Direction one: the drawing itself, with its line numbers, equipment tags and revision block, is engineering.process-plant-design. Direction two: the worksheet that references a line number and analyses deviations on it is this row. A drawing number in a worksheet is a reference and must not yield a design_item fact here — that is written into the fixture's must_not_conclude.",
+      "signal": "Fixture bytes the P&ID that HAZOP_Unit-200_Node-12_Worksheet.docx names in its node header. Direction one: the drawing itself, with its line numbers, equipment tags and revision block, is engineering.process-plant-design. Direction two: the worksheet that references a line number and analyses deviations on it is this row. A drawing number in a worksheet is a reference and must not yield a design_item fact here — that is written into the fixture's must_not_conclude.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.verification-validation",
-      "why": "Fixture bytes an analysis whose detection-control column names a test procedure. Direction one: a report linking requirement identifiers to method, configuration-under-test and pass/fail evidence is engineering.verification-validation. Direction two: an enumeration of hypothesised failures whose detection column merely CITES that test is this row. Verification asks whether the intended condition was met; this row asks how the unintended condition arises.",
+      "signal": "Fixture bytes an analysis whose detection-control column names a test procedure. Direction one: a report linking requirement identifiers to method, configuration-under-test and pass/fail evidence is engineering.verification-validation. Direction two: an enumeration of hypothesised failures whose detection column merely CITES that test is this row. Verification asks whether the intended condition was met; this row asks how the unintended condition arises.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.change-order",
-      "why": "Fixture bytes an ECR whose justification section quotes an FMEA action. Direction one: a structure identifying an affected item with current and replacement revisions plus disposition is engineering.change-order. Direction two: the analysis that generated the action is this row. The action-tracking rows here must not be read as change dispositions.",
+      "signal": "Fixture bytes an ECR whose justification section quotes an FMEA action. Direction one: a structure identifying an affected item with current and replacement revisions plus disposition is engineering.change-order. Direction two: the analysis that generated the action is this row. The action-tracking rows here must not be read as change dispositions.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.quality-management-system",
-      "why": "Fixture bytes a procedure document titled with a method name — how the organisation shall conduct failure-mode analyses. Direction one: a procedure governing HOW a method is performed, with no analysed item, is a management-system document. Direction two: an analysis OF an identified item or process is this row. FMEA_Template_Blank.xlsx sits on the management-system side of the same seam: a form, not an analysis.",
+      "signal": "Fixture bytes a procedure document titled with a method name — how the organisation shall conduct failure-mode analyses. Direction one: a procedure governing HOW a method is performed, with no analysed item, is a management-system document. Direction two: an analysis OF an identified item or process is this row. FMEA_Template_Blank.xlsx sits on the management-system side of the same seam: a form, not an analysis.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.aerospace-airworthiness",
-      "why": "Fixture bytes a functional hazard assessment produced under a named certification basis. Direction one: where the discriminating relation is an approved product joined to a regulation and an approving authority, the certification row owns it. Direction two: where the discriminating relation is the ranked failure enumeration itself, this row owns it and the certification basis is a value inside it, not a second structure.",
+      "signal": "Fixture bytes a functional hazard assessment produced under a named certification basis. Direction one: where the discriminating relation is an approved product joined to a regulation and an approving authority, the certification row owns it. Direction two: where the discriminating relation is the ranked failure enumeration itself, this row owns it and the certification basis is a value inside it, not a second structure.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.simulation-analysis",
-      "why": "Fixture bytes an analysis package comparing calculated margins against named requirements. Direction one: a computed quantity for the INTENDED condition, however safety-motivated, is engineering.simulation-analysis and is the schema default's own analysis clause. Direction two: an enumeration of hypothesised failed conditions with ranking or classification is this row. A stress margin is not a failure mode.",
+      "signal": "Fixture bytes an analysis package comparing calculated margins against named requirements. Direction one: a computed quantity for the INTENDED condition, however safety-motivated, is engineering.simulation-analysis and is the schema default's own analysis clause. Direction two: an enumeration of hypothesised failed conditions with ranking or classification is this row. A stress margin is not a failure mode.",
       "provenance": "inference"
     }
   ],
   "also_holds_with": [
     {
       "domain": "manufacturing",
-      "why": "Fixture bytes PFMEA_Line-3_Bushing-Press_Rev4.xlsx. One file can truthfully carry the prospective-failure relation on engineering evidence AND a process-route and control-plan relation on manufacturing evidence, each independently present in labelled slots. Neither side is inferred from the other, and this is the case engineering.json already declares at schema level.",
+      "signal": "Fixture bytes PFMEA_Line-3_Bushing-Press_Rev4.xlsx. One file can truthfully carry the prospective-failure relation on engineering evidence AND a process-route and control-plan relation on manufacturing evidence, each independently present in labelled slots. Neither side is inferred from the other, and this is the case engineering.json already declares at schema level.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "Fixture bytes a design review deck that both records governed project decisions and reproduces a hazard log's open items. Both relations are explicit in the same file; this is 00's `A file may validly belong to more than one accepted group` case rather than a collision, and it is distinct from the risk-register collision, where the two claims are mutually exclusive on the same rows.",
+      "signal": "Fixture bytes a design review deck that both records governed project decisions and reproduces a hazard log's open items. Both relations are explicit in the same file; this is 00's `A file may validly belong to more than one accepted group` case rather than a collision, and it is distinct from the risk-register collision, where the two claims are mutually exclusive on the same rows.",
       "provenance": "inference"
     }
   ],

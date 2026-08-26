@@ -456,17 +456,17 @@
   "also_holds_with": [
     {
       "domain": "government",
-      "why": "This row's most routine co-activation and the one that distinguishes it from every other `law_practice` sibling: a conveyance is largely a correspondence with PUBLIC BODIES. A local land charges result, a standard local-authority enquiries return, a registry application and its return, and a transfer-tax filing certificate are authority-side artefacts with authority-side structure; the ordering, the reporting and the apportionment around them are this row's. Disjoint evidence, one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "This row's most routine co-activation and the one that distinguishes it from every other `law_practice` sibling: a conveyance is largely a correspondence with PUBLIC BODIES. A local land charges result, a standard local-authority enquiries return, a registry application and its return, and a transfer-tax filing certificate are authority-side artefacts with authority-side structure; the ordering, the reporting and the apportionment around them are this row's. Disjoint evidence, one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "Identity and source-of-funds verification is a mandatory part of taking property instructions, so this corpus routinely contains other people's passports, proofs of address and bank statements - and, uniquely in this family, the statements of a GIFTED-DEPOSIT DONOR who is not the client and not a party to anything. The identity documents are `identity`'s and remain protected on its evidence; the verification record listing them is this row's. `identity` is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Identity and source-of-funds verification is a mandatory part of taking property instructions, so this corpus routinely contains other people's passports, proofs of address and bank statements - and, uniquely in this family, the statements of a GIFTED-DEPOSIT DONOR who is not the client and not a party to anything. The identity documents are `identity`'s and remain protected on its evidence; the verification record listing them is this row's. `identity` is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A client ledger, a completion statement and a fee note carry both readings on disjoint evidence - the apportionment-to-a-completion-date structure for this row, the issuer-and-billed-to or institution-and-account structure for `finance`. 00 licenses the multi-membership directly: \"A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.\" `finance` is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A client ledger, a completion statement and a fee note carry both readings on disjoint evidence - the apportionment-to-a-completion-date structure for this row, the issuer-and-billed-to or institution-and-account structure for `finance`. 00 licenses the multi-membership directly: \"A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.\" `finance` is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

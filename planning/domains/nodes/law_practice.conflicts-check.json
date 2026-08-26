@@ -90,8 +90,28 @@
     "time_first": false
   },
   "file_kinds": {
-    "source_types": ["text_document", "spreadsheet", "email", "ocr", "image", "archive", "opaque_binary"],
-    "extensions": [".pdf", ".docx", ".doc", ".xlsx", ".csv", ".eml", ".msg", ".png", ".jpg", ".zip", ".dat"],
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".dat"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -348,15 +368,15 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A signed screen undertaking or a signed consent-to-act is simultaneously an executed instrument on `legal`'s own evidence and a member of a screening episode here. Both readings are legitimate on one file; `legal` is a safety domain and its protection runs first, and this row adds only the episode association. Provenance: inference."
+      "signal": "A signed screen undertaking or a signed consent-to-act is simultaneously an executed instrument on `legal`'s own evidence and a member of a screening episode here. Both readings are legitimate on one file; `legal` is a safety domain and its protection runs first, and this row adds only the episode association. Provenance: inference."
     },
     {
       "domain": "photos",
-      "why": "A screen capture of a practice-management conflicts search carries positive screen-origin evidence and activates the screenshot situation independently of whether OCR recovers a search result. Neither reading erases the other, and the image's own capture facts stay Photos'. Provenance: inference."
+      "signal": "A screen capture of a practice-management conflicts search carries positive screen-origin evidence and activates the screenshot situation independently of whether OCR recovers a search result. Neither reading erases the other, and the image's own capture facts stay Photos'. Provenance: inference."
     },
     {
       "domain": "hr",
-      "why": "A screened-personnel list is genuinely about named employees and may legitimately carry an HR reading in a corpus where the holder also runs the practice's people records. Coactivation, not membership: the HR reading must never import an adverse inference, and this row's reading must never copy the screened matter's reference onto a personnel record. Provenance: inference."
+      "signal": "A screened-personnel list is genuinely about named employees and may legitimately carry an HR reading in a corpus where the holder also runs the practice's people records. Coactivation, not membership: the HR reading must never import an adverse inference, and this row's reading must never copy the screened matter's reference onto a personnel record. Provenance: inference."
     }
   ],
   "falls_through_to": [

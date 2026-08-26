@@ -523,50 +523,50 @@
   ],
   "collides_with": [
     {
-      "id": "engineering.invention-disclosure",
-      "why": "SAME BYTES, RECIPROCAL. The disclosure form, the draft claim set and the drawing sheets exist identically on both sides. THIS ROW YIELDS unless the artefact carries practitioner-side transmission - an instructed firm and an allocated docket reference; the NEIGHBOUR KEEPS it on its own evidence - an employer template, an inventor-compensation section, a lab-notebook reference, an internal review workflow. Named fixture on both sides: `Invention disclosure - IDF-2026-014 - Hartley R&D.docx`."
+      "domain": "engineering.invention-disclosure",
+      "signal": "SAME BYTES, RECIPROCAL. The disclosure form, the draft claim set and the drawing sheets exist identically on both sides. THIS ROW YIELDS unless the artefact carries practitioner-side transmission - an instructed firm and an allocated docket reference; the NEIGHBOUR KEEPS it on its own evidence - an employer template, an inventor-compensation section, a lab-notebook reference, an internal review workflow. Named fixture on both sides: `Invention disclosure - IDF-2026-014 - Hartley R&D.docx`."
     },
     {
-      "id": "law_practice.regulatory-submission",
-      "why": "SAME EVIDENCE, AND THE CLOSEST SIBLING. Both are a submission made to a government body on a client's behalf, both produce official receipts, both have deadlines. THE PROPOSED SEAM, which needs R1c to ratify or merge (see open_question): this row is the exchange that CREATES OR MAINTAINS A REGISTERED PROPERTY RIGHT whose office-issued identifier persists, renews and transfers; the sibling is a compliance, authorisation or notification submission to a regulator that produces no such transferable identifier. Contested fixture on both sides: `Office Action - Application 18-742-113 - our ref P4412-US.pdf`."
+      "domain": "law_practice.regulatory-submission",
+      "signal": "SAME EVIDENCE, AND THE CLOSEST SIBLING. Both are a submission made to a government body on a client's behalf, both produce official receipts, both have deadlines. THE PROPOSED SEAM, which needs R1c to ratify or merge (see open_question): this row is the exchange that CREATES OR MAINTAINS A REGISTERED PROPERTY RIGHT whose office-issued identifier persists, renews and transfers; the sibling is a compliance, authorisation or notification submission to a regulator that produces no such transferable identifier. Contested fixture on both sides: `Office Action - Application 18-742-113 - our ref P4412-US.pdf`."
     },
     {
-      "id": "law_practice.pleadings",
-      "why": "SAME EVIDENCE AT THE EX PARTE / INTER PARTES SEAM. An opposition, cancellation, re-examination or administrative-trial paper happens inside the same office and carries the same right identifier, but has two named parties, a captioned style and service on the other side. THE NEIGHBOUR KEEPS everything with a party pair and a caption; THIS ROW KEEPS only the ex parte examination exchange, whose defining absence is that there is no other side. Named fixture on both sides: a notice of opposition carrying application number 18-742-113."
+      "domain": "law_practice.pleadings",
+      "signal": "SAME EVIDENCE AT THE EX PARTE / INTER PARTES SEAM. An opposition, cancellation, re-examination or administrative-trial paper happens inside the same office and carries the same right identifier, but has two named parties, a captioned style and service on the other side. THE NEIGHBOUR KEEPS everything with a party pair and a caption; THIS ROW KEEPS only the ex parte examination exchange, whose defining absence is that there is no other side. Named fixture on both sides: a notice of opposition carrying application number 18-742-113."
     },
     {
-      "id": "law_practice.deadlines-diary",
-      "why": "SAME SHAPE, DIFFERENT ROWS, RECIPROCAL. Both are a portfolio table with a due-date column and an owner column. THIS ROW KEEPS the table whose rows are REGISTERED RIGHTS bearing official numbers with annually recurring due dates that survive matter closure; THE NEIGHBOUR KEEPS the table whose rows are MATTERS with one-off procedural key dates inside a live proceeding. Named fixture on both sides: `Annuity schedule 2027 - Hartley Group portfolio.xlsx`."
+      "domain": "law_practice.deadlines-diary",
+      "signal": "SAME SHAPE, DIFFERENT ROWS, RECIPROCAL. Both are a portfolio table with a due-date column and an owner column. THIS ROW KEEPS the table whose rows are REGISTERED RIGHTS bearing official numbers with annually recurring due dates that survive matter closure; THE NEIGHBOUR KEEPS the table whose rows are MATTERS with one-off procedural key dates inside a live proceeding. Named fixture on both sides: `Annuity schedule 2027 - Hartley Group portfolio.xlsx`."
     },
     {
-      "id": "creative.brand-identity",
-      "why": "SAME IMAGE FILE, RECIPROCAL. A wordmark, logo export or packaging photograph is the neighbour's core asset and this row's specimen. THE NEIGHBOUR KEEPS the standalone image in every case; THIS ROW REACHES IT ONLY through an enclosing submission whose own labelled slots name it as a specimen against a class and a date of first use. A registered-mark symbol in the artwork is explicitly not the discriminator. Named fixture on both sides: `Specimen of use - packaging - class 9.jpg`."
+      "domain": "creative.brand-identity",
+      "signal": "SAME IMAGE FILE, RECIPROCAL. A wordmark, logo export or packaging photograph is the neighbour's core asset and this row's specimen. THE NEIGHBOUR KEEPS the standalone image in every case; THIS ROW REACHES IT ONLY through an enclosing submission whose own labelled slots name it as a specimen against a class and a date of first use. A registered-mark symbol in the artwork is explicitly not the discriminator. Named fixture on both sides: `Specimen of use - packaging - class 9.jpg`."
     },
     {
-      "id": "creative.licensing-rights",
-      "why": "SAME RIGHT IDENTIFIER, OPPOSITE PURPOSE, RECIPROCAL. A licence, assignment schedule or royalty term sheet names the same registration numbers this row recognises. THE NEIGHBOUR KEEPS the exploitation of a right that already exists; THIS ROW KEEPS the exchange with the office about whether it comes into existence and stays alive. Named fixture on both sides: the eleven-identifier schedule inside `Assignment recordation cover sheet and executed deed - P4412 family.pdf` - the recordal cover sheet is this row's, the licensing terms are the neighbour's."
+      "domain": "creative.licensing-rights",
+      "signal": "SAME RIGHT IDENTIFIER, OPPOSITE PURPOSE, RECIPROCAL. A licence, assignment schedule or royalty term sheet names the same registration numbers this row recognises. THE NEIGHBOUR KEEPS the exploitation of a right that already exists; THIS ROW KEEPS the exchange with the office about whether it comes into existence and stays alive. Named fixture on both sides: the eleven-identifier schedule inside `Assignment recordation cover sheet and executed deed - P4412 family.pdf` - the recordal cover sheet is this row's, the licensing terms are the neighbour's."
     },
     {
-      "id": "research.reading-library",
-      "why": "SAME BYTES, AND THIS ROW'S PRIMARY FALSE POSITIVE. A published application or granted patent downloaded from a register is technical reading matter with official identifiers in labelled slots. THE NEIGHBOUR KEEPS every register document that arrives without a covering communication, a correspondence-address block or a docket reference; THIS ROW takes it only when the dual-docket pairing is present. Named fixture on both sides: `US11234567B2.pdf`."
+      "domain": "research.reading-library",
+      "signal": "SAME BYTES, AND THIS ROW'S PRIMARY FALSE POSITIVE. A published application or granted patent downloaded from a register is technical reading matter with official identifiers in labelled slots. THE NEIGHBOUR KEEPS every register document that arrives without a covering communication, a correspondence-address block or a docket reference; THIS ROW takes it only when the dual-docket pairing is present. Named fixture on both sides: `US11234567B2.pdf`."
     },
     {
-      "id": "legal.personal-legal-matters",
-      "why": "SAME OFFICIAL STRUCTURE, ROLES REVERSED, RECIPROCAL - and it is the schema's under-firing risk in this row's own terms. A self-filing founder or small company holds a filing receipt, an office action and a response carrying every token this row recognises. THE NEIGHBOUR KEEPS them whenever the correspondence address is the holder's own and no practitioner apparatus exists; THIS ROW requires a firm of record. Named fixture on both sides: a filing receipt for application 18-742-113 whose correspondence address is the applicant's own home address."
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME OFFICIAL STRUCTURE, ROLES REVERSED, RECIPROCAL - and it is the schema's under-firing risk in this row's own terms. A self-filing founder or small company holds a filing receipt, an office action and a response carrying every token this row recognises. THE NEIGHBOUR KEEPS them whenever the correspondence address is the holder's own and no practitioner apparatus exists; THIS ROW requires a firm of record. Named fixture on both sides: a filing receipt for application 18-742-113 whose correspondence address is the applicant's own home address."
     }
   ],
   "also_holds_with": [
     {
-      "id": "legal",
-      "why": "One PDF may carry a recordal cover sheet (this row's office slots) and an executed assignment deed (a bound party pair plus execution blocks, `legal`'s own deterministic signal). Both are legitimately true of the same bytes and `legal` is a safety domain whose protection runs first; this row takes nothing away. `Assignment recordation cover sheet and executed deed - P4412 family.pdf`."
+      "domain": "legal",
+      "signal": "One PDF may carry a recordal cover sheet (this row's office slots) and an executed assignment deed (a bound party pair plus execution blocks, `legal`'s own deterministic signal). Both are legitimately true of the same bytes and `legal` is a safety domain whose protection runs first; this row takes nothing away. `Assignment recordation cover sheet and executed deed - P4412 family.pdf`."
     },
     {
-      "id": "research.manuscript-publication",
-      "why": "00's abstract-and-application case in this world: one technical description may be simultaneously a draft specification and a conference or journal manuscript, and in this family that dual life is the single most consequential one, because publishing the manuscript can destroy the novelty the specification depends on. Both schemas are legitimately true of the file; neither may erase the other, and the product infers no consequence from the overlap."
+      "domain": "research.manuscript-publication",
+      "signal": "00's abstract-and-application case in this world: one technical description may be simultaneously a draft specification and a conference or journal manuscript, and in this family that dual life is the single most consequential one, because publishing the manuscript can destroy the novelty the specification depends on. Both schemas are legitimately true of the file; neither may erase the other, and the product infers no consequence from the overlap."
     },
     {
-      "id": "engineering.invention-disclosure",
-      "why": "Listed in BOTH lists deliberately. Where the transmission and docket evidence is present, the disclosure form is genuinely both the research organisation's internal record and a practitioner-side filing instruction - `also_holds_with`. Where that evidence is absent it is a straight `collides_with` and this row loses. R1c should keep both edges rather than collapse them."
+      "domain": "engineering.invention-disclosure",
+      "signal": "Listed in BOTH lists deliberately. Where the transmission and docket evidence is present, the disclosure form is genuinely both the research organisation's internal record and a practitioner-side filing instruction - `also_holds_with`. Where that evidence is absent it is a straight `collides_with` and this row loses. R1c should keep both edges rather than collapse them."
     }
   ],
   "falls_through_to": [

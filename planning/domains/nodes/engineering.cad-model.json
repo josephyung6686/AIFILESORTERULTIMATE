@@ -54,7 +54,30 @@
     ]
   },
   "proposed_context_terms": [
-    "assembly", "subassembly", "component", "instance", "mate", "constraint", "feature tree", "sketch", "extrude", "revolve", "part number", "configuration", "design table", "sheet metal", "flat pattern", "weldment", "surface model", "master model", "external reference", "pack and go", "neutral export", "tessellation", "watertight", "units mm"
+    "assembly",
+    "subassembly",
+    "component",
+    "instance",
+    "mate",
+    "constraint",
+    "feature tree",
+    "sketch",
+    "extrude",
+    "revolve",
+    "part number",
+    "configuration",
+    "design table",
+    "sheet metal",
+    "flat pattern",
+    "weldment",
+    "surface model",
+    "master model",
+    "external reference",
+    "pack and go",
+    "neutral export",
+    "tessellation",
+    "watertight",
+    "units mm"
   ],
   "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only and does not list these. `external reference` and `pack and go` are listed because their correct outcome is a relocation warning, not an activation.",
   "work_types": [
@@ -86,17 +109,64 @@
     "relocation_hazard": "Unique to this row and stated as a filing rule, not a privacy rule: native assemblies resolve their components by stored path and filename, so a per-file move that a user accepts can leave the assembly unable to open. This is not from 00 — it is an observed property of mainstream parametric CAD systems, marked inference. The recommendation is that any proposal touching a resolved reference set be made at the whole-set granularity rather than per file. The product policy question is raised in open_question rather than decided here."
   },
   "file_kinds": {
-    "source_types": ["design_creative", "opaque_binary", "filesystem", "archive", "text_document", "image", "ocr", "code_structured"],
-    "extensions": [".sldprt", ".sldasm", ".ipt", ".iam", ".prt", ".asm", ".catpart", ".catproduct", ".f3d", ".3dm", ".step", ".stp", ".iges", ".igs", ".x_t", ".stl", ".3mf", ".obj", ".dwg", ".dxf", ".scad"],
+    "source_types": [
+      "design_creative",
+      "opaque_binary",
+      "filesystem",
+      "archive",
+      "text_document",
+      "image",
+      "ocr",
+      "code_structured"
+    ],
+    "extensions": [
+      ".sldprt",
+      ".sldasm",
+      ".ipt",
+      ".iam",
+      ".prt",
+      ".asm",
+      ".catpart",
+      ".catproduct",
+      ".f3d",
+      ".3dm",
+      ".step",
+      ".stp",
+      ".iges",
+      ".igs",
+      ".x_t",
+      ".stl",
+      ".3mf",
+      ".obj",
+      ".dwg",
+      ".dxf",
+      ".scad"
+    ],
     "never_alone": true
   },
   "file_examples": [
     {
       "filename": "BPA-210_Pedal-Assembly.SLDASM",
       "source_type": "design_creative",
-      "observations": ["extractor yields linked asset names for twelve component files, eleven of which resolve to siblings in the same directory", "a component/instance structure repeats those member names with mate references", "container metadata carries a labelled description slot naming a pedal assembly", "no sheet, no title block and no approval slot exist anywhere in the container"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["domain fields before R1c licenses them", "that the twelfth unresolved reference names a file that exists", "a folder path", "a lifecycle stage from the modification date"],
+      "observations": [
+        "extractor yields linked asset names for twelve component files, eleven of which resolve to siblings in the same directory",
+        "a component/instance structure repeats those member names with mate references",
+        "container metadata carries a labelled description slot naming a pedal assembly",
+        "no sheet, no title block and no approval slot exist anywhere in the container"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c licenses them",
+        "that the twelfth unresolved reference names a file that exists",
+        "a folder path",
+        "a lifecycle stage from the modification date"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -104,9 +174,24 @@
     {
       "filename": "BPA-210-001_Bracket.SLDPRT",
       "source_type": "design_creative",
-      "observations": ["a custom-property block carries labelled part-number, description, material and revision slots", "a parametric feature history is exposed by the extractor", "siblings share the stem: a released sheet and a neutral export", "the assembly above names this file among its linked assets"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["that the labelled revision slot makes this the released definition; the sheet holds that", "domain fields before R1c", "a folder path"],
+      "observations": [
+        "a custom-property block carries labelled part-number, description, material and revision slots",
+        "a parametric feature history is exposed by the extractor",
+        "siblings share the stem: a released sheet and a neutral export",
+        "the assembly above names this file among its linked assets"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the labelled revision slot makes this the released definition; the sheet holds that",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -114,9 +199,24 @@
     {
       "filename": "BPA-210-001_RevC.STEP",
       "source_type": "text_document",
-      "observations": ["a plaintext exchange header carries a file-name slot, a description slot and an originating-system string", "the body is boundary-representation entities with no feature history", "the stem matches a native container and a released sheet elsewhere in the corpus"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["that the originating-system string identifies an owning organization", "that a neutral export supersedes the native container", "domain fields before R1c", "a folder path"],
+      "observations": [
+        "a plaintext exchange header carries a file-name slot, a description slot and an originating-system string",
+        "the body is boundary-representation entities with no feature history",
+        "the stem matches a native container and a released sheet elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the originating-system string identifies an owning organization",
+        "that a neutral export supersedes the native container",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -124,9 +224,25 @@
     {
       "filename": "bracket_v7_FINAL_fixed.SLDPRT",
       "source_type": "design_creative",
-      "observations": ["the custom-property block exists but every slot is empty", "no linked assets; nothing in the corpus references this file", "three near-identical siblings differ only by suffix", "it sits in the same directory as an accepted assembly"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["a revision from the FINAL or v7 token", "design_item copied from the neighbouring assembly", "domain fields before R1c", "a folder path"],
+      "observations": [
+        "the custom-property block exists but every slot is empty",
+        "no linked assets; nothing in the corpus references this file",
+        "three near-identical siblings differ only by suffix",
+        "it sits in the same directory as an accepted assembly"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a revision from the FINAL or v7 token",
+        "design_item copied from the neighbouring assembly",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -134,9 +250,24 @@
     {
       "filename": "Assembly_Pack_BPA-210_RevC.zip",
       "source_type": "archive",
-      "observations": ["the manifest lists one assembly container, twelve part containers and one sheet, all sharing an identifier stem", "member folder names preserve a component directory layout", "members have not been extracted to the filesystem"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["facts from uninspected member contents", "that the sheet member transfers its released status to the geometry members", "domain fields before R1c", "a folder path"],
+      "observations": [
+        "the manifest lists one assembly container, twelve part containers and one sheet, all sharing an identifier stem",
+        "member folder names preserve a component directory layout",
+        "members have not been extracted to the filesystem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from uninspected member contents",
+        "that the sheet member transfers its released status to the geometry members",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Unsupported or Encrypted"
@@ -144,9 +275,24 @@
     {
       "filename": "bracket.py",
       "source_type": "code_structured",
-      "observations": ["a package manifest and a repository root are present in the parent tree", "the module imports a parametric-CAD library and its final statement writes a geometry export", "an exported neutral file with the same stem sits beside it"],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["that a repository is engineering because its output is geometry", "that the script is the controlled definition rather than its generator", "domain fields before R1c", "a folder path"],
+      "observations": [
+        "a package manifest and a repository root are present in the parent tree",
+        "the module imports a parametric-CAD library and its final statement writes a geometry export",
+        "an exported neutral file with the same stem sits beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a repository is engineering because its output is geometry",
+        "that the script is the controlled definition rather than its generator",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": "code",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -154,9 +300,22 @@
     {
       "filename": "Screenshot 2026-03-04 at 11.02.15.png",
       "source_type": "image",
-      "observations": ["OCR yields a feature-tree panel of English feature names and a window title containing a part-number-shaped stem", "no EXIF is present", "it sits in a screenshots directory, not beside any geometry"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["this row from a picture of a model", "screenshot status from missing EXIF", "an item identifier from a window title", "a folder path"],
+      "observations": [
+        "OCR yields a feature-tree panel of English feature names and a window title containing a part-number-shaped stem",
+        "no EXIF is present",
+        "it sits in a screenshots directory, not beside any geometry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from a picture of a model",
+        "screenshot status from missing EXIF",
+        "an item identifier from a window title",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Temporary Screenshots"
@@ -164,9 +323,24 @@
     {
       "filename": "91251A537.STEP",
       "source_type": "text_document",
-      "observations": ["the exchange header's description slot carries a fastener size and grade rather than a design description", "no native sibling exists and no property block was authored locally", "it sits in a directory of similarly numbered exchange files", "an accepted assembly references it as one component among many"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
-      "must_not_conclude": ["that a catalogue number is this user's design item", "that being referenced by an assembly makes a purchased component a design definition", "domain fields before R1c", "a folder path"],
+      "observations": [
+        "the exchange header's description slot carries a fastener size and grade rather than a design description",
+        "no native sibling exists and no property block was authored locally",
+        "it sits in a directory of similarly numbered exchange files",
+        "an accepted assembly references it as one component among many"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a catalogue number is this user's design item",
+        "that being referenced by an assembly makes a purchased component a design definition",
+        "domain fields before R1c",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -174,9 +348,23 @@
     {
       "filename": "3DBenchy.stl",
       "source_type": "opaque_binary",
-      "observations": ["a tessellated triangle mesh with no feature history and no property block", "no linked assets and no native sibling", "neighbours are a licence text file, a slicer profile and a toolpath file", "arrival is a single bounded download session"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["this row from mesh geometry", "a design item from a download session", "a prototype build without a build record naming a design item", "a folder path"],
+      "observations": [
+        "a tessellated triangle mesh with no feature history and no property block",
+        "no linked assets and no native sibling",
+        "neighbours are a licence text file, a slicer profile and a toolpath file",
+        "arrival is a single bounded download session"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from mesh geometry",
+        "a design item from a download session",
+        "a prototype build without a build record naming a design item",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -184,9 +372,23 @@
     {
       "filename": "hero_prop_highpoly.blend",
       "source_type": "design_creative",
-      "observations": ["the container exposes a scene graph with materials, UV maps, lights and a camera", "neighbours are texture images, a render output directory and a shot-named folder", "no part number, no units declaration in millimetres and no assembly reference"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["this row because the file contains three-dimensional geometry", "that a render asset has a manufacturable definition", "a folder path"],
+      "observations": [
+        "the container exposes a scene graph with materials, UV maps, lights and a camera",
+        "neighbours are texture images, a render output directory and a shot-named folder",
+        "no part number, no units declaration in millimetres and no assembly reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row because the file contains three-dimensional geometry",
+        "that a render asset has a manufacturable definition",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -194,35 +396,113 @@
     {
       "filename": "Level-02_Structure.ifc",
       "source_type": "text_document",
-      "observations": ["the model's object hierarchy is site, building, storey and space", "elements carry construction classification codes and a project address appears in the header", "no reusable product configuration item is named"],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
-      "must_not_conclude": ["this row merely because a three-dimensional model is under revision", "that a building model loses its site and contract relation", "a folder path"],
+      "observations": [
+        "the model's object hierarchy is site, building, storey and space",
+        "elements carry construction classification codes and a project address appears in the header",
+        "no reusable product configuration item is named"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row merely because a three-dimensional model is under revision",
+        "that a building model loses its site and contract relation",
+        "a folder path"
+      ],
       "also_schema": "construction_property",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
     }
   ],
   "collides_with": [
-    {"domain": "engineering.drawing-package", "why": "The sharpest boundary on this row, because the two share an identifier stem by design. This row owns the geometry container the sheet is generated FROM; drawing-package owns the sheet that RELEASES it. Discriminating structure: a title block plus revision table plus approval slot plus annotated tolerances belongs to the sheet; a reference graph plus property block plus feature history and NO sheet belongs here. Fixture bytes on both sides: `BPA-210-001_Bracket.SLDPRT` and `BPA-210-001_RevC.pdf` share a stem and a directory. This row must not take the PDF because the stem matches; drawing-package must not take the SLDPRT because it carries a revision property, since a property slot is not a revision table with an approval. The `.dwg` container holds both kinds and is discriminated only by the presence of sheet structure.", "provenance": "inference"},
-    {"domain": "creative.3d-asset", "why": "Both hold three-dimensional geometry and both can be `.obj` or `.stl`. This row owns geometry whose destiny is a physical part — a units declaration, material and part-number properties, a parent assembly, a sheet or a product-structure table naming it. creative.3d-asset owns geometry whose destiny is an image or a runtime — materials, UV maps, rigs, lights and render output beside it. Fixture bytes on both sides: `hero_prop_highpoly.blend` is theirs on scene-graph evidence even in an engineering directory; an `enclosure.obj` exported for a product visual is theirs when it sits beside textures and a scene, and mine when a native parametric sibling with an item identifier sits beside it.", "provenance": "inference"},
-    {"domain": "engineering.standards-library", "why": "A downloaded supplier or standard component model looks exactly like this row's evidence: exchange format, part-number-shaped stem, sitting in a CAD directory, referenced by a real assembly. It is reference material the design uses, not the design definition it produces. Fixture bytes on both sides: `91251A537.STEP` is standards-library because the identifier belongs to a vendor catalogue and no local property block was authored; the same file becomes this row's evidence only if the user re-authored it into a design item with its own identifier and description.", "provenance": "inference"},
-    {"domain": "engineering.simulation-analysis", "why": "An analysis idealisation is geometry too, and often carries the same stem. This row owns the as-designed geometry; simulation-analysis owns the defeatured, meshed, load-and-boundary-condition model and the study that produced it. Fixture bytes on both sides: `BPA-210-001_RevC.STEP` is mine as the design definition and is theirs only as a named input recorded inside a study; a mesh file carrying element definitions and load cards is theirs even when its stem matches mine.", "provenance": "inference"},
-    {"domain": "engineering.industrial-design", "why": "Surface and master models are native geometry and are also form work. This row owns geometry that downstream assemblies, sheets or product-structure tables reference; industrial-design owns form exploration evidenced by variant studies, CMF boards and renders with no downstream reference. Fixture bytes on both sides: a `Housing_ClassA.3dm` is industrial-design when its neighbourhood is renders and colour studies, and mine when an assembly's linked asset names resolve to it. This seam is not fully settled — see open_question.", "provenance": "inference"},
-    {"domain": "manufacturing.tooling-fixture", "why": "Mould, die and fixture models are CAD containers with assemblies and part numbers, and toolpath files derive from geometry. This row owns the product's own definition; tooling-fixture owns the geometry of the thing that makes the product, and the toolpath is manufacturing regardless of which model it came from. Fixture bytes on both sides: `BPA-210-001_OP20.nc` is manufacturing even though it was generated from my `.SLDPRT`; a `Core_Cavity.SLDASM` whose components are mould plates is tooling-fixture even though its structure is identical to mine.", "provenance": "inference"},
-    {"domain": "engineering.pcb-layout", "why": "Board and enclosure geometry are exchanged in both directions and share item identifiers. This row owns mechanical geometry; pcb-layout owns copper, stackup, netlist and fabrication outputs. Fixture bytes on both sides: a `board.step` exported for mechanical fit checking is mine when an enclosure assembly resolves it as a component, and theirs when it is a member of a fabrication package beside layer and drill outputs.", "provenance": "inference"},
-    {"domain": "engineering.prototype-build", "why": "A mesh export for fabrication belongs to both worlds. This row owns the geometry as a definition; prototype-build owns the build event — machine, material lot, parameters, outcome. Fixture bytes on both sides: `bracket.stl` is mine when a native parametric sibling and an item identifier exist, and theirs when it is a member of a build record naming machine and material.", "provenance": "inference"},
-    {"domain": "construction_property", "why": "A building information model is three-dimensional, under revision, and structurally similar. Construction_property owns a model whose hierarchy is site, building and storey and whose relation is to one property; this row owns a reusable designed item. Fixture bytes on both sides: `Level-02_Structure.ifc` stays construction_property; a modular plant skid that is manufactured repeatedly is mine even when installed at one site.", "provenance": "inference"}
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "The sharpest boundary on this row, because the two share an identifier stem by design. This row owns the geometry container the sheet is generated FROM; drawing-package owns the sheet that RELEASES it. Discriminating structure: a title block plus revision table plus approval slot plus annotated tolerances belongs to the sheet; a reference graph plus property block plus feature history and NO sheet belongs here. Fixture bytes on both sides: `BPA-210-001_Bracket.SLDPRT` and `BPA-210-001_RevC.pdf` share a stem and a directory. This row must not take the PDF because the stem matches; drawing-package must not take the SLDPRT because it carries a revision property, since a property slot is not a revision table with an approval. The `.dwg` container holds both kinds and is discriminated only by the presence of sheet structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.3d-asset",
+      "signal": "Both hold three-dimensional geometry and both can be `.obj` or `.stl`. This row owns geometry whose destiny is a physical part — a units declaration, material and part-number properties, a parent assembly, a sheet or a product-structure table naming it. creative.3d-asset owns geometry whose destiny is an image or a runtime — materials, UV maps, rigs, lights and render output beside it. Fixture bytes on both sides: `hero_prop_highpoly.blend` is theirs on scene-graph evidence even in an engineering directory; an `enclosure.obj` exported for a product visual is theirs when it sits beside textures and a scene, and mine when a native parametric sibling with an item identifier sits beside it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "signal": "A downloaded supplier or standard component model looks exactly like this row's evidence: exchange format, part-number-shaped stem, sitting in a CAD directory, referenced by a real assembly. It is reference material the design uses, not the design definition it produces. Fixture bytes on both sides: `91251A537.STEP` is standards-library because the identifier belongs to a vendor catalogue and no local property block was authored; the same file becomes this row's evidence only if the user re-authored it into a design item with its own identifier and description.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "signal": "An analysis idealisation is geometry too, and often carries the same stem. This row owns the as-designed geometry; simulation-analysis owns the defeatured, meshed, load-and-boundary-condition model and the study that produced it. Fixture bytes on both sides: `BPA-210-001_RevC.STEP` is mine as the design definition and is theirs only as a named input recorded inside a study; a mesh file carrying element definitions and load cards is theirs even when its stem matches mine.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.industrial-design",
+      "signal": "Surface and master models are native geometry and are also form work. This row owns geometry that downstream assemblies, sheets or product-structure tables reference; industrial-design owns form exploration evidenced by variant studies, CMF boards and renders with no downstream reference. Fixture bytes on both sides: a `Housing_ClassA.3dm` is industrial-design when its neighbourhood is renders and colour studies, and mine when an assembly's linked asset names resolve to it. This seam is not fully settled — see open_question.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.tooling-fixture",
+      "signal": "Mould, die and fixture models are CAD containers with assemblies and part numbers, and toolpath files derive from geometry. This row owns the product's own definition; tooling-fixture owns the geometry of the thing that makes the product, and the toolpath is manufacturing regardless of which model it came from. Fixture bytes on both sides: `BPA-210-001_OP20.nc` is manufacturing even though it was generated from my `.SLDPRT`; a `Core_Cavity.SLDASM` whose components are mould plates is tooling-fixture even though its structure is identical to mine.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.pcb-layout",
+      "signal": "Board and enclosure geometry are exchanged in both directions and share item identifiers. This row owns mechanical geometry; pcb-layout owns copper, stackup, netlist and fabrication outputs. Fixture bytes on both sides: a `board.step` exported for mechanical fit checking is mine when an enclosure assembly resolves it as a component, and theirs when it is a member of a fabrication package beside layer and drill outputs.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "signal": "A mesh export for fabrication belongs to both worlds. This row owns the geometry as a definition; prototype-build owns the build event — machine, material lot, parameters, outcome. Fixture bytes on both sides: `bracket.stl` is mine when a native parametric sibling and an item identifier exist, and theirs when it is a member of a build record naming machine and material.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property",
+      "signal": "A building information model is three-dimensional, under revision, and structurally similar. Construction_property owns a model whose hierarchy is site, building and storey and whose relation is to one property; this row owns a reusable designed item. Fixture bytes on both sides: `Level-02_Structure.ifc` stays construction_property; a modular plant skid that is manufactured repeatedly is mine even when installed at one site.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [
-    {"domain": "code", "why": "A parametric script that emits geometry is genuinely a repository artifact and genuinely a design definition; the two claims rest on disjoint evidence (repository root and manifest on one side, item identity and downstream reference on the other). Fixture: `bracket.py` in a repository beside its exported neutral file. Restricted to the engineering schema row's declared co-activation set.", "provenance": "inference"},
-    {"domain": "research", "why": "A geometry file can be the controlled definition of a design item and the named input of a knowledge-producing study at once, each independently evidenced. Neither side may infer the other's facts.", "provenance": "inference"}
+    {
+      "domain": "code",
+      "signal": "A parametric script that emits geometry is genuinely a repository artifact and genuinely a design definition; the two claims rest on disjoint evidence (repository root and manifest on one side, item identity and downstream reference on the other). Fixture: `bracket.py` in a repository beside its exported neutral file. Restricted to the engineering schema row's declared co-activation set.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "A geometry file can be the controlled definition of a design item and the named input of a knowledge-producing study at once, each independently evidenced. Neither side may infer the other's facts.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with_note": "Restricted to schemas the engineering schema row already declares as co-activations. `creative` is deliberately NOT listed: the render-asset relation is a collision, expressed against `creative.3d-asset`, and a template row must not widen its schema's co-activation edges.",
   "falls_through_to": [
-    {"residual_template": "Review Later", "why": "The default outcome for a geometry container that is readable but has no resolvable reference edge, no authored property block and no downstream artifact naming it — a model that is plainly technical but whose owning item cannot be established from its own evidence.", "provenance": "design", "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."},
-    {"residual_template": "Unsupported or Encrypted", "why": "For proprietary containers the extractor cannot open and for packed archives that cannot be inspected. 00 requires these to be recorded as indexed-but-unreadable rather than treated as empty, which is exactly the state a locked native CAD container is in.", "provenance": "design", "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."},
-    {"residual_template": "Independent Records", "why": "For a standalone exchange or catalogue geometry file with durable reference value and no assembly, project or item relation — the supplier component and the isolated neutral export.", "provenance": "design", "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."},
-    {"residual_template": "Temporary Screenshots", "why": "For viewport captures whose OCR looks like model evidence but which have no accepted project, item or assembly relationship.", "provenance": "design", "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."}
+    {
+      "residual_template": "Review Later",
+      "why": "The default outcome for a geometry container that is readable but has no resolvable reference edge, no authored property block and no downstream artifact naming it — a model that is plainly technical but whose owning item cannot be established from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For proprietary containers the extractor cannot open and for packed archives that cannot be inspected. 00 requires these to be recorded as indexed-but-unreadable rather than treated as empty, which is exactly the state a locked native CAD container is in.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For a standalone exchange or catalogue geometry file with durable reference value and no assembly, project or item relation — the supplier component and the isolated neutral export.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "For viewport captures whose OCR looks like model evidence but which have no accepted project, item or assembly relationship.",
+      "provenance": "design",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    }
   ],
   "role_split": [],
   "role_split_note": "Empty, and the refusal is informative. The split this material most wants is the authoring role against the consuming role for the same geometry bytes — the assembly that OWNS a component versus the assembly that merely REFERENCES a purchased one. Both roles would need the same key (`design_item`) with opposite meanings, and there is no canonical producer/consumer key to split against. Minting one to solve a single template's problem is the move that produces private field names. It is recorded in `91251A537.STEP`'s must_not_conclude instead.",

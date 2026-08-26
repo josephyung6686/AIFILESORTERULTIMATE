@@ -424,17 +424,17 @@
   "also_holds_with": [
     {
       "domain": "identity",
-      "why": "Routine and structural rather than occasional: an immigration case is BUILT out of other people's identity documents - passports, national identifiers, civil certificates, biometric references - because the authority requires them as evidence. Those documents remain `identity`'s on `identity`'s own evidence and stay protected there; the authorisation instrument, the index that lists them and the notices about them are this row's. Disjoint evidence, one corpus, both schemas fieldless, so the join carries protection and co-activation rather than facts. `identity` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Routine and structural rather than occasional: an immigration case is BUILT out of other people's identity documents - passports, national identifiers, civil certificates, biometric references - because the authority requires them as evidence. Those documents remain `identity`'s on `identity`'s own evidence and stay protected there; the authorisation instrument, the index that lists them and the notices about them are this row's. Disjoint evidence, one corpus, both schemas fieldless, so the join carries protection and co-activation rather than facts. `identity` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "One case package holds an executed retainer and, if the matter goes to appeal, captioned documents - `legal`'s on its execution and caption structures - beside an authorisation form, an evidence index and a tracker, which are this row's on the authority-and-representative apparatus. Disjoint evidence, one corpus; `legal` is a safety domain and its protection runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "One case package holds an executed retainer and, if the matter goes to appeal, captioned documents - `legal`'s on its execution and caption structures - beside an authorisation form, an evidence index and a tracker, which are this row's on the authority-and-representative apparatus. Disjoint evidence, one corpus; `legal` is a safety domain and its protection runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "Government filing fees, translation and expert disbursements, and client-money receipts appear as ordinary financial records on their own structure - an issuer-and-billed-to or institution-and-account layout - while the same page may carry an authority reference that makes it a case member here. `finance` is a safety schema and its protective ordering runs first; case membership never converts a financial slot into a case fact, and a fee receipt with no authority reference is finance's alone. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "Government filing fees, translation and expert disbursements, and client-money receipts appear as ordinary financial records on their own structure - an issuer-and-billed-to or institution-and-account layout - while the same page may carry an authority reference that makes it a case member here. `finance` is a safety schema and its protective ordering runs first; case membership never converts a financial slot into a case fact, and a fee receipt with no authority reference is finance's alone. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

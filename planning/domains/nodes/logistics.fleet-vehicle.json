@@ -489,22 +489,22 @@
   "also_holds_with": [
     {
       "domain": "logistics.driver-compliance",
-      "why": "A daily walkaround sheet is honestly both: the vehicle's defect record and the driver's discharge of a personal check duty, in one set of bytes, with no discriminator available. Following the schema's own precedent for the shared delivery note, the shared case is left shared rather than resolved. `00`: “One file may hold facts from more than one domain without losing information.” Neither reading may copy the other's facts onto the file — a driver name never becomes an asset fact, and an asset defect never becomes a fact about the driver.",
+      "signal": "A daily walkaround sheet is honestly both: the vehicle's defect record and the driver's discharge of a personal check duty, in one set of bytes, with no discriminator available. Following the schema's own precedent for the shared delivery note, the shared case is left shared rather than resolved. `00`: “One file may hold facts from more than one domain without losing information.” Neither reading may copy the other's facts onto the file — a driver name never becomes an asset fact, and an asset defect never becomes a fact about the driver.",
       "provenance": "design"
     },
     {
       "domain": "finance.small-business-bookkeeping",
-      "why": "A fuel-card export and a service invoice are simultaneously the asset's operating history and the business's expense ledger, on disjoint slots: the registration and odometer columns on this side, the amount, tax treatment and payee on that side. Each schema activates from its own slots.",
+      "signal": "A fuel-card export and a service invoice are simultaneously the asset's operating history and the business's expense ledger, on disjoint slots: the registration and odometer columns on this side, the amount, tax treatment and payee on that side. Each schema activates from its own slots.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "An operator authorisation, a variation decision and a statutory test result are simultaneously this row's duty artefacts and a public authority's record of a decision about a named holder, on disjoint evidence — the asset and interval on one side, the authority, the applicant and the decision on the other.",
+      "signal": "An operator authorisation, a variation decision and a statutory test result are simultaneously this row's duty artefacts and a public authority's record of a decision about a named holder, on disjoint evidence — the asset and interval on one side, the authority, the applicant and the decision on the other.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "A damage, defect or odometer photograph is a capture with EXIF and, if a plate or defect tag is legible, an asset record. The capture facts belong to Photos whether or not this row activates; this row must not claim the image on a vehicle merely appearing in the frame.",
+      "signal": "A damage, defect or odometer photograph is a capture with EXIF and, if a plate or defect tag is legible, an asset record. The capture facts belong to Photos whether or not this row activates; this row must not claim the image on a vehicle merely appearing in the frame.",
       "provenance": "inference"
     }
   ],

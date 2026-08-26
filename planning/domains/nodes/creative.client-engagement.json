@@ -139,9 +139,17 @@
     {
       "filename": "Creative Brief - Northwind Rebrand - approved.pdf",
       "source_type": "text_document",
-      "observations": ["labelled Client and Prepared by slots name two organisations in distinct roles", "sections name objective, audience, deliverables, mandatories, schedule and approver", "dated approval block identifies the brief revision"],
+      "observations": [
+        "labelled Client and Prepared by slots name two organisations in distinct roles",
+        "sections name objective, audience, deliverables, mandatories, schedule and approver",
+        "dated approval block identifies the brief revision"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["any creative fact because the schema declares none", "that approval of the brief approves later artwork", "a folder path"],
+      "must_not_conclude": [
+        "any creative fact because the schema declares none",
+        "that approval of the brief approves later artwork",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -149,9 +157,18 @@
     {
       "filename": "Statement of Work - Northwind Rebrand - signed.pdf",
       "source_type": "text_document",
-      "observations": ["prepared-for and prepared-by roles name client and studio", "schedule lists identity-system deliverables and review rounds", "fee, change and acceptance clauses accompany two signatures"],
+      "observations": [
+        "prepared-for and prepared-by roles name client and studio",
+        "schedule lists identity-system deliverables and review rounds",
+        "fee, change and acceptance clauses accompany two signatures"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["contract validity or enforceability", "a client or project fact", "that the commercial instrument alone proves creative work occurred", "a folder path"],
+      "must_not_conclude": [
+        "contract validity or enforceability",
+        "a client or project fact",
+        "that the commercial instrument alone proves creative work occurred",
+        "a folder path"
+      ],
       "also_schema": "legal",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -159,9 +176,18 @@
     {
       "filename": "Northwind_Identity_Concepts_R1.pdf",
       "source_type": "presentation",
-      "observations": ["cover names the project and studio", "three concept routes each contain rationale and mockups", "last page requests selection by an identified client review date"],
+      "observations": [
+        "cover names the project and studio",
+        "three concept routes each contain rationale and mockups",
+        "last page requests selection by an identified client review date"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["which concept was selected", "that R1 is a stage fact", "that a brand name is necessarily the client", "a folder path"],
+      "must_not_conclude": [
+        "which concept was selected",
+        "that R1 is a stage fact",
+        "that a brand name is necessarily the client",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -169,9 +195,18 @@
     {
       "filename": "RE Northwind concepts round 1.eml",
       "source_type": "email",
-      "observations": ["sender and recipient domains cross studio and client organisations", "body identifies Concept B and requests three specific changes", "attachment name exactly matches the round-one proof"],
+      "observations": [
+        "sender and recipient domains cross studio and client organisations",
+        "body identifies Concept B and requests three specific changes",
+        "attachment name exactly matches the round-one proof"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that thread membership alone groups every attachment", "that feedback is approval", "a client fact copied to the proof", "a folder path"],
+      "must_not_conclude": [
+        "that thread membership alone groups every attachment",
+        "that feedback is approval",
+        "a client fact copied to the proof",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -179,9 +214,18 @@
     {
       "filename": "Northwind_logo_master_v7.ai",
       "source_type": "design_creative",
-      "observations": ["multiple named artboards and linked font resources", "same stem appears in reviewed proofs and delivery manifest", "filename contains v7 but no role-bearing client text"],
+      "observations": [
+        "multiple named artboards and linked font resources",
+        "same stem appears in reviewed proofs and delivery manifest",
+        "filename contains v7 but no role-bearing client text"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["a client or stage from the filename", "that v7 was approved", "that a linked font belongs to the client", "a folder path"],
+      "must_not_conclude": [
+        "a client or stage from the filename",
+        "that v7 was approved",
+        "that a linked font belongs to the client",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -189,9 +233,18 @@
     {
       "filename": "Northwind R2 markup 2026-08-12.pdf",
       "source_type": "ocr",
-      "observations": ["page images contain coordinate-linked annotations and reviewer initials", "OCR recovers requests tied to exact pages and options", "cover identifies the proof filename being reviewed"],
+      "observations": [
+        "page images contain coordinate-linked annotations and reviewer initials",
+        "OCR recovers requests tied to exact pages and options",
+        "cover identifies the proof filename being reviewed"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that OCR text is authoritative where markup is illegible", "that reviewer initials identify an approver without role context", "that every requested change was implemented", "a folder path"],
+      "must_not_conclude": [
+        "that OCR text is authoritative where markup is illegible",
+        "that reviewer initials identify an approver without role context",
+        "that every requested change was implemented",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -199,9 +252,18 @@
     {
       "filename": "APPROVED - Northwind identity master.eml",
       "source_type": "email",
-      "observations": ["client-side sender addresses the studio recipient", "body names the exact R3 proof and states approval for final-artwork preparation", "thread contains earlier comments but no attachment"],
+      "observations": [
+        "client-side sender addresses the studio recipient",
+        "body names the exact R3 proof and states approval for final-artwork preparation",
+        "thread contains earlier comments but no attachment"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["legal acceptance or payment status", "approval of files not named in the message", "that APPROVED in the filename is sufficient", "a folder path"],
+      "must_not_conclude": [
+        "legal acceptance or payment status",
+        "approval of files not named in the message",
+        "that APPROVED in the filename is sufficient",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -209,9 +271,18 @@
     {
       "filename": "Northwind Final Artwork - delivery manifest.xlsx",
       "source_type": "spreadsheet",
-      "observations": ["rows list exact filenames, formats, colour spaces and intended uses", "header identifies sender studio, recipient client contact and delivery date", "listed files exist beside the manifest with matching hashes or names"],
+      "observations": [
+        "rows list exact filenames, formats, colour spaces and intended uses",
+        "header identifies sender studio, recipient client contact and delivery date",
+        "listed files exist beside the manifest with matching hashes or names"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that intended use grants usage rights", "that unlisted neighboring exports belong to the delivery", "a client or delivery-date fact", "a folder path"],
+      "must_not_conclude": [
+        "that intended use grants usage rights",
+        "that unlisted neighboring exports belong to the delivery",
+        "a client or delivery-date fact",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -219,9 +290,18 @@
     {
       "filename": "Northwind_Rebrand_Handoff.zip",
       "source_type": "archive",
-      "observations": ["manifest inspected without extraction lists brief, source, proof, approval and final-deliverable families", "one job reference recurs across members", "archive includes an invoice and signed rights document as separate members"],
+      "observations": [
+        "manifest inspected without extraction lists brief, source, proof, approval and final-deliverable families",
+        "one job reference recurs across members",
+        "archive includes an invoice and signed rights document as separate members"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["member facts from paths", "that the invoice amount is a creative fact", "that the rights document is legally effective", "a folder path"],
+      "must_not_conclude": [
+        "member facts from paths",
+        "that the invoice amount is a creative fact",
+        "that the rights document is legally effective",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -229,9 +309,18 @@
     {
       "filename": "Commission request - portrait for anniversary.eml",
       "source_type": "email",
-      "observations": ["unsolicited sender describes a desired portrait, budget range and date", "no response, accepted scope, work product or prior relationship exists", "sender signature contains a personal name and address"],
+      "observations": [
+        "unsolicited sender describes a desired portrait, budget range and date",
+        "no response, accepted scope, work product or prior relationship exists",
+        "sender signature contains a personal name and address"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that an enquiry is an engagement", "that the sender is a client", "that work was commissioned", "a folder path"],
+      "must_not_conclude": [
+        "that an enquiry is an engagement",
+        "that the sender is a client",
+        "that work was commissioned",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -239,9 +328,17 @@
     {
       "filename": "Creative Brief Template.docx",
       "source_type": "text_document",
-      "observations": ["complete brief headings with empty values and placeholder instructions", "no commissioner, project, dates or requested deliverables", "template metadata identifies a reusable blank"],
+      "observations": [
+        "complete brief headings with empty values and placeholder instructions",
+        "no commissioner, project, dates or requested deliverables",
+        "template metadata identifies a reusable blank"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that brief structure proves a real engagement", "a client from example placeholder text", "a folder path"],
+      "must_not_conclude": [
+        "that brief structure proves a real engagement",
+        "a client from example placeholder text",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Reference Clips"
@@ -249,9 +346,17 @@
     {
       "filename": "Project Phoenix Weekly Status 2026-08-14.pptx",
       "source_type": "presentation",
-      "observations": ["RAG status, milestone, dependency and risk slides", "internal sponsor and manager roles", "no creative source, artifact review, commissioner-maker role or delivery set"],
+      "observations": [
+        "RAG status, milestone, dependency and risk slides",
+        "internal sponsor and manager roles",
+        "no creative source, artifact review, commissioner-maker role or delivery set"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that a project-shaped name makes it a creative engagement", "that deliverable means creative artifact", "a folder path"],
+      "must_not_conclude": [
+        "that a project-shaped name makes it a creative engagement",
+        "that deliverable means creative artifact",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
@@ -259,9 +364,17 @@
     {
       "filename": "Acme account quarterly review.pdf",
       "source_type": "text_document",
-      "observations": ["account health, renewal outlook, open support items and stakeholder map", "customer and account-owner roles", "no bounded creative request, making record, proof or handoff"],
+      "observations": [
+        "account health, renewal outlook, open support items and stakeholder map",
+        "customer and account-owner roles",
+        "no bounded creative request, making record, proof or handoff"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that a named customer is a creative client", "that relationship management is a creative engagement", "a folder path"],
+      "must_not_conclude": [
+        "that a named customer is a creative client",
+        "that relationship management is a creative engagement",
+        "a folder path"
+      ],
       "also_schema": "business_operations",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
@@ -269,9 +382,18 @@
     {
       "filename": "Invoice 1048 - Northwind Rebrand.pdf",
       "source_type": "text_document",
-      "observations": ["issuer, billed-to party, line items, amount and payment terms", "line item names a rebrand project", "no brief, review, approval or creative artifact is embedded"],
+      "observations": [
+        "issuer, billed-to party, line items, amount and payment terms",
+        "line item names a rebrand project",
+        "no brief, review, approval or creative artifact is embedded"
+      ],
       "facts_legal": [],
-      "must_not_conclude": ["that an invoice activates the creative engagement", "payment status", "a client or project fact copied onto other files", "a folder path"],
+      "must_not_conclude": [
+        "that an invoice activates the creative engagement",
+        "payment status",
+        "a client or project fact copied onto other files",
+        "a folder path"
+      ],
       "also_schema": "finance",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Receipts and Confirmations"
@@ -307,22 +429,22 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A signed creative-services agreement or rights instrument may be both legal evidence and a member of the commissioned making record. Legal owns parties, instrument and legal-status observations; this template owns only the evidenced relationship of that member to the creative workflow.",
+      "signal": "A signed creative-services agreement or rights instrument may be both legal evidence and a member of the commissioned making record. Legal owns parties, instrument and legal-status observations; this template owns only the evidenced relationship of that member to the creative workflow.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "An invoice or paid receipt may independently carry Finance facts while an exact job reference supports membership in the engagement. Membership does not copy client or project facts and does not make payment a creative fact.",
+      "signal": "An invoice or paid receipt may independently carry Finance facts while an exact job reference supports membership in the engagement. Membership does not copy client or project facts and does not make payment a creative fact.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "A screenshot of client markup or photographed physical proof retains positive capture evidence while OCR and exact review references support engagement membership. Missing EXIF proves neither side.",
+      "signal": "A screenshot of client markup or photographed physical proof retains positive capture evidence while OCR and exact review references support engagement membership. Missing EXIF proves neither side.",
       "provenance": "inference"
     },
     {
       "domain": "career",
-      "why": "A delivered client work may later be selected as the maker's portfolio sample. The commissioned production record and the authored career evidence coexist; portfolio selection is not inferred from delivery.",
+      "signal": "A delivered client work may later be selected as the maker's portfolio sample. The commissioned production record and the authored career evidence coexist; portfolio selection is not inferred from delivery.",
       "provenance": "inference"
     }
   ],

@@ -450,27 +450,27 @@
   "also_holds_with": [
     {
       "domain": "finance",
-      "why": "The collision above is the mutex on ONE evidence item; this is the disjoint-evidence case and it is the family's most common join. A trading-period archive carries a Z-read set AND a merchant settlement statement; a supplier folder carries a goods-in variance sheet AND the invoice that was posted. Both schemas are true at once on different evidence. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The collision above is the mutex on ONE evidence item; this is the disjoint-evidence case and it is the family's most common join. A trading-period archive carries a Z-read set AND a merchant settlement statement; a supplier folder carries a goods-in variance sheet AND the invoice that was posted. Both schemas are true at once on different evidence. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "One packet, two schemas, disjoint evidence: a site pack carrying a standards audit, a supplier contract instrument, an insurance schedule AND the opening-checks sheets; a season pack carrying a range plan, a marketing calendar AND the catalogue price file. Neither takes the other's members. This is the join that keeps the existential seam from becoming a fight over whole folders. Provenance: inference.",
+      "signal": "One packet, two schemas, disjoint evidence: a site pack carrying a standards audit, a supplier contract instrument, an insurance schedule AND the opening-checks sheets; a season pack carrying a range plan, a marketing calendar AND the catalogue price file. Neither takes the other's members. This is the join that keeps the existential seam from becoming a fight over whole folders. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "hr",
-      "why": "A site operations folder holds a labour forecast, a rota and a named employee's return-to-work note in one place. hr's privacy posture governs the members that identify employees even where this row's structure is what recognised the folder. Provenance: inference.",
+      "signal": "A site operations folder holds a labour forecast, a rota and a named employee's return-to-work note in one place. hr's privacy posture governs the members that identify employees even where this row's structure is what recognised the folder. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "A licence pack legitimately carries the operator's own application and the authority's notice, determination and inspection report in one bundle. Both schemas are true on disjoint evidence; custody decides which owns the group's reason, not which files may be read. Provenance: inference.",
+      "signal": "A licence pack legitimately carries the operator's own application and the authority's notice, determination and inspection report in one bundle. Both schemas are true on disjoint evidence; custody decides which owns the group's reason, not which files may be read. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "Product and dish photography, plated-food shots, and photographed compliance sheets are image evidence in a trading folder. The universal capture facts remain photos' business; this row must not claim a capture date as a trading date, and photos must not claim a photographed temperature log as a photo event. Provenance: inference.",
+      "signal": "Product and dish photography, plated-food shots, and photographed compliance sheets are image evidence in a trading folder. The universal capture facts remain photos' business; this row must not claim a capture date as a trading date, and photos must not claim a photographed temperature log as a photo event. Provenance: inference.",
       "provenance": "inference"
     }
   ],

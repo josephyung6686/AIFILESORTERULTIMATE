@@ -418,32 +418,32 @@
   "also_holds_with": [
     {
       "domain": "business_operations",
-      "why": "The commonest co-activation in the family, and the reason this schema can be narrow without losing coverage. One archive of a charity's year holds trustee minutes and budgets (business_operations, on the governance and period structure) beside grant reports and a fund statement (this schema, on the restricted-purpose and fund structure) - disjoint evidence, one corpus. Neither promotes the other: a charity number in the footer of the minutes does not move them here, and a fund partition in the accounts does not move them there. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The commonest co-activation in the family, and the reason this schema can be narrow without losing coverage. One archive of a charity's year holds trustee minutes and budgets (business_operations, on the governance and period structure) beside grant reports and a fund statement (this schema, on the restricted-purpose and fund structure) - disjoint evidence, one corpus. Neither promotes the other: a charity number in the footer of the minutes does not move them here, and a fund partition in the accounts does not move them there. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "A grant drawdown reconciled against a bank statement in one workbook is both, on disjoint evidence - the institution-and-account header for finance, the fund partition for this schema. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A grant drawdown reconciled against a bank statement in one workbook is both, on disjoint evidence - the institution-and-account header for finance, the fund partition for this schema. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "hr",
-      "why": "A staff-and-volunteer combined rota, a safeguarding file naming both an employee and a child, a grant budget with named post-holders: one packet, two schemas. hr's privacy posture governs the members that identify people even where this schema activates on the programme. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A staff-and-volunteer combined rota, a safeguarding file naming both an employee and a child, a grant budget with named post-holders: one packet, two schemas. hr's privacy posture governs the members that identify people even where this schema activates on the programme. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "clinical_practice",
-      "why": "A care charity's case file is genuinely both, and the co-activation is the safe outcome rather than a failure to discriminate. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A care charity's case file is genuinely both, and the co-activation is the safe outcome rather than a failure to discriminate. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "government",
-      "why": "A publicly funded programme's grantee file carries the authority's own notices and decisions inside it. The authority-side structures activate government; the grantee-side lifecycle activates this schema. Disjoint evidence in one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A publicly funded programme's grantee file carries the authority's own notices and decisions inside it. The authority-side structures activate government; the grantee-side lifecycle activates this schema. Disjoint evidence in one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "A constitution, trust deed or grant agreement is one file under two schemas - the instrument's execution structure for legal, the reporting and drawdown structure for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A constitution, trust deed or grant agreement is one file under two schemas - the instrument's execution structure for legal, the reporting and drawdown structure for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

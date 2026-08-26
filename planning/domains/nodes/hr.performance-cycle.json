@@ -104,7 +104,12 @@
         "competency headings each followed by a free-text narrative and a self-selected rating from a fixed scale",
         "a goals table repeating objectives set at the start of the cycle with an attainment column"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any hr fact as canonical while this placeholder schema declares no fields",
         "that the self-selected rating is the outcome of the cycle",
@@ -122,7 +127,12 @@
         "the completed-by block names a different person and the role slot reads Manager",
         "an extra section labelled calibration pending that does not appear in the self-assessment"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this and the self-assessment are one duplicate_family or one version_family; shared boilerplate plus a differing author-role slot is the opposite of a version relationship",
         "that the subject may see this member merely because the subject holds the matching self-assessment",
@@ -140,7 +150,12 @@
         "columns pair proposed rating with calibrated rating, and add promotion recommendation, distribution percentage and moderator comments",
         "a header cell states the workbook must not be shared with reviewees"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a single-rating scorecard with no proposed-to-calibrated pair is a calibration worksheet",
         "any rating, ranking or promotion recommendation as a stored fact",
@@ -158,7 +173,12 @@
         "created while the FY26 year-end round is still in calibration, so its creation date sits inside the previous cycle's window",
         "several objectives quote FY26 outcomes verbatim as their starting point"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "that creation date determines which cycle this belongs to",
         "that quoting an FY26 outcome makes this a member of the FY26 round",
@@ -176,7 +196,12 @@
         "a later tab cascades the same key results to named individuals with an attainment percentage and a rating band",
         "no assessment instrument, no reviewer role slot and no calibration column anywhere in the workbook"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "that the whole workbook is a performance record because one tab reaches individuals",
         "that team objectives are personal objectives",
@@ -194,7 +219,11 @@
         "no review period token, no rating scale, no template structure and no subject header beyond the filename",
         "two entries reference an objective by its exact wording from the goals document"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "a subject, cycle, rating or review-period fact from the filename or from group membership",
         "that a management note is a cycle instrument merely because it contains feedback",
@@ -212,7 +241,12 @@
         "a consequence clause stating what may follow if the objectives are not met",
         "signature blocks for the subject, the manager and an HR business partner"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "an employment outcome, a fairness judgement, or any prediction about the subject",
         "that a development plan without a consequence clause is an improvement plan",
@@ -230,7 +264,12 @@
         "outer name and most members repeat the same subject and review period",
         "members carry different distribution markings; two are marked confidential to managers"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that every member shares one exposure posture because they share a packet",
         "that peer responses may be attributed to their authors when the instrument promised aggregation",
@@ -249,7 +288,12 @@
         "one sentence refers to the FY26 review outcome as the basis",
         "no rating scale, no assessment narrative and no reviewer role"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that a reference to a review outcome makes this a review instrument",
         "that the individual's own copy on their own device is an employer-side record",
@@ -267,7 +311,11 @@
         "screen chrome and a browser tab strip are visible in the capture",
         "no file metadata identifies the tool or the capture source"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "a rating fact from a dropdown that may be unselected or mid-edit",
         "that absence of EXIF proves this is a screenshot; the visible screen chrome is the positive evidence",
@@ -285,7 +333,12 @@
         "a slide headed People lists team changes and open roles with named individuals",
         "every row is a metric or an initiative; no person is an assessed subject and no rating scale appears"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "a performance cycle from the words Review, Q2, target, rating or the presence of named people",
         "that a People slide makes a commercial review an hr record",
@@ -303,7 +356,11 @@
         "refreshed monthly and continuous; there is no bounded round, no reviewer role and no assessment narrative",
         "column headers reference territory and product rather than competency or objective"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "a rating distribution from a ranking column",
         "a review cycle from the word performance beside employee names and scores",
@@ -315,27 +372,73 @@
     }
   ],
   "collides_with": [
-    {"domain": "hr.compensation-planning", "signal": "Shared fixtures: `Annual review calibration - Customer Ops.xlsx` when it carries a merit or bonus column, and `Merit increase letter - J Patel - effective 2026-04-01.pdf`. COMPENSATION-PLANNING MUST NOT TAKE the assessment instrument, the proposed-to-calibrated rating pair, or the narrative review merely because a pay decision consumes the rating. THIS ROW MUST NOT TAKE a salary structure, benchmarking file, budget pot, or merit matrix merely because ratings are one of its inputs. The discriminator is whether the file's atoms are ASSESSMENTS OF PEOPLE or MONEY ALLOCATIONS; where one workbook holds both, both may hold and neither copies the other's facts."},
-    {"domain": "hr.employee-relations", "signal": "Shared fixture: `Performance Improvement Plan - J Patel - signed.pdf`. EMPLOYEE-RELATIONS MUST NOT TAKE routine goal setting, self-assessment, peer feedback or a low rating merely because a poor outcome could later become a case. THIS ROW MUST NOT TAKE a capability or disciplinary process once a case reference, formal notice, investigation, hearing or appeal structure appears. The discriminator is the presence of a formal case apparatus, not the severity of the rating; the improvement plan is the seam and both rows may legitimately hold it."},
-    {"domain": "hr.workforce-analytics", "signal": "Shared fixture: a rating-distribution export drawn from `Annual review calibration - Customer Ops.xlsx`. WORKFORCE-ANALYTICS MUST NOT TAKE the per-person calibration worksheet whose rows are named individuals and whose purpose is to reach a decision about each of them. THIS ROW MUST NOT TAKE an aggregated distribution, attrition or nine-box analysis whose rows are population cuts and whose purpose is measurement rather than a per-person outcome. The discriminator is whether a person is the row and the decision, or a member of a cut."},
-    {"domain": "hr.training-development", "signal": "Shared fixture: an individual development plan attached to a review outcome. TRAINING-DEVELOPMENT MUST NOT TAKE the review instrument, the rating or the calibration merely because a development action was an output. THIS ROW MUST NOT TAKE a curriculum, course catalogue, session record or completion roster merely because a review recommended training. The discriminator is whether the file assesses the period just ended or delivers a learning activity."},
-    {"domain": "business_operations.strategy-plan", "signal": "Shared fixture: `Q3 OKRs - Growth team.xlsx`, already named reciprocally in that row's memo and its NJ-BO-SP-1. STRATEGY-PLAN MUST NOT TAKE a per-person tab that carries a review period, a rating scale and a reviewer role - at that point it is an assessment instrument. THIS ROW MUST NOT TAKE entity-level or team-level objectives, the cascade structure itself, or the planning workbook merely because the cascade eventually reaches individuals. Neither side resolves the tab-by-tab case; see NJ-HR-PC-3."},
-    {"domain": "career.employment-records", "signal": "Shared fixture: `FY26 Mid-Year Review - J Patel - manager.docx` and the outcome letter, in the subject's own possession. CAREER MUST NOT TAKE an employer-side round: a calibration worksheet, a whole team's instruments, or a cycle tracker, merely because each member could be copied to the individual it describes. THIS ROW MUST NOT TAKE one person's own review or outcome letter held as their own work-history evidence, with no round, population or moderation structure present. The discriminator is employer-side round structure, not whose device holds the bytes."}
+    {
+      "domain": "hr.compensation-planning",
+      "signal": "Shared fixtures: `Annual review calibration - Customer Ops.xlsx` when it carries a merit or bonus column, and `Merit increase letter - J Patel - effective 2026-04-01.pdf`. COMPENSATION-PLANNING MUST NOT TAKE the assessment instrument, the proposed-to-calibrated rating pair, or the narrative review merely because a pay decision consumes the rating. THIS ROW MUST NOT TAKE a salary structure, benchmarking file, budget pot, or merit matrix merely because ratings are one of its inputs. The discriminator is whether the file's atoms are ASSESSMENTS OF PEOPLE or MONEY ALLOCATIONS; where one workbook holds both, both may hold and neither copies the other's facts."
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "Shared fixture: `Performance Improvement Plan - J Patel - signed.pdf`. EMPLOYEE-RELATIONS MUST NOT TAKE routine goal setting, self-assessment, peer feedback or a low rating merely because a poor outcome could later become a case. THIS ROW MUST NOT TAKE a capability or disciplinary process once a case reference, formal notice, investigation, hearing or appeal structure appears. The discriminator is the presence of a formal case apparatus, not the severity of the rating; the improvement plan is the seam and both rows may legitimately hold it."
+    },
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "Shared fixture: a rating-distribution export drawn from `Annual review calibration - Customer Ops.xlsx`. WORKFORCE-ANALYTICS MUST NOT TAKE the per-person calibration worksheet whose rows are named individuals and whose purpose is to reach a decision about each of them. THIS ROW MUST NOT TAKE an aggregated distribution, attrition or nine-box analysis whose rows are population cuts and whose purpose is measurement rather than a per-person outcome. The discriminator is whether a person is the row and the decision, or a member of a cut."
+    },
+    {
+      "domain": "hr.training-development",
+      "signal": "Shared fixture: an individual development plan attached to a review outcome. TRAINING-DEVELOPMENT MUST NOT TAKE the review instrument, the rating or the calibration merely because a development action was an output. THIS ROW MUST NOT TAKE a curriculum, course catalogue, session record or completion roster merely because a review recommended training. The discriminator is whether the file assesses the period just ended or delivers a learning activity."
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "Shared fixture: `Q3 OKRs - Growth team.xlsx`, already named reciprocally in that row's memo and its NJ-BO-SP-1. STRATEGY-PLAN MUST NOT TAKE a per-person tab that carries a review period, a rating scale and a reviewer role - at that point it is an assessment instrument. THIS ROW MUST NOT TAKE entity-level or team-level objectives, the cascade structure itself, or the planning workbook merely because the cascade eventually reaches individuals. Neither side resolves the tab-by-tab case; see NJ-HR-PC-3."
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "Shared fixture: `FY26 Mid-Year Review - J Patel - manager.docx` and the outcome letter, in the subject's own possession. CAREER MUST NOT TAKE an employer-side round: a calibration worksheet, a whole team's instruments, or a cycle tracker, merely because each member could be copied to the individual it describes. THIS ROW MUST NOT TAKE one person's own review or outcome letter held as their own work-history evidence, with no round, population or moderation structure present. The discriminator is employer-side round structure, not whose device holds the bytes."
+    }
   ],
   "also_holds_with": [
-    {"domain": "hr.compensation-planning", "why": "A calibration worksheet that carries both a calibrated rating and a merit percentage is genuinely both an assessment record and a pay-decision record. Both may hold disjoint facts; the stricter exposure posture governs the person-identifying columns."},
-    {"domain": "business_operations.strategy-plan", "why": "A goal-cascade workbook can lawfully be both a strategy artefact and a performance instrument, tab by tab, exactly as that row's own open question records. Co-activation is lawful; neither side copies the other's facts."},
-    {"domain": "hr.employee-relations", "why": "An improvement plan is simultaneously the last routine step of a review cycle and the first formal step of a capability process. Both readings are real and the stricter case posture governs."},
-    {"domain": "career.employment-records", "why": "The subject's own copy of their review or outcome letter is both a member of the employer's round and the individual's own employment evidence. Dual holding is correct; the employer-side facts are not written onto the personal copy."}
+    {
+      "domain": "hr.compensation-planning",
+      "signal": "A calibration worksheet that carries both a calibrated rating and a merit percentage is genuinely both an assessment record and a pay-decision record. Both may hold disjoint facts; the stricter exposure posture governs the person-identifying columns."
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "A goal-cascade workbook can lawfully be both a strategy artefact and a performance instrument, tab by tab, exactly as that row's own open question records. Co-activation is lawful; neither side copies the other's facts."
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "An improvement plan is simultaneously the last routine step of a review cycle and the first formal step of a capability process. Both readings are real and the stricter case posture governs."
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "The subject's own copy of their review or outcome letter is both a member of the employer's round and the individual's own employment evidence. Dual holding is correct; the employer-side facts are not written onto the personal copy."
+    }
   ],
   "falls_through_to": [
-    {"template": "Protected Records", "when": "review, rating, calibration, feedback, improvement-plan or check-in material naming an employee is recognised as sensitive but no cycle anchor is accepted. 00: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'"},
-    {"template": "Independent Records", "when": "a durable standalone review-shaped document - a business review deck, a blank form, an OKR workbook, a metrics dashboard - has no assessed person and no accepted round"},
-    {"template": "Review Later", "when": "a readable document plainly assesses someone but the round, the assessing role, or the holder perspective cannot be resolved locally, and guessing would either fabricate a cycle or expose a rating"},
-    {"template": "Temporary Screenshots", "when": "a positively evidenced screen capture of a review tool does not resolve to an accepted round through OCR"}
+    {
+      "template": "Protected Records",
+      "when": "review, rating, calibration, feedback, improvement-plan or check-in material naming an employee is recognised as sensitive but no cycle anchor is accepted. 00: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'"
+    },
+    {
+      "template": "Independent Records",
+      "when": "a durable standalone review-shaped document - a business review deck, a blank form, an OKR workbook, a metrics dashboard - has no assessed person and no accepted round"
+    },
+    {
+      "template": "Review Later",
+      "when": "a readable document plainly assesses someone but the round, the assessing role, or the holder perspective cannot be resolved locally, and guessing would either fabricate a cycle or expose a rating"
+    },
+    {
+      "template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a review tool does not resolve to an accepted round through OCR"
+    }
   ],
   "role_split": [
-    {"domain": "career.employment-records", "this_role": "the employer-side administrator of one bounded assessment round across a population, holding instruments authored by several roles about each subject", "other_role": "the individual as the subject, holding their own review, outcome letter and goals as personal employment and work-history evidence"}
+    {
+      "domain": "career.employment-records",
+      "this_role": "the employer-side administrator of one bounded assessment round across a population, holding instruments authored by several roles about each subject",
+      "other_role": "the individual as the subject, holding their own review, outcome letter and goals as personal employment and work-history evidence"
+    }
   ],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "A rating, a ranking position, a moderator comment, a promotion nomination, a succession or flight-risk annotation, or improvement-plan status, joined to a named employee, can cause material harm to the subject and to the assessors whose candour depends on confidence. This row's posture is distinct from the hr schema default in one specific way: exposure is ASYMMETRIC INSIDE A SINGLE PACKET. The subject legitimately holds the self-assessment, the outcome letter and the acknowledgement, and legitimately must not hold the calibration worksheet, another manager's pre-calibration notes, or attributable peer responses gathered under a promise of aggregation. The row therefore must not treat the subject's possession of some members as licence to surface the rest, must not place raw calibration or feedback text in general summaries, and must not send review content to a cloud model by default. No handling class is asserted; P7 owns that vocabulary, and see NJ-HR-PC-1 for the unresolved contract gap.",

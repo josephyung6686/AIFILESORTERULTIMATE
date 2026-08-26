@@ -427,12 +427,12 @@
   "also_holds_with": [
     {
       "domain": "creative.translation-project",
-      "why": "A translated short story genuinely carries both readings on disjoint evidence: a source text in another language with a bilingual glossary and a translator's rights note on one side; a ledger row, a cover letter and a proof under the translator's byline on the other. Neither reading may drop the other's material, and no fact crosses in either direction. Provenance: inference.",
+      "signal": "A translated short story genuinely carries both readings on disjoint evidence: a source text in another language with a bilingual glossary and a translator's rights note on one side; a ledger row, a cover letter and a proof under the translator's byline on the other. Neither reading may drop the other's material, and no fact crosses in either direction. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "creative.revision-round",
-      "why": "An editor's marked-up return of an accepted piece is both a state of this corpus and a genuine revision round - a returned artifact with marks by someone other than the maker. This row owns the piece's identity and its destination trail; the revision row owns the round's own structure. Listed as a co-activation rather than a collision because the two readings do not compete for the same conclusion. Provenance: inference.",
+      "signal": "An editor's marked-up return of an accepted piece is both a state of this corpus and a genuine revision round - a returned artifact with marks by someone other than the maker. This row owns the piece's identity and its destination trail; the revision row owns the round's own structure. Listed as a co-activation rather than a collision because the two readings do not compete for the same conclusion. Provenance: inference.",
       "provenance": "inference"
     }
   ],

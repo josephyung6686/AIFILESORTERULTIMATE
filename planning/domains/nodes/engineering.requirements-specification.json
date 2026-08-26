@@ -54,7 +54,15 @@
       "archive",
       "ocr"
     ],
-    "extensions": [".docx", ".pdf", ".xlsx", ".reqif", ".md", ".txt", ".zip"],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".xlsx",
+      ".reqif",
+      ".md",
+      ".txt",
+      ".zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -93,7 +101,11 @@
         "no shall-statement, no requirement identifier namespace, no verification method, no identified design item",
         "sits at a repository root beside a manifest"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
       "must_not_conclude": [
         "any engineering fact whatsoever - this is the collision fixture, and the word in the filename is the entire resemblance",
         "that a version pin is a revision or baseline of a design item"
@@ -111,7 +123,12 @@
         "a revision block naming an engineering approver",
         "references to standards by number"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "activation of business_operations.product-requirements - that row names these same bytes as its second collision fixture and cedes them",
         "activation of this row - the bytes go to the engineering schema's default template, which is the same destination that row intended when it wrote this id"
@@ -128,7 +145,11 @@
         "columns for allocated item, verification method, verification status and evidence reference",
         "evidence references point at test report filenames that are not in this workbook"
       ],
-      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
       "must_not_conclude": [
         "that a traceability matrix is a distinct organizational situation - it is the value 'requirements traceability matrix' in the engineering schema row's own work_types list",
         "that the evidence-reference column makes this a verification record; engineering.verification-validation owns the report the column points at, not the pointer"
@@ -145,7 +166,12 @@
         "finish and material clauses that invoke MS-4120 by reference rather than restating its limits",
         "one document issue covering both halves"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "that the MS-4120 invocation relocates the document to engineering.material-specification - that row states, from its own side, that invocation is a link and not a relocation",
         "that the functional half needs a row of its own; it is the engineering schema default's ground"
@@ -162,7 +188,12 @@
         "issued by a vehicle manufacturer to a supplier and titled a customer technical specification",
         "names the brake pedal assembly and revision 4"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
       "must_not_conclude": [
         "that a customer-issued specification is a different situation from an internally issued one - the difference is an issuing organisation, which is never-alone evidence",
         "that this row is needed to hold it; the refused engineering.automotive-program ceded these exact bytes to this id, and this refusal passes them to the engineering schema default, which detects them on its own signal"
@@ -179,7 +210,11 @@
         "no identified design item anywhere in the document - the programme has not decomposed yet",
         "no verification method, no revision block, no approver"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "that a requirements row could be built on this subset - a row whose scope is 'requirements documents with no design item' is a row defined by the absence of the default's second dimension, which the node test forbids",
         "an identified system or item, which the engineering schema's own signal requires before it fires at all"
@@ -196,7 +231,11 @@
         "numbered essential and desirable criteria",
         "an employing organisation's letterhead"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "any engineering fact - the second lexical trap, and the reason 'requirement' plus 'engineer' can never be a signal pair",
         "an organisation as an activating fact"
@@ -209,27 +248,27 @@
   "collides_with": [
     {
       "domain": "business_operations.product-requirements",
-      "why": "Fixture bytes Requirements specification - Rev C.pdf. Direction one: product-requirements owns a document whose evidence is user stories, acceptance criteria, success metrics, an out-of-scope or non-goals section and a stakeholder audience; that row already names this id and states the discriminator as the verification-method column plus standards references. Direction two: this id would have taken exactly those bytes on exactly that discriminator - and since this row is refused, the discriminator still holds but resolves to the engineering SCHEMA's default template. The boundary survives the refusal unchanged; only the destination name changes. Recommendation to R1c, not an edit: repoint that row's collision at `engineering` if this id is dropped rather than retained as a browse label.",
+      "signal": "Fixture bytes Requirements specification - Rev C.pdf. Direction one: product-requirements owns a document whose evidence is user stories, acceptance criteria, success metrics, an out-of-scope or non-goals section and a stakeholder audience; that row already names this id and states the discriminator as the verification-method column plus standards references. Direction two: this id would have taken exactly those bytes on exactly that discriminator - and since this row is refused, the discriminator still holds but resolves to the engineering SCHEMA's default template. The boundary survives the refusal unchanged; only the destination name changes. Recommendation to R1c, not an edit: repoint that row's collision at `engineering` if this id is dropped rather than retained as a browse label.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.material-specification",
-      "why": "Fixture bytes Product Specification.docx. Direction one: material-specification owns a document whose specified object is a substance, a bought component or a process operation, held as an instrument with its own identifier and issue and invoked by many design items; that row already names this id and states the discriminator as the specified object. Direction two: this id would have claimed the same document's functional and performance sections. Both sides agree the invocation of MS-4120 is a link and not a relocation. The asymmetry is the whole refusal: material-specification survives because its anchor is the document rather than a design item, and requirements have no such inversion available.",
+      "signal": "Fixture bytes Product Specification.docx. Direction one: material-specification owns a document whose specified object is a substance, a bought component or a process operation, held as an instrument with its own identifier and issue and invoked by many design items; that row already names this id and states the discriminator as the specified object. Direction two: this id would have claimed the same document's functional and performance sections. Both sides agree the invocation of MS-4120 is a link and not a relocation. The asymmetry is the whole refusal: material-specification survives because its anchor is the document rather than a design item, and requirements have no such inversion available.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.verification-validation",
-      "why": "Fixture bytes RTM_Braking-System_RevB.xlsx. Direction one: verification-validation owns the record that a requirement was met - a procedure, a configuration under test, a result and a pass/fail disposition. Direction two: this id would have claimed the matrix that lists the same requirement identifiers with a method and a status column. The discriminator is which artifact carries the measured outcome: the matrix carries a pointer, the report carries the evidence. Both are values of the schema's proposed engineering_artifact_type; only one of them has an argued situation of its own.",
+      "signal": "Fixture bytes RTM_Braking-System_RevB.xlsx. Direction one: verification-validation owns the record that a requirement was met - a procedure, a configuration under test, a result and a pass/fail disposition. Direction two: this id would have claimed the matrix that lists the same requirement identifiers with a method and a status column. The discriminator is which artifact carries the measured outcome: the matrix carries a pointer, the report carries the evidence. Both are values of the schema's proposed engineering_artifact_type; only one of them has an argued situation of its own.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.standards-library",
-      "why": "Fixture bytes an ISO 26262 part held as a received PDF. Direction one: standards-library owns a document issued by a standards body or regulator and held as received reference, on issuer role. Direction two: this id would have claimed it because it is a numbered-clause shall document with verification provisions - which is what a standard is. The discriminator is issuer role, identical to the one material-specification and standards-library already use between themselves; the fact that the same discriminator resolves this id away twice is evidence that this id is a document-type word rather than a situation.",
+      "signal": "Fixture bytes an ISO 26262 part held as a received PDF. Direction one: standards-library owns a document issued by a standards body or regulator and held as received reference, on issuer role. Direction two: this id would have claimed it because it is a numbered-clause shall document with verification provisions - which is what a standard is. The discriminator is issuer role, identical to the one material-specification and standards-library already use between themselves; the fact that the same discriminator resolves this id away twice is evidence that this id is a document-type word rather than a situation.",
       "provenance": "inference"
     },
     {
       "domain": "code",
-      "why": "Fixture bytes requirements.txt. Direction one: code owns a repository's dependency manifest, on repository structure. Direction two: this id would have taken it on the filename alone, which is the purest form of the failure 00 warns about when it forbids inferring meaning from a name. Named as a collision rather than as a rejected neighbour precisely because it is the fixture most likely to be mis-routed by any future revival of this id.",
+      "signal": "Fixture bytes requirements.txt. Direction one: code owns a repository's dependency manifest, on repository structure. Direction two: this id would have taken it on the filename alone, which is the purest form of the failure 00 warns about when it forbids inferring meaning from a name. Named as a collision rather than as a rejected neighbour precisely because it is the fixture most likely to be mis-routed by any future revival of this id.",
       "provenance": "inference"
     }
   ],

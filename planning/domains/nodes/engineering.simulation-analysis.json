@@ -514,84 +514,84 @@
   "collides_with": [
     {
       "domain": "engineering.cad-model",
-      "why": "Reciprocal, and that row wrote its half first: 'This row owns the as-designed geometry; simulation-analysis owns the defeatured, meshed, load-and-boundary-condition model and the study that produced it.' This side agrees on the same fixture bytes. BPA-210-001_RevC.STEP is theirs as the design definition and is mine only as a named input recorded inside a study; BPA-210_mesh_1p5mm.nas is mine even though its stem matches theirs, because element cards without a title block are an idealisation and not a definition. The harder case this side adds: a defeatured native part saved beside the deck is mine, and a mesh exported for a rendering pipeline is neither of ours.",
+      "signal": "Reciprocal, and that row wrote its half first: 'This row owns the as-designed geometry; simulation-analysis owns the defeatured, meshed, load-and-boundary-condition model and the study that produced it.' This side agrees on the same fixture bytes. BPA-210-001_RevC.STEP is theirs as the design definition and is mine only as a named input recorded inside a study; BPA-210_mesh_1p5mm.nas is mine even though its stem matches theirs, because element cards without a title block are an idealisation and not a definition. The harder case this side adds: a defeatured native part saved beside the deck is mine, and a mesh exported for a rendering pipeline is neither of ours.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.civil-structural",
-      "why": "Reciprocal, and that row wrote its half first: 'That row's relation is a numerical simulation run: model, mesh, solver, load case, post-processed result. This row's relation is compliance: a demand and a capacity reconciled against a cited clause of a published code for a fixed work.' This side agrees on the same fixtures and states them identically: Wind-Loading-ASCE7-22_Calc.xlsm is theirs, a mesh convergence study is mine, and a frame FE model whose output feeds member checks legitimately sits in both neighbourhoods. The tell is whether the authority for the answer is a cited published clause or the idealisation itself.",
+      "signal": "Reciprocal, and that row wrote its half first: 'That row's relation is a numerical simulation run: model, mesh, solver, load case, post-processed result. This row's relation is compliance: a demand and a capacity reconciled against a cited clause of a published code for a fixed work.' This side agrees on the same fixtures and states them identically: Wind-Loading-ASCE7-22_Calc.xlsm is theirs, a mesh convergence study is mine, and a frame FE model whose output feeds member checks legitimately sits in both neighbourhoods. The tell is whether the authority for the answer is a cited published clause or the idealisation itself.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.verification-validation",
-      "why": "Same-schema sibling collision on the sharpest seam in this world. Fixture on both sides: Simulation-Model-Validation_DVT07-vs-FEA.xlsx. That row owns evidence about a physical article — requirement identifier, method, procedure, configuration-under-test, measured result, pass or fail. This row owns evidence about a computation — idealisation, mesh, boundary conditions, load case, solver run, predicted result. The correlation workbook holds both on disjoint columns and neither side may copy the other's facts across the error column. A verification matrix whose method column says analysis references this row without becoming it.",
+      "signal": "Same-schema sibling collision on the sharpest seam in this world. Fixture on both sides: Simulation-Model-Validation_DVT07-vs-FEA.xlsx. That row owns evidence about a physical article — requirement identifier, method, procedure, configuration-under-test, measured result, pass or fail. This row owns evidence about a computation — idealisation, mesh, boundary conditions, load case, solver run, predicted result. The correlation workbook holds both on disjoint columns and neither side may copy the other's facts across the error column. A verification matrix whose method column says analysis references this row without becoming it.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.requirements-specification",
-      "why": "Fixture on both sides: BPA-210_FEA_Loadcase-3_RevA.pdf and its margin table citing SYS-REQ-042. That row keys on rows of stable requirement identifiers with allocation, rationale, verification-method and verification-status columns. This row keys on a computed answer that cites one such identifier. A citation is not a declaration: the report never becomes requirements evidence, and a requirements table never becomes this row's evidence because it names analysis as a verification method.",
+      "signal": "Fixture on both sides: BPA-210_FEA_Loadcase-3_RevA.pdf and its margin table citing SYS-REQ-042. That row keys on rows of stable requirement identifiers with allocation, rationale, verification-method and verification-status columns. This row keys on a computed answer that cites one such identifier. A citation is not a declaration: the report never becomes requirements evidence, and a requirements table never becomes this row's evidence because it names analysis as a verification method.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.process-plant-design",
-      "why": "Conceded boundary, and the concession matters because a process simulation is unambiguously a simulation. A steady-state or dynamic flowsheet is structured as unit operations, streams, component lists and a mass and energy balance; it has no mesh, no boundary-condition patches and no discretisation sensitivity. Fixture: a flowsheet export with a stream table is theirs; a CFD study of one vessel's internals inside the same plant package is mine, and both hold on a package that explicitly contains both.",
+      "signal": "Conceded boundary, and the concession matters because a process simulation is unambiguously a simulation. A steady-state or dynamic flowsheet is structured as unit operations, streams, component lists and a mass and energy balance; it has no mesh, no boundary-condition patches and no discretisation sensitivity. Fixture: a flowsheet export with a stream table is theirs; a CFD study of one vessel's internals inside the same plant package is mine, and both hold on a package that explicitly contains both.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.risk-analysis-fmea",
-      "why": "Fixture: a DFMEA whose detection column cites an analysis result. That row's structure is failure-mode rows with cause, effect, control and ranking columns. This row's structure is an idealisation and a computed answer. A DFMEA does not become this row by citing predictions, and a study does not become that row by listing failure modes in a conclusion.",
+      "signal": "Fixture: a DFMEA whose detection column cites an analysis result. That row's structure is failure-mode rows with cause, effect, control and ranking columns. This row's structure is an idealisation and a computed answer. A DFMEA does not become this row by citing predictions, and a study does not become that row by listing failure modes in a conclusion.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.inspection-record",
-      "why": "The collision fixture of this node: LOT-24-081_Cpk-Study.xlsx. It carries the word Study, a distribution, a chart, an index that reads like a margin and a pass verdict, and it sits in the same organisation's folders. It is theirs unconditionally. The discriminator is the input: measured parts from a lot with a device reference, versus an idealisation with a mesh, a material model and boundary conditions. Neither side has a fixture the other should take.",
+      "signal": "The collision fixture of this node: LOT-24-081_Cpk-Study.xlsx. It carries the word Study, a distribution, a chart, an index that reads like a margin and a pass verdict, and it sits in the same organisation's folders. It is theirs unconditionally. The discriminator is the input: measured parts from a lot with a device reference, versus an idealisation with a mesh, a material model and boundary conditions. Neither side has a fixture the other should take.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.failure-analysis",
-      "why": "Fixture: an FEA rerun performed to reproduce a field fracture. That row owns the failed article, the fracture evidence and the root-cause investigation structure; this row owns the model built to reproduce it. Both hold when the investigation report contains a genuine study section with its own idealisation; only that row holds when the report merely quotes a stress figure.",
+      "signal": "Fixture: an FEA rerun performed to reproduce a field fracture. That row owns the failed article, the fracture evidence and the root-cause investigation structure; this row owns the model built to reproduce it. Both hold when the investigation report contains a genuine study section with its own idealisation; only that row holds when the report merely quotes a stress figure.",
       "provenance": "inference"
     },
     {
       "domain": "code.software-project",
-      "why": "Fixture on both sides: controlDict and its case tree under version control, plus a solver-driver script. A repository root, a manifest, a test suite and source structure activate code; a solver application entry beside boundary-condition fields and a mesh specification for a named geometry activate this row. The mirror rule is the one engineering.civil-structural stated against code: a script that runs simulations is code even when its employer designs hardware, and a case directory is a study even when git tracks it.",
+      "signal": "Fixture on both sides: controlDict and its case tree under version control, plus a solver-driver script. A repository root, a manifest, a test suite and source structure activate code; a solver application entry beside boundary-condition fields and a mesh specification for a named geometry activate this row. The mirror rule is the one engineering.civil-structural stated against code: a script that runs simulations is code even when its employer designs hardware, and a case directory is a study even when git tracks it.",
       "provenance": "inference"
     },
     {
       "domain": "research.dataset-analysis",
-      "why": "Fixture: a parameter sweep of a material model with contour figures and an error analysis. That row's object is a proposition — a generalisable claim, often with a venue and citations. This row's object is a named design item's behaviour under a stated load case. A benchmark study against a published validation case with no design item is theirs; the identical solver output applied to BPA-210 is mine.",
+      "signal": "Fixture: a parameter sweep of a material model with contour figures and an error analysis. That row's object is a proposition — a generalisable claim, often with a venue and citations. This row's object is a named design item's behaviour under a stated load case. A benchmark study against a published validation case with no design item is theirs; the identical solver output applied to BPA-210 is mine.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.budget-forecast",
-      "why": "Fixture: monte_carlo_npv_simulation.xlsx. It shares this row's entire surface vocabulary — simulation, run, trials, iterations, convergence, distribution — and none of its structure. It is theirs. This is the reason the word simulation heads this row's never_alone list.",
+      "signal": "Fixture: monte_carlo_npv_simulation.xlsx. It shares this row's entire surface vocabulary — simulation, run, trials, iterations, convergence, distribution — and none of its structure. It is theirs. This is the reason the word simulation heads this row's never_alone list.",
       "provenance": "inference"
     },
     {
       "domain": "creative.3d-asset",
-      "why": "Fixture: a cloth, smoke or rigid-body simulation cache beside a scene file. Both worlds call it a simulation, both solve physics, both write large caches from a solver. That row owns a solve whose output is an image sequence, evidenced by a scene graph, lights, materials and a render setup. This row owns a solve whose output is a number compared against a requirement. A visual-effects cache never becomes engineering evidence because a stress-like colour ramp appears in it.",
+      "signal": "Fixture: a cloth, smoke or rigid-body simulation cache beside a scene file. Both worlds call it a simulation, both solve physics, both write large caches from a solver. That row owns a solve whose output is an image sequence, evidenced by a scene graph, lights, materials and a render setup. This row owns a solve whose output is a number compared against a requirement. A visual-effects cache never becomes engineering evidence because a stress-like colour ramp appears in it.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.stage-gate-review",
-      "why": "Fixture: CFD_intake-duct_report_2026-05-02.pptx presented at a gate. That row's structure is decisions, actions, exit criteria and attendance for a named review; this row's is idealisation, mesh, boundary conditions and results. A deck built from study slides is this row's until the review apparatus appears in the file itself; a review pack that merely embeds a contour image is theirs.",
+      "signal": "Fixture: CFD_intake-duct_report_2026-05-02.pptx presented at a gate. That row's structure is decisions, actions, exit criteria and attendance for a named review; this row's is idealisation, mesh, boundary conditions and results. A deck built from study slides is this row's until the review apparatus appears in the file itself; a review pack that merely embeds a contour image is theirs.",
       "provenance": "inference"
     }
   ],
   "also_holds_with": [
     {
       "domain": "code",
-      "why": "A version-controlled case tree or a parametric solver driver is genuinely a repository artifact and genuinely a study; the two claims rest on disjoint evidence — repository root and manifest on one side, solver application and boundary-condition fields for a named geometry on the other. Fixture: controlDict. Restricted to the engineering schema row's declared co-activation set.",
+      "signal": "A version-controlled case tree or a parametric solver driver is genuinely a repository artifact and genuinely a study; the two claims rest on disjoint evidence — repository root and manifest on one side, solver application and boundary-condition fields for a named geometry on the other. Fixture: controlDict. Restricted to the engineering schema row's declared co-activation set.",
       "provenance": "inference"
     },
     {
       "domain": "research",
-      "why": "One study can both verify a named design requirement and produce a generalisable claim submitted to a venue. Fixture: a correlation study published as a conference paper. The design-item facts and the venue facts remain independently evidenced; neither is inferred from the other.",
+      "signal": "One study can both verify a named design requirement and produce a generalisable claim submitted to a venue. Fixture: a correlation study published as a conference paper. The design-item facts and the venue facts remain independently evidenced; neither is inferred from the other.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing",
-      "why": "A model built to reproduce a field failure carries execution evidence about a real failed part and design-prediction evidence about an idealisation in one document, when the report genuinely contains both structures. Restricted to the engineering schema row's declared co-activation set.",
+      "signal": "A model built to reproduce a field failure carries execution evidence about a real failed part and design-prediction evidence about an idealisation in one document, when the report genuinely contains both structures. Restricted to the engineering schema row's declared co-activation set.",
       "provenance": "inference"
     }
   ],

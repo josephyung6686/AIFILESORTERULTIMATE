@@ -461,27 +461,27 @@
   "also_holds_with": [
     {
       "domain": "medical",
-      "why": "CONNECTION-EXAMPLES fixture 8 is binding on this pair: an explanation of benefits, a health-insurance card, or a provider invoice carries a claim/payment structure and clinical content on one file, on disjoint evidence. medical is a field-less safety placeholder (PR-6), so today the join carries protection rather than fields - co-activation is the DESIRED outcome, because it means P7 classification runs on both readings before any model path. Provenance: inference - 00 names the four safety domains together but does not write this pair out.",
+      "signal": "CONNECTION-EXAMPLES fixture 8 is binding on this pair: an explanation of benefits, a health-insurance card, or a provider invoice carries a claim/payment structure and clinical content on one file, on disjoint evidence. medical is a field-less safety placeholder (PR-6), so today the join carries protection rather than fields - co-activation is the DESIRED outcome, because it means P7 classification runs on both readings before any model path. Provenance: inference - 00 names the four safety domains together but does not write this pair out.",
       "provenance": "inference"
     },
     {
       "domain": "academic",
-      "why": "a tuition statement, a financial-aid award letter, or a bursar notice is a finance record (institution, record_type) that simultaneously carries school and term on its own academic evidence. Same structure as 00's abstract that is Research and Applications at once. It is also the role-split fixture: one university string fills institution in one role and school in the other, which is exactly what 00 means by separating roles that happen to contain the same entity type. Provenance: inference.",
+      "signal": "a tuition statement, a financial-aid award letter, or a bursar notice is a finance record (institution, record_type) that simultaneously carries school and term on its own academic evidence. Same structure as 00's abstract that is Research and Applications at once. It is also the role-split fixture: one university string fills institution in one role and school in the other, which is exactly what 00 means by separating roles that happen to contain the same entity type. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "an executed loan or credit agreement, a mortgage closing packet, or an insurance policy is finance material and legal material on one file; 00's privacy sentence names 'account statements, tax records' and 'legal records' in one corpus list. legal is a field-less safety placeholder, so the join carries protection today, not fields - the same shape CONNECTION uses for finance/medical. Carried alongside collides_with legal, which is licensed only because the collision entry names discriminating evidence. Provenance: inference.",
+      "signal": "an executed loan or credit agreement, a mortgage closing packet, or an insurance policy is finance material and legal material on one file; 00's privacy sentence names 'account statements, tax records' and 'legal records' in one corpus list. legal is a field-less safety placeholder, so the join carries protection today, not fields - the same shape CONNECTION uses for finance/medical. Carried alongside collides_with legal, which is licensed only because the collision entry names discriminating evidence. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "a record can carry an institution's labelled statement structure AND a taxpayer or national identification number in its own labelled slot - a tax filing and a payer-issued tax form are the clearest cases, and 1099-INT 2025.pdf below is the fixture. 00 names the two together twice: the corpus 'can include identity documents, account statements, tax records', and 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' Disjoint evidence: the account/period/amount structure activates finance, the labelled identity slots activate identity. The finance fields extract at launch under local-only rules (PR-2) while identity contributes protection and no fields (PR-6). The pair ALSO collides on a name-plus-number evidence item, which is why that collision entry carries a discriminating signal. Reciprocates the edge authored on identity. Provenance: inference.",
+      "signal": "a record can carry an institution's labelled statement structure AND a taxpayer or national identification number in its own labelled slot - a tax filing and a payer-issued tax form are the clearest cases, and 1099-INT 2025.pdf below is the fixture. 00 names the two together twice: the corpus 'can include identity documents, account statements, tax records', and 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' Disjoint evidence: the account/period/amount structure activates finance, the labelled identity slots activate identity. The finance fields extract at launch under local-only rules (PR-2) while identity contributes protection and no fields (PR-6). The pair ALSO collides on a name-plus-number evidence item, which is why that collision entry carries a discriminating signal. Reciprocates the edge authored on identity. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "a photographed receipt is a capture (capture_year, camera_information, media_type, from its own EXIF) and a money record (record_type, institution, from its own OCR content) at once, on disjoint evidence. Neither fact set may erase the other; which one later determines a physical location is the user's decision at tree design, not activation's. Provenance: inference.",
+      "signal": "a photographed receipt is a capture (capture_year, camera_information, media_type, from its own EXIF) and a money record (record_type, institution, from its own OCR content) at once, on disjoint evidence. Neither fact set may erase the other; which one later determines a physical location is the user's decision at tree design, not activation's. Provenance: inference.",
       "provenance": "inference"
     }
   ],

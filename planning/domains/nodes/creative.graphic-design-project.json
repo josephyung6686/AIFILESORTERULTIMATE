@@ -58,9 +58,22 @@
     {
       "filename": "Harbour_Festival_Poster_v07.ai",
       "source_type": "design_creative",
-      "observations": ["filename has a named-work-shaped stem and version token", "document exposes three artboards, named layers and linked image files", "one artboard is labelled A2 CMYK"],
-      "facts_legal": ["file_type", "creation_date", "version_family"],
-      "must_not_conclude": ["a graphic-design-project template", "that Harbour Festival is a client rather than the event depicted", "project, stage or artifact_type because the creative schema declares no fields", "a folder path"],
+      "observations": [
+        "filename has a named-work-shaped stem and version token",
+        "document exposes three artboards, named layers and linked image files",
+        "one artboard is labelled A2 CMYK"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a graphic-design-project template",
+        "that Harbour Festival is a client rather than the event depicted",
+        "project, stage or artifact_type because the creative schema declares no fields",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -68,9 +81,22 @@
     {
       "filename": "Harbour_Festival_Poster_A2_PRINT.pdf",
       "source_type": "text_document",
-      "observations": ["single-page PDF shares the working-file stem", "page boxes expose trim and bleed", "output intent is CMYK and fonts are embedded"],
-      "facts_legal": ["file_type", "creation_date", "version_family"],
-      "must_not_conclude": ["that this export was approved or delivered", "that PRINT is a licensed stage fact", "a distinct template from production metadata", "a folder path"],
+      "observations": [
+        "single-page PDF shares the working-file stem",
+        "page boxes expose trim and bleed",
+        "output intent is CMYK and fonts are embedded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that this export was approved or delivered",
+        "that PRINT is a licensed stage fact",
+        "a distinct template from production metadata",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
@@ -78,9 +104,22 @@
     {
       "filename": "Harbour_Festival_Social_1080x1350.png",
       "source_type": "image",
-      "observations": ["filename shares the work stem and states pixel dimensions", "flat image contains festival title and the same illustrated motif", "no layers, recipient or approval record are present"],
-      "facts_legal": ["file_type", "creation_date", "media_type"],
-      "must_not_conclude": ["that shared appearance proves membership in the same project", "that the image is a delivered asset", "a project fact copied from neighbouring files", "a folder path"],
+      "observations": [
+        "filename shares the work stem and states pixel dimensions",
+        "flat image contains festival title and the same illustrated motif",
+        "no layers, recipient or approval record are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that shared appearance proves membership in the same project",
+        "that the image is a delivered asset",
+        "a project fact copied from neighbouring files",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "One-Off Images"
@@ -88,9 +127,23 @@
     {
       "filename": "Harbour Festival creative brief.docx",
       "source_type": "text_document",
-      "observations": ["heading names Harbour Festival", "labelled sections state audience, required outputs and deadline", "footer names an agency and festival organisation"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["which organisation is the client without role-bearing text", "that every listed output exists", "that a brief activates graphic design rather than the creative default or client engagement", "a folder path"],
+      "observations": [
+        "heading names Harbour Festival",
+        "labelled sections state audience, required outputs and deadline",
+        "footer names an agency and festival organisation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which organisation is the client without role-bearing text",
+        "that every listed output exists",
+        "that a brief activates graphic design rather than the creative default or client engagement",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -98,9 +151,23 @@
     {
       "filename": "Harbour_Poster_feedback_round2.eml",
       "source_type": "email",
-      "observations": ["subject names a poster and round 2", "body requests a date change and quotes an attachment filename", "sender and recipient slots cross organisation domains"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["a client fact from an email domain alone", "that requested changes were implemented", "that round 2 is a template or folder dimension", "a folder path"],
+      "observations": [
+        "subject names a poster and round 2",
+        "body requests a date change and quotes an attachment filename",
+        "sender and recipient slots cross organisation domains"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a client fact from an email domain alone",
+        "that requested changes were implemented",
+        "that round 2 is a template or folder dimension",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
@@ -108,9 +175,22 @@
     {
       "filename": "Harbour_Festival_FINAL_ARTWORK.zip",
       "source_type": "archive",
-      "observations": ["archive manifest lists AI, press PDF, web PNG and README members", "README names colour spaces, sizes and intended uses", "archive name contains FINAL but no transmission record"],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
-      "must_not_conclude": ["delivery or approval from packaging and filename alone", "member facts from archive paths", "that file formats justify a graphic-design template", "a folder path"],
+      "observations": [
+        "archive manifest lists AI, press PDF, web PNG and README members",
+        "README names colour spaces, sizes and intended uses",
+        "archive name contains FINAL but no transmission record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "delivery or approval from packaging and filename alone",
+        "member facts from archive paths",
+        "that file formats justify a graphic-design template",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -118,9 +198,22 @@
     {
       "filename": "Swiss Poster Collection 1950-1970.pdf",
       "source_type": "text_document",
-      "observations": ["book-length PDF contains reproduced historical posters and catalogue essays", "download metadata identifies an online archive", "no authored working files or project neighbourhood exist"],
-      "facts_legal": ["file_type", "creation_date", "language"],
-      "must_not_conclude": ["creative activation from poster content", "that depicted designers are file authors", "a graphic-design project", "a folder path"],
+      "observations": [
+        "book-length PDF contains reproduced historical posters and catalogue essays",
+        "download metadata identifies an online archive",
+        "no authored working files or project neighbourhood exist"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "creative activation from poster content",
+        "that depicted designers are file authors",
+        "a graphic-design project",
+        "a folder path"
+      ],
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Reading Inbox"
@@ -128,9 +221,23 @@
     {
       "filename": "Portfolio_Harbour_Poster_Case_Study.pdf",
       "source_type": "text_document",
-      "observations": ["multi-page presentation describes the brief, process and outcome", "pages show polished mockups rather than editable sources", "title and footer identify the maker"],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
-      "must_not_conclude": ["that the case study is the making record", "that every pictured artifact exists as a local file", "creative activation when the file's purpose is a work sample", "a folder path"],
+      "observations": [
+        "multi-page presentation describes the brief, process and outcome",
+        "pages show polished mockups rather than editable sources",
+        "title and footer identify the maker"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the case study is the making record",
+        "that every pictured artifact exists as a local file",
+        "creative activation when the file's purpose is a work sample",
+        "a folder path"
+      ],
       "also_schema": "career",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
@@ -138,13 +245,13 @@
   ],
   "collides_with": [
     {
-      "domain_id": "career",
-      "why": "A polished case-study PDF or portfolio board can depict the same graphic-design work. If the file's purpose is presenting the maker's capabilities, career owns that file; editable sources, revision families and production exports remain creative making records.",
+      "domain": "career",
+      "signal": "A polished case-study PDF or portfolio board can depict the same graphic-design work. If the file's purpose is presenting the maker's capabilities, career owns that file; editable sources, revision families and production exports remain creative making records.",
       "provenance": "inference"
     },
     {
-      "domain_id": "photos",
-      "why": "A flat image can be an authored graphic export, a photographed poster, a screenshot, or a reference download. Creative requires making-record evidence such as working-file structure, linked assets or a project neighbourhood; capture metadata and event chronology belong to photos.",
+      "domain": "photos",
+      "signal": "A flat image can be an authored graphic export, a photographed poster, a screenshot, or a reference download. Creative requires making-record evidence such as working-file structure, linked assets or a project neighbourhood; capture metadata and event chronology belong to photos.",
       "provenance": "inference"
     }
   ],

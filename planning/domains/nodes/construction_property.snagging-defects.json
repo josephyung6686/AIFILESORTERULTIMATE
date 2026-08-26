@@ -515,17 +515,17 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A defect notification served under a contract, a latent-defect claim and a pre-action letter about defective work are legal records as well as this situation's, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and protective ordering applies — the legal reading protects first and this row's reading is additive. “One file may hold facts from more than one domain without losing information.”",
+      "signal": "A defect notification served under a contract, a latent-defect claim and a pre-action letter about defective work are legal records as well as this situation's, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and protective ordering applies — the legal reading protects first and this row's reading is additive. “One file may hold facts from more than one domain without losing information.”",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "An annotated defect photograph carries the photos schema's capture facts as well as being a register member. The sibling construction_property.progress-photos already states the capture side and this row does not reopen it; what is recorded here is only that both readings hold of the same bytes. “One file may hold facts from more than one domain without losing information.”",
+      "signal": "An annotated defect photograph carries the photos schema's capture facts as well as being a register member. The sibling construction_property.progress-photos already states the capture side and this row does not reopen it; what is recorded here is only that both readings hold of the same bytes. “One file may hold facts from more than one domain without losing information.”",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "Retention is released against defects being closed, so a close-out confirmation is simultaneously a finance record for whoever's books the release lands in and this situation's evidence that the list is finished. Neither reading displaces the other; the collision with construction_property.final-account is a separate and narrower matter and is recorded there.",
+      "signal": "Retention is released against defects being closed, so a close-out confirmation is simultaneously a finance record for whoever's books the release lands in and this situation's evidence that the list is finished. Neither reading displaces the other; the collision with construction_property.final-account is a separate and narrower matter and is recorded there.",
       "provenance": "inference"
     }
   ],

@@ -377,7 +377,7 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A supplier file routinely holds one document under two schemas on disjoint evidence: the execution structure, clauses and schedules of a signed agreement for legal, and the register, diligence and renewal-review structure around it for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither, and where they co-activate the protective ordering runs first. AUTHORED ONE-WAY HERE: the landed legal rows do not name business_operations, and R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A supplier file routinely holds one document under two schemas on disjoint evidence: the execution structure, clauses and schedules of a signed agreement for legal, and the register, diligence and renewal-review structure around it for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither, and where they co-activate the protective ordering runs first. AUTHORED ONE-WAY HERE: the landed legal rows do not name business_operations, and R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

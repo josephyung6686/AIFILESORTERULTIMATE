@@ -262,57 +262,57 @@
   "collides_with": [
     {
       "domain": "engineering",
-      "why": "This is the load-bearing collision: the row collides with its own schema's default template. Fixture bytes BPA-210-001_Brake-Pedal-Assembly_RevC.dwg are already a landed default-template fixture on engineering.json, alongside SYS-REQ-042_Braking-System-Requirements_RevB.docx and TDP_BPA-210_Baseline-C.zip. Direction one: the engineering default owns any file whose evidence is an identified design item plus a controlled technical artifact plus a revision or baseline, in any industry. Direction two: this row owns nothing that is left after that, because the only residue is the sector name.",
+      "signal": "This is the load-bearing collision: the row collides with its own schema's default template. Fixture bytes BPA-210-001_Brake-Pedal-Assembly_RevC.dwg are already a landed default-template fixture on engineering.json, alongside SYS-REQ-042_Braking-System-Requirements_RevB.docx and TDP_BPA-210_Baseline-C.zip. Direction one: the engineering default owns any file whose evidence is an identified design item plus a controlled technical artifact plus a revision or baseline, in any industry. Direction two: this row owns nothing that is left after that, because the only residue is the sector name.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.product-certification",
-      "why": "Fixture bytes e11r-2018-858-00234-03_Whole-Vehicle-Type-Approval_XJ.pdf. Direction one: product-certification owns the relation of an approved product to a named regulation or standard, an approving body and a certificate identifier - whatever the regulation catalogue. Direction two: this row would have claimed the same file under the word homologation, which is that relation with road-vehicle regulations as its values; under D4 a regulator's catalogue supplies values, never a node. Recommendation to R1c: product-certification should carry a type-approval example so the coverage is visibly absorbed.",
+      "signal": "Fixture bytes e11r-2018-858-00234-03_Whole-Vehicle-Type-Approval_XJ.pdf. Direction one: product-certification owns the relation of an approved product to a named regulation or standard, an approving body and a certificate identifier - whatever the regulation catalogue. Direction two: this row would have claimed the same file under the word homologation, which is that relation with road-vehicle regulations as its values; under D4 a regulator's catalogue supplies values, never a node. Recommendation to R1c: product-certification should carry a type-approval example so the coverage is visibly absorbed.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.requirements-specification",
-      "why": "Fixture bytes CTS_Brake-Pedal-Assembly_OEM-XJ_Rev4.pdf. Direction one: requirements-specification owns a document whose rows or clauses carry stable requirement identifiers with acceptance criteria and verification methods, regardless of who issued it. Direction two: this row's customer-requirements half is that structure with a vehicle manufacturer as the issuer, and an issuer is an organisation name - never-alone.",
+      "signal": "Fixture bytes CTS_Brake-Pedal-Assembly_OEM-XJ_Rev4.pdf. Direction one: requirements-specification owns a document whose rows or clauses carry stable requirement identifiers with acceptance criteria and verification methods, regardless of who issued it. Direction two: this row's customer-requirements half is that structure with a vehicle manufacturer as the issuer, and an issuer is an organisation name - never-alone.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.stage-gate-review",
-      "why": "Fixture bytes MY27-XJ_Gateway-3_Design-Freeze_Review-Pack.pptx. Direction one: stage-gate-review owns the pack assembled for one decision gate and the decision it produced. Direction two: this row's milestones half is exactly that; a design freeze and a start-of-production readiness gate are gate values, and gate names are industry vocabulary sitting inside a structure the sibling already owns.",
+      "signal": "Fixture bytes MY27-XJ_Gateway-3_Design-Freeze_Review-Pack.pptx. Direction one: stage-gate-review owns the pack assembled for one decision gate and the decision it produced. Direction two: this row's milestones half is exactly that; a design freeze and a start-of-production readiness gate are gate values, and gate names are industry vocabulary sitting inside a structure the sibling already owns.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.project",
-      "why": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: engineering.project is the branch root for engineering material carrying a project or product identity but no more specific sub-domain - which is precisely what a vehicle programme is. Direction two: this row is that root with an industry adjective, which is why it cannot be a separate node.",
+      "signal": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: engineering.project is the branch root for engineering material carrying a project or product identity but no more specific sub-domain - which is precisely what a vehicle programme is. Direction two: this row is that root with an industry adjective, which is why it cannot be a separate node.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.risk-analysis-fmea",
-      "why": "Fixture bytes DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx. Direction one: risk-analysis-fmea owns structured analysis of how a design or process can fail. Direction two: an automotive hazard analysis with an integrity-level classification is a value set inside that structure, not a second structure.",
+      "signal": "Fixture bytes DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx. Direction one: risk-analysis-fmea owns structured analysis of how a design or process can fail. Direction two: an automotive hazard analysis with an integrity-level classification is a value set inside that structure, not a second structure.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.verification-validation",
-      "why": "Fixture bytes BPA-210_DVT-07_Verification-Report.pdf, already a landed engineering default fixture. Direction one: verification-validation owns planned testing against a stated requirement and the report that says whether it passed. Direction two: design verification and production validation reports in a vehicle programme are that relation; crash and durability testing are methods, and a method is a value.",
+      "signal": "Fixture bytes BPA-210_DVT-07_Verification-Report.pdf, already a landed engineering default fixture. Direction one: verification-validation owns planned testing against a stated requirement and the report that says whether it passed. Direction two: design verification and production validation reports in a vehicle programme are that relation; crash and durability testing are methods, and a method is a value.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.supplier-qualification",
-      "why": "Fixture bytes PPAP_BPA-210_Level-3_Submission.zip. Direction one: supplier-qualification owns the packet whose purpose is deciding whether a supplier's part may be used and keeping the evidence that it still may. Direction two: this row would have claimed the same packet because it cites design records; the design records inside are engineering's, but the packet's purpose is not, and 00's archive discipline forbids copying a member's facts onto the container.",
+      "signal": "Fixture bytes PPAP_BPA-210_Level-3_Submission.zip. Direction one: supplier-qualification owns the packet whose purpose is deciding whether a supplier's part may be used and keeping the evidence that it still may. Direction two: this row would have claimed the same packet because it cites design records; the design records inside are engineering's, but the packet's purpose is not, and 00's archive discipline forbids copying a member's facts onto the container.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.embedded-firmware",
-      "why": "Fixture bytes ECU-BCM_SW-3.4.1_Release-Package.zip. Direction one: embedded-firmware owns software written to run on a specific piece of hardware, with code.software-project owning repository structure. Direction two: this row would have claimed it because the hardware is a car - which is the employer-builds-hardware fallacy the engineering schema row already names.",
+      "signal": "Fixture bytes ECU-BCM_SW-3.4.1_Release-Package.zip. Direction one: embedded-firmware owns software written to run on a specific piece of hardware, with code.software-project owning repository structure. Direction two: this row would have claimed it because the hardware is a car - which is the employer-builds-hardware fallacy the engineering schema row already names.",
       "provenance": "inference"
     },
     {
       "domain": "finance.vehicle-records",
-      "why": "Fixture bytes Certificate-of-Conformity_WVWZZZ1JZ3W386752.pdf. Direction one: finance.vehicle-records owns purchase, registration, service and insurance records for a vehicle a person or business owns, and this is the fixture where the refusal protects the user - a VIN-bearing conformity document is personal property paperwork. Direction two: this row would have absorbed it on the type-approval number it cites, which would file a person's car documents inside a manufacturer's programme. logistics.fleet-vehicle takes the same document when the filer runs a fleet.",
+      "signal": "Fixture bytes Certificate-of-Conformity_WVWZZZ1JZ3W386752.pdf. Direction one: finance.vehicle-records owns purchase, registration, service and insurance records for a vehicle a person or business owns, and this is the fixture where the refusal protects the user - a VIN-bearing conformity document is personal property paperwork. Direction two: this row would have absorbed it on the type-approval number it cites, which would file a person's car documents inside a manufacturer's programme. logistics.fleet-vehicle takes the same document when the filer runs a fleet.",
       "provenance": "inference"
     },
     {
       "domain": "research.project-workspace",
-      "why": "Fixture bytes Battery-Cell-Ageing-Study_2026.xlsx - measurement series with test conditions, no item identifier and no revision. Direction one: research owns work whose object is knowledge rather than a designed item. Direction two: this row would have claimed it as advanced-engineering material because the cells go into vehicles; the intended-vehicle destination is not evidence about the file.",
+      "signal": "Fixture bytes Battery-Cell-Ageing-Study_2026.xlsx - measurement series with test conditions, no item identifier and no revision. Direction one: research owns work whose object is knowledge rather than a designed item. Direction two: this row would have claimed it as advanced-engineering material because the cells go into vehicles; the intended-vehicle destination is not evidence about the file.",
       "provenance": "inference"
     }
   ],

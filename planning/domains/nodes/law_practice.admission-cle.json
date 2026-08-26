@@ -38,8 +38,26 @@
     "why": "Empty because the row is refused, and empty in any case by binding contract: law_practice declares no field rows under PR-6, so no dimension can branch. The emptiness is part of the refusal rather than incidental - the order this situation would have wanted (issuing authority, then credential, then document type) is the order career.credentials-licenses already recorded in prose for the career schema, and proposing it again here would be a second copy of a neighbour's recommendation. A renewal notice is unintelligible without knowing which body granted which standing, which is 00's parent-context rule - \"A work type such as Homework 3 is meaningful only after the course is known\" - and it is satisfied on the career side."
   },
   "file_kinds": {
-    "source_types": ["text_document", "ocr", "image", "email", "spreadsheet", "archive", "opaque_binary"],
-    "extensions": [".pdf", ".docx", ".jpg", ".png", ".heic", ".eml", ".csv", ".xlsx", ".zip"],
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "spreadsheet",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".csv",
+      ".xlsx",
+      ".zip"
+    ],
     "never_alone": true
   },
   "file_examples": [
@@ -53,7 +71,12 @@
         "a status line and a verification reference",
         "exactly one person appears anywhere on the document; no matter reference appears at all"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "activation of this id, which does not exist. THIS IS THE FILE THAT DECIDES THE REFUSAL: it is the most common member of the pile and it is career.credentials-licenses' landed structure exactly - issuing body in the issuer position, credential title, labelled identifier, validity window - with a legal regulator in the issuer slot instead of a health one.",
         "any law_practice fact: the schema declares no field rows, and its default template requires a matter anchor and a two-role split that this document does not have"
@@ -71,7 +94,11 @@
         "a total-credits line against a compliance-period label",
         "no matter reference, no client, no second party"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "a law_practice fact of any kind",
         "that the credit-hour rows are a legal-effect finding: whether a requirement is met is a compliance judgement the catalogue must abstain from"
@@ -87,7 +114,11 @@
         "an insurer letterhead, a named insured firm, a policy number slot, a period-of-cover pair, a limit-of-indemnity figure",
         "two organisations appear - the insurer and the firm - and no natural-person client"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "that two organisation names constitute the practitioner/client role split. An organisation name is never-alone evidence and an insurer is not a client.",
         "that cover is in force, sufficient, or accepted by any regulator"
@@ -105,7 +136,11 @@
         "an attached certificate of good standing referenced as an exhibit",
         "the word Admission in the title"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "that the word Admission routes this file to a credentialing situation. THE COLLISION FIXTURE. It carries the matter anchor and the two-role structure, so it is law_practice.court-filing-record's; the discriminator is the exact case caption, not the vocabulary."
       ],
@@ -120,7 +155,12 @@
         "regulator seal, holder name, bar number, an issue date and a currency statement",
         "one person; no matter reference"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that being requested for, or attached to, a pro hac vice motion converts it into matter evidence. The same bytes sit in two places: career.credentials-licenses on its own credential evidence, and as an exhibit inside an accepted matter packet - membership never copies a matter fact onto it."
       ],
@@ -136,7 +176,12 @@
         "an allegation summary that may reference a former client",
         "a response deadline"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this is a credentialing record because it concerns a licence. The holder is the party, so it is the holder's own legal position - legal.personal-legal-matters - and legal is a safety domain whose protection runs first.",
         "any finding of misconduct, validity or outcome"
@@ -152,7 +197,11 @@
         "sender slot resolving to a bar association, subject slot carrying a deadline term",
         "a bar number in the body and a portal link"
       ],
-      "facts_legal": ["file_type", "creation_date", "language"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "activation of this id. A renewal or compliance email from a licensing body is a landed career.credentials-licenses signal verbatim.",
         "that the linked portal should be fetched"
@@ -168,7 +217,10 @@
         "positive screen-origin evidence in dimensions and filename pattern",
         "OCR may recover a credits table and a bar number"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "a credential fact from OCR of a portal chrome alone",
         "that absent EXIF proves screen origin - 00 forbids missing metadata as screenshot proof"
@@ -184,7 +236,10 @@
         "a mixed member list readable from the manifest: application form, transcripts, employment history, referee affidavits, fee receipt",
         "members are purpose-coherent and content-incoherent"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "that referee affidavits are a second party in the schema's sense - they attest ABOUT the single holder, which is a one-subject structure, not a practitioner/client split",
         "a purpose fact from the filename without packet evidence; and the archive must not be unpacked solely to improve classification"
@@ -200,7 +255,10 @@
         "one row per named fee earner with credit totals and a compliance-period column",
         "many holders, no client, no matter reference"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "activation of this id or of law_practice. This is the firm running itself, which the schema row cedes to business_operations and hr; multiple staff names are a personnel record, not a two-role matter structure."
       ],
@@ -215,7 +273,10 @@
         "a photographed wallet card; a name, a number and a body name may be legible",
         "no labelled slots survive the photograph reliably"
       ],
-      "facts_legal": ["file_type", "creation_date"],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
       "must_not_conclude": [
         "a credential fact from a legible organisation name alone - the never-alone rule bites hardest here"
       ],
@@ -229,7 +290,10 @@
       "observations": [
         "regulator name in the title, an opinion number, ethics analysis, no holder name anywhere"
       ],
-      "facts_legal": ["file_type", "language"],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
       "must_not_conclude": [
         "that a regulator name in a title is credential evidence. It is public reading material with no holder and no matter; it goes to Reading Inbox unless an accepted research or matter reference claims it."
       ],
@@ -241,23 +305,23 @@
   "collides_with": [
     {
       "neighbour": "career.credentials-licenses",
-      "why": "Recorded as the terminal collision - the one this row loses. Both directions, on the same fixture. TOWARD THAT ROW: `Practising Certificate 2026-27 - Law Society.pdf` and `CLE Transcript 2025 - State Bar of California.pdf` carry an issuing body in the issuer position, a credential title, a labelled identifier slot and a validity window, which is that row's stated structural signature; a legal regulator in the issuer slot is a value of a position it already declares. TOWARD THIS ROW: nothing. There is no evidence configuration on which this id should win, which is why it is refused rather than bounded. Recommendation to R1c: retire this id and let career.credentials-licenses hold the pile unchanged - it needs no edit, because its landed `CE credits transcript 2025 - Board of Nursing.pdf` and `Certificate of Liability Insurance - 2026.pdf` fixtures are this pile's CLE transcript and indemnity certificate under other letterheads."
+      "signal": "Recorded as the terminal collision - the one this row loses. Both directions, on the same fixture. TOWARD THAT ROW: `Practising Certificate 2026-27 - Law Society.pdf` and `CLE Transcript 2025 - State Bar of California.pdf` carry an issuing body in the issuer position, a credential title, a labelled identifier slot and a validity window, which is that row's stated structural signature; a legal regulator in the issuer slot is a value of a position it already declares. TOWARD THIS ROW: nothing. There is no evidence configuration on which this id should win, which is why it is refused rather than bounded. Recommendation to R1c: retire this id and let career.credentials-licenses hold the pile unchanged - it needs no edit, because its landed `CE credits transcript 2025 - Board of Nursing.pdf` and `Certificate of Liability Insurance - 2026.pdf` fixtures are this pile's CLE transcript and indemnity certificate under other letterheads."
     },
     {
       "neighbour": "law_practice.court-filing-record",
-      "why": "Stated in both directions on `Motion for Admission Pro Hac Vice - Acme v Beta.pdf`. TOWARD THAT ROW: it carries a tribunal caption and an exact case identifier, so the matter anchor decides it and the schema default fires. TOWARD THIS ROW: never - the word Admission in the title is a document-type word and never-alone. The attached certificate of good standing is the seam: as an exhibit inside the accepted matter packet it is that row's member, and as a standalone file in the holder's own records it is career.credentials-licenses', and neither copies the other's anchor onto it."
+      "signal": "Stated in both directions on `Motion for Admission Pro Hac Vice - Acme v Beta.pdf`. TOWARD THAT ROW: it carries a tribunal caption and an exact case identifier, so the matter anchor decides it and the schema default fires. TOWARD THIS ROW: never - the word Admission in the title is a document-type word and never-alone. The attached certificate of good standing is the seam: as an exhibit inside the accepted matter packet it is that row's member, and as a standalone file in the holder's own records it is career.credentials-licenses', and neither copies the other's anchor onto it."
     },
     {
       "neighbour": "legal.personal-legal-matters",
-      "why": "Stated in both directions on `Notice of Disciplinary Complaint - In re Jordan Lee.pdf`. TOWARD THAT ROW: the holder is the respondent, so this is the holder's own legal position, and `legal` is a safety domain whose protection runs first. TOWARD THIS ROW: never - the fact that the proceeding concerns a licence does not make the file a credential record; a credential record states that a standing holds, a complaint states that someone contests it."
+      "signal": "Stated in both directions on `Notice of Disciplinary Complaint - In re Jordan Lee.pdf`. TOWARD THAT ROW: the holder is the respondent, so this is the holder's own legal position, and `legal` is a safety domain whose protection runs first. TOWARD THIS ROW: never - the fact that the proceeding concerns a licence does not make the file a credential record; a credential record states that a standing holds, a complaint states that someone contests it."
     },
     {
       "neighbour": "academic.continuing-education",
-      "why": "Stated in both directions on `CLE Transcript 2025 - State Bar of California.pdf`. TOWARD THAT ROW: the dated course-title, provider and credit-hour rows are a continuing-education reading of the same bytes and that row holds them. TOWARD THIS ROW: never; the compliance-period framing is a regulator's label on the same rows, not a second structure. The regulator-issued transcript as a credential artefact stays with career.credentials-licenses - the two neighbours split the file by which half of it is being read, not by contest."
+      "signal": "Stated in both directions on `CLE Transcript 2025 - State Bar of California.pdf`. TOWARD THAT ROW: the dated course-title, provider and credit-hour rows are a continuing-education reading of the same bytes and that row holds them. TOWARD THIS ROW: never; the compliance-period framing is a regulator's label on the same rows, not a second structure. The regulator-issued transcript as a credential artefact stays with career.credentials-licenses - the two neighbours split the file by which half of it is being read, not by contest."
     },
     {
       "neighbour": "government.professional-regulator",
-      "why": "Stated in both directions on the same certificate bytes, and it is a role_split rather than a contest over one holder's copy. TOWARD THAT ROW: the regulator's own side - the register, the issuing workflow, the file it keeps about an admittee. TOWARD THIS ROW: never; a practitioner's copy of their own certificate is a holder record. Also recorded under role_split."
+      "signal": "Stated in both directions on the same certificate bytes, and it is a role_split rather than a contest over one holder's copy. TOWARD THAT ROW: the regulator's own side - the register, the issuing workflow, the file it keeps about an admittee. TOWARD THIS ROW: never; a practitioner's copy of their own certificate is a holder record. Also recorded under role_split."
     }
   ],
   "collides_with_note": "Five edges on a refused row is deliberate. A refusal must leave the seams drawn for whoever inherits the coverage, and each of these is a real place where the pile could have been mis-routed after this id disappears. business_operations and hr are named in refuse_reason (4) for the firm-level fixture but get no edge, because the firm running itself was never a candidate reading of a single holder's certificate - it is a different pile, not the same bytes.",

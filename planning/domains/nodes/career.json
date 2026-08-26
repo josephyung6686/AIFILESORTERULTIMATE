@@ -301,17 +301,17 @@
   "also_holds_with": [
     {
       "domain": "college_applications",
-      "why": "00's shared-material case, applied on this side: 'a resume may support multiple recruiting processes' and 'A transcript may be part of several application packets' sit in the same sentence, and the adversarial suite names 'shared resumes across applications'. One resume file may legally carry the college-applications fields (application_document_type, purpose, target_university) on admissions evidence and career facts on recruiting evidence - disjoint evidence, both fact sets kept. Provenance: design.",
+      "signal": "00's shared-material case, applied on this side: 'a resume may support multiple recruiting processes' and 'A transcript may be part of several application packets' sit in the same sentence, and the adversarial suite names 'shared resumes across applications'. One resume file may legally carry the college-applications fields (application_document_type, purpose, target_university) on admissions evidence and career facts on recruiting evidence - disjoint evidence, both fact sets kept. Provenance: design.",
       "provenance": "design"
     },
     {
       "domain": "academic",
-      "why": "a transcript or certification record is an academic artifact (school, term, subject) that is simultaneously a recruiting supporting document. Same structure as 00's abstract that is Research and Applications at once; 00 does not write this pair out, so this is an extension of a named domain. Provenance: inference.",
+      "signal": "a transcript or certification record is an academic artifact (school, term, subject) that is simultaneously a recruiting supporting document. Same structure as 00's abstract that is Research and Applications at once; 00 does not write this pair out, so this is an extension of a named domain. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "an executed employment agreement, NDA or separation agreement is career material and legal material on one file; 00's privacy list names 'employment materials' and 'legal records' in the same corpus sentence. legal is a field-less safety placeholder, so today the join carries protection, not fields - the same shape CONNECTION uses for finance/medical. Provenance: inference.",
+      "signal": "an executed employment agreement, NDA or separation agreement is career material and legal material on one file; 00's privacy list names 'employment materials' and 'legal records' in the same corpus sentence. legal is a field-less safety placeholder, so today the join carries protection, not fields - the same shape CONNECTION uses for finance/medical. Provenance: inference.",
       "provenance": "inference"
     }
   ],

@@ -511,17 +511,17 @@
   "also_holds_with": [
     {
       "domain": "finance.cap-table-equity",
-      "why": "A consideration allocation, a completion-accounts working schedule and a shareholder-by-shareholder split of proceeds are simultaneously deal artefacts and genuine equity records with their own columns. Disjoint evidence, one folder: the finance side owns the holding and consideration slots on its own structure, and deal membership never converts them into anything this fieldless schema could hold, nor erases the finance reading. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A consideration allocation, a completion-accounts working schedule and a shareholder-by-shareholder split of proceeds are simultaneously deal artefacts and genuine equity records with their own columns. Disjoint evidence, one folder: the finance side owns the holding and consideration slots on its own structure, and deal membership never converts them into anything this fieldless schema could hold, nor erases the finance reading. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.board-governance",
-      "why": "The approval side of a signing pack - a board pack, a written resolution circulated for approval, minutes of an approving meeting - carries board-governance structure of its own while also belonging to the deal. Both readings are legitimate on the same bytes and neither row may erase the other; the corporate REGISTER consequence is `law_practice.corporate-secretarial`'s and is expressed as a collision rather than here. One-way; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The approval side of a signing pack - a board pack, a written resolution circulated for approval, minutes of an approving meeting - carries board-governance structure of its own while also belonging to the deal. Both readings are legitimate on the same bytes and neither row may erase the other; the corporate REGISTER consequence is `law_practice.corporate-secretarial`'s and is expressed as a collision rather than here. One-way; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity",
-      "why": "Signatory verification, beneficial-ownership evidence and the insider list's personal columns put other people's identity documents and home addresses inside this world. Identity's own evidence and protection apply on their own terms; membership of a deal group never turns identity data into a deal fact and never lowers identity's posture. Provenance: inference.",
+      "signal": "Signatory verification, beneficial-ownership evidence and the insider list's personal columns put other people's identity documents and home addresses inside this world. Identity's own evidence and protection apply on their own terms; membership of a deal group never turns identity data into a deal fact and never lowers identity's posture. Provenance: inference.",
       "provenance": "inference"
     }
   ],

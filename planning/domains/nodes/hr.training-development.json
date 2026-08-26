@@ -174,7 +174,13 @@
         "module 3 of 5 stated in a running header",
         "no employee, department, roster, or case reference appears anywhere in the document"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "learning_programme or people_cycle while those keys remain proposals",
         "that the data-protection subject matter makes this a compliance or policy record",
@@ -193,7 +199,13 @@
         "a second sheet computes completion percentage by department",
         "renewal due dates appear beside several completion dates"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "workforce_member or learning_programme as stored facts before R1c",
         "that Overdue evidences misconduct, negligence, or a capability concern",
@@ -213,7 +225,12 @@
         "the cohort is defined by a start date AND the columns are courses",
         "already named as the shared fixture by hr.onboarding-offboarding"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that only one of the two rows may hold it - the start-date cohort and the course-completion grid are both genuinely present",
         "a folder path"
@@ -230,7 +247,13 @@
         "a delivering-organisation logo and an assessor signature",
         "no enrolment, cost, roster, or employer-side workflow context inside the file itself"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this row's activation from the certificate alone - see never_alone; an employer-side enrolment or matrix anchor is required",
         "that the expiry date has passed or that the person is currently qualified",
@@ -248,7 +271,13 @@
         "no individual learner appears",
         "a status column marks courses as Active, Retired, or Under review"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the cost-per-seat column makes this a procurement or budget file",
         "learning_programme as a canonical fact",
@@ -266,7 +295,12 @@
         "a header field references the FY26 review outcome",
         "named by hr.performance-cycle from its side as the shared fixture"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "the review rating, the calibration, or any assessment of the person - those are hr.performance-cycle's atoms",
         "workforce_member before R1c",
@@ -284,7 +318,12 @@
         "learners are pseudonymous identifiers rather than names, but the email column re-identifies them",
         "several rows show multiple attempts and a failing score"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that pseudonymous user IDs make the export non-sensitive when an email column is present",
         "that a failing score is a competency or capability finding about the person",
@@ -302,7 +341,12 @@
         "no respondent identifier, but the free text names the trainer and describes incidents raised in the room",
         "attached to one session and one cohort roster rather than fielded across a listening programme"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that anonymity makes the free-text column safe to summarise remotely",
         "that a low trainer rating is a performance fact about the trainer",
@@ -320,7 +364,11 @@
         "several handwritten entries are only partly legible",
         "the image has no camera metadata"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that missing EXIF proves this is a screenshot rather than a photograph",
         "that attendance evidences competence or statutory compliance",
@@ -339,7 +387,12 @@
         "member names repeat a cohort label",
         "the 360 reports name individuals and their rated colleagues"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the archive may be unpacked to disk or sent to a cloud model",
         "that the 360 reports become learning records by packet membership - they are assessments of people",
@@ -357,7 +410,12 @@
         "the opening minute states the course title and session number aloud, and a shared screen shows a module slide",
         "participant voices and some names occur throughout"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "participant identity from voices",
         "that a recording with an agenda is a meeting record",
@@ -375,7 +433,12 @@
         "body carries labelled course, cohort, start date, joining link, and a cancellation policy",
         "a seat-cost line and a purchase-order reference appear in the footer"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this row's activation from the email source type",
         "that the seat cost makes it a finance record rather than an enrolment record - both readings are available",
@@ -394,7 +457,12 @@
         "no employer name, cost centre, enrolment record, cohort, or roster anywhere in the corpus around it",
         "sits beside a personal card receipt for the same purchase"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this row activates - it is the collision fixture and looks exactly like the Fire Marshal certificate",
         "an employer relationship from the fact that the skill is used at work",
@@ -412,7 +480,13 @@
         "numbered clauses stating obligations and scope",
         "no learning objectives, audience, activity, or assessment"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that this row activates because staff must be trained on it",
         "that a mandatory-training matrix row naming the same policy pulls the policy into this row",
@@ -430,7 +504,13 @@
         "a speaker note reads 'for delivery to the client admin team during week one of the rollout'",
         "the deck carries the vendor's product branding, not the holder's staff-facing template"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that curriculum structure alone activates this row - the audience decides",
         "that the word Onboarding relates it to hr.onboarding-offboarding",
@@ -486,19 +566,19 @@
   "also_holds_with": [
     {
       "domain": "hr.engagement-survey",
-      "why": "That row has already stated this seam and this is the reciprocal: a post-course evaluation is both a listening instrument and a learning record. It holds where the evaluation is fielded as part of a listening programme; this row holds where it is attached to one session and one cohort roster, as `Harassment Prevention - post-course evaluation responses.csv` is. Both may hold the same bytes, neither copies the other's cuts, and the stricter handling governs the free-text column."
+      "signal": "That row has already stated this seam and this is the reciprocal: a post-course evaluation is both a listening instrument and a learning record. It holds where the evaluation is fielded as part of a listening programme; this row holds where it is attached to one session and one cohort roster, as `Harassment Prevention - post-course evaluation responses.csv` is. Both may hold the same bytes, neither copies the other's cuts, and the stricter handling governs the free-text column."
     },
     {
       "domain": "hr.workplace-health-safety",
-      "why": "Statutory safety training is simultaneously learning delivery and safety-competence evidence. `Manual Handling refresher - session sign-in sheet.jpg` and the Fire Marshal certificate carry both readings: this row holds the course, cohort and completion; that row holds the competence requirement, the risk assessment it discharges, and the incident context. Neither converts the other's facts."
+      "signal": "Statutory safety training is simultaneously learning delivery and safety-competence evidence. `Manual Handling refresher - session sign-in sheet.jpg` and the Fire Marshal certificate carry both readings: this row holds the course, cohort and completion; that row holds the competence requirement, the risk assessment it discharges, and the incident context. Neither converts the other's facts."
     },
     {
       "domain": "business_operations.compliance-audit",
-      "why": "A mandatory-training matrix is both a learning record and audit evidence that a control operated. Co-activation is lawful; the audit row holds the control, the finding and the sample, while the per-learner grid and its protection stay here."
+      "signal": "A mandatory-training matrix is both a learning record and audit evidence that a control operated. Co-activation is lawful; the audit row holds the control, the finding and the sample, while the per-learner grid and its protection stay here."
     },
     {
       "domain": "business_operations.vendor-management",
-      "why": "An external provider's course produces both a programme record and a supplier relationship record. The curriculum, cohort and completions stay here; the contract, statement of work, invoice, and provider performance review stay with the vendor row."
+      "signal": "An external provider's course produces both a programme record and a supplier relationship record. The curriculum, cohort and completions stay here; the contract, statement of work, invoice, and provider performance review stay with the vendor row."
     }
   ],
   "falls_through_to": [

@@ -567,22 +567,22 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "A building contract is an executed instrument as well as a job record, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and protective ordering applies - the legal reading protects first and this row's reading is additive. “One file may hold facts from more than one domain without losing information.”",
+      "signal": "A building contract is an executed instrument as well as a job record, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and protective ordering applies - the legal reading protects first and this row's reading is additive. “One file may hold facts from more than one domain without losing information.”",
       "provenance": "inference"
     },
     {
       "domain": "finance",
-      "why": "The money members of a job file - a final account, a certified valuation, a subcontract payment - are genuinely finance records for whoever's books they land in, and genuinely this situation's. Neither reading displaces the other.",
+      "signal": "The money members of a job file - a final account, a certified valuation, a subcontract payment - are genuinely finance records for whoever's books they land in, and genuinely this situation's. Neither reading displaces the other.",
       "provenance": "inference"
     },
     {
       "domain": "photos",
-      "why": "Site captures inside a job carry the photos schema's capture facts as well; the sibling progress-photos row already states this and it is not reopened here.",
+      "signal": "Site captures inside a job carry the photos schema's capture facts as well; the sibling progress-photos row already states this and it is not reopened here.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations",
-      "why": "A contractor's own job file is simultaneously an entry in the firm's contract register. Both readings are true of the same bytes and neither is a collision.",
+      "signal": "A contractor's own job file is simultaneously an entry in the firm's contract register. Both readings are true of the same bytes and neither is a collision.",
       "provenance": "inference"
     }
   ],

@@ -446,27 +446,27 @@
   "also_holds_with": [
     {
       "domain": "finance",
-      "why": "The collision above is the mutex on ONE evidence item; this is the disjoint-evidence case and it is common. A period close carries a management pack and a set of statutory statements in one archive; a budget workbook carries a forecast sheet and a reconciled actuals sheet sourced from an accounting system. Both are true at once on different evidence. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE: the landed finance rows do not name business_operations, and R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The collision above is the mutex on ONE evidence item; this is the disjoint-evidence case and it is common. A period close carries a management pack and a set of statutory statements in one archive; a budget workbook carries a forecast sheet and a reconciled actuals sheet sourced from an accounting system. Both are true at once on different evidence. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE: the landed finance rows do not name business_operations, and R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "legal",
-      "why": "A signed contract in a contract register is one file under two schemas on disjoint evidence - the instrument's execution structure for legal, the register and renewal-notice structure for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A signed contract in a contract register is one file under two schemas on disjoint evidence - the instrument's execution structure for legal, the register and renewal-notice structure for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "hr",
-      "why": "A board pack with a workforce appendix, a headcount budget carrying named leavers, a policy library carrying signed acknowledgements: one packet, two schemas, disjoint evidence. hr's privacy posture governs the members that identify people even where this schema activates on the pack. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A board pack with a workforce appendix, a headcount budget carrying named leavers, a policy library carrying signed acknowledgements: one packet, two schemas, disjoint evidence. hr's privacy posture governs the members that identify people even where this schema activates on the pack. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "career",
-      "why": "The individual's copy of an organisational document is genuinely both: a consulting statement of work is the holder's own engagement record (career, on 00's own “A consulting document may mention the author’s firm and the client organization.” role split) and the delivering organisation's contract record (this schema), on disjoint evidence within one file. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The individual's copy of an organisational document is genuinely both: a consulting statement of work is the holder's own engagement record (career, on 00's own “A consulting document may mention the author’s firm and the client organization.” role split) and the delivering organisation's contract record (this schema), on disjoint evidence within one file. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "code",
-      "why": "An IT function's material overlaps a repository's: an architecture decision record, a runbook, a dependency inventory. The repository structure evidences code; the asset register, change approval and compliance-evidence framing evidences this schema. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "An IT function's material overlaps a repository's: an architecture decision record, a runbook, a dependency inventory. The repository structure evidences code; the asset register, change approval and compliance-evidence framing evidences this schema. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],

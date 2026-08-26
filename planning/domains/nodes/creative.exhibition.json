@@ -507,53 +507,53 @@
   ],
   "collides_with": [
     {
-      "domain_id": "creative.printmaking-editions",
-      "why": "SAME FIXTURE BOTH SIDES: a checklist row reading 'Untitled, 2025, screenprint, edition 12/40'. Editions owns the impression register - all impressions of one matrix, printer's proofs, artist's proofs, chop marks, the numbering scheme itself. This row owns the checklist - many works by many hands assembled for one show. RECIPROCAL: editions must not claim a checklist merely because a row carries an edition fraction, and this row must not claim an edition register merely because one impression was hung.",
+      "domain": "creative.printmaking-editions",
+      "signal": "SAME FIXTURE BOTH SIDES: a checklist row reading 'Untitled, 2025, screenprint, edition 12/40'. Editions owns the impression register - all impressions of one matrix, printer's proofs, artist's proofs, chop marks, the numbering scheme itself. This row owns the checklist - many works by many hands assembled for one show. RECIPROCAL: editions must not claim a checklist merely because a row carries an edition fraction, and this row must not claim an edition register merely because one impression was hung.",
       "provenance": "inference"
     },
     {
-      "domain_id": "career.portfolio-work-samples",
-      "why": "SAME FIXTURE BOTH SIDES: InstallView_03_SoftWeather_Whitechapel_2026.tif, which is simultaneously the documentation of a hang and page four of an artist's portfolio. The discriminating evidence is what the file is FOR. Self-presentation evidence - a curated ordered set of finished images with no install, loan or condition counterpart, sitting beside a CV whose exhibitions list is prose lines, or an artist statement - is career. Documentation evidence - a sequenced set keyed to a plan, with a credit line and a photographer's paperwork, inside a packet holding a checklist - is this row. Where a lone install view has neither, neither activates: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\" RECIPROCAL: career must not claim a documentation set because its images are impressive, and this row must never claim a CV, an artist statement or a portfolio PDF, whose exhibition lines are the strongest false positive it will ever see.",
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE BOTH SIDES: InstallView_03_SoftWeather_Whitechapel_2026.tif, which is simultaneously the documentation of a hang and page four of an artist's portfolio. The discriminating evidence is what the file is FOR. Self-presentation evidence - a curated ordered set of finished images with no install, loan or condition counterpart, sitting beside a CV whose exhibitions list is prose lines, or an artist statement - is career. Documentation evidence - a sequenced set keyed to a plan, with a credit line and a photographer's paperwork, inside a packet holding a checklist - is this row. Where a lone install view has neither, neither activates: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\" RECIPROCAL: career must not claim a documentation set because its images are impressive, and this row must never claim a CV, an artist statement or a portfolio PDF, whose exhibition lines are the strongest false positive it will ever see.",
       "provenance": "design"
     },
     {
-      "domain_id": "photos.camera-events",
-      "why": "SAME FIXTURE BOTH SIDES: the twelve InstallView files, which carry the same EXIF make, model and DateTimeOriginal that any dated gathering carries, plus opening-night crowd photographs shot on the same evening in the same room. The discriminator is the structure around the captures: a sequence stem resolving against a plan, a formatted credit line, and a checklist in the folder. RECIPROCAL: photos must not lose a candid opening-night snapshot to this row because a gallery is depicted, and this row must not claim a party. IMG_2231.jpg is the fixture where the correct outcome is that neither reading is asserted.",
+      "domain": "photos.camera-events",
+      "signal": "SAME FIXTURE BOTH SIDES: the twelve InstallView files, which carry the same EXIF make, model and DateTimeOriginal that any dated gathering carries, plus opening-night crowd photographs shot on the same evening in the same room. The discriminator is the structure around the captures: a sequence stem resolving against a plan, a formatted credit line, and a checklist in the folder. RECIPROCAL: photos must not lose a candid opening-night snapshot to this row because a gallery is depicted, and this row must not claim a party. IMG_2231.jpg is the fixture where the correct outcome is that neither reading is asserted.",
       "provenance": "inference"
     },
     {
-      "domain_id": "creative.print-production",
-      "why": "SAME FIXTURE BOTH SIDES: Catalogue_SoftWeather_cover_CMYK_press.pdf, and print-production's own rejected fixture 'Museum poster on gallery wall.jpg'. Print-production owns the proof-to-press-to-run-to-delivery chain regardless of what the printed thing depicts; a catalogue, an invitation card and a vinyl wall-text artwork are its evidence even though their subject is the show. This row owns the show the printed thing serves. RECIPROCAL: this row must not claim a press-ready chain because the artwork names an exhibition, and print-production must not claim a checklist or a wall-label document because they will eventually be printed.",
+      "domain": "creative.print-production",
+      "signal": "SAME FIXTURE BOTH SIDES: Catalogue_SoftWeather_cover_CMYK_press.pdf, and print-production's own rejected fixture 'Museum poster on gallery wall.jpg'. Print-production owns the proof-to-press-to-run-to-delivery chain regardless of what the printed thing depicts; a catalogue, an invitation card and a vinyl wall-text artwork are its evidence even though their subject is the show. This row owns the show the printed thing serves. RECIPROCAL: this row must not claim a press-ready chain because the artwork names an exhibition, and print-production must not claim a checklist or a wall-label document because they will eventually be printed.",
       "provenance": "inference"
     },
     {
-      "domain_id": "creative.interior-design",
-      "why": "SAME FIXTURE BOTH SIDES: Hang plan - Gallery 2 - v4.pdf, a scaled room drawing with elevations and annotations. Interior design owns a plan whose annotated objects are furniture, finishes, fittings and specification codes. This row owns a plan whose annotated objects are named authored works resolving against a checklist. RECIPROCAL: interior design must not lose a gallery refit drawing to this row because the room is a gallery, and this row must not claim a room drawing on geometry alone - which is why the room-shaped plan is a never_alone here.",
+      "domain": "creative.interior-design",
+      "signal": "SAME FIXTURE BOTH SIDES: Hang plan - Gallery 2 - v4.pdf, a scaled room drawing with elevations and annotations. Interior design owns a plan whose annotated objects are furniture, finishes, fittings and specification codes. This row owns a plan whose annotated objects are named authored works resolving against a checklist. RECIPROCAL: interior design must not lose a gallery refit drawing to this row because the room is a gallery, and this row must not claim a room drawing on geometry alone - which is why the room-shaped plan is a never_alone here.",
       "provenance": "inference"
     },
     {
-      "domain_id": "creative.theatre-production",
-      "why": "SAME FIXTURE BOTH SIDES: a performance staged inside the gallery for one evening of the run, producing both a schedule naming crew and a list of participants. The discriminator is which grammar governs: a script's strict element structure plus a cast list plus call sheets is theatre; a checklist plus a hang plan plus condition reports is this row. RECIPROCAL: theatre must not claim an install schedule because it names crew and half-days, and this row must not claim a rehearsal record because it happens in a gallery.",
+      "domain": "creative.theatre-production",
+      "signal": "SAME FIXTURE BOTH SIDES: a performance staged inside the gallery for one evening of the run, producing both a schedule naming crew and a list of participants. The discriminator is which grammar governs: a script's strict element structure plus a cast list plus call sheets is theatre; a checklist plus a hang plan plus condition reports is this row. RECIPROCAL: theatre must not claim an install schedule because it names crew and half-days, and this row must not claim a rehearsal record because it happens in a gallery.",
       "provenance": "inference"
     },
     {
-      "domain_id": "legal.leases-agreements",
-      "why": "SAME FIXTURE BOTH SIDES: Loan Agreement - Untitled 2019 - signed.pdf. Legal owns it as an executed instrument - numbered clauses, defined terms, a parties block, an execution block - and that reading governs its handling, because it carries a lender's identifying details. This row owns it as one link in one show's custody chain, which is what makes the paired condition reports intelligible. RECIPROCAL: legal must not suppress the show membership, and this row must not weaken the protective posture by treating the instrument as ordinary project paperwork. Recorded as a collision rather than a co-activation because a template may not widen its schema's also_holds_with; the double reading is carried on the file example as also_schema.",
+      "domain": "legal.leases-agreements",
+      "signal": "SAME FIXTURE BOTH SIDES: Loan Agreement - Untitled 2019 - signed.pdf. Legal owns it as an executed instrument - numbered clauses, defined terms, a parties block, an execution block - and that reading governs its handling, because it carries a lender's identifying details. This row owns it as one link in one show's custody chain, which is what makes the paired condition reports intelligible. RECIPROCAL: legal must not suppress the show membership, and this row must not weaken the protective posture by treating the instrument as ordinary project paperwork. Recorded as a collision rather than a co-activation because a template may not widen its schema's also_holds_with; the double reading is carried on the file example as also_schema.",
       "provenance": "inference"
     },
     {
-      "domain_id": "business_operations.project-delivery",
-      "why": "The confusable evidence is an institution's exhibition PROGRAMME: budgets, staffing plans, approval chains, board papers and post-show reporting, all naming the same show. Business operations owns the governing and reporting document - a controlled-document header, an approval block, a period-and-variance table. This row owns the show packet - checklist, plan, texts, custody paperwork, documentation. RECIPROCAL: business operations must not claim a checklist because a budget line references it, and this row must not claim a variance report because a show title appears in its subject cell.",
+      "domain": "business_operations.project-delivery",
+      "signal": "The confusable evidence is an institution's exhibition PROGRAMME: budgets, staffing plans, approval chains, board papers and post-show reporting, all naming the same show. Business operations owns the governing and reporting document - a controlled-document header, an approval block, a period-and-variance table. This row owns the show packet - checklist, plan, texts, custody paperwork, documentation. RECIPROCAL: business operations must not claim a checklist because a budget line references it, and this row must not claim a variance report because a show title appears in its subject cell.",
       "provenance": "inference"
     },
     {
-      "domain_id": "code.software-project",
-      "why": "The confusable evidence is a repository root sitting inside a media-artwork installation - a package manifest, a lockfile and a .git marker over software that drives a screen or a sensor in the room. Code owns the repository and its internal layout is preserved rather than re-filed. RECIPROCAL: code must not claim the checklist, the plan or the condition reports because a repository sits in the same show folder, and this row must never propose re-filing anything inside a preserved repository root.",
+      "domain": "code.software-project",
+      "signal": "The confusable evidence is a repository root sitting inside a media-artwork installation - a package manifest, a lockfile and a .git marker over software that drives a screen or a sensor in the room. Code owns the repository and its internal layout is preserved rather than re-filed. RECIPROCAL: code must not claim the checklist, the plan or the condition reports because a repository sits in the same show folder, and this row must never propose re-filing anything inside a preserved repository root.",
       "provenance": "inference"
     },
     {
-      "domain_id": "creative.self-initiated-work",
-      "why": "The confusable evidence is an artist's own studio folder for a solo show, where the making record and the show packet are physically interleaved. Self-initiated work owns the making of the works - working files, linked assets, revision families, tests. This row owns the show as an object - the register, the room, the custody, the texts, the documentation. RECIPROCAL: self-initiated work must not claim a condition report because it concerns the artist's own piece, and this row must not claim a working file because the piece it makes ends up on the wall. This is the boundary the row's own one_line states: the artwork files and the exhibition files are different objects.",
+      "domain": "creative.self-initiated-work",
+      "signal": "The confusable evidence is an artist's own studio folder for a solo show, where the making record and the show packet are physically interleaved. Self-initiated work owns the making of the works - working files, linked assets, revision families, tests. This row owns the show as an object - the register, the room, the custody, the texts, the documentation. RECIPROCAL: self-initiated work must not claim a condition report because it concerns the artist's own piece, and this row must not claim a working file because the piece it makes ends up on the wall. This is the boundary the row's own one_line states: the artwork files and the exhibition files are different objects.",
       "provenance": "inference"
     }
   ],

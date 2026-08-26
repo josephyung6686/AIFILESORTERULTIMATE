@@ -326,37 +326,37 @@
   "collides_with": [
     {
       "domain": "manufacturing.production-planning",
-      "why": "Recorded reciprocally for R1c; these boundaries belong to the engineering schema, since this row is refused. Fixture bytes: LOT-24-081_pick_list.csv. Engineering side — a flat list with lot, bin and quantity-issued slots is an execution record and does not activate engineering even when it cites Rev C. Manufacturing side — a table with a level or find-number column, quantity-per and drawing references, carrying no lot, bin or issue slot, is the design definition and does not activate production planning even when it lists the same part numbers.",
+      "signal": "Recorded reciprocally for R1c; these boundaries belong to the engineering schema, since this row is refused. Fixture bytes: LOT-24-081_pick_list.csv. Engineering side — a flat list with lot, bin and quantity-issued slots is an execution record and does not activate engineering even when it cites Rev C. Manufacturing side — a table with a level or find-number column, quantity-per and drawing references, carrying no lot, bin or issue slot, is the design definition and does not activate production planning even when it lists the same part numbers.",
       "provenance": "inference"
     },
     {
       "domain": "manufacturing.spare-parts",
-      "why": "Fixture bytes: Spare Parts List - Model 40 Compressor.pdf. Engineering side — recommended-stock and order-code columns addressed to a service technician are a service artifact; the parent-child-quantity relation alone does not pull it back. Manufacturing side — a parts list carrying a controlling revision block and an approval slot for the item's definition is not a spare-parts list even though it enumerates orderable parts.",
+      "signal": "Fixture bytes: Spare Parts List - Model 40 Compressor.pdf. Engineering side — recommended-stock and order-code columns addressed to a service technician are a service artifact; the parent-child-quantity relation alone does not pull it back. Manufacturing side — a parts list carrying a controlling revision block and an approval slot for the item's definition is not a spare-parts list even though it enumerates orderable parts.",
       "provenance": "inference"
     },
     {
       "domain": "code.software-project",
-      "why": "Fixture bytes: bom.json (CycloneDX). Engineering side — a labelled bomFormat/specVersion declaration with package-URL component coordinates at a repository root is a software dependency inventory; the filename being the exact string `bom` is the sharpest never-alone case on this node. Code side — a physical product structure with drawing references and a revision block is not a repository artifact even when exported as JSON or XML. Where an SBOM is also a released component of a physical product baseline, that dual claim is engineering.json's existing schema-level also_holds_with with code, not this row's.",
+      "signal": "Fixture bytes: bom.json (CycloneDX). Engineering side — a labelled bomFormat/specVersion declaration with package-URL component coordinates at a repository root is a software dependency inventory; the filename being the exact string `bom` is the sharpest never-alone case on this node. Code side — a physical product structure with drawing references and a revision block is not a repository artifact even when exported as JSON or XML. Where an SBOM is also a released component of a physical product baseline, that dual claim is engineering.json's existing schema-level also_holds_with with code, not this row's.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.drawing-package",
-      "why": "Same-schema collision. Fixture bytes: Assembly Drawing A-2201 sheet 2 - parts list.pdf. This-row side — a parts list drawn inside a sheet frame above a title block is not a separable bill of materials; the title block is the discriminating evidence. Drawing-package side — a standalone spreadsheet with a level column and no title block, sheet number or approval slot is not a drawing package even though it references drawing numbers. Both rows describe values of one engineering_artifact_type field, which is the structural reason this row is refused.",
+      "signal": "Same-schema collision. Fixture bytes: Assembly Drawing A-2201 sheet 2 - parts list.pdf. This-row side — a parts list drawn inside a sheet frame above a title block is not a separable bill of materials; the title block is the discriminating evidence. Drawing-package side — a standalone spreadsheet with a level column and no title block, sheet number or approval slot is not a drawing package even though it references drawing numbers. Both rows describe values of one engineering_artifact_type field, which is the structural reason this row is refused.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.change-order",
-      "why": "Same-schema collision. Fixture bytes: ECO-1187_affected_items.xlsx. This-row side — labelled from-revision/to-revision columns with a disposition slot make the change the object of the file, not the structure. Change-order side — a product-structure table at a single stated revision with no from/to pair and no disposition is the definition being changed, not the change.",
+      "signal": "Same-schema collision. Fixture bytes: ECO-1187_affected_items.xlsx. This-row side — labelled from-revision/to-revision columns with a disposition slot make the change the object of the file, not the structure. Change-order side — a product-structure table at a single stated revision with no from/to pair and no disposition is the definition being changed, not the change.",
       "provenance": "inference"
     },
     {
       "domain": "engineering.cad-model",
-      "why": "Same-schema collision. Fixture bytes: BPA-210.asm. This-row side — an assembly file's internal component tree is a model, not a list, and instance counts are not a tabulated quantity-per. CAD-model side — a tabulated export of that same tree is a list and not a model; splitting one item's definition by export format is exactly the fragmentation both refusals avoid.",
+      "signal": "Same-schema collision. Fixture bytes: BPA-210.asm. This-row side — an assembly file's internal component tree is a model, not a list, and instance counts are not a tabulated quantity-per. CAD-model side — a tabulated export of that same tree is a list and not a model; splitting one item's definition by export format is exactly the fragmentation both refusals avoid.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.project-delivery",
-      "why": "Fixture bytes: Costed_BOM_Q3_margin.xlsx. Engineering side — unit-cost, extended-cost and margin columns with no revision or approval slot make the purpose a financial rollup; the word BOM in the filename is never-alone. Business-operations side — the same rows without cost columns and with a controlling revision block are technical definition, not budget evidence.",
+      "signal": "Fixture bytes: Costed_BOM_Q3_margin.xlsx. Engineering side — unit-cost, extended-cost and margin columns with no revision or approval slot make the purpose a financial rollup; the word BOM in the filename is never-alone. Business-operations side — the same rows without cost columns and with a controlling revision block are technical definition, not budget evidence.",
       "provenance": "inference"
     }
   ],

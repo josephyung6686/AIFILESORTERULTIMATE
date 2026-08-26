@@ -452,17 +452,17 @@
   "also_holds_with": [
     {
       "domain": "legal.leases-agreements",
-      "why": "A letter of acceptance is the award document of the event AND, in many jurisdictions and drafting conventions, the instrument that forms the contract by itself. It is not a collision: the same file legitimately carries both readings, and 00 says so - “One file may hold facts from more than one domain without losing information.” The event reading keeps it with the competition it concluded; the instrument reading keeps it with what is now in force. Provenance: inference.",
+      "signal": "A letter of acceptance is the award document of the event AND, in many jurisdictions and drafting conventions, the instrument that forms the contract by itself. It is not a collision: the same file legitimately carries both readings, and 00 says so - “One file may hold facts from more than one domain without losing information.” The event reading keeps it with the competition it concluded; the instrument reading keeps it with what is now in force. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.it-asset-inventory",
-      "why": "A purchase order for laptops, licences or servers is simultaneously the acquisition record of an asset - serials, quantities, warranty start and cost basis all originate on it - and the last act of the sourcing event. That row already carries procurement-facing signals from its side. Both readings are true of the same bytes, so this is also_holds_with rather than collides_with; only the dimension the user later chooses decides where the file is shelved. Provenance: inference.",
+      "signal": "A purchase order for laptops, licences or servers is simultaneously the acquisition record of an asset - serials, quantities, warranty start and cost basis all originate on it - and the last act of the sourcing event. That row already carries procurement-facing signals from its side. Both readings are true of the same bytes, so this is also_holds_with rather than collides_with; only the dimension the user later chooses decides where the file is shelved. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.compliance-audit",
-      "why": "In a regulated, grant-funded or audited organisation the sourcing file IS the audit evidence: the specification, the scores and the award letter are produced to demonstrate that the purchase was made fairly. The file has not changed; a second purpose has attached to it. “A file may validly belong to more than one accepted group”. Provenance: inference.",
+      "signal": "In a regulated, grant-funded or audited organisation the sourcing file IS the audit evidence: the specification, the scores and the award letter are produced to demonstrate that the purchase was made fairly. The file has not changed; a second purpose has attached to it. “A file may validly belong to more than one accepted group”. Provenance: inference.",
       "provenance": "inference"
     }
   ],

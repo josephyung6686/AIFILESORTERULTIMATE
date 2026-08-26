@@ -392,17 +392,17 @@
   "also_holds_with": [
     {
       "domain": "legal",
-      "why": "The commonest co-activation here and the reason this row can be narrow. One estate folder holds a sealed grant, an executed will and a deed of variation (`legal`, on the caption and execution structure) beside a valuation set, a tax account, estate accounts and a distribution schedule (this row, on the deceased-and-instant apparatus) - disjoint evidence, one folder, both schemas fieldless. `legal` is a safety domain so the protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "The commonest co-activation here and the reason this row can be narrow. One estate folder holds a sealed grant, an executed will and a deed of variation (`legal`, on the caption and execution structure) beside a valuation set, a tax account, estate accounts and a distribution schedule (this row, on the deceased-and-instant apparatus) - disjoint evidence, one folder, both schemas fieldless. `legal` is a safety domain so the protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "identity.core-documents",
-      "why": "A death certificate, a surrendered passport and the personal representative's own identity verification are routine and mandatory members of an estate file. The identity documents are identity's and stay protected on its evidence; the verification record that lists them is this schema's. Membership never converts identity data into an estate fact. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A death certificate, a surrendered passport and the personal representative's own identity verification are routine and mandatory members of an estate file. The identity documents are identity's and stay protected on its evidence; the verification record that lists them is this schema's. Membership never converts identity data into an estate fact. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "finance.investment-brokerage",
-      "why": "A registrar's or broker's date-of-death holding valuation is legitimately both: the holding, the institution and the security are brokerage evidence on brokerage's own structure, and the valuation-instant framing plus the personal-representative addressee is this row's. Two readings on one page, neither erasing the other, and finance's protection runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "signal": "A registrar's or broker's date-of-death holding valuation is legitimately both: the holding, the institution and the security are brokerage evidence on brokerage's own structure, and the valuation-instant framing plus the personal-representative addressee is this row's. Two readings on one page, neither erasing the other, and finance's protection runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],
