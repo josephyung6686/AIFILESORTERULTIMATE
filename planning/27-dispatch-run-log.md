@@ -1028,3 +1028,41 @@ It is recorded only so the size of the cut is auditable:
   retail_hospitality.supplier-order
 ```
 
+
+## Second credit cut — shard 0 ended, 2026-08-26
+
+Cut timed to an agent completion (a watcher waited for the next node file to land, then the
+workflow was ended) so that row banked. Shard 2 left running as the only dispatch.
+
+- **This run's 166 claimed rows: 99 have JSON on disk, 67 owed.**
+- Roster total **358**; node files on disk **282**.
+- Shard 0 ended at 27/41; shard 2 continues at 26/40.
+
+### ⚠ Six UNTRUSTED PARTIALS — JSON written, memo missing
+
+Killed agents write the JSON first, so these six rows have a `.json` and **no `.research.md`**:
+
+```text
+creative.book-manuscript
+hr.training-development
+law_practice.appeals
+law_practice.corporate-secretarial
+law_practice.estates-administration
+law_practice.opinions-advice
+```
+
+Per the operating rule (`28-AUTOPILOT.md` §4): **verify line-by-line, repair, complete, own.**
+Never discard unread — the JSON cost real tokens. Never trust unverified — no auditor has seen it
+and the memo that would carry its argument does not exist. The resume query in
+`26-research-dispatch-state.md` §0 keys on `.json` existence, so **these six will look landed and
+will be skipped.** The next batch must select on the memo as well:
+
+```bash
+python3 -c "
+import json,os
+r=json.load(open('planning/domains/roster.json')); n=r['nodes'] if isinstance(r,dict) else r
+owed=[x['domain_id'] for x in n
+      if not os.path.exists('planning/domains/nodes/'+x['domain_id']+'.json')
+      or not os.path.exists('planning/domains/nodes/'+x['domain_id']+'.research.md')]
+print(len(owed),'owed (counts memo-less partials)')"
+```
