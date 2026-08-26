@@ -1,7 +1,9 @@
-# Handoff — 2026-08-26, suite green at 3121
+# Handoff — 2026-08-26, suite green at 3281
 
 **Read this first. It is written to be the only thing you need to resume.**
-Supersedes `26-handoff.md` (which is from the P6/P7 planning era and is now history).
+Supersedes `26-handoff.md` (the P6/P7 planning era, now history). Updated in place
+rather than replaced — one current handoff beats seven historical ones, and that
+rule is §4.4 of this file's own list.
 
 ---
 
@@ -9,90 +11,125 @@ Supersedes `26-handoff.md` (which is from the P6/P7 planning era and is now hist
 
 ```bash
 cd "/Users/jy/GRAPH AGENT"
-git log --oneline -3
-python3 -m pytest -q            # expect: 3121 passed
+git log --oneline -5
+python3 -m pytest -q            # expect: 3281 passed, ~2m10s
+cat planning/33-P8-COMPLETION-AUDIT.md   # what P8 is and is not
 cat planning/28-AUTOPILOT.md    # the domain-research loop, if that is your track
 ```
 
 | | |
 |---|---|
 | Branch | `build/p6-p7-first-packages` |
-| HEAD | `4746b7a fix(p8): verdict writers require provenance, and C/D verdicts are atomic` |
-| Tests | **3121 passed, 0 failed** |
-| Working tree | clean except `.planning/HANDOFF.json` (deleted, staged) and `.superpowers/` (untracked) |
-| Built | **P1–P8.** `src/database_agent`, `evidence_shape`, `extractors`, `scan_agent`, `readers`, `facts` (P6), `privacy` (P7), `llm_harness` (P8), `orchestrator.py`, `production.py` |
-| Domain research | **167 of 358** roster rows landed; 191 unwritten |
+| Tests | **3281 passed, 0 failed** (was 3121 at the start of this session) |
+| Built | **P1–P8 complete.** P9 is Tasks 1–3 of 15. |
+| Source | `src/database_agent`, `evidence_shape`, `extractors`, `scan_agent`, `readers`, `facts` (P6), `privacy` (P7), `llm_harness` (P8), `grouping` (P9, partial), `orchestrator.py`, `production.py` |
+| Domain research | **291 node files** on disk; another team is driving that track — see §2B |
+
+**Two teams are committing to this branch.** The domain-research track
+(`fix(domains)`, `research(J-DEPTH)`) is not this one. Never stash, rebase, pull
+or reset while either has uncommitted work, and never rewrite shared history.
 
 ---
 
-## 1. What just closed (this session)
+## 1. What closed this session
 
-A previous session left a **TDD cycle half-finished**: the tests demanded provenance the
-implementation did not take. 14 tests were red. All are green now.
+### P8 is complete — all six repair tasks
 
-- `record_verdict`, `supersede_verdict`, `record_cd_verdict` now require **`model_id`,
-  `prompt_fingerprint`, `release_audit_id`** — keyword-only, no defaults. They were being written as
-  hardcoded `None` placeholders, so every verdict event shipped without provenance. **The three
-  values were already in scope in `harness.py` three lines above the call** and were simply not
-  threaded.
-- `record_cd_verdict` **was not atomic**. `record_verdict` committed its own transaction and the
-  identity insert ran outside it, so a failing identity insert left a C/D verdict row with no
-  plan/snapshot identity — a row that cannot say which plan it judged. Both writes are now in one
-  transaction (`transaction` is reentrant via SAVEPOINT).
+`docs/superpowers/plans/2026-08-26-p8-live-composition-repair.md` listed five
+release blockers. All are closed; `planning/33-P8-COMPLETION-AUDIT.md` is the
+record, and it names the seven seams that remain external.
 
-### The one that is worth remembering
+| Commit | Task |
+|---|---|
+| `1dd29ba` | R2 canonical post-release dossier (`llm_harness/dossier.py`) |
+| `7ccec8f` | R3 built-in site dispatcher (`llm_harness/sites.py`) |
+| `195da8c` | R4 release-bound citation validation |
+| `911a3db` | R5 one connected consequence path |
+| `001a34a` | R6 derived no-invention sweep |
+| `8ac6f42` | the P6 consequence and the P8 verdict are one write |
+| `e9eceb3` | the completion audit |
 
-**The suite contradicted itself and I got it backwards on the first attempt.** Nine tests assert
-P8's public surface: two said eight names, seven said six. I narrowed `__all__` to six. That was
-wrong — `7049b2b` (the later commit) deliberately widened it, updated the SPEC's P2-envelope
-section, and updated two of the nine assertions. It missed the other seven, which came from
-`c31b359`, whose commit message literally says *"freeze the six-name public surface"*.
+**Six defects, every one of which had shipped green.** Recorded here because the
+shapes recur:
 
-**Lesson, and it generalises:** when a suite contradicts itself, `git log -- <file>` on **both**
-sides settles it. The later deliberate commit wins; the older frozen assertion is the stale one.
-Do not pick the side with more tests.
+1. `run_call` sent `b"\n".join(released values)` as the dossier and synthesised
+   `kind="excerpt"`, `basis=direct-anchor` for every reference. Consequence
+   nobody had noticed: Site B reads `kind == "member"`, `run_call` never produced
+   one, so **every member P9 proposed would have been rejected as invented**.
+2. A caller could pass `site_validator=lambda *a, **k: None` on the public path
+   and disable every site check while still getting a real-looking verdict. Every
+   harness test did exactly that.
+3. Citation spans matched against the injected resolver — the RAW stored text. A
+   model quoting what it was shown failed; one quoting text it could not have
+   seen passed.
+4. `transport.issue` keyed stored responses by `release_id`. Once `dossier_id`
+   became a content address, **replay could never find a response it had
+   stored**. The P2 replay test passed only because it wrote the row by hand.
+5. `verdict_id` was `file_id:field_key` on a PRIMARY KEY — two dossiers over one
+   file collided on insert.
+6. The P6 fact and the P8 verdict about it were separate transactions, so a
+   failure between them left a fact with no verdict.
+
+**Defects 4, 5 and 6 were only reachable once Site A was connected.** Before R3,
+`run_call` reached P6 through nothing at all — the caller's callback stood where
+the fact seam belongs. The connected path is where the bugs were.
+
+### P9 started — Tasks 1–3 of 15
+
+| Commit | Task |
+|---|---|
+| `5db7f10` | 1 — `database_agent/vector_versions.py`, append-and-supersede embeddings |
+| `921a2e2` | 2 — `grouping/vocabulary.py`, `records.py`, `schema.py` |
+| `0a744de` | 2 — `CandidateGroupDossier` (the task was one record short) |
+| `7d5aae8` | 3 — golden dossiers and the two stand-in fixtures |
+
+Load-bearing decisions already made, so a later task does not re-open them:
+
+- `plan_version_id` is on `group_acceptance` and no other P9 table. A test
+  asserts it.
+- `Membership` has no `review_state`, in record or table. The SPEC's displayed
+  shape lists it and the sentence beside it says it is not stored there — the
+  sentence wins.
+- `tests/p9/p8_fixtures.py` builds the REAL `P8Verdict`, not the shape-alike the
+  plan specified. The plan was written when P8 did not exist; a shape-alike now
+  would be the second verdict vocabulary P9 is forbidden to have.
+
+### The P8/P9 contract changed, and P9 builds the changed shapes
+
+`planning/30-p8-p9-connection-contract.md` gained a section recording it
+(`23f409d`). The eight frozen names are unchanged. `DossierRequest` now carries
+builder-owned `evidence_items` and `conflicts` instead of `evidence_refs`;
+`run_call` takes `SiteDependencies`, not a `site_validator`. **Read that section
+before writing P9 Task 10.**
 
 ---
 
 ## 2. The two live tracks
 
-### Track A — the product build (P1–P8 done, P9+ next)
+### Track A — the product build (P1–P8 done, P9 in progress)
+
+**Next: P9 Task 4.** `planning/parts/P9-grouping/PLAN.md` is the plan; 15 tasks,
+3 done. Its "Authority and current-state ledger" (line 21) and "Dependency gates"
+(line 48) are current and were written with P8 unbuilt — G-P8 is now satisfied,
+so Task 10's live adapter is unblocked.
+
+Required order: Tasks 1–8, then **9 before 10**, then 11–15. Task 10 must not
+begin until Task 9's `record_context_review_pending` is green.
 
 Audit and contract documents, in the order they were written:
 
 | Doc | What it is |
 |---|---|
 | `28-p1-p7-design-conformance-audit.md` | P1–P7 against the original design |
-| `30-p8-p9-connection-contract.md` | the P8↔P9 seam |
+| `30-p8-p9-connection-contract.md` | the P8↔P9 seam — **revised this session** |
 | `31-DOMAIN-AUDIT.md` | domain map + cohesion audit |
+| `33-P8-COMPLETION-AUDIT.md` | **new** — what P8 is, and the seven seams it is not |
 
-**P1→P8 CONNECTION AUDIT — DONE 2026-08-26. Result: connected, 0 breaks.**
+**The signature-level seam sweep §3 used to ask for is done for P8** and found
+the `dossier_id` / `release_id` confusion (defects 4 and 5 above). The same sweep
+has not been run for P1–P7.
 
-Audited against `30-p8-p9-connection-contract.md`'s seam ledger, which is the authority.
-
-- **All 8 built seams resolve** by import — every named producer and consumer symbol exists
-  (P7→P8 ×2, P6→P8, P8→P6, P8→P2, P1→P8 ×2, P4→P8). The 3 remaining rows are P9, which does not
-  exist; the contract correctly prefixes those symbols `eventual`.
-- **Every seam the contract names an integration-test owner for has one, and they pass** —
-  `test_p8_p7_egress.py`, `test_p8_p6_fact_seam.py`, `test_p8_p2_replay.py`, plus
-  `test_p1_p7_live_assembly.py`, `test_p8_walking_skeleton.py`, `test_production_p1_p7.py`.
-  **34 integration tests green.**
-- **Invariant 1 holds — single egress.** `model_client.invoke` appears at exactly ONE site in all
-  of `src/`: `llm_harness/transport.py:166`. `8edf835` added a product-wide test enforcing it.
-- **Invariant 4 holds — D14.** `privacy/gate.py:510` writes `release_id=None` on the audit row.
-- **`src/production.py` composes P1–P7 only, and P8's absence is deliberate**, stated in its own
-  docstring: *"whether an LLM stage exists is a decision already frozen inside each supplied P6
-  resolver."* P8 is an island in `src/` on purpose — reached through the P6 seam, not wired into
-  the production composition root.
-
-**Caveat, and it is the one that has bitten this project before:** this audit verifies that names
-resolve and that the owned integration tests pass. It does **not** prove every signature matches at
-every call site — a consumer can call a producer with a parameter it does not have and the *name*
-still resolves. That defect class has appeared here twice (`set_policy(author=)`, and the P8
-provenance placeholders closed this session). A signature-level sweep across seam call sites is the
-natural next hardening step.
-
-Use graphify for reference (`graphify query "<symbol>"`; the graph is rebuilt on every commit).
+Use graphify for reference (`graphify query "<symbol>"`; rebuilt on every commit).
 
 ### Track B — the domain research dispatch (`28-AUTOPILOT.md`)
 
@@ -112,42 +149,66 @@ Use graphify for reference (`graphify query "<symbol>"`; the graph is rebuilt on
 
 ## 3. Known open work, highest value first
 
-1. ~~P1→P8 connection audit~~ — **DONE, 0 breaks** (see Track A). Follow-up: a signature-level
-   sweep across seam call sites, which name-resolution cannot cover.
-2. **191 unwritten roster rows** (of 358). Do not call the forest complete before 358/358.
-3. **R1c merge gate** (`planning/prompts/01c-merge-and-gate.md`) — only after every row is present.
-   It audits the whole forest.
-4. **Domain cohesion gaps** from `31-DOMAIN-AUDIT.md`: universal-key drift (57 rows omit
-   `proposed_context_terms`, 46 carry extra keys), memo-depth marker drift (87 memos lack a literal
-   `J-DEPTH` header). **Resolve by one migration pass with a chosen contract, not ad hoc row edits.**
-5. `planning/domains/check.py` reports **566 legacy in-file problems, 0 cross-file** — mostly
-   dimensions branching on undeclared fields. Deliberately not rewritten yet.
+1. **P9 Tasks 4–15.** `planning/parts/P9-grouping/PLAN.md`. Task 4 is next; see
+   Track A for the ordering gate.
+2. **Domain research** — another team's track. 291 node files on disk against a
+   358-row roster. Do not call the forest complete before 358/358, and do not
+   touch `planning/domains/` from this track.
+3. **R1c merge gate** (`planning/prompts/01c-merge-and-gate.md`) — only after
+   every row is present. It audits the whole forest.
+4. **Domain cohesion gaps** from `31-DOMAIN-AUDIT.md`: universal-key drift,
+   memo-depth marker drift. **Resolve by one migration pass with a chosen
+   contract, not ad hoc row edits.**
+5. `planning/domains/check.py` legacy in-file problems — deliberately not
+   rewritten yet.
+6. **Signature-level seam sweep for P1–P7.** Done for P8 this session and it
+   found two real defects. The same sweep has never been run on the earlier
+   seams, and name resolution cannot cover it.
+7. **Site E's fragment boundary is enforced nowhere** — `fragment` appears zero
+   times in `src/llm_harness/`. Deferred on purpose (the published-fragment
+   registry is P10's), now written down in `33-P8-COMPLETION-AUDIT.md` §3.
 
 ---
 
-## 4. Improvements this session surfaced — worth doing, not yet done
+## 4. Improvements surfaced — worth doing, not yet done
 
-These are process defects, not task items. Each one cost real time or shipped a real bug.
+Process defects, not task items. Each one cost real time or shipped a real bug.
 
-1. **The public surface is asserted as a literal list in nine places.** That is nine copies of one
-   contract, and it is exactly how the eight-vs-six contradiction survived. **Publish the expected
-   surface once** (a module constant or a conftest fixture) and have all nine assert against it.
-   Then widening it is one edit and cannot go half-applied.
+1. **The public surface is asserted as a literal list in nine places.** Nine
+   copies of one contract, and exactly how the eight-vs-six contradiction
+   survived. **Publish the expected surface once** and have all nine assert
+   against it. Still open.
 
-2. **Provenance placeholders passed review.** `audit_id=None, model_id=None,
-   prompt_fingerprint=None` sat hardcoded in two writers, so every event shipped provenance-free
-   and nothing failed. **Add a guard: no P8 event row may carry a null `model_id` or
-   `prompt_fingerprint`.** A placeholder that satisfies the type is the failure mode this project
-   keeps hitting — the same shape as "a column with no writer".
+2. **Provenance placeholders passed review.** Closed for the two writers that had
+   them, but the guard asked for — *no P8 event row may carry a null `model_id`
+   or `prompt_fingerprint`* — is still not written. A placeholder that satisfies
+   the type is this project's most-repeated failure. Two more instances were
+   found this session (`_evidence_items` synthesising builder metadata,
+   `conflicts=()` hardcoded).
 
-3. **`_ensure_identity_table` runs DDL inside a writer.** Schema creation belongs in
-   `create_*_schema`, called once. A writer that may create its own table hides a missing schema
-   step until the first call.
+3. **`_ensure_identity_table` runs DDL inside a writer.** Schema creation belongs
+   in `create_*_schema`, called once. Still open.
 
-4. **Stale context is the single largest token cost.** This session opened ~195 commits behind and
-   spent a large fraction of its budget re-orienting. **The fix is this file**: update §0 and §1 at
-   the end of every working session, in place, rather than adding a new numbered handoff. One
-   current handoff beats seven historical ones.
+4. **Stale context is the largest token cost.** The fix is this file: update §0
+   and §1 in place at the end of every session. Done for this one.
+
+5. **A test that constructs its own record does not exercise the code that builds
+   it.** New this session, and it is the root of defect 1 above: Site B's
+   validator tests were green for weeks while the only production path that could
+   feed them produced a dossier they would have rejected. **Where a record has one
+   production builder, at least one test must go through it.**
+
+6. **Derived registries beat listed ones.** The no-invention sweep had silently
+   fallen behind by four callables and two bundles before `001a34a` made it
+   derive from the package. Improvement 1 above is the same fix, unapplied.
+
+7. **A capability is not an identity.** `release_id` was used as a dossier id and
+   again as a response key. Both type-correct, both wrong.
+
+8. **Subagent reports did not come back this session.** Three review agents ran to
+   completion and none of their findings reached the parent session; only idle
+   notifications arrived. If you delegate, **have the agent write its findings to
+   a file** and read the file, rather than relying on the return path.
 
 ---
 
