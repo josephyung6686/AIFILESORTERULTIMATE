@@ -950,3 +950,29 @@ keys. The defects below are all *edge semantics*, which no gate was checking.
 extending it is R1c's task). Two teams were writing when it was authored, so it only reads.
 Reciprocity is judged **only where both rows are on disk**, so the counts will move as the
 remaining rows land; re-run it rather than quoting these numbers.
+
+### Repair plan (Joseph, 2026-08-26): fix everything once all agents return
+
+Ordered, and split by whether judgement is required. Nothing is applied while dispatches run —
+writing into a file an agent still owns is the collision `29-DOMAIN-OWNERSHIP.md` rule 1 forbids.
+`fix_edges.py` enforces that itself: it refuses if any node file was touched in the last 120s.
+
+1. **Wait for all four shards** (`w6u3r5eqr`, `wno5gz1he`, `wwjc0onmb`, `wh12ufh32`), then commit
+   the landed rows by explicit file list.
+2. **Mechanical pass — `python3 planning/domains/fix_edges.py --apply`.** Deterministic renames
+   only: `why`→`signal`, `domain_id`/`id`/`target`→`domain`. ~308 repairs, no judgement, key order
+   preserved. Clears `KEY_DRIFT_*` outright.
+3. **Judgement pass — R1c** (`planning/prompts/01c-merge-and-gate.md`), which owns cross-row edits:
+   - 632 one-way `collides_with` / 147 one-way `also_holds_with` → add the reciprocal, or record a
+     `one_way_reason`. Per pair; the two are not interchangeable.
+   - 92 `also_holds_with` on templates → **lift** to the schema pair or **convert** to
+     `collides_with`, depending on what the row meant. Guessing destroys the §5 distinction.
+   - 59 cross-kind `collides_with` → lift to the schema pair or push down to the template pair.
+   - The two argued overlaps: the `creative` film-production/shoot-day-media/post-production trio,
+     and `finance.household-property` vs five `construction_property` rows.
+4. **Re-run both gates** (`check.py`, `check_edges.py`) and re-run the two auditors on the repaired
+   corpus — a repair that is not re-audited is a claim, not a result.
+5. Then the final review panel and the index (`26-research-dispatch-state.md` §0a).
+
+Reciprocity counts move as rows land (a collision into an unwritten row is owed, not one-way), so
+step 3 must re-run the gate rather than work from the numbers logged above.
