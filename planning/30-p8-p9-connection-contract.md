@@ -38,6 +38,43 @@ imports use those qualified names; P8 exports no ambiguous bare `Verdict` alias.
 not wrap that union in a second authority type. The caller of `run_call` owns the
 P13 hand-off when the exact `NeedsConsent` object is returned.
 
+### What P9 must supply — revised 2026-08-26 by the live-composition repair
+
+The eight exported names are unchanged. Two of the shapes behind them changed, and
+P9 is the part that builds them, so they are recorded here rather than left to be
+discovered at the seam.
+
+**`DossierRequest` carries builder-owned reference metadata, not a bare id list.**
+It previously held `evidence_refs: tuple[str, ...]`. P8 turned each id into an
+`EvidenceItem` by filling in `kind="excerpt"`, `location="body"`,
+`reliability_state="direct"`, `basis=direct-anchor` — inventing four fields the
+SPEC says the dossier builder supplies. It also meant Site B saw no
+`kind == "member"` item and would have rejected every member P9 proposed. The
+field is now:
+
+- `evidence_items: tuple[EvidenceItem, ...]` — reference-only, required, non-empty.
+  `EvidenceItem` is `(evidence_ref, kind, location, excerpt_span,
+  reliability_state, basis)` and carries no value. Site B reads `kind == "member"`
+  for candidate members; anything P8 must release text for uses the observation key
+  as `evidence_ref`.
+- `conflicts: tuple[Conflict, ...]` — the builder's known conflicts. P8 hardcoded
+  `()` here and Site B's `target_institution` check could never fire.
+
+Every released observation key must (a) have been requested through
+`model_call_request.requested_items` and (b) have a matching `EvidenceItem`.
+Otherwise `run_call` returns `ValidationUnavailable` before any egress.
+
+**`dossier_id` is a content address, not `release_id`.** `Dossier` gained
+`released_evidence: tuple[ReleasedEvidence, ...]` — P7's `Materialised` items as
+the model saw them. Two calls over identical released content now share one
+`dossier_id`, which is what makes a replay recognisable as a replay. P9 still never
+constructs a `Dossier`.
+
+**Site authorities replaced the acceptance callback.** `run_call` no longer takes a
+`site_validator`. P9 passes `llm_harness.sites.SiteDependencies`; Site B needs no
+bundle, so `SiteDependencies(fact=None, placement=None, residual=None,
+template=None)` is what a group call supplies.
+
 ## Seam ledger
 
 | Direction | Producer module.symbol | Consumer module.symbol | Record identity | Failure mode | Integration-test owner |
@@ -46,7 +83,7 @@ P13 hand-off when the exact `NeedsConsent` object is returned.
 | P7→P8 | `privacy.release.Released` + release ledger | `llm_harness.transport.issue` | `release_id` is spend capability; `audit_id` is provenance; exact `ModelTarget` binds destination | forged, mismatched, or spent release raises before egress | `tests/integration/test_p8_p7_egress.py` |
 | P6→P8 | `facts.llm_seam.build_request` | `llm_harness.fact_validation.validate_fact_proposal` | `(FactRequest, Proposal)` for one `(file_id, content_hash)` | missing injected normalize/contradicts authority → `ValidationUnavailable`, no call/verdict/fact | `tests/integration/test_p8_p6_fact_seam.py` |
 | P8→P6 | `llm_harness.fact_validation.validate_fact_proposal` | `facts.llm_seam.apply_verdict` | distinct `facts.llm_seam.Verdict(passed, failed_check)` mapped from `P8Verdict`; required `proposal_state`, `model_identifier`, `prompt_fingerprint` | failed check or model unknown uses P6 unresolved consequence; no duplicate P8 fact writer | `tests/integration/test_p8_p6_fact_seam.py` |
-| P9→P8 | eventual `grouping.p8_seam.build_dossier_request` | `llm_harness.harness.run_call` | reference-only Site-B `DossierRequest`; P8 materialises only after P7 release | P9 stop-rule failure never calls P8; missing P8/config → fail closed; fixture until P9 exists | P9 owns `tests/integration/test_p9_p8_group_seam.py`; P8 owns recorded Site-B fixtures in `tests/p8/test_p8_group_validation.py` |
+| P9→P8 | eventual `grouping.p8_seam.build_dossier_request` | `llm_harness.harness.run_call` | reference-only Site-B `DossierRequest` carrying builder `evidence_items` + `conflicts`; P8 materialises only after P7 release | P9 stop-rule failure never calls P8; missing P8/config → fail closed; fixture until P9 exists | P9 owns `tests/integration/test_p9_p8_group_seam.py`; P8 owns recorded Site-B fixtures in `tests/p8/test_p8_group_validation.py` |
 | P8→P9 | `llm_harness.harness.run_call` | eventual `grouping.p8_seam.apply_p8_verdict` | exact `llm_harness.records.P8Verdict` outcome + reasons + evidence/plan identities | non-accept outcomes create no accepted membership; `NeedsConsent` is passed by P9 caller to P13 unchanged | `tests/integration/test_p9_p8_group_seam.py` |
 | P8→P2 | `llm_harness.stage_output.emit_stage_output` | `eval_harness.stage_output.record_stage_output` | existing `run_id`, seven-field `version_tuple_ref`, stage `llm_interpretation`, opaque P8 payload | foreign vocabulary raises; `NeedsConsent` writes no row; missing run/version fails FK/validation | `tests/integration/test_p8_p2_replay.py` |
 | P1→P8 | `database_agent.learning.learning_records` | `llm_harness.eligibility.suppressed_by_learning` | exact `(scope, subject_id, proposal_class, basis_key)` over current post-reset user events | absent connection or scope/subject identity → `ValidationUnavailable`; no second learning store | `tests/p8/test_p8_eligibility.py` |
