@@ -313,3 +313,71 @@ The row therefore adds nothing to the schema's six pending proposals and asks fo
   handling classes, no confidence scores.
 - Files written: only the two assigned. No neighbour, roster, canonical-fields, `check.py`, `src/` or
   SPEC file was touched.
+
+## R1b — collides_with / also_holds_with signal pass
+
+The defect: both edge lists were bare id strings. Under `_CONTRACT.md` and CONNECTION.md §5 an
+entry must be `{"domain", "signal"}` (`design_cite` optional), because P6 activation step 3 and the
+P8 validator read the `signal` to decide which side a shared evidence item counts toward. A bare
+string records that two rows collide but not how to tell them apart, which is the only part the
+engine can act on. All 8 entries (6 `collides_with`, 2 `also_holds_with`) now carry a named
+fixture on both sides plus the discriminator. No `design_cite` was added anywhere: none of the
+eight discriminations turned on a span of `00` that I could grep-verify as being *about* that pair,
+and the contract makes the field optional. No new neighbours; no entry removed.
+
+### The eight discriminators, in one line each
+
+- **`law_practice.pleadings`** — the conformed complaint. Two layers, one file: this row takes the
+  stamp overlay, the neighbour takes the body, and on conflict the body wins.
+- **`law_practice.orders-and-judgments`** — the entered order that arrived by filing notice. Every
+  signal here fires and the file is still not this row's: TRANSMISSION versus DECISION, with
+  operative paragraphs and a judicial signature having no counterpart in any receipt.
+- **`law_practice.deadlines-diary`** — the dated-row table. What one ROW is decides it: an already-
+  occurred filing event in one proceeding here, one matter across a portfolio there.
+- **`law_practice.matter-correspondence`** — the counsel email carrying a served document. Who
+  asserts the moment and destination decides it: a third party to both holder and client, or not.
+- **`legal.personal-legal-matters`** — the holder served at their own address. Whose name is in the
+  SERVED slot, plus the total absence of practitioner-side apparatus.
+- **`finance.receipts-expenses`** — the filing fee receipt. The neighbour's anchor (issuer +
+  transaction identifier + total) is fully present; this row's whole claim is the proceeding
+  binding, and without it the row concedes outright.
+- **`legal`** (also_holds) — same file, caption to `legal` and safety first, overlay to this row.
+- **`law_practice.discovery`** (also_holds) — the production transmittal: corpus apparatus to the
+  neighbour, transmission layer to this row.
+
+### Nothing was removed — and why I checked each one
+
+I tested every edge against "would these two ever contest ONE evidence item?" rather than "are
+these topically near?". All six survived, and four of them survive on a fixture this row's own
+`file_examples` already carries (the conformed complaint, the order, the fee receipt, the
+holder-served summons), which is the strongest form of the test. The two I scrutinised hardest
+were the REFUSED neighbours:
+
+- `law_practice.deadlines-diary` — a refused row holds nothing, so I nearly cut it. Kept, because
+  the contest is real at the artefact level: a single-matter key-dates export and a docket extract
+  are the same shape on the surface, and the edge's operative effect is to stop a portfolio diary
+  being absorbed into a filing-event group. The signal says so explicitly.
+- `law_practice.matter-correspondence` — same reasoning; the counsel email with a certificate of
+  service attached is a genuinely contested single item.
+
+### Cross-row recommendations for R1c (I edited no neighbour)
+
+- **`law_practice.orders-and-judgments` is rostered but not authored.** `grep -c` finds it three
+  times in `planning/domains/roster.json`; there is no
+  `planning/domains/nodes/law_practice.orders-and-judgments.json`. The edge is therefore valid
+  against the roster but currently unreciprocable. When that row is written it should reciprocate
+  this edge with the mirror signal (it takes the operative paragraphs and the judicial signature;
+  the covering notice of electronic filing stays here), and its own fixture should be the same
+  entered order so the pair is anchored on one file from both directions.
+- **Reciprocity generally.** `finance.receipts-expenses`, `legal.personal-legal-matters`,
+  `legal` and `law_practice.discovery` are all authored rows; R1c should check each carries the
+  mirror entry naming the same fixture. The finance pair is the one most worth mirroring, because
+  the concession runs strongly one way (no proceeding binding → this row has no claim) and the
+  neighbour should record the reciprocal (no amount and no labelled total → not finance's).
+- **Kind mismatch on `also_holds_with`.** This row is `kind: "template"`, and its
+  `also_holds_with` list mixes a SCHEMA (`legal`) with a TEMPLATE (`law_practice.discovery`).
+  CONNECTION.md's edge table constrains `collides_with` to same-kind pairs; whether
+  `also_holds_with` carries the same constraint is not something I resolved from the §5 grep, and
+  I did not change either entry. Flagging it rather than silently normalising it.
+- **No change requested to `law_practice.pleadings`.** It is refused and routes its transmission
+  layer here explicitly in its own `one_line`, which is already the reciprocal in prose.

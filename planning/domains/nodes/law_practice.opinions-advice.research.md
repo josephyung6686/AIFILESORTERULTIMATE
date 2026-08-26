@@ -274,3 +274,71 @@ were confirmed against `roster.json` / existing node files (`law_practice.legal-
 No file example writes a folder path as a fact. No thresholds, no counts, no handling classes. Every
 quotation was grep-verified verbatim before use, and the one I could not verify was dropped rather than
 paraphrased inside quote marks. I wrote only my two assigned files.
+
+## R1b — edge-signal repair
+
+`collides_with` and `also_holds_with` were landed as bare id strings. Per `_CONTRACT.md` and
+CONNECTION.md's edge table (`collides_with` … *"Must carry `signal`: the discriminating evidence"*,
+read by P6 activation step 3 and the P8 validator), a bare id records *that* two rows collide but not
+*how to tell them apart*, which is the only part the engine can act on. All eight entries are now
+`{"domain", "signal"}` objects. No neighbour was added and no entry was dropped.
+
+Each signal names the ONE evidence item both rows would claim, then states the boundary in both
+directions. The fixtures, and the reason each shared item is *not* self-discriminating:
+
+- **`law_practice.legal-research`** — one memorandum answering a legal question with a covering line
+  naming a reader. A named reader, a citation list and the word `advice` sit on both sides; only the
+  addressee-and-reliance pair plus assumptions/qualifications/scope-of-law is mine.
+- **`law_practice.precedent-bank`** — one model opinion letter carrying the *full* opinion grammar.
+  This is the collision where my headline signal is worthless: the precedent bank's most-used member
+  IS a stripped opinion. Filled-versus-blank addressee/date/conclusion slots is the whole test.
+- **`law_practice.orders-and-judgments`** — one PDF titled `opinion`. Discriminated by who issued it
+  (tribunal caption and binding effect vs. practitioner letterhead, addressee and reliance clause),
+  never by topic. The one design span I quote is grep-verified verbatim at line 45 of
+  `planning/00-database-agent-product-design.md`: *"Topic answers what a file is about, while purpose
+  answers what the file was for."* I did not attach a `design_cite` because that file carries no
+  section headings, and inventing a `§N.N` to satisfy the exemplar's format would be a fabrication.
+- **`law_practice.matter-correspondence`** — one advice letter to the client. The advice *content* is
+  common to both, so it is evidence for neither; labelled opinion structure vs. running prose decides.
+- **`law_practice.conflicts-check`** — `Legal opinion - conflict of interest - Hartley board.docx`,
+  named identically in both memos. The phrase `conflict of interest` is the shared item and decides
+  nothing; the four screen slots (prospective-client, searched-parties, search-result, approver) vs.
+  the addressee-and-reliance pair decides.
+- **`career.consulting-client-engagement`** — one professional deliverable with an addressee block and
+  a use-limitation clause. The clause is universal across professional deliverables, so my *primary*
+  signal is explicitly disqualified against this neighbour; the two-organization producer/recipient
+  pair vs. the assumptions/qualifications/scope-of-law co-occurrence decides.
+- **`legal.personal-legal-matters`** — literally the same bytes in two files. Every content signal is
+  identical; only the holder's ROLE on the page discriminates, and abstention is correct when that
+  side cannot be cited.
+- **`also_holds_with` → `finance`** — the auditor-request response, legitimately held by both as an
+  opinion artefact and as audit evidence. Coactivation, not a mutex.
+
+Nothing was removed. I twice reached for `law_practice.conflicts-check` as a candidate deletion
+(an opinion has no searched-parties list; a screen has no addressee block) and was wrong both times:
+the collision is not structural but *lexical*, and the landed conflicts-check memo names the exact
+fixture and routes it here. Recording that reasoning because the next reviewer will have the same
+instinct.
+
+### For R1c — cross-row, not editable from here
+
+1. **`law_practice.conflicts-check` does not reciprocate.** Its `collides_with` lists
+   `client-intake`, `legal`, `career.consulting-client-engagement`,
+   `business_operations.organisational-records`, `hr.employee-relations`, `precedent-bank` — not this
+   row — even though its own memo names the shared fixture and routes it here in prose. My earlier
+   "I authored `collides_with` back at them so the mutex is reciprocal in the graph" was true only of
+   my side. Under CONNECTION.md's post-migration reciprocity gate this is a directed-only edge and
+   will fail. The neighbour should add `law_practice.opinions-advice`.
+2. **`law_practice.matter-correspondence` is `refuse_node: true`** with empty `collides_with`, so it
+   can never reciprocate. The evidence-item competition is real, so I did not delete the edge, but
+   R1c must decide whether it retargets to the `law_practice` schema (which absorbed that row's
+   coverage) or is dropped as pointing at a refused destination.
+3. **`also_holds_with` may be schema-only.** CONNECTION.md's edge table and `_CONTRACT.md` rule 173-177
+   say `also_holds_with` *"joins schemas only"*, but this row is a `template` and its coactivation
+   partner `finance` is a `schema`. The coactivation itself is real (the auditor-request response).
+   Whether a template may carry the edge at all, or whether it must be lifted to the `law_practice`
+   schema, is above this row.
+4. **Three collision targets have no node file yet** — `law_practice.legal-research`,
+   `.precedent-bank`, `.orders-and-judgments` exist as `roster.json` rows only. Their signals here are
+   written against their roster `one_line_hint`s; when those rows land, their authors should be handed
+   these fixture names so the reciprocal signal is the same fixture and not a second invented one.

@@ -445,16 +445,40 @@
     }
   ],
   "collides_with": [
-    "law_practice.pleadings",
-    "law_practice.orders-and-judgments",
-    "law_practice.deadlines-diary",
-    "law_practice.matter-correspondence",
-    "legal.personal-legal-matters",
-    "finance.receipts-expenses"
+    {
+      "domain": "law_practice.pleadings",
+      "signal": "SAME FIXTURE BOTH SIDES: one PDF - `Complaint - Hartley v Nash - CONFORMED.pdf` - that is a registry stamp band applied ON TOP of an ordinary statement of case. Two layers, one file, and each row claims a different layer. THIS ROW CLAIMS ONLY THE OVERLAY: a band in a different rendering layer clipping or rotated against the underlying text, carrying a received/filed/entered word, a moment, a registry or clerk identity, and a control number stamped at identical coordinates on EVERY page - because that overlay is a transmission asserted by a receiver. THE NEIGHBOUR CLAIMS THE BODY UNDERNEATH: tribunal caption, bound party pair, numbered allegations, prayer for relief, counsel signature block. When the two conflict THE BODY WINS and this row concedes the file, because the stamp is the weaker claim - strike the band and a pleading is still standing; strike the pleading and the band evidences nothing. The control is the near-identical unstamped neighbour file in the same directory: same pleading, zero claim from this row. (The neighbour is a REFUSED row, so in practice the body routes on to `legal` on the caption; this row's half of the seam is unchanged either way.)"
+    },
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: `Order - Hartley v Nash - entered 2026-08-19.pdf`, which arrived as an attachment to a notice of electronic filing and carries an entry number plus an entered-on registry stamp in the same band style as this row's conformed copy. EVERY deterministic signal this row accepts is present on it and the file is still NOT this row's. THE DISCRIMINATOR IS WHAT THE BODY IS ABOUT: this row's artefacts record a TRANSMISSION - what moved, when, to whom, by what method - and therefore always carry a destination set, either an accepting registry named as receiver or an enumerated recipient-and-method list; the neighbour's artefacts record a DECISION - numbered OPERATIVE PARAGRAPHS and a judicial signature block, which have no counterpart in any receipt, and no recipient partition anywhere. Split the packet: the covering notice of electronic filing stays this row's, the attached order is the neighbour's, and the shared entry number is linkage that decides neither side."
+    },
+    {
+      "domain": "law_practice.deadlines-diary",
+      "signal": "SAME FIXTURE BOTH SIDES: one dated-row table pulled for a matter - `Docket - 2-26-cv-00418 - retrieved 2026-08-20.pdf` at one end, a case-management key-dates export at the other. Both rows would claim a table whose cells are dates against a proceeding, and a shared date column discriminates nothing. THE DISCRIMINATOR IS WHAT ONE ROW OF THE TABLE IS. Here a row is ONE FILING EVENT THAT HAS ALREADY OCCURRED - entry number, date filed, filing party, entry text - many rows over ONE proceeding, closed by a retrieved-on line naming the pulling account. On the neighbour's side a row is ONE MATTER - one row per matter across MANY matters, with a forward key-date column (limitation, service, listing, completion) and an owning-practitioner column. Event-rows-in-one-matter versus matter-rows-across-a-portfolio; the entry number and the retrieval account exist only on this side, the portfolio shape only on the other. (The neighbour is a REFUSED row whose coverage sits on the `law_practice` schema default, so the operative effect of this edge is that a portfolio diary must never be absorbed into a filing-event group.)"
+    },
+    {
+      "domain": "law_practice.matter-correspondence",
+      "signal": "SAME FIXTURE BOTH SIDES: one .eml in a matter folder that carries a served document - an opposing-counsel email enclosing a pleading, with a certificate of service attached beneath it. Both rows would claim the message. THE DISCRIMINATOR IS WHO ASSERTS THE MOMENT AND THE DESTINATION. This row needs both legs asserted by an issuer who is NEITHER the holder NOR the holder's client - a court electronic-filing system, a registry, a clerk, a process server, a carrier - which is exactly why a machine-generated notice of electronic filing with no client slot at all is this row's and a lawyer-to-lawyer covering letter never is. The neighbour's item is a message AUTHORED by a practitioner or a client to a human correspondent, whose evidence is the exchange itself. Where one file is both, the third-party-asserted receipt layer is this row's and the covering prose is the neighbour's; the shared case reference is linkage, not evidence for either. (The neighbour is a REFUSED row; the seam is stated so the correspondence half is not swept into a filing group by proximity.)"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Summons and proof of service - my apartment - 2026-07-02.pdf` - a complete and correct transmission structure (description of the document served, recipient, service address, method, date and time, server's signature and licence number) in which the person in the SERVED slot is the HOLDER, at the holder's own residential address, with the file sitting beside a lease and a personal bank statement. Both of this row's legs fire and the file is still not this row's. THE DISCRIMINATOR IS WHOSE NAME OCCUPIES THE SERVED SLOT, together with the presence or total absence of practitioner-side apparatus: this row is the receipt layer of a matter run FOR SOMEONE ELSE, so it needs a filer account, an allocated matter or engagement reference, or the surrounding two-role apparatus somewhere in the same evidence; the neighbour holds the holder's own proceeding on holder-role evidence and, being a `legal` safety row, protects it before any placement. A proof of service is issued by a server for whoever instructed one and the card itself cannot say which side that was - so with no practitioner-side apparatus present the holder-role reading wins and this row takes nothing, not even the group."
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "SAME FIXTURE BOTH SIDES: `Filing fee receipt - envelope 4471902.pdf` - one document carrying an amount, a payment method, a card last-four, a payment confirmation number and an issuer block naming a filing-service provider, AND the same envelope and case identifiers as the submission confirmation lying beside it. THE ISSUER-PLUS-TRANSACTION-IDENTIFIER-PLUS-TOTAL STRUCTURE IS THE NEIGHBOUR'S OWN ANCHOR and it holds the receipt on that evidence. This row's entire claim rests on ONE extra thing - the PROCEEDING BINDING, a case or envelope identifier sitting inside the SAME labelled slot set as the amount and the submission moment - and where that binding is absent the row concedes the file outright and has no claim at all. Reciprocally: a filing-system acknowledgement carrying no amount and no labelled total is not the neighbour's however transactional its shape. The binding is frequently present only as an unlabelled reference line, which is what makes this a real contest rather than a clean split."
+    }
   ],
   "also_holds_with": [
-    "legal",
-    "law_practice.discovery"
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH RATHER THAN CONTESTED: the conformed filed copy and the notice of electronic filing each carry a tribunal caption with a matter-identifier slot, which is `legal`'s own deterministic proceeding signal, while the stamp overlay and the recipient-and-method partition on the same file are this row's. `legal` is one of 00's safety domains and its protection runs BEFORE any placement decision this row could make, so the correct behaviour is co-activation: `legal` protects the file, this row supplies the transmission reading that decides grouping. Neither row copies the other's facts, and the caption alone activates neither this row nor any group."
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH: a production transmittal - a cover letter or volume index for a produced set, accompanied by a certificate of service and a carrier delivery confirmation naming that volume. The neighbour holds the PRODUCED-CORPUS APPARATUS on its own evidence (the contiguous control-number range, the load file's header row and document-break flag, the review-coding log, the withholding schedule); this row holds the TRANSMISSION LAYER wrapped around it (the moment and destination set asserted by a server or carrier, the proof of service, the acknowledgement of receipt). One packet, two legitimate readings, and the shared control number or volume label is linkage only. Where a document carries a production control number but no third-party-asserted moment and no destination set, this row has no claim."
+    }
   ],
   "falls_through_to": [
     "Protected Records",

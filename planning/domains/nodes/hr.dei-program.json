@@ -383,16 +383,43 @@
     }
   ],
   "collides_with": [
-    "hr.workforce-analytics",
-    "hr.engagement-survey",
-    "hr.training-development",
-    "career.employer-side-hiring",
-    "business_operations.policy-handbook",
-    "business_operations.corporate-regulatory-filings",
-    "business_operations.procurement-sourcing"
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "SAME FIXTURE BOTH SIDES: Diversity monitoring export - representation by level and site.xlsx, one export whose header row pairs business unit, site and grade with headcount, share and rate columns. One column class discriminates: with NO protected-characteristic dimension in the header the item counts toward the neighbour's population measurement, even when a DEI function commissioned it; the moment a characteristic column (ethnicity, race, gender identity, disability, veteran status) sits in that same header, it counts toward this row and carries this row's suppression and local-only posture. The requesting team, the word diversity in the filename, the workforce-spreadsheet shape and the presence of an organisational unit column discriminate nothing - the discipline follows the column, not the requester.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.engagement-survey",
+      "signal": "SAME FIXTURE BOTH SIDES: Inclusion index 2026 - engagement survey cut by demographic.xlsx, an index built from listening items and then cut by ethnicity grouping, disability status and grade. The wave apparatus decides which side the item counts toward: a numbered first-person item bank on one repeated ordinal scale, a fielding window, a participation record or the raw response export makes it the neighbour's one bounded listening wave; a characteristic cut carried as a standing monitoring measure reported against previously stated objectives makes it this row's. Neither row may claim both halves - this row takes the cut by membership without copying the wave's facts (group_without_copying_facts: true). The word inclusion, a suppression note and a base-size column appear on both sides and settle nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.training-development",
+      "signal": "SAME FIXTURE BOTH SIDES: Unconscious bias training - completion roster - Q2 2026.csv, columns employee identifier, employee name, course title, assignment date, completion date, status. A course identifier joined to a per-learner completion state is a learning record whatever the course subject, so the roster counts toward the neighbour; a DEI-shaped course title is the topic of a work type, not a filing world. The item counts toward this row only when the same underlying bytes have been recut into a completion or participation rate broken out by protected characteristic - and then the derived analysis, not the roster, is the member. The DEI phrase in the title and the employer's own LMS export header sit on both sides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "SAME FIXTURE BOTH SIDES: Adverse impact analysis - graduate scheme 2026 - selection rates.xlsx, protected-characteristic data attached to one selection process. Whether the rows are PEOPLE or STAGES decides it: named applicants, an applicant-tracking export, scorecards, or a requisition-shaped identifier in a labelled slot make the item the neighbour's custody corpus of other people's personal data; aggregate applied/screened/assessed/offered counts crossed by group with a per-group selection rate and impact ratio, carrying no candidate identity, no contact channel and no requisition slot, make it this row's monitoring instrument. Applicants are never workforce members, so an item counted toward this row must not be joined back to the workforce monitoring corpus at individual level. The stage vocabulary and the group flag appear on both sides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "SAME FIXTURE BOTH SIDES: Equal Opportunities Policy v6 - approved.pdf, and equally Employee network charter - Women in Engineering - v3.docx - both are approved, versioned, owner-bearing documents about equality. A FILLED document-control block (owner or approver, version, effective or issue date, next-review date) over numbered normative clauses using must, shall or is required to makes the item the neighbour's governing controlled document; delivery apparatus authored UNDER that policy - a plan period with job groups, an availability analysis and placement goals, or a named network with eligibility, an executive sponsor, objectives and a budget - makes it this row's programme instrument. Equality vocabulary, an approval block, a named reviewer and a version marker sit on both sides and discriminate nothing. The signed acknowledgement of the policy is a third thing and is neither row's by this seam.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: EEO-1 Component 1 - 2026 - submitted certification.pdf, one compelled return that is at once a submission to an authority and a workforce composition table. The neighbour's claim rests on the compelled-obligation apparatus - issuing authority, entity identifier, filing reference, a machine-issued receipt with a received timestamp, a statutory deadline or penalty notice; this row's rests on the return being the terminal member of one monitoring obligation, grouped with the same snapshot's data extract, analysis workbook and sign-off, and built out of protected-characteristic counts. The certification page, the signatory, the establishment identifier and the reporting period sit on both sides. Genuinely unsettled: NJ-DEI-1 asks R1c to decide, and warns that counting it toward the neighbour must not let a compulsory filing inherit a lower-sensitivity posture than the characteristic data it was built from.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [
-    "finance"
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE, HELD BY BOTH: Pay equity analysis - 2026 review - model and residuals.xlsx. One workbook carries base pay, predicted pay and residual columns per employee - which is finance's safety reading, detected and protected before any cloud step - and group flags with adjusted and unadjusted gaps by group, which is this row's fairness diagnostic. This is a co-hold, not a mutex: neither reading cancels the other, and the item counts for both. The remuneration columns do not make the workbook a finance record of the individual, and the group flags do not exempt it from finance's local-only protection; the fixture is marked also_schema: finance for exactly this reason.",
+      "provenance": "inference"
+    }
   ],
   "falls_through_to": [
     "Protected Records",

@@ -471,16 +471,40 @@
     }
   ],
   "collides_with": [
-    "law_practice.legal-research",
-    "law_practice.precedent-bank",
-    "law_practice.orders-and-judgments",
-    "law_practice.matter-correspondence",
-    "law_practice.conflicts-check",
-    "career.consulting-client-engagement",
-    "legal.personal-legal-matters"
+    {
+      "domain": "law_practice.legal-research",
+      "signal": "SAME FIXTURE BOTH SIDES: ONE memorandum that answers a client's legal question and carries a covering line naming a reader - the internal note and the issued advice have the same shape and are routinely the same file, or bound one behind the other in one PDF. THE BOUNDARY IN BOTH DIRECTIONS: `law_practice.legal-research` owns the artefact when the decisive labelled structure is the SURVEY - an authorities or citation list, a research trail, an issue-to-authority mapping - and no slot in the document restricts who may take the benefit of it; this row owns it only when the ADDRESSEE-AND-RELIANCE PAIR is present on the same page (a labelled addressee block naming a person or body the document itself distinguishes from the author, PLUS a clause in the document's own words restricting reliance) together with the assumptions / qualifications / scope-of-law grammar. The shared items decide nothing on their own: a named reader, a citation list, a legal conclusion and the word `advice` all sit on both sides. Where a research note is bound behind the opinion it produced, the bytes are a candidate for both templates and neither may claim the other's half."
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "SAME FIXTURE BOTH SIDES: ONE model opinion letter carrying the full opinion grammar - documents-examined, assumptions, qualifications, scope-of-law, conclusion - because a precedent bank's most-used member IS a stripped opinion. The opinion grammar therefore discriminates nothing here; it is the one collision where this row's headline signal is worthless. THE BOUNDARY IN BOTH DIRECTIONS: `law_practice.precedent-bank` owns the artefact when its addressee, date, party and conclusion slots are UNFILLED - placeholder tokens, square-bracketed blanks, a drafting-note or guidance-note block, no execution or signature - i.e. it is held for the NEXT matter; this row owns it when the addressee block names an actual body, the document states a date it speaks as of, and a reliance restriction binds named parties. Filled-versus-blank slots is the whole test, and a file named `precedent` or `template` is not evidence of either side."
+    },
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: ONE PDF whose title carries the word `opinion` sitting in a matter folder - a court's own opinion or reasons for judgment saved as an authority beside the practice's own opinion letter. The word `opinion` is the shared item and it is exactly what this row refuses to be activated by. THE BOUNDARY IN BOTH DIRECTIONS: `law_practice.orders-and-judgments` owns the artefact when its own structure is a court caption block - issuing court, case or docket number, party roles - and the document is issued BY the tribunal and binds the parties, with no addressee block and no clause restricting reliance; this row owns it when a practitioner or firm authored it, addressed it to a named body, and restricted who may rely on it. Topic will not separate them - 00's test is the one that works: `Topic answers what a file is about, while purpose answers what the file was for.`"
+    },
+    {
+      "domain": "law_practice.matter-correspondence",
+      "signal": "SAME FIXTURE BOTH SIDES: ONE letter or email from the practice to the client that gives advice on the merits - a solicitor's letter under a salutation, or an attendance note recording oral advice. Both sides claim it because the ADVICE CONTENT is common to both and is therefore not evidence for either. THE BOUNDARY IN BOTH DIRECTIONS: the correspondence side owns the artefact when the advice is running prose under a salutation and sign-off with no assumptions, qualifications or scope-of-law sections and no clause restricting reliance - a transmitting or discursive letter; this row owns it only when the addressee-and-reliance pair plus the opinion grammar are present as labelled structure. A letterhead, a client name, a matter reference and legal reasoning sit on both sides. Where a covering letter transmits a formal opinion as an attachment, the covering letter is the correspondence and the attachment is this row - the covering letter must not absorb the opinion's reliance restriction, and the opinion must not absorb the letter's informality."
+    },
+    {
+      "domain": "law_practice.conflicts-check",
+      "signal": "SAME FIXTURE BOTH SIDES, NAMED IDENTICALLY IN BOTH MEMOS: `Legal opinion - conflict of interest - Hartley board.docx` - a document that carries the words `conflict of interest` and is written by the practice. That vocabulary is the shared item and it is the single easiest mistake to make on vocabulary alone, so the phrase decides nothing. THE BOUNDARY IN BOTH DIRECTIONS: `law_practice.conflicts-check` owns the artefact when its labelled structure is a SEARCH over the practice's own client and matter population or an ACCESS RESTRICTION over named personnel - a prospective-client slot, a searched-parties list, a search-result slot, a clearance decision with an approver and a date, or a screened matter against a list of the firm's own people - i.e. the question is whether the PRACTICE may act; this row owns it when the document carries an addressee block naming a body distinct from the author, a clause restricting reliance, and assumptions / qualifications / scope-of-law, and the question is the CLIENT's legal position. None of conflicts-check's four decision slots appear on an opinion, and no addressee-and-reliance pair appears on a screen."
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES, AND THIS ROW'S HEADLINE COLLISION: ONE professional deliverable addressed to a named organization and carrying a use-limitation or no-third-party-responsibility clause. That clause is universal across professional deliverables - accountants, actuaries, valuers, consultants and lawyers all write it - so the addressee block plus the limitation clause, which is this row's primary signal, is worthless as evidence against this neighbour and must not be treated as decisive. THE BOUNDARY IN BOTH DIRECTIONS: `career.consulting-client-engagement` owns the artefact on its own two-organization role pair - a client organization in a recipient-marked position beside a DIFFERENT firm in a producer-marked position (letterhead, footer, signature block) - inside a document whose heading carries a scope-of-work token, or on a scope / deliverables / fees / term section set with two countersigning organizations; this row owns it only on the co-occurrence of assumptions taken as true and expressly not verified, qualifications or exceptions, and a scope-of-law slot disclaiming every jurisdiction but one, or on a slot in which the document grades its own conclusion. A law firm on the letterhead is not evidence: a law firm also issues consulting deliverables."
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES, AND IT IS LITERALLY THE SAME BYTES: ONE advice letter exists in the author's file and in the addressee's file and differs only in which block belongs to the holder. Every content signal - the opinion grammar, the reliance clause, the addressee block, the matter reference - is identical on both sides and discriminates nothing. THE BOUNDARY IN BOTH DIRECTIONS: this row owns it when the holder or the holder's practice is the AUTHOR (holder's letterhead, holder's signature block, advice given FOR someone else); `legal.personal-legal-matters` owns it when the holder is the ADVISEE or a party - the holder named in the addressee, party or service block of their own dispute or proceeding. The only discriminating evidence is the holder's ROLE on the page, and where that side cannot be cited from the file the correct outcome is abstention, not a split. `legal` is a safety domain: its protection runs first whichever side ends up holding the file."
+    }
   ],
   "also_holds_with": [
-    "finance"
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES, LEGITIMATELY HELD BY BOTH: ONE response to an auditor's request for information - addressed to a named audit firm, referencing a request made by the client, enumerating the matters to which the practice has given substantive attention, and closing with an express limitation on the scope of the response. On this row it is an opinion artefact (a labelled addressee block naming a body distinct from the client, plus a scope limitation stated in the document's own words); on `finance` it is audit evidence attached to an accounting period's financial statements. Both readings are true of the one file and neither displaces the other, so this is coactivation and not a mutex. `finance` is a safety domain and its protection runs before any placement decision here."
+    }
   ],
   "falls_through_to": [
     "Protected Records",

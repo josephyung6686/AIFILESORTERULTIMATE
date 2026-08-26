@@ -255,7 +255,7 @@
         "sensitivity_status"
       ],
       "must_not_conclude": [
-        "that the members' own identities are replaced. A motion inside the appendix is still `law_practice.motions-and-briefs`' artefact, a deposition extract still `law_practice.depositions-testimony`', an exhibit still `law_practice.evidence-exhibits`'. THIS ROW OWNS THE COMPILATION AND ITS INDEX, NEVER THE MEMBERS",
+        "that the members' own identities are replaced. A motion inside the appendix is still `law_practice.motions-and-briefs`' artefact, a deposition extract still `law_practice.depositions`', an exhibit still `law_practice.evidence-exhibits`'. THIS ROW OWNS THE COMPILATION AND ITS INDEX, NEVER THE MEMBERS",
         "that a trial-file document sharing the matter reference is a member. Membership comes from the INDEX; the shared reference is exactly the anchor that misfires here",
         "that continuous pagination proves an appeal - a discovery production is stamped the same way, and the index-to-range mapping plus the certification page is what separates them",
         "any fact about a person named inside a member document; a compiled record is a multi-subject document and is bulk-sensitive as a whole",
@@ -515,15 +515,48 @@
     }
   ],
   "collides_with": [
-    "law_practice.orders-and-judgments",
-    "law_practice.motions-and-briefs",
-    "law_practice.hearing-transcripts",
-    "law_practice.evidence-exhibits",
-    "legal.personal-legal-matters"
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: one PDF of the DECISION UNDER APPEAL - a first-instance order or judgment with a tribunal caption, ONE case number, numbered operative paragraphs and a seal or hand-down line - which is simultaneously a bound member of the compiled appendix and the instrument that governs the proceeding that produced it. Both rows want the same bytes and the catalogue already records that they do. DISCRIMINATOR, read off the item's OWN FACE and nothing around it: one proceeding identifier, no on-appeal-from line and no slot directing another court means the NEIGHBOUR's, and it does not stop being the neighbour's when a copy is bound in - appendix membership lives on the COMPILATION'S INDEX, never on the member. THIS ROW owns only the artefact whose own face carries the two-tier pair PLUS a direction addressed to a lower tribunal: the appellate disposition, mandate, remittal or certificate of the result. Item-by-item firewall the engine needs: on a first-instance order stamped with a record page number, the operative paragraphs and the single caption count wholly for the neighbour and the record pagination counts wholly for this row; neither token crosses, and the overprint never re-tiers the document.",
+      "design_cite": "§6.9: 'The user’s frozen tree should therefore include a policy for shared material'",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.motions-and-briefs",
+      "signal": "SAME FIXTURE BOTH SIDES: one written submission carrying a table of contents, a separate TABLE OF AUTHORITIES with page back-references, a CERTIFICATE OF COMPLIANCE stating a length, a caption with a case identifier and a counsel signature block. That exact combination is the neighbour's own headline deterministic signal - a table-of-authorities heading together with a captioned case identifier, and a certificate-of-compliance or word-count block co-occurring with a case identifier - and it is equally satisfied by an appellant's brief, so the brief-shaped grammar discriminates NOTHING and a bare edge here records only that both rows own briefs. DISCRIMINATOR: two slots that can exist only where a decision has already been made - a labelled STANDARD OF REVIEW section, and a heading zone carrying the two-tier identifier pair with an explicit on-appeal-from line. A first-instance application asks a court to decide something not yet decided and carries a prayer for relief, a moving party and a proposed order; this row's submission attacks a decision and states grounds AGAINST passages of it. THE HARD HALF, stated rather than smoothed: an appellate STAY, EXTENSION OF TIME or EXPEDITION application is a motion in every structural respect and an appellate artefact in tier, and this row claims it. The tier pair decides that case - never the word motion, never the presence of a prayer, and never which row's work_types list happens to name it.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.hearing-transcripts",
+      "signal": "SAME FIXTURE BOTH SIDES: one page-and-line numbered transcript whose cover names a court, a case identifier, a sitting date and a day marker, with a transcriber's or reporter's certificate. It competes TWICE: (a) the ORAL-ARGUMENT transcript of the appellate hearing is a hearing transcript whose sitting court merely happens to be the appellate one, and (b) a first-instance day's transcript is reproduced and re-paginated inside the record on appeal. DISCRIMINATOR: this row never owns a transcript on a transcript's own evidence - not even its own hearing's. Cover-plus-certificate-plus-page-and-line numbering is the NEIGHBOUR's structure and it owns every verbatim record in the corpus, at either tier. THIS ROW owns only the COMPILATION APPARATUS around one: the transcript ORDER and RECORD DESIGNATION form - a two-column designated / counter-designated table pairing the proceeding below with specific hearing dates or portions, a reporter or transcription-provider slot and a payment or certification line - and the record index entry mapping a transcript extract to a page range in the record's own continuous pagination. A designation NAMES hearing dates and contains no testimony; it is an instruction to compile, not a record. Firewall: if the item is what was said, the neighbour takes it whole; if it is the instruction to compile one or the index over one, this row takes it whole.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "SAME FIXTURE BOTH SIDES: one document carrying TWO overprinted numbering layers on top of its own original pagination - an exhibit designator applied when it was tendered, and a continuous record or appendix page number applied when it was compiled - sitting beside a table that closes over a numbering namespace. The two rows have almost the same two-leg shape (a token-bearing artefact plus an enumerating table), which is precisely why a bare edge is useless here. DISCRIMINATOR: WHICH namespace the table closes over, and what its columns are FOR. The NEIGHBOUR's exhibit schedule enumerates DESIGNATORS and carries a producing or offering party column and commonly an objection or offered / admitted column - it is a table about TENDERING, and its rows are about who put the item before a decision-maker. THIS ROW's index maps MEMBERS TO PAGE RANGES in one continuous pagination, accompanied by a volume marker within a declared total and a designation-or-certification page naming the compiler and an as-of date - it is a table about COMPILATION, and its rows are about where the item sits in a frozen set. Item-by-item firewall: the exhibit designator counts wholly for the neighbour even when the page bearing it is stamped JA-1041, and the record page range counts wholly for this row even when the member underneath is Exhibit 14. Neither row may read the other's token as its own second leg.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: one notice of appeal, appellant's notice or appellate submission in a proceeding the holder is personally a party to - the same caption, the same on-appeal-from line, the same TWO-TIER PROCEEDING PAIR, the same numbered grounds, the same deadline pressure. This row's headline signal DOES NOT DISCRIMINATE HERE, and conceding that is the whole value of the edge: a litigant in person produces an artefact carrying every deterministic signal this row lists, and the tier pair fires identically on it. DISCRIMINATOR is the SIDE, and it is supplied by the `law_practice` schema's precondition rather than by anything on the appellate face - an artefact whose own labelled slots separate a practitioner or firm role from a client role, plus a matter reference ALLOCATED BY THE HOLDER'S OWN FIRM and repeated across two or more artefacts. The neighbour's own selector is the mirror image: direct holder-role evidence inside the same file - the holder named as a party, the document addressed or served to the holder, or the holder's own completed signature block. The error is ASYMMETRIC and the asymmetry is the routing rule: this row over-firing writes practitioner apparatus and a client role onto a person's own dispute, so wherever the side cannot be cited the neighbour's safety-only protection runs and this row abstains.",
+      "design_cite": null,
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [
-    "legal",
-    "finance"
+    {
+      "domain": "legal",
+      "signal": "CO-ACTIVATION ON DISJOINT EVIDENCE, checkable item by item. NAMED FIXTURE: one appellate judgment, sealed order or filed submission inside a matter. It carries `legal`'s own deterministic structure - a tribunal caption plus numbered operative paragraphs, or a bound party pair with an execution block - while THIS ROW activates on the two-tier identifier pair, the record-compilation apparatus and the schema's practitioner / client role precondition. FIREWALL: the caption and the operative paragraphs are `legal`'s evidence and are explicitly struck as never-alone on this row, so they are never double-counted here; the tier pair, the record index, the designation page and the sealed-and-redacted version caption are this row's and supply `legal` nothing. Order of operations is not negotiable whichever side wins placement - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "CO-ACTIVATION ON DISJOINT EVIDENCE, on one NAMED FIXTURE: the appeal costs schedule (`Appeal costs schedule - Hartley v Nash.xlsx` in this row's file_examples). Its phase / fee-earner-grade / hours / rate / disbursement / VAT columns sit under a header carrying BOTH proceeding identifiers and a statement-of-truth line, and that header and that statement are THIS ROW's evidence. `finance` activates on structure this row claims none of: an institution-and-account header, or an issuer-and-billed-to block with an invoice number. An issued bill IS finance's on finance's own evidence and this row does not contest it. FIREWALL: one money figure, one period label and one party name must never count for both sides - the proceeding-identifier header counts only here, the account or issuer header counts only there, and the presence of money is evidence for neither. Provenance: inference.",
+      "provenance": "inference"
+    }
   ],
   "falls_through_to": [
     "Protected Records",

@@ -141,3 +141,33 @@ Nothing was proposed and nothing was minted. `law_practice` declares no field ro
 - At least one `never_alone` is true of a tempting false file: the counsel-block entry is tripped by `Pleadings - Smith v Jones - specimen from practitioner text.pdf`.
 - No thresholds, no counts, no handling classes, no field keys minted.
 - Files written: exactly `planning/domains/nodes/law_practice.pleadings.json` and this memo. No roster, canonical-fields, `check.py`, `src/`, SPEC or neighbour file was touched.
+
+---
+
+## R1b — `collides_with` signal migration
+
+**What changed.** All seven `collides_with` entries were bare id strings; each is now `{domain, signal, provenance}`. The single `also_holds_with` entry (`legal`) was likewise a bare string and is now an object. No neighbour was added or removed — every id on the list survived the exercise, and none of the seven turned out to be a false edge. Nothing else in the JSON was touched.
+
+**Why nothing was deleted.** The refusal argument makes this row's collisions *sharper*, not weaker. A refused row still has to say where each contested item goes, and every one of the seven pairs does compete for a nameable fixture:
+
+| neighbour | the one fixture both sides would claim | what decides it |
+|---|---|---|
+| `legal` | `Complaint - Hartley v Nash - CONFORMED.pdf` | the caption-plus-matter-identifier structure is `legal`'s own activation signal, read off the document's face; the practitioner/client slot pair that would be needed here is absent |
+| `legal.personal-legal-matters` | `Divorce Petition - my own - filed copy.pdf` | which slot the holder occupies — party vs counsel |
+| `legal.practice-matter-file` | the same conformed complaint inside a practitioner file | an explicit representation link (holder or holder's firm named as representative, joined to an engagement record) vs genre alone |
+| `law_practice.court-filing-record` | the same PDF, and the e-filing screenshot | layer and issuer: a stamp/envelope/service slot asserted by a non-holder, non-client authority is a transmission event, not the document |
+| `law_practice.precedent-bank` | `Claim Form N1 - blank - firm precedent v3.docx` | absence *by design* (placeholder party slots, empty statement of truth, template version marker, no case number) vs a live case identifier plus a filing stamp |
+| `law_practice.motions-and-briefs` | a captioned, numbered-paragraph, counsel-signed filing in the same matter | whether the operative slot asks for relief short of the final outcome |
+| `law_practice.appeals` | an amended/responsive statement of case in a matter that has gone up | the two-tier proceeding-identifier pair, plus the independently paginated record compilation |
+
+**No `design_cite` was added.** `design_cite` is optional and every existing quotation in this row was grep-verified against `planning/00-database-agent-product-design.md`. None of the seven discriminators is stated as a verbatim span in `00` — the discriminators are structural readings of the neighbours' own `recognition.deterministic`, so citing `00` for them would be a fabricated attribution. The `law_practice.precedent-bank` discriminator is stated almost exactly at `planning/domains/07-law-legal-practice.md:456`, but `07` is not the design document `design_cite` points at, so it is paraphrased in the signal and cited here instead.
+
+## R1c items raised by this migration
+
+**R1c-A — kind mismatch on two edges, and this row may not fix it.** `CONNECTION.md` line 241 restricts `collides_with` to *schema ↔ schema, or template ↔ template (same kind only)*, and line 242 restricts `also_holds_with` to *schema ↔ schema only*. This row is `kind: template`, and `legal` is `kind: schema` — so the `legal` entry is malformed on **both** lists, whatever its signal says. It was kept rather than deleted because the underlying confusion is real and the fixture is named; deleting it would lose the finding. The sibling `law_practice.appeals` shows the shape the contract wants: its `collides_with` lists only templates, reaching `legal` through `legal.personal-legal-matters`. R1c should decide between (a) re-pointing this row's `legal` collision at `legal.personal-legal-matters` and `legal.practice-matter-file`, which are already listed and already carry the same fixtures, and deleting the schema-level entry; (b) lifting the schema-level edge to the `law_practice` ↔ `legal` schema pair, where both `collides_with` and `also_holds_with` would be well-typed; or (c) relaxing the kind rule. Option (b) is this row's recommendation for the `also_holds_with` edge specifically, since the co-activation it describes is genuinely a schema-level fact about `law_practice` and `legal`, not a fact about this refused id.
+
+**R1c-B — reciprocity is owed by six neighbours and none of it may be written here.** `collides_with` is symmetric and reciprocity becomes enforced post-migration (`CONNECTION.md` line 241, and the audit note at line 494). Of the seven, only `law_practice.court-filing-record` is known to list this row back. `law_practice.appeals` does **not** list `law_practice.pleadings` even though its own `collides_with` includes the sibling proceeding rows. R1c should reciprocate — or, if this refusal is adopted, drop the pair rather than reciprocate it, which is R1c-C.
+
+**R1c-C — the refusal makes six of these edges provisional.** If `law_practice.pleadings` is accepted as refused, a collision edge *to* a refused id is an edge to something that never activates. The signals above are still worth keeping, because each one records where the contested fixture actually goes — but R1c should decide whether they survive as edges on this id or are re-homed onto the receiving rows (most naturally `legal.practice-matter-file` and `law_practice.court-filing-record`). This is the same dead-deferral problem already recorded in `open_question` item (2), now generalised: it applies to all six, not just to `court-filing-record`.
+
+**R1c-D — `law_practice.precedent-bank` and `law_practice.motions-and-briefs` have no node file yet.** Both are roster rows (`ROSTER.md:636` and `ROSTER.md:619`), so the edges are legal, but the signals above were written against `planning/domains/07-law-legal-practice.md` rather than against an authored neighbour node. When those rows are authored, R1c should re-check that the discriminators here match what the rows actually claim — particularly `precedent-bank`, whose whole discriminator is the inverse-recognition pattern this row's fourth file example already carries.

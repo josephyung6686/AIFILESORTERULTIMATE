@@ -327,16 +327,48 @@
     }
   ],
   "collides_with": [
-    "legal",
-    "legal.personal-legal-matters",
-    "legal.practice-matter-file",
-    "law_practice.court-filing-record",
-    "law_practice.precedent-bank",
-    "law_practice.motions-and-briefs",
-    "law_practice.appeals"
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Complaint - Hartley v Nash - CONFORMED.pdf`, whose page one carries a court-name-and-division caption, a party-versus-party line, a case-number slot, numbered allegations and a verification line. That caption-plus-matter-identifier structure IS `legal`'s own proceeding activation signal, read off the document's own face, so the item counts toward `legal` - and, `legal` being one of 00's four safety domains, counts there before any placement decision. It could only count toward this row if the same file also carried the `law_practice` default's second leg, an artefact whose own labelled slots separate a practitioner-or-firm role from a client role; the counsel signature block is not that leg, because a firm or counsel name is a role name and role names are never-alone. Caption, party pair, numbered paragraphs and prayer for relief therefore discriminate nothing in this row's favour: they are the neighbour's evidence in every instance.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Divorce Petition - my own - filed copy.pdf` - a filed pleading with a court caption, petitioner and respondent slots, numbered grounds, a signed statement of truth and a registry stamp, which is exactly the surface this row would have claimed. The discriminator is WHICH SLOT THE HOLDER OCCUPIES: here the petitioner name matches the holder's own name on the corpus's identity and finance material, and there is no firm letterhead, no matter reference and no engagement record anywhere in the corpus, so the holder is a PARTY and the item counts toward `legal.personal-legal-matters`. The item could count toward a practitioner-side row only on the reverse pattern - the holder named in a counsel or fee-earner slot and an exact matter reference recurring across artefacts. The court vocabulary, the signed statement of truth and the registry stamp are common to both sides and decide neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "SAME FIXTURE BOTH SIDES: the conformed complaint of `Complaint - Hartley v Nash - CONFORMED.pdf` sitting inside a practitioner's file alongside `Amended Particulars of Claim - 41127-0006 - v4 tracked.docx`. The neighbour takes it only on an explicit REPRESENTATION LINK - a counsel block that names the holder or the holder's firm as representative for the captioned proceeding, joined to an independently evidenced engagement or matter-opening record - and then holds it as one shallow protected packet member without copying client, party or matter onto it. This row would take it on the document's GENRE alone (a document-type word plus a caption), which is not a representation link: the neighbour's own reading is that a public pleading downloaded for reading carries the identical caption and filing structure. So a representation link sends the item to `legal.practice-matter-file`; genre alone sends it to `legal` and Protected Records, never here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.court-filing-record",
+      "signal": "SAME FIXTURE BOTH SIDES: one PDF, `Complaint - Hartley v Nash - CONFORMED.pdf`, carrying TWO structures on the same page - the document body (caption, numbered allegations, prayer for relief, counsel block) and, layered over it, a registry stamp band bearing a received moment and an entry identifier. `Screenshot 2026-06-11 at 09.14.02 - e-filing portal - submitted.png` is the same competition with the body absent. The discriminator is the LAYER AND THE ISSUER: a moment-and-destination asserted in a labelled slot by an authority who is neither the holder nor the client - stamp overlay, envelope number, submitted status, proof of service - is a transmission event and counts toward `law_practice.court-filing-record`; the underlying body is not that row's evidence and, per this row's refusal, is not evidence for a pleadings row either. The stamp must therefore never be double-counted as pleading evidence, which is the specific error this edge exists to block.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "SAME FIXTURE BOTH SIDES: `Claim Form N1 - blank - firm precedent v3.docx` - a pleading-shaped document with the full caption layout, numbered-paragraph skeleton and statement-of-truth block that this row's surface signals would fire on. The discriminator is ABSENCE BY DESIGN versus a live proceeding: bracketed placeholder party slots, an empty statement of truth and signature line, drafting notes and optional-clause alternatives in coloured text, a firm template version marker, and no case number anywhere - that inverse-recognition pattern counts toward `law_practice.precedent-bank`. The opposite pattern - a populated party pair, a live case identifier and a filing or conformed stamp - counts toward the proceeding rows (`legal`, `legal.practice-matter-file`, `law_practice.court-filing-record`), never toward a pleadings row. The pleading-shaped layout itself is present on both sides and discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.motions-and-briefs",
+      "signal": "SAME FIXTURE BOTH SIDES: a court-captioned, numbered-paragraph, counsel-signed document filed in `Hartley v Nash` and sitting in the same folder as the amended statement of case - the caption, the party pair, the paragraph numbering and the signature block are identical on both. The discriminator is WHAT THE OPERATIVE SLOT ASKS FOR: a labelled orders-sought or relief-sought slot requesting the tribunal to decide something SHORT OF the final outcome, supported by an argument section with cited authorities, counts toward `law_practice.motions-and-briefs`; a document whose numbered paragraphs assert the parties' own allegations or responses and close on a prayer for final relief is a statement of case. Because this row is refused, that second pattern counts toward `legal` on the caption's own evidence, not here - so the shared caption may be read as interlocutory-application evidence only when the interlocutory request slot is present, and otherwise supports neither row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.appeals",
+      "signal": "SAME FIXTURE BOTH SIDES: an amended or responsive statement of case bearing a tribunal caption in a matter that has gone up - the same caption block, party pair and numbered paragraphs this row would have claimed. The discriminator is the TWO-TIER PROCEEDING-IDENTIFIER PAIR: one heading zone carrying an appellate docket number in caption position AND a separately labelled line naming the court, case number and dated decision the matter comes FROM, optionally joined to a record or appendix compilation with continuous independent pagination overprinted across members that already carry their own page numbers. That pair counts toward `law_practice.appeals`. A single caption with ONE case number and a bound party pair is not appeals' evidence - and per this row's refusal it is not a pleadings row's either; it is `legal`'s proceeding structure. A document-type word on page one ('Amended Statement of Case') decides neither side.",
+      "provenance": "inference"
+    }
   ],
   "also_holds_with": [
-    "legal"
+    {
+      "domain": "legal",
+      "signal": "DISJOINT EVIDENCE ON ONE FIXTURE: on `Amended Particulars of Claim - 41127-0006 - v4 tracked.docx`, `legal` is held by the document's own face - the tribunal caption, the bound party pair and the statement-of-truth block - while the `law_practice` side is held by items that are not on that face at all: the exact matter reference recurring across two or more artefacts and a separate artefact whose labelled slots separate a practitioner-or-firm role from a client role (the matter-opening or engagement record). Because the two sides read different items, both may be active on the file at once, and `legal`'s safety protection still runs first. This does not license copying the caption onto the law_practice side or the matter reference onto the legal side; a file carrying only one of the two item sets activates only that side.",
+      "provenance": "inference"
+    }
   ],
   "falls_through_to": [
     "Protected Records",

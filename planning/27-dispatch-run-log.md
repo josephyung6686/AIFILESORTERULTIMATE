@@ -1130,3 +1130,49 @@ with every staged JSON parse-checked first.
 4. **R1c** for the judgement repairs (one-way edges, template-borne `also_holds_with`, cross-kind
    collisions, the 32 empty signals, the creative-trio and household-property overlaps).
 5. Re-run both gates **and** the two auditors on the repaired corpus, then the review panel + index.
+
+## Edge repair executed — 2026-08-26 (both halves)
+
+### 1. Mechanical pass — done, verified (`20be968`)
+
+`fix_edges.py --apply`: **469 renames across 78 rows** — `why`→`signal` 427, `domain_id`→`domain` 25,
+`id`→`domain` 17. `KEY_DRIFT_signal` **427 → 0**. Every node JSON still parses.
+
+### 2. The 32 empty signals — re-argued, not renamed (5 agents, one per row)
+
+**Root cause:** those five rows wrote `collides_with` as **bare id strings**
+(`["hr.workforce-analytics", …]`) instead of `{domain, signal}` objects. The row recorded *that* it
+collided but never *how to tell the two apart* — the only part P6 activation step 3 and P8's
+validator can act on. No rename could recover that; it had to be researched.
+
+Result: **38 edges across 5 rows** now carry a named-fixture-both-sides signal.
+`collides_signal_missing` **32 → 0**; `KEY_DRIFT_target` **43 → 4** (the remainder is
+`resource_operations`, CODEX's row, deliberately untouched).
+
+Row by row:
+
+| Row | Edges fixed | Notable |
+|---|---:|---|
+| `hr.dei-program` | 7 | **Deleted `business_operations.procurement-sourcing`** as a non-collision — its own memo said "toward this row: nothing", so no evidence item is ever contested. A wrong edge removed beats a signal invented to keep it. |
+| `law_practice.opinions-advice` | 8 | Agent twice moved to delete `conflicts-check` and **twice corrected itself** — the memo names the shared fixture (`Legal opinion - conflict of interest - Hartley board.docx`) and routes it here. Kept, with the lexical collision argued. |
+| `law_practice.pleadings` | 8 | All seven survived scrutiny as real evidence-item mutexes (e.g. the conformed Hartley v Nash complaint across legal / practice-matter-file / court-filing-record). |
+| `law_practice.court-filing-record` | 8 | No design_cite added — the agent found no grep-verifiable `00` span actually about any pair, and declined to attach a decorative one. |
+| `law_practice.appeals` | 7 | Was also a memo-less partial: JSON verified as an untrusted draft, **a bad neighbour id repaired** (`law_practice.depositions-testimony` → `law_practice.depositions`), and the missing J-DEPTH memo written. |
+
+JSON-only partials: **8 → 7** (`law_practice.appeals` completed).
+
+### New R1c items surfaced by these five (recorded in their memos, not acted on)
+
+- `also_holds_with: "finance"` / `"legal"` on template rows — template→schema kind mismatches under
+  CONNECTION §5's schemas-only rule (`hr.dei-program`, `opinions-advice`, `pleadings`,
+  `court-filing-record`).
+- `law_practice.matter-correspondence` is `refuse_node: true`, so six edges point at an id that can
+  never activate or reciprocate.
+- `precedent-bank`, `motions-and-briefs`, `orders-and-judgments` are on the roster but unwritten, so
+  their signals were argued against the legacy slice `07-law-legal-practice.md` and must be
+  re-checked when those rows land.
+
+### Gate now: 1,979 → **1,438**
+
+Remaining, all judgement work for R1c: 904 one-way `collides_with`, 245 one-way `also_holds_with`,
+196 template-borne `also_holds_with`, 88 cross-kind collisions, 4 CODEX-owned key drifts.
