@@ -84,7 +84,6 @@ def _request(call_site: str, eligibility_reason: str, *,
         model_call_request=_model_call_request(),
         plan_version=plan_version,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
 
 
@@ -100,7 +99,6 @@ def _unchecked_request(*, call_site: str, eligibility_reason: str,
     object.__setattr__(request, "model_call_request", _model_call_request())
     object.__setattr__(request, "plan_version", None)
     object.__setattr__(request, "evidence_snapshot_id", "snap-1")
-    object.__setattr__(request, "budget_context", "scan-1")
     return request
 
 

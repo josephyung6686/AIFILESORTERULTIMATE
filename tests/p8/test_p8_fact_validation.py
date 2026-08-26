@@ -1207,3 +1207,145 @@ def test_applying_the_consequence_is_an_explicit_decision(p6_conn, subject_file)
     parameters = inspect.signature(validate_fact_proposal).parameters
     assert parameters["apply_consequence"].kind is inspect.Parameter.KEYWORD_ONLY
     assert parameters["apply_consequence"].default is inspect.Parameter.empty
+
+
+# --- one verdict record per claim, at Site A too ---------------------------------
+
+
+def _claims_bytes(*claims):
+    return json.dumps({"claims": list(claims)}, separators=(",", ":")).encode("utf-8")
+
+
+def _claim(field, value, key, span):
+    return {
+        "claim_ref": field,
+        "payload": {"field": field, "value": value},
+        "citations": [{
+            "evidence_ref": key, "cited_span": span,
+            "why_it_supports": f"names the {field}",
+        }],
+    }
+
+
+def test_site_a_validates_every_claim_and_not_only_the_first(
+    p6_conn, two_observations,
+):
+    """SPEC: *"One verdict record per claim."* Site A required exactly one and
+    discarded anything else as schema-invalid -- a well-formed two-field response
+    became one REJECT, `apply_verdict` was never called, and P6 recorded neither a
+    fact nor an `unresolved` row for either field. The model's whole answer
+    vanished, and the one-claim rule was P8's, not the injected schema's.
+    """
+    file_id, content_hash, released, withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released), _item(withheld)),
+        released_evidence=(
+            _release(released, "BUSIB 4300"),
+            _release(withheld, "Prof. Jane Roe"),
+        ),
+        allowed=tuple(request.allowlist),
+        subject_ref=file_id,
+    )
+    result = _dispatch_site_a(
+        p6_conn, dossier,
+        _claims_bytes(
+            _claim("subject", "BUSIB 4300", released, "BUSIB 4300"),
+            _claim("instructor", "Prof. Jane Roe", withheld, "Prof. Jane Roe"),
+        ),
+        request,
+    )
+    assert not isinstance(result, ValidationUnavailable), result
+    verdicts, report = result
+    assert [v.claim_ref for v in verdicts] == ["subject", "instructor"]
+    assert [v.outcome for v in verdicts] == [ACCEPT_DIRECT, ACCEPT_DIRECT]
+    assert len({v.verdict_id for v in verdicts}) == 2
+    assert sorted(row["field_key"] for row in facts_for_file(
+        p6_conn, file_id, content_hash)) == ["instructor", "subject"]
+    assert report.claims_total == 2
+
+
+def test_site_a_records_each_claim_of_a_mixed_response(p6_conn, two_observations):
+    """One accepted, one rejected. Both reach P6, with their own reasons."""
+    from llm_harness.vocabulary import CITATION_SPAN_MISMATCH
+
+    file_id, content_hash, released, withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released), _item(withheld)),
+        released_evidence=(
+            _release(released, "BUSIB 4300"),
+            _release(withheld, "Prof. Jane Roe"),
+        ),
+        allowed=tuple(request.allowlist),
+        subject_ref=file_id,
+    )
+    verdicts, _report = _dispatch_site_a(
+        p6_conn, dossier,
+        _claims_bytes(
+            _claim("subject", "BUSIB 4300", released, "BUSIB 4300"),
+            _claim("instructor", "Dr Nobody", withheld, "Dr Nobody"),
+        ),
+        request,
+    )
+    assert [v.outcome for v in verdicts] == [ACCEPT_DIRECT, REJECT]
+    assert CITATION_SPAN_MISMATCH in verdicts[1].reasons
+    assert [row["field_key"] for row in facts_for_file(
+        p6_conn, file_id, content_hash)] == ["subject"]
+    assert _reasons(p6_conn, request, "instructor") == [
+        "citation_absent_from_evidence"]
+
+
+def test_two_claims_about_one_field_are_schema_invalid(p6_conn, two_observations):
+    """`claim_ref` is what tells two verdicts apart, and Site A's is the field key.
+    Two claims about one field are indistinguishable, and P8 does not choose which
+    of the model's two answers it meant."""
+    from llm_harness.vocabulary import SCHEMA_INVALID
+
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+        allowed=tuple(request.allowlist),
+        subject_ref=file_id,
+    )
+    verdicts, _report = _dispatch_site_a(
+        p6_conn, dossier,
+        _claims_bytes(
+            _claim("subject", "BUSIB 4300", released, "BUSIB 4300"),
+            _claim("subject", "ECON 1105", released, "BUSIB 4300"),
+        ),
+        request,
+    )
+    assert len(verdicts) == 1
+    assert SCHEMA_INVALID in verdicts[0].reasons
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_a_response_with_no_claims_at_all_is_schema_invalid(p6_conn, two_observations):
+    from llm_harness.vocabulary import SCHEMA_INVALID
+
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+        allowed=tuple(request.allowlist), subject_ref=file_id,
+    )
+    verdicts, _report = _dispatch_site_a(
+        p6_conn, dossier, _claims_bytes(), request)
+    assert len(verdicts) == 1
+    assert SCHEMA_INVALID in verdicts[0].reasons

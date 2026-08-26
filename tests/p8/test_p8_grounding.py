@@ -83,7 +83,6 @@ def _request() -> DossierRequest:
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
 
 
@@ -113,7 +112,7 @@ def _zero_counters(report: GroundingReport) -> None:
 
 def test_report_for_refusal_fills_spec_fields_and_zero_counts():
     request = _request()
-    refusal = Refusal(denied=_denied())
+    refusal = Refusal(denied=_denied(), validator_version="P8/0.1.0", policy_version="policy-1")
     report = report_for_refusal(
         request, refusal, validator_version=COMPONENT_VERSION,
     )
@@ -132,7 +131,7 @@ def test_report_for_refusal_fills_spec_fields_and_zero_counts():
 
 def test_gate_denied_gets_zero_count_refusal_report():
     report = report_for_refusal(
-        _request(), Refusal(denied=_denied()), validator_version=COMPONENT_VERSION,
+        _request(), Refusal(denied=_denied(), validator_version="P8/0.1.0", policy_version="policy-1"), validator_version=COMPONENT_VERSION,
     )
     assert report.reasons_histogram[PRIVACY_GATE_REFUSED] == 1
     assert report.release_audit_id is None
@@ -198,6 +197,8 @@ def test_issued_call_failure_has_real_audit_id_and_empty_histogram():
         release_id="rel-1",
         audit_id=17,
         explanation="client raised",
+        validator_version="P8/0.1.0",
+        policy_version="policy-1",
     )
     report = report_for_call_failure(
         _request(), failed, validator_version=COMPONENT_VERSION,

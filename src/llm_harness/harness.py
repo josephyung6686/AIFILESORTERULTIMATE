@@ -45,6 +45,7 @@ from llm_harness.store import (
 )
 from llm_harness.transport import ModelClient, ModelResponse, issue
 from llm_harness.validation import (
+    report_for_refusal,
     DOSSIER_BUILDER,
     report_for_call_failure,
     report_for_pre_call_terminal,
@@ -205,11 +206,18 @@ def _persist_refusal(
     request: DossierRequest,
     denied: Denied, *,
     observed_at: str,
+    policy_version: str,
 ) -> Refusal:
-    refusal = Refusal(denied=denied)
-    report = report_for_pre_call_terminal(
-        request, refusal, validator_version=COMPONENT_VERSION,
+    refusal = Refusal(
+        denied=denied,
+        validator_version=COMPONENT_VERSION,
+        policy_version=policy_version,
     )
+    # One entry point for the refusal report. `report_for_refusal` existed with no
+    # caller in `src/` while this built the same report by hand, so the two paths
+    # could drift apart without a test noticing.
+    report = report_for_refusal(
+        request, refusal, validator_version=COMPONENT_VERSION)
     record_refusal(conn, refusal, report, observed_at=observed_at)
     return refusal
 
@@ -429,6 +437,7 @@ def run_call(
             release_reservation(conn, reservation)
             return _persist_refusal(
                 conn, unit, decision, observed_at=observed_at(),
+                policy_version=deps.policy_version,
             )
         if not isinstance(decision, Released):
             release_reservation(conn, reservation)

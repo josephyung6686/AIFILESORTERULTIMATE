@@ -182,7 +182,6 @@ class DossierRequest:
     model_call_request: ModelCallRequest
     plan_version: str | None
     evidence_snapshot_id: str | None
-    budget_context: str | None
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -459,14 +458,26 @@ class GroundingReport:
 
 @dataclass(frozen=True, slots=True)
 class Refusal:
-    """Gate-only. Constructed from P7 `Denied`. Not `NeedsConsent`."""
+    """Gate-only. Constructed from P7 `Denied`. Not `NeedsConsent`.
+
+    Carries the two P8 versions because `emit_stage_output` serialises this record
+    verbatim into P2's opaque payload: without them, an `abstained` row is a
+    measurement nobody can attribute to a validator build or a policy.
+    """
 
     denied: Denied
+    validator_version: str
+    policy_version: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.denied, Denied):
             raise MalformedRecord(
                 "Refusal is the Denied path only; construct from privacy.release.Denied"
+            )
+        if not self.validator_version or not self.policy_version:
+            raise MalformedRecord(
+                "a refusal measurement names the validator and policy versions it "
+                "was produced under"
             )
 
     @property
@@ -497,15 +508,25 @@ class PreCallAbstention:
 
 @dataclass(frozen=True, slots=True)
 class CallFailed:
+    """The bytes failed. Carries the two P8 versions for the same reason `Refusal`
+    does: `emit_stage_output` serialises it verbatim into P2's `error` row."""
+
     request_identity: str
     release_id: str
     audit_id: int | None
     explanation: str
+    validator_version: str
+    policy_version: str
 
     def __post_init__(self) -> None:
         if not self.request_identity or not self.release_id or not self.explanation:
             raise MalformedRecord(
                 "CallFailed requires request_identity, release_id, and explanation"
+            )
+        if not self.validator_version or not self.policy_version:
+            raise MalformedRecord(
+                "a failure measurement names the validator and policy versions it "
+                "was produced under"
             )
 
 

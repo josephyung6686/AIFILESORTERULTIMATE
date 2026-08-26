@@ -154,6 +154,8 @@ def test_call_failed_is_error(stage_conn):
     failed = CallFailed(
         request_identity="req-1", release_id="rel-1",
         audit_id=17, explanation="transport raised",
+        validator_version="P8/0.1.0",
+        policy_version="policy-1",
     )
     _, row, *_ = _emit(stage_conn, failed)
     assert row["outcome"] == "error"
@@ -316,3 +318,20 @@ def test_emit_calls_live_record_stage_output_without_produced_at():
 def test_produced_at_is_stamped_by_p2(stage_conn):
     _, row, *_ = _emit(stage_conn, make_verdict())
     assert row["produced_at"]
+
+
+def test_every_p2_payload_carries_the_p8_versions_including_the_terminals():
+    """R1: the P8 versions ride in every opaque payload, *including* refusal and
+    failure measurements. `emit_stage_output` serialises the result dataclass
+    verbatim, so a `Refusal` or `CallFailed` that carries neither produced an
+    `abstained` or `error` P2 row with no validator version and no policy version
+    -- a row nobody can later attribute to a validator build.
+    """
+    import dataclasses
+
+    from llm_harness.records import CallFailed, P8Verdict, Refusal
+
+    for record in (P8Verdict, Refusal, CallFailed):
+        names = {field.name for field in dataclasses.fields(record)}
+        assert "validator_version" in names, record.__name__
+        assert "policy_version" in names, record.__name__

@@ -189,7 +189,6 @@ def test_dossier_request_is_frozen_reference_only():
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
     assert dataclasses.is_dataclass(request)
     assert request.__dataclass_params__.frozen
@@ -203,7 +202,6 @@ def test_dossier_request_is_frozen_reference_only():
         "model_call_request",
         "plan_version",
         "evidence_snapshot_id",
-        "budget_context",
     )
     assert isinstance(request.model_call_request, ModelCallRequest)
     forbidden_content_fields = {
@@ -609,16 +607,19 @@ def test_grounding_report_carries_the_spec_measurement_fields():
 
 def test_refusal_is_gate_only_and_constructed_from_denied():
     denied = _denied()
-    refusal = Refusal(denied=denied)
+    refusal = Refusal(denied=denied, validator_version="P8/0.1.0", policy_version="policy-1")
     assert refusal.__dataclass_params__.frozen
-    assert _field_names(Refusal) == ("denied",)
+    assert _field_names(Refusal) == (
+        "denied", "validator_version", "policy_version",
+    )
     assert refusal.denied is denied
     assert refusal.reason == PRIVACY_GATE_REFUSED
     assert refusal.explanation == denied.explanation
     assert refusal.denial_reason == denied.reason
     assert not isinstance(refusal, NeedsConsent)
     with pytest.raises(MalformedRecord):
-        Refusal(denied="not-a-denied")  # type: ignore[arg-type]
+        Refusal(denied="not-a-denied", validator_version="P8/0.1.0",
+                policy_version="policy-1")  # type: ignore[arg-type]
 
 
 def test_pre_call_abstention_uses_a_pre_call_reason_code():
@@ -644,16 +645,21 @@ def test_call_failed_carries_request_and_release_identity():
         release_id="rel-1",
         audit_id=17,
         explanation="client raised",
+        validator_version="P8/0.1.0",
+        policy_version="policy-1",
     )
     assert failed.__dataclass_params__.frozen
     assert _field_names(CallFailed) == (
         "request_identity", "release_id", "audit_id", "explanation",
+        "validator_version", "policy_version",
     )
     missing_audit = CallFailed(
         request_identity="fingerprint.grouping",
         release_id="rel-1",
         audit_id=None,
         explanation="unknown audit",
+        validator_version="P8/0.1.0",
+        policy_version="policy-1",
     )
     assert missing_audit.audit_id is None
 
@@ -665,12 +671,16 @@ def test_call_result_holds_a_p8_branch_and_not_consent():
     result = CallResult(value=verdict)
     assert result.__dataclass_params__.frozen
     assert _field_names(CallResult) == ("value",)
-    CallResult(value=Refusal(denied=_denied()))
+    CallResult(value=Refusal(
+        denied=_denied(), validator_version="P8/0.1.0",
+        policy_version="policy-1"))
     CallResult(value=PreCallAbstention(
         reason=NOT_ELIGIBLE_FOR_MODEL, call_site=A_FACT, subject_ref="file-1",
     ))
     CallResult(value=CallFailed(
         request_identity="fp", release_id="rel-1", audit_id=None, explanation="x",
+        validator_version="P8/0.1.0",
+        policy_version="policy-1",
     ))
     needs = NeedsConsent(
         consent_request_id="consent-1",
@@ -708,7 +718,6 @@ def test_dossier_request_rejects_a_bare_string_for_evidence_items():
             model_call_request=_model_call_request(),
             plan_version=None,
             evidence_snapshot_id="snap-1",
-            budget_context="scan-1",
         )
 
 
@@ -724,7 +733,6 @@ def test_dossier_request_rejects_bare_ids_in_place_of_builder_metadata():
             model_call_request=_model_call_request(),
             plan_version=None,
             evidence_snapshot_id="snap-1",
-            budget_context="scan-1",
         )
 
 
@@ -739,7 +747,6 @@ def test_dossier_request_with_no_evidence_metadata_is_malformed():
             model_call_request=_model_call_request(),
             plan_version=None,
             evidence_snapshot_id="snap-1",
-            budget_context="scan-1",
         )
 
 
@@ -754,7 +761,6 @@ def test_dossier_request_freezes_evidence_items_against_caller_mutation():
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
     items.append(_evidence_item(evidence_ref="mutated"))
     assert request.evidence_items == (_evidence_item(),)
@@ -777,7 +783,6 @@ def test_dossier_request_requires_plan_version_at_placement():
             model_call_request=_model_call_request(),
             plan_version=None,
             evidence_snapshot_id=None,
-            budget_context=None,
         )
 
 

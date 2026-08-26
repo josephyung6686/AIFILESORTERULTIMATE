@@ -179,7 +179,9 @@ def make_refusal() -> Refusal:
             explanation="no classification is stored for this file",
             remedy_options=(RemedyOption(action="classify", detail="classify first"),),
             evidence_refs=("obs-key-1",),
-        )
+        ),
+        validator_version="P8/0.1.0",
+        policy_version="policy-1",
     )
 
 

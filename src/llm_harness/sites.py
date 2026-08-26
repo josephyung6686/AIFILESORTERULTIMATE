@@ -105,8 +105,18 @@ class SiteDependencies:
             )
 
 
-def _one_claim(response_bytes: bytes) -> Mapping[str, object] | None:
-    """Site A applies one model claim to one P6 proposal, exactly once (§3.6)."""
+def _claims(response_bytes: bytes) -> tuple[Mapping[str, object], ...] | None:
+    """Every claim in the response, in input order.
+
+    SPEC: *"One verdict record per claim."* Site A used to require exactly one and
+    call anything else schema-invalid, so a well-formed two-field response became
+    one REJECT and P6 recorded nothing for either field -- the model's whole answer
+    vanished. The one-claim rule was P8's; the injected `response_schema_bytes` is
+    what decides how many claims are legal, and P8 does not parse it.
+
+    A response with no claims at all is still schema-invalid: there is nothing to
+    judge, and silence is what `unknown` is for.
+    """
     try:
         parsed = json.loads(response_bytes)
     except (ValueError, TypeError, UnicodeDecodeError):
@@ -114,10 +124,11 @@ def _one_claim(response_bytes: bytes) -> Mapping[str, object] | None:
     if not isinstance(parsed, Mapping):
         return None
     claims = parsed.get("claims")
-    if not isinstance(claims, list) or len(claims) != 1:
+    if not isinstance(claims, list) or not claims:
         return None
-    claim = claims[0]
-    return claim if isinstance(claim, Mapping) else None
+    if any(not isinstance(claim, Mapping) for claim in claims):
+        return None
+    return tuple(claims)
 
 
 def _proposal(
@@ -188,27 +199,35 @@ def _fact_site(
             release_audit_id=release_audit_id,
         )
 
-    claim = _one_claim(response_bytes)
-    if claim is None:
+    claims = _claims(response_bytes)
+    if claims is None:
         return finished((schema_invalid_verdict(dossier),))
-    parsed = _proposal(claim)
-    if parsed is None:
+    parsed = [_proposal(claim) for claim in claims]
+    if any(item is None for item in parsed):
         return finished((schema_invalid_verdict(dossier),))
-    proposal, citations = parsed
-    verdict = validate_fact_proposal(
-        conn, bundle.fact_request, proposal,
-        dependencies=bundle.fact_dependencies,
-        model_identifier=model_id,
-        prompt_fingerprint=prompt_fingerprint,
-        policy_version=policy_version,
-        dossier=dossier,
-        citations=citations,
-        evidence_resolver=evidence_resolver,
-        apply_consequence=apply_consequence,
-    )
-    if isinstance(verdict, ValidationUnavailable):
-        return verdict
-    return finished((verdict,))
+    fields = [proposal.field_key for proposal, _citations in parsed]
+    if len(set(fields)) != len(fields):
+        # `claim_ref` is what tells two verdicts apart and Site A's is the field
+        # key, so two claims about one field are indistinguishable. P8 does not
+        # choose which of the model's two answers it meant.
+        return finished((schema_invalid_verdict(dossier),))
+    verdicts = []
+    for proposal, citations in parsed:
+        verdict = validate_fact_proposal(
+            conn, bundle.fact_request, proposal,
+            dependencies=bundle.fact_dependencies,
+            model_identifier=model_id,
+            prompt_fingerprint=prompt_fingerprint,
+            policy_version=policy_version,
+            dossier=dossier,
+            citations=citations,
+            evidence_resolver=evidence_resolver,
+            apply_consequence=apply_consequence,
+        )
+        if isinstance(verdict, ValidationUnavailable):
+            return verdict
+        verdicts.append(verdict)
+    return finished(tuple(verdicts))
 
 
 def _addressed_to_the_response(result, response_bytes: bytes):

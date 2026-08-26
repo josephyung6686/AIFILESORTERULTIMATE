@@ -224,7 +224,6 @@ def _request(*, file_id: str = "file-1", fingerprint: str | None = None,
             file_id=file_id, fingerprint=fingerprint, key=key),
         plan_version=None,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
 
 
@@ -241,7 +240,6 @@ def _shard(subject_ref: str, *, target: str, fingerprint: str | None = None,
             file_id=target, fingerprint=fingerprint, key=key),
         plan_version=None,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
 
 
@@ -576,7 +574,7 @@ def test_needs_consent_is_returned_unchanged_with_no_p8_write(harness_conn):
     )
     assert result is consent
     assert type(result) is NeedsConsent
-    assert result is not Refusal(denied=_denied())
+    assert result is not Refusal(denied=_denied(), validator_version="P8/0.1.0", policy_version="policy-1")
     assert recorder.calls == []
     assert _p8_events(harness_conn) == []
     assert _count(harness_conn, "llm_refusal") == 0
@@ -1190,7 +1188,6 @@ def test_a_cd_request_with_no_evidence_snapshot_spends_nothing(harness_conn):
             fingerprint=prompt_fingerprint(prompt)),
         plan_version="plan-1",
         evidence_snapshot_id=None,
-        budget_context="scan-1",
     )
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
     recorder = Recorder(reply=b'{"claims":[]}')

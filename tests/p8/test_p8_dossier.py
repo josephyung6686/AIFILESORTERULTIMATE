@@ -99,7 +99,6 @@ def _request(**overrides) -> DossierRequest:
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
-        budget_context="scan-1",
     )
     values.update(overrides)
     return DossierRequest(**values)

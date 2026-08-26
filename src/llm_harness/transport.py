@@ -15,7 +15,11 @@ from database_agent.db import transaction
 from database_agent.events import append_event
 from evidence_shape.canonical import canonical_json
 
-from llm_harness.authorship import MODEL_CALL_ISSUED, event_defaults
+from llm_harness.authorship import (
+    COMPONENT_VERSION,
+    MODEL_CALL_ISSUED,
+    event_defaults,
+)
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.records import (
     CallFailed,
@@ -130,6 +134,8 @@ def _failed(released: Released, payload: CallPayload, *,
         release_id=released.release_id,
         audit_id=released.audit_id,
         explanation=explanation,
+        validator_version=COMPONENT_VERSION,
+        policy_version=payload.policy_version,
     )
 
 

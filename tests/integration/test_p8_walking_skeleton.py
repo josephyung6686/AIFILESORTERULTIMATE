@@ -128,7 +128,6 @@ def walk(skeleton_conn, monkeypatch):
         ),
         plan_version=None,
         evidence_snapshot_id="snap-skeleton",
-        budget_context="scan-skeleton",
     )
     digest = hashlib.sha256(CONTENT_HASH.encode()).hexdigest()
     dependencies = CallDependencies(
