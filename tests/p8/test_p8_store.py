@@ -166,7 +166,14 @@ def test_record_verdict_inserts_a_row_and_appends_validation_verdict(
 ):
     events = _capture_events(monkeypatch)
     verdict = make_verdict()
-    returned = store.record_verdict(p8_conn, verdict, observed_at=FIXED_CLOCK)
+    returned = store.record_verdict(
+        p8_conn,
+        verdict,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-canonical",
+        release_audit_id=17,
+        observed_at=FIXED_CLOCK,
+    )
     assert returned == verdict.verdict_id
     row = p8_conn.execute(
         "SELECT * FROM llm_verdict WHERE verdict_id = ?", (verdict.verdict_id,),
@@ -178,18 +185,42 @@ def test_record_verdict_inserts_a_row_and_appends_validation_verdict(
     assert row["validator_version"] == verdict.validator_version
     assert row["policy_version"] == verdict.policy_version
     assert [event["event_type"] for event in events] == ["validation_verdict"]
+    assert events[0]["prompt_fingerprint"] == "fp-canonical"
+    assert json.loads(events[0]["explanation"])["audit_id"] == 17
+
+
+def test_record_verdict_is_atomic_when_append_event_fails(p8_conn, monkeypatch):
+    def boom(conn, **fields):
+        raise RuntimeError("append failed")
+
+    monkeypatch.setattr(store, "append_event", boom)
+    with pytest.raises(RuntimeError, match="append failed"):
+        store.record_verdict(
+            p8_conn,
+            make_verdict(),
+            model_id="fixture-model",
+            prompt_fingerprint="fp-canonical",
+            release_audit_id=17,
+            observed_at=FIXED_CLOCK,
+        )
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_verdict"
+    ).fetchone()["c"] == 0
 
 
 def test_prior_verdict_survives_supersession(p8_conn, monkeypatch):
     events = _capture_events(monkeypatch)
     old = make_verdict(verdict_id="verdict-old")
     new = make_verdict(verdict_id="verdict-new")
-    store.record_verdict(p8_conn, old, observed_at=FIXED_CLOCK)
-    store.record_verdict(p8_conn, new, observed_at=FIXED_CLOCK)
+    store.record_verdict(p8_conn, old, model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
+    store.record_verdict(p8_conn, new, model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
     events.clear()
     store.supersede_verdict(
         p8_conn, old.verdict_id, new.verdict_id,
-        reason="validator revision", observed_at=FIXED_CLOCK,
+        reason="validator revision", model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
+        observed_at=FIXED_CLOCK,
     )
     prior = p8_conn.execute(
         "SELECT * FROM llm_verdict WHERE verdict_id = ?", (old.verdict_id,),
@@ -211,12 +242,15 @@ def test_prior_verdict_survives_supersession(p8_conn, monkeypatch):
 def test_supersede_verdict_rejects_unknown_new_verdict_id(p8_conn, monkeypatch):
     events = _capture_events(monkeypatch)
     old = make_verdict(verdict_id="verdict-old")
-    store.record_verdict(p8_conn, old, observed_at=FIXED_CLOCK)
+    store.record_verdict(p8_conn, old, model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
     events.clear()
     with pytest.raises(KeyError):
         store.supersede_verdict(
             p8_conn, old.verdict_id, "v-does-not-exist",
-            reason="validator revision", observed_at=FIXED_CLOCK,
+            reason="validator revision", model_id="fixture-model",
+            prompt_fingerprint="fp-fixture",
+            release_audit_id=1,
+            observed_at=FIXED_CLOCK,
         )
     prior = p8_conn.execute(
         "SELECT superseded_by FROM llm_verdict WHERE verdict_id = ?",
@@ -260,7 +294,7 @@ def test_update_of_payload_columns_is_refused_and_supersede_columns_stay_writabl
             (b"zzz", raw_id),
         )
     verdict = make_verdict()
-    store.record_verdict(p8_conn, verdict, observed_at=FIXED_CLOCK)
+    store.record_verdict(p8_conn, verdict, model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
     with pytest.raises(sqlite3.IntegrityError):
         p8_conn.execute(
             "UPDATE llm_verdict SET payload = '{}' WHERE verdict_id = ?",
@@ -426,13 +460,19 @@ def test_writer_event_matrix_is_exact_and_has_no_sixth_event(p8_conn, monkeypatc
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
         release_audit_id=17, observed_at=FIXED_CLOCK,
     )
-    store.record_verdict(p8_conn, make_verdict(), observed_at=FIXED_CLOCK)
+    store.record_verdict(p8_conn, make_verdict(), model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
     store.record_verdict(
-        p8_conn, make_verdict(verdict_id="verdict-2"), observed_at=FIXED_CLOCK,
+        p8_conn, make_verdict(verdict_id="verdict-2"), model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
+        observed_at=FIXED_CLOCK,
     )
     store.supersede_verdict(
         p8_conn, "verdict-1", "verdict-2",
-        reason="correction", observed_at=FIXED_CLOCK,
+        reason="correction", model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
+        observed_at=FIXED_CLOCK,
     )
     store.record_grounding_report(
         p8_conn, make_issued_report(), observed_at=FIXED_CLOCK,
@@ -474,19 +514,25 @@ def _seed_one_row(conn, table: str) -> None:
             observed_at=FIXED_CLOCK,
         )
     elif table == "llm_verdict":
-        store.record_verdict(conn, make_verdict(), observed_at=FIXED_CLOCK)
+        store.record_verdict(conn, make_verdict(), model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
     elif table == "llm_grounding_report":
         store.record_grounding_report(
             conn, make_issued_report(), observed_at=FIXED_CLOCK,
         )
     elif table == "llm_verdict_supersession":
-        store.record_verdict(conn, make_verdict(), observed_at=FIXED_CLOCK)
+        store.record_verdict(conn, make_verdict(), model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
         store.record_verdict(
-            conn, make_verdict(verdict_id="verdict-2"), observed_at=FIXED_CLOCK,
+            conn, make_verdict(verdict_id="verdict-2"), model_id="fixture-model",
+            prompt_fingerprint="fp-fixture",
+            release_audit_id=1,
+            observed_at=FIXED_CLOCK,
         )
         store.supersede_verdict(
             conn, "verdict-1", "verdict-2",
-            reason="seed", observed_at=FIXED_CLOCK,
+            reason="seed", model_id="fixture-model",
+            prompt_fingerprint="fp-fixture",
+            release_audit_id=1,
+            observed_at=FIXED_CLOCK,
         )
     elif table == "llm_refusal":
         store.record_refusal(

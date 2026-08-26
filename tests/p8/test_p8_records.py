@@ -137,9 +137,11 @@ def _field_names(cls: type) -> tuple[str, ...]:
 def test_public_surface_is_exactly_the_task_1_exports():
     assert llm_harness.__all__ == [
         "run_call",
+        "DossierRequest",
         "Dossier",
         "P8Verdict",
         "Refusal",
+        "CallFailed",
         "ValidationUnavailable",
         "NeedsConsent",
     ]

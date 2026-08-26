@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import dataclasses
+import inspect
 import json
 from collections import Counter
+
+import pytest
 
 from llm_harness.fixtures import (
     SITE_C_OUTCOME_PAIRS,
@@ -425,6 +428,9 @@ def test_cd_verdict_stores_plan_version_and_snapshot_identity(p8_conn):
     record_cd_verdict(
         p8_conn, verdict,
         evidence_snapshot_id=pair.evidence_snapshot_id,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-canonical",
+        release_audit_id=17,
         observed_at=FIXED_CLOCK,
     )
     row = p8_conn.execute(
@@ -443,12 +449,51 @@ def test_cd_verdict_stores_plan_version_and_snapshot_identity(p8_conn):
     assert identity["evidence_snapshot_id"] == pair.evidence_snapshot_id
 
 
+def test_record_cd_verdict_requires_provenance_with_no_defaults():
+    params = inspect.signature(record_cd_verdict).parameters
+    for name in ("model_id", "prompt_fingerprint", "release_audit_id"):
+        assert params[name].kind is inspect.Parameter.KEYWORD_ONLY
+        assert params[name].default is inspect.Parameter.empty
+
+
+def test_record_cd_verdict_rolls_back_if_identity_insert_fails(p8_conn):
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    verdict = _validate_c(pair)[0][0]
+    p8_conn.execute(
+        "CREATE TABLE IF NOT EXISTS llm_cd_plan_identity ("
+        "verdict_id TEXT PRIMARY KEY, plan_version TEXT NOT NULL, "
+        "evidence_snapshot_id TEXT NOT NULL)"
+    )
+    p8_conn.execute(
+        "INSERT INTO llm_cd_plan_identity "
+        "(verdict_id, plan_version, evidence_snapshot_id) VALUES (?, ?, ?)",
+        (verdict.verdict_id, verdict.plan_version, "pre-existing"),
+    )
+    with pytest.raises(Exception):
+        record_cd_verdict(
+            p8_conn,
+            verdict,
+            evidence_snapshot_id=pair.evidence_snapshot_id,
+            model_id="fixture-model",
+            prompt_fingerprint="fp-canonical",
+            release_audit_id=17,
+            observed_at=FIXED_CLOCK,
+        )
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_verdict WHERE verdict_id = ?",
+        (verdict.verdict_id,),
+    ).fetchone()["c"] == 0
+
+
 def test_revalidate_same_version_is_stable(p8_conn):
     pair = SITE_C_OUTCOME_PAIRS[0]
     verdict = _validate_c(pair)[0][0]
     record_cd_verdict(
         p8_conn, verdict,
         evidence_snapshot_id=pair.evidence_snapshot_id,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
         observed_at=FIXED_CLOCK,
     )
     result = revalidate_for_plan(
@@ -483,6 +528,9 @@ def test_revalidate_changed_plan_appends_and_supersedes(p8_conn):
     record_cd_verdict(
         p8_conn, verdict,
         evidence_snapshot_id=pair.evidence_snapshot_id,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
         observed_at=FIXED_CLOCK,
     )
     result = revalidate_for_plan(
@@ -524,6 +572,9 @@ def test_revalidate_changed_snapshot_appends_and_supersedes(p8_conn):
     record_cd_verdict(
         p8_conn, verdict,
         evidence_snapshot_id=pair.evidence_snapshot_id,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
         observed_at=FIXED_CLOCK,
     )
     result = revalidate_for_plan(
@@ -553,6 +604,9 @@ def test_revalidate_missing_oracles_leaves_prior_row_historical(p8_conn):
     record_cd_verdict(
         p8_conn, verdict,
         evidence_snapshot_id=pair.evidence_snapshot_id,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-fixture",
+        release_audit_id=1,
         observed_at=FIXED_CLOCK,
     )
     result = revalidate_for_plan(

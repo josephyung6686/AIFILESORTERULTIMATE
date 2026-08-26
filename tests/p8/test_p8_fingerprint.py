@@ -58,9 +58,11 @@ def _address(
 def test_fingerprint_helpers_are_not_on_the_task_1_public_surface():
     assert llm_harness.__all__ == [
         "run_call",
+        "DossierRequest",
         "Dossier",
         "P8Verdict",
         "Refusal",
+        "CallFailed",
         "ValidationUnavailable",
         "NeedsConsent",
     ]

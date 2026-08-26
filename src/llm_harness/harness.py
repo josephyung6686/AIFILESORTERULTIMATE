@@ -246,6 +246,9 @@ def _record_verdicts(
     conn: sqlite3.Connection,
     request: DossierRequest,
     verdicts: Sequence[P8Verdict], *,
+    model_id: str,
+    prompt_fingerprint: str,
+    release_audit_id: int,
     observed_at: str,
 ) -> None:
     for verdict in verdicts:
@@ -253,10 +256,19 @@ def _record_verdicts(
             record_cd_verdict(
                 conn, verdict,
                 evidence_snapshot_id=request.evidence_snapshot_id or "",
+                model_id=model_id,
+                prompt_fingerprint=prompt_fingerprint,
+                release_audit_id=release_audit_id,
                 observed_at=observed_at,
             )
         else:
-            record_verdict(conn, verdict, observed_at=observed_at)
+            record_verdict(
+                conn, verdict,
+                model_id=model_id,
+                prompt_fingerprint=prompt_fingerprint,
+                release_audit_id=release_audit_id,
+                observed_at=observed_at,
+            )
 
 
 def _issue_and_validate(
@@ -304,7 +316,13 @@ def _issue_and_validate(
     if isinstance(checked, ValidationUnavailable):
         return checked
     verdicts, report = checked
-    _record_verdicts(conn, request, verdicts, observed_at=observed_at)
+    _record_verdicts(
+        conn, request, verdicts,
+        model_id=result.model_id,
+        prompt_fingerprint=result.prompt_fingerprint,
+        release_audit_id=released.audit_id,
+        observed_at=observed_at,
+    )
     record_grounding_report(conn, report, observed_at=observed_at)
     if not verdicts:
         return ValidationUnavailable(missing=("claims",))

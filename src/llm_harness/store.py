@@ -127,8 +127,16 @@ def record_response(conn: sqlite3.Connection, *, dossier_id: str, response_bytes
 
 
 def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
+                   model_id: str, prompt_fingerprint: str, release_audit_id: int,
                    observed_at: str) -> str:
-    """Insert one verdict row and append `validation_verdict`."""
+    """Insert one verdict row and append `validation_verdict`.
+
+    The three provenance keywords are REQUIRED and carry no defaults. A verdict is a
+    claim a model made under a specific prompt, released under a specific audit; a
+    default would let a caller record one without saying which, and an event that
+    cannot name its model is not provenance. `release_audit_id` is stored as
+    `audit_id` in the explanation -- the join back to P7's ledger.
+    """
     with transaction(conn):
         conn.execute(
             "INSERT INTO llm_verdict ("
@@ -146,10 +154,11 @@ def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
             conn,
             event_type=VALIDATION_VERDICT,
             observed_at=observed_at,
+            prompt_fingerprint=prompt_fingerprint,
             explanation=_explanation(
-                audit_id=None,
-                model_id=None,
-                prompt_fingerprint=None,
+                audit_id=release_audit_id,
+                model_id=model_id,
+                prompt_fingerprint=prompt_fingerprint,
                 verdict_id=verdict.verdict_id,
                 dossier_id=verdict.dossier_id,
                 validator_version=verdict.validator_version,
@@ -160,7 +169,9 @@ def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
 
 
 def supersede_verdict(conn: sqlite3.Connection, old_verdict_id: str,
-                      new_verdict_id: str, *, reason: str, observed_at: str) -> None:
+                      new_verdict_id: str, *, reason: str, model_id: str,
+                      prompt_fingerprint: str, release_audit_id: int,
+                      observed_at: str) -> None:
     """Link two stored verdicts, keep both rows, append `verdict_superseded`."""
     supersession_id = _new_id()
     with transaction(conn):
@@ -184,10 +195,11 @@ def supersede_verdict(conn: sqlite3.Connection, old_verdict_id: str,
             conn,
             event_type=VERDICT_SUPERSEDED,
             observed_at=observed_at,
+            prompt_fingerprint=prompt_fingerprint,
             explanation=_explanation(
-                audit_id=None,
-                model_id=None,
-                prompt_fingerprint=None,
+                audit_id=release_audit_id,
+                model_id=model_id,
+                prompt_fingerprint=prompt_fingerprint,
                 old_verdict_id=old_verdict_id,
                 new_verdict_id=new_verdict_id,
                 reason=reason,

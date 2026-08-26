@@ -1,6 +1,7 @@
 """P8 provenance: subsystem authorship, fingerprint keyword, audit/model explanation."""
 from __future__ import annotations
 
+import inspect
 import json
 
 from database_agent.events import REGISTERED_EVENT_TYPES
@@ -101,23 +102,56 @@ def test_record_response_writes_fingerprint_keyword_and_audit_model_explanation(
     assert body["prompt_fingerprint"] == "fp-canonical"
 
 
-def test_record_verdict_and_supersede_author_p8_events(p8_conn):
-    store.record_verdict(p8_conn, make_verdict(), observed_at=FIXED_CLOCK)
+def test_verdict_event_writers_require_provenance_with_no_defaults():
+    for writer in (store.record_verdict, store.supersede_verdict):
+        params = inspect.signature(writer).parameters
+        for name in ("model_id", "prompt_fingerprint", "release_audit_id"):
+            assert params[name].kind is inspect.Parameter.KEYWORD_ONLY
+            assert params[name].default is inspect.Parameter.empty
+
+
+def test_record_verdict_and_supersede_author_exact_provenance(p8_conn):
     store.record_verdict(
-        p8_conn, make_verdict(verdict_id="verdict-2"), observed_at=FIXED_CLOCK,
+        p8_conn,
+        make_verdict(),
+        model_id="fixture-model-v1",
+        prompt_fingerprint="fp-v1",
+        release_audit_id=17,
+        observed_at=FIXED_CLOCK,
+    )
+    store.record_verdict(
+        p8_conn,
+        make_verdict(verdict_id="verdict-2"),
+        model_id="fixture-model-v2",
+        prompt_fingerprint="fp-v2",
+        release_audit_id=29,
+        observed_at=FIXED_CLOCK,
     )
     store.supersede_verdict(
         p8_conn, "verdict-1", "verdict-2",
-        reason="validator revision", observed_at=FIXED_CLOCK,
+        reason="validator revision",
+        model_id="fixture-model-v2",
+        prompt_fingerprint="fp-v2",
+        release_audit_id=29,
+        observed_at=FIXED_CLOCK,
     )
     rows = _events(p8_conn)
     types = [row["event_type"] for row in rows]
     assert types == ["validation_verdict", "validation_verdict", "verdict_superseded"]
     assert {row["subsystem"] for row in rows} == {"P8"}
     assert all(row["component_version"] == COMPONENT_VERSION for row in rows)
-    assert _body(rows[0])["verdict_id"] == "verdict-1"
-    assert _body(rows[2])["old_verdict_id"] == "verdict-1"
-    assert _body(rows[2])["new_verdict_id"] == "verdict-2"
+    assert [row["prompt_fingerprint"] for row in rows] == ["fp-v1", "fp-v2", "fp-v2"]
+    first = _body(rows[0])
+    assert first["verdict_id"] == "verdict-1"
+    assert first["audit_id"] == 17
+    assert first["model_id"] == "fixture-model-v1"
+    assert first["prompt_fingerprint"] == "fp-v1"
+    superseded = _body(rows[2])
+    assert superseded["old_verdict_id"] == "verdict-1"
+    assert superseded["new_verdict_id"] == "verdict-2"
+    assert superseded["audit_id"] == 29
+    assert superseded["model_id"] == "fixture-model-v2"
+    assert superseded["prompt_fingerprint"] == "fp-v2"
 
 
 def test_refusal_and_abstention_call_refused_carry_report_provenance(p8_conn):

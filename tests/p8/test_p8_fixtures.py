@@ -56,9 +56,11 @@ def _imported_roots(path: Path) -> set[str]:
 def test_public_surface_is_unchanged():
     assert llm_harness.__all__ == [
         "run_call",
+        "DossierRequest",
         "Dossier",
         "P8Verdict",
         "Refusal",
+        "CallFailed",
         "ValidationUnavailable",
         "NeedsConsent",
     ]

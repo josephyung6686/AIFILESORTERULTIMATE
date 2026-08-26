@@ -149,7 +149,7 @@ def test_p7_release_then_p8_validate_then_p6_fact_then_p2_envelope(skeleton_conn
     )
     verdicts, report = checked
     assert verdicts[0].outcome == ACCEPT_DIRECT
-    record_verdict(conn, verdicts[0], observed_at=egress.OBSERVED_AT)
+    record_verdict(conn, verdicts[0], model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=egress.OBSERVED_AT)
     record_grounding_report(conn, report, observed_at=egress.OBSERVED_AT)
 
     events = _p8_events(conn)

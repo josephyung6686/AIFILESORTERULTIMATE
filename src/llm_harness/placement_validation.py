@@ -12,6 +12,7 @@ import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
+from database_agent.db import transaction
 from llm_harness.records import CheckedCitation, Dossier, P8Verdict, ValidationUnavailable
 from llm_harness.store import record_verdict, supersede_verdict
 from llm_harness.validation import validate_response
@@ -466,6 +467,9 @@ def record_cd_verdict(
     verdict: P8Verdict,
     *,
     evidence_snapshot_id: str,
+    model_id: str,
+    prompt_fingerprint: str,
+    release_audit_id: int,
     observed_at: str,
 ) -> str:
     if not evidence_snapshot_id:
@@ -473,13 +477,25 @@ def record_cd_verdict(
     if not verdict.plan_version:
         raise ValueError("C/D verdicts require plan_version")
     _ensure_identity_table(conn)
-    record_verdict(conn, verdict, observed_at=observed_at)
-    conn.execute(
-        "INSERT INTO llm_cd_plan_identity ("
-        "verdict_id, plan_version, evidence_snapshot_id"
-        ") VALUES (?, ?, ?)",
-        (verdict.verdict_id, verdict.plan_version, evidence_snapshot_id),
-    )
+    # ONE transaction over both writes. `record_verdict` opens its own, but
+    # `transaction` is reentrant via SAVEPOINT, so the inner scope nests instead of
+    # committing. Without this the verdict row committed and a failing identity insert
+    # left a C/D verdict with no plan/snapshot identity -- a row that cannot say which
+    # plan it judged, which is the one thing a C/D verdict exists to record.
+    with transaction(conn):
+        record_verdict(
+            conn, verdict,
+            model_id=model_id,
+            prompt_fingerprint=prompt_fingerprint,
+            release_audit_id=release_audit_id,
+            observed_at=observed_at,
+        )
+        conn.execute(
+            "INSERT INTO llm_cd_plan_identity ("
+            "verdict_id, plan_version, evidence_snapshot_id"
+            ") VALUES (?, ?, ?)",
+            (verdict.verdict_id, verdict.plan_version, evidence_snapshot_id),
+        )
     return verdict.verdict_id
 
 
@@ -598,11 +614,17 @@ def revalidate_for_plan(
     record_cd_verdict(
         conn, stamped,
         evidence_snapshot_id=current_evidence_snapshot_id,
+        model_id=model_id,
+        prompt_fingerprint=prompt_fingerprint,
+        release_audit_id=release_audit_id,
         observed_at=observed_at,
     )
     supersede_verdict(
         conn, previous_verdict_id, stamped.verdict_id,
         reason="plan_or_snapshot_changed",
+        model_id=model_id,
+        prompt_fingerprint=prompt_fingerprint,
+        release_audit_id=release_audit_id,
         observed_at=observed_at,
     )
     return stamped
