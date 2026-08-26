@@ -15,7 +15,8 @@ from llm_harness.transport import ModelClient, issue
 from privacy.release import Released
 
 
-HARNESS_ROOT = pathlib.Path(__file__).resolve().parents[2] / "src" / "llm_harness"
+SRC_ROOT = pathlib.Path(__file__).resolve().parents[2] / "src"
+HARNESS_ROOT = SRC_ROOT / "llm_harness"
 
 SDK_ROOTS = frozenset({
     "openai", "anthropic", "litellm", "groq", "together", "vertexai",
@@ -43,10 +44,23 @@ NEIGHBOUR_PRODUCERS = frozenset({
 
 
 def modules() -> list[pathlib.Path]:
+    """P8 modules for P8-owned import and authorship guards."""
     return sorted(
-        path for path in HARNESS_ROOT.glob("*.py")
+        path for path in HARNESS_ROOT.rglob("*.py")
         if path.name != "__pycache__"
     )
+
+
+def production_modules() -> list[pathlib.Path]:
+    """Every production Python module for the product-wide egress invariant."""
+    return sorted(SRC_ROOT.rglob("*.py"))
+
+
+def source_label(path: pathlib.Path) -> str:
+    try:
+        return path.relative_to(SRC_ROOT).as_posix()
+    except ValueError:
+        return path.name
 
 
 def _docstrings(tree: ast.AST) -> set[int]:
@@ -145,11 +159,11 @@ def invoke_sites(path: pathlib.Path) -> list[tuple[str, str | None]]:
             if not names or not _is_invoke_binding(value):
                 return
             self.bound[-1].update(names)
-            found.append((path.name, self.stack[-1] if self.stack else "aliased"))
+            found.append((source_label(path), self.stack[-1] if self.stack else "aliased"))
 
         def visit_Call(self, node: ast.Call) -> None:
             if _is_invoke_call(node):
-                found.append((path.name, self.stack[-1] if self.stack else None))
+                found.append((source_label(path), self.stack[-1] if self.stack else None))
             elif isinstance(node.func, ast.Name) and node.func.id in self.bound[-1]:
                 found.append((path.name, self.stack[-1] if self.stack else None))
             self.generic_visit(node)
@@ -174,7 +188,7 @@ def invoke_sites(path: pathlib.Path) -> list[tuple[str, str | None]]:
         def visit_Lambda(self, node: ast.Lambda) -> None:
             for child in ast.walk(node):
                 if _is_invoke_call(child) or _is_invoke_binding(child):
-                    found.append((path.name, "lambda"))
+                    found.append((source_label(path), "lambda"))
             self.generic_visit(node)
 
     Visitor().visit(tree)
@@ -357,11 +371,11 @@ def test_run_call_accepts_model_client_but_does_not_invoke_it():
     assert forwarded, "issue must be called with the same model_client object"
 
 
-def test_only_transport_issue_invokes_the_model_client():
+def test_only_transport_issue_invokes_the_model_client_product_wide():
     sites: list[tuple[str, str | None]] = []
-    for path in modules():
+    for path in production_modules():
         sites.extend(invoke_sites(path))
-    assert sites == [("transport.py", "issue")], sites
+    assert sites == [("llm_harness/transport.py", "issue")], sites
 
 
 def test_transport_issue_requires_live_released_and_calls_consume_release():
