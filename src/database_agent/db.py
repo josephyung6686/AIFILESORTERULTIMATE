@@ -182,6 +182,32 @@ CREATE TABLE IF NOT EXISTS vector_arrays (
 );
 """
 
+# Inlined rather than imported from vector_versions.py, to avoid a circular
+# import. Additive: the legacy overwrite table above is untouched.
+VECTOR_VERSIONS_DDL = """
+CREATE TABLE IF NOT EXISTS vector_embeddings (
+    embedding_id      TEXT PRIMARY KEY,
+    file_id           TEXT NOT NULL,
+    content_hash      TEXT NOT NULL,
+    scope             TEXT NOT NULL,
+    embedding_model_id TEXT NOT NULL,
+    embedding_version TEXT NOT NULL,
+    dimension         INTEGER NOT NULL CHECK (dimension > 0),
+    encoding          TEXT NOT NULL,
+    array_bytes       BLOB NOT NULL,
+    created_at        TEXT NOT NULL,
+    supersedes        TEXT,
+    superseded_by     TEXT,
+    supersede_reason  TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS one_current_vector_embedding
+    ON vector_embeddings (
+        file_id, content_hash, scope, embedding_model_id, embedding_version
+    ) WHERE superseded_by IS NULL;
+CREATE INDEX IF NOT EXISTS vector_embedding_version
+    ON vector_embeddings (file_id, content_hash, scope);
+"""
+
 # Inlined rather than imported from budget.py, to avoid a circular import.
 BUDGET_DDL = """
 CREATE TABLE IF NOT EXISTS budget_ceilings (
@@ -209,4 +235,5 @@ def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(LEARNING_DDL)
     conn.executescript(BUDGET_DDL)
     conn.executescript(VECTORS_DDL)
+    conn.executescript(VECTOR_VERSIONS_DDL)
     conn.executescript(SCAN_USAGE_DDL)
