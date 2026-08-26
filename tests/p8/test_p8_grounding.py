@@ -37,6 +37,7 @@ from privacy.consent import ConsentRequirement
 from privacy.denial import RemedyOption
 from privacy.items import CandidateLabel
 from privacy.release import Denied, ModelCallRequest, ModelTarget, NeedsConsent, Target
+from p8.conftest import make_evidence_item
 
 
 DIRECT_BYTES = (
@@ -77,7 +78,8 @@ def _request() -> DossierRequest:
         call_site=A_FACT,
         subject_ref="file-1",
         eligibility_reason=REMAINS_AMBIGUOUS,
-        evidence_refs=("obs-key-1",),
+        evidence_items=(make_evidence_item(),),
+        conflicts=(),
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
@@ -246,6 +248,7 @@ def test_response_bearing_report_derives_from_verdict_and_citation_results():
             ),
         ),
         conflicts=(),
+        released_evidence=(),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-1",

@@ -25,7 +25,7 @@ from llm_harness.fact_validation import (
     validate_fact_proposal,
 )
 from llm_harness.fingerprint import dossier_content_address
-from llm_harness.records import Dossier, EvidenceItem
+from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
 from llm_harness.stage_output import emit_stage_output, record_p8_version_tuple
 from llm_harness.store import record_dossier, record_grounding_report, record_verdict
 from llm_harness.transport import ModelClient, issue
@@ -132,6 +132,18 @@ def test_p7_release_then_p8_validate_then_p6_fact_then_p2_envelope(skeleton_conn
             ),
         ),
         conflicts=(),
+        released_evidence=tuple(
+            ReleasedEvidence(
+                observation_key=item.observation_key,
+                address=item.span,
+                value=item.value,
+                zone=item.zone,
+                context_before=item.context_before,
+                context_after=item.context_after,
+                context_truncated=item.context_truncated,
+            )
+            for item in decision.materialised_items
+        ),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id=decision.release_id,

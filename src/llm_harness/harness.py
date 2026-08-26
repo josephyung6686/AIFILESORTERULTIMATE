@@ -21,13 +21,12 @@ from llm_harness.budgets import (
     reserve_call,
     settle_call,
 )
+from llm_harness.dossier import build_dossier, canonical_dossier_bytes
 from llm_harness.eligibility import Eligible, assess_call
 from llm_harness.placement_validation import record_cd_verdict
 from llm_harness.records import (
     CallFailed,
-    Dossier,
     DossierRequest,
-    EvidenceItem,
     P8Verdict,
     PreCallAbstention,
     PromptDefinition,
@@ -57,7 +56,6 @@ from llm_harness.vocabulary import (
     C_PLACEMENT,
     D_RESIDUAL,
     DEFERRED,
-    DIRECT_ANCHOR,
     E_TEMPLATE,
     SCOPE_FILE,
     SCOPE_GROUP,
@@ -202,46 +200,6 @@ def _units(request: DossierRequest, deps: CallDependencies, rung: str):
     )
 
 
-def _evidence_items(request: DossierRequest) -> tuple[EvidenceItem, ...]:
-    return tuple(
-        EvidenceItem(
-            evidence_ref=ref,
-            kind="excerpt",
-            location="body",
-            excerpt_span=None,
-            reliability_state="direct",
-            basis=DIRECT_ANCHOR,
-        )
-        for ref in request.evidence_refs
-    )
-
-
-def _dossier_for(
-    request: DossierRequest, released: Released, *, reduction_rung: str,
-    allowed_vocabulary: Sequence[str],
-) -> Dossier:
-    return Dossier(
-        dossier_id=released.release_id,
-        call_site=request.call_site,
-        subject_ref=request.subject_ref,
-        eligibility_reason=request.eligibility_reason,
-        plan_version=request.plan_version,
-        policy_version=released.policy_version,
-        allowed_vocabulary=tuple(allowed_vocabulary),
-        evidence_items=_evidence_items(request),
-        conflicts=(),
-        max_dossier_tokens=request.model_call_request.max_dossier_tokens,
-        reduction_rung=reduction_rung,
-        release_id=released.release_id,
-    )
-
-
-def _canonical_bytes(released: Released) -> bytes:
-    return b"\n".join(
-        item.value.encode("utf-8") for item in released.materialised_items
-    )
-
-
 def _record_verdicts(
     conn: sqlite3.Connection,
     request: DossierRequest,
@@ -281,16 +239,20 @@ def _issue_and_validate(
     reduction_rung: str,
     observed_at: str,
 ) -> P8Verdict | CallFailed | ValidationUnavailable:
+    dossier = build_dossier(
+        request, released,
+        reduction_rung=reduction_rung,
+        allowed_vocabulary=deps.allowed_vocabulary,
+        prompt=prompt,
+    )
+    if isinstance(dossier, ValidationUnavailable):
+        return dossier
     payload = build_call_payload(
         prompt,
-        _canonical_bytes(released),
+        canonical_dossier_bytes(dossier, prompt),
         model_target=released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
-    )
-    dossier = _dossier_for(
-        request, released, reduction_rung=reduction_rung,
-        allowed_vocabulary=deps.allowed_vocabulary,
     )
     record_dossier(conn, dossier, observed_at=observed_at)
     result = issue(conn, released, payload, model_client=model_client)

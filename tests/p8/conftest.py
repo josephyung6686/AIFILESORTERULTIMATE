@@ -17,15 +17,19 @@ import pytest
 from database_agent.db import create_schema
 
 from llm_harness.records import (
+    Conflict,
     Dossier,
+    EvidenceItem,
     GroundingReport,
     P8Verdict,
     PreCallAbstention,
     Refusal,
+    ReleasedEvidence,
 )
 from llm_harness.vocabulary import (
     A_FACT,
     ACCEPT_DIRECT,
+    DIRECT_ANCHOR,
     LLM_SUPPORTED,
     NOT_ELIGIBLE_FOR_MODEL,
     REDUCTION_NONE,
@@ -73,12 +77,41 @@ def make_dossier(**overrides) -> Dossier:
         allowed_vocabulary=("school",),
         evidence_items=(),
         conflicts=(),
+        released_evidence=(),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-1",
     )
     values.update(overrides)
     return Dossier(**values)
+
+
+def make_evidence_item(**overrides) -> EvidenceItem:
+    """Builder-owned reference metadata. P8 never synthesises these six fields."""
+    values = dict(
+        evidence_ref="obs-key-1",
+        kind="excerpt",
+        location="body",
+        excerpt_span=None,
+        reliability_state="direct",
+        basis=DIRECT_ANCHOR,
+    )
+    values.update(overrides)
+    return EvidenceItem(**values)
+
+
+def make_released_evidence(**overrides) -> ReleasedEvidence:
+    values = dict(
+        observation_key="obs-key-1",
+        address="0:19",
+        value="Columbia University",
+        zone="body",
+        context_before=None,
+        context_after=None,
+        context_truncated=False,
+    )
+    values.update(overrides)
+    return ReleasedEvidence(**values)
 
 
 def make_verdict(**overrides) -> P8Verdict:

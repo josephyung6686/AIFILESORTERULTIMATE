@@ -44,6 +44,7 @@ from llm_harness.vocabulary import (
 )
 from privacy.items import CandidateLabel
 from privacy.release import ModelCallRequest, ModelTarget, Target
+from p8.conftest import make_evidence_item
 
 CLOCK = "2026-08-25T12:00:00+00:00"
 PROPOSAL_CLASS = "fixture-class"
@@ -78,7 +79,8 @@ def _request(call_site: str, eligibility_reason: str, *,
         call_site=call_site,
         subject_ref=subject_ref,
         eligibility_reason=eligibility_reason,
-        evidence_refs=("obs-key-1",),
+        evidence_items=(make_evidence_item(),),
+        conflicts=(),
         model_call_request=_model_call_request(),
         plan_version=plan_version,
         evidence_snapshot_id="snap-1",
@@ -93,7 +95,8 @@ def _unchecked_request(*, call_site: str, eligibility_reason: str,
     object.__setattr__(request, "call_site", call_site)
     object.__setattr__(request, "subject_ref", subject_ref)
     object.__setattr__(request, "eligibility_reason", eligibility_reason)
-    object.__setattr__(request, "evidence_refs", ("obs-key-1",))
+    object.__setattr__(request, "evidence_items", (make_evidence_item(),))
+    object.__setattr__(request, "conflicts", ())
     object.__setattr__(request, "model_call_request", _model_call_request())
     object.__setattr__(request, "plan_version", None)
     object.__setattr__(request, "evidence_snapshot_id", "snap-1")

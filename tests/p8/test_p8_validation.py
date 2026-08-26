@@ -93,6 +93,7 @@ def _dossier(*, basis: str = DIRECT_ANCHOR, extra_items=()) -> Dossier:
         allowed_vocabulary=("school",),
         evidence_items=(_evidence(basis=basis),) + tuple(extra_items),
         conflicts=(Conflict(conflict_id="c1", kind="stronger_fact"),),
+        released_evidence=(),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-1",

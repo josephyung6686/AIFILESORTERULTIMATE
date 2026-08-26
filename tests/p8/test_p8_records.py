@@ -25,6 +25,7 @@ from llm_harness.records import (
     PreCallAbstention,
     PromptDefinition,
     Refusal,
+    ReleasedEvidence,
     Unknown,
     ValidationUnavailable,
     assemble,
@@ -86,8 +87,8 @@ def _prompt() -> PromptDefinition:
     )
 
 
-def _evidence_item() -> EvidenceItem:
-    return EvidenceItem(
+def _evidence_item(**overrides) -> EvidenceItem:
+    values = dict(
         evidence_ref="obs-key-1",
         kind="excerpt",
         location="body",
@@ -95,6 +96,22 @@ def _evidence_item() -> EvidenceItem:
         reliability_state="direct",
         basis=DIRECT_ANCHOR,
     )
+    values.update(overrides)
+    return EvidenceItem(**values)
+
+
+def _released_evidence(**overrides) -> ReleasedEvidence:
+    values = dict(
+        observation_key="obs-key-1",
+        address="0:4",
+        value="Colu",
+        zone="body",
+        context_before=None,
+        context_after=None,
+        context_truncated=False,
+    )
+    values.update(overrides)
+    return ReleasedEvidence(**values)
 
 
 def _citation() -> Citation:
@@ -167,7 +184,8 @@ def test_dossier_request_is_frozen_reference_only():
         call_site=A_FACT,
         subject_ref="file-1",
         eligibility_reason=REMAINS_AMBIGUOUS,
-        evidence_refs=("obs-key-1",),
+        evidence_items=(_evidence_item(),),
+        conflicts=(),
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
@@ -180,7 +198,8 @@ def test_dossier_request_is_frozen_reference_only():
         "call_site",
         "subject_ref",
         "eligibility_reason",
-        "evidence_refs",
+        "evidence_items",
+        "conflicts",
         "model_call_request",
         "plan_version",
         "evidence_snapshot_id",
@@ -355,6 +374,7 @@ def test_dossier_is_frozen_closed_world_and_content_bearing_after_release():
         allowed_vocabulary=("school",),
         evidence_items=(_evidence_item(),),
         conflicts=(Conflict(conflict_id="c1", kind="stronger_fact"),),
+        released_evidence=(_released_evidence(),),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-1",
@@ -371,6 +391,7 @@ def test_dossier_is_frozen_closed_world_and_content_bearing_after_release():
         "allowed_vocabulary",
         "evidence_items",
         "conflicts",
+        "released_evidence",
         "max_dossier_tokens",
         "reduction_rung",
         "release_id",
@@ -388,6 +409,7 @@ def test_plan_version_is_required_at_placement_residual_and_template():
         allowed_vocabulary=(),
         evidence_items=(),
         conflicts=(),
+        released_evidence=(),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-1",
@@ -428,6 +450,7 @@ def test_dossier_rejects_unknown_vocabulary_members():
             allowed_vocabulary=(),
             evidence_items=(),
             conflicts=(),
+            released_evidence=(),
             max_dossier_tokens=4000,
             reduction_rung=REDUCTION_NONE,
             release_id="rel-1",
@@ -671,13 +694,14 @@ def test_validation_unavailable_names_missing_capabilities_and_is_not_abstain():
         ValidationUnavailable(missing=())
 
 
-def test_dossier_request_rejects_bare_string_evidence_refs():
+def test_dossier_request_rejects_a_bare_string_for_evidence_items():
     with pytest.raises(MalformedRecord):
         DossierRequest(
             call_site=A_FACT,
             subject_ref="file-1",
             eligibility_reason=REMAINS_AMBIGUOUS,
-            evidence_refs="obs-key-1",
+            evidence_items="obs-key-1",
+            conflicts=(),
             model_call_request=_model_call_request(),
             plan_version=None,
             evidence_snapshot_id="snap-1",
@@ -685,21 +709,53 @@ def test_dossier_request_rejects_bare_string_evidence_refs():
         )
 
 
-def test_dossier_request_freezes_evidence_refs_against_caller_mutation():
-    refs = ["obs-key-1"]
+def test_dossier_request_rejects_bare_ids_in_place_of_builder_metadata():
+    """A ref with no kind/location/reliability/basis would force P8 to invent them."""
+    with pytest.raises(MalformedRecord):
+        DossierRequest(
+            call_site=A_FACT,
+            subject_ref="file-1",
+            eligibility_reason=REMAINS_AMBIGUOUS,
+            evidence_items=("obs-key-1",),
+            conflicts=(),
+            model_call_request=_model_call_request(),
+            plan_version=None,
+            evidence_snapshot_id="snap-1",
+            budget_context="scan-1",
+        )
+
+
+def test_dossier_request_with_no_evidence_metadata_is_malformed():
+    with pytest.raises(MalformedRecord):
+        DossierRequest(
+            call_site=A_FACT,
+            subject_ref="file-1",
+            eligibility_reason=REMAINS_AMBIGUOUS,
+            evidence_items=(),
+            conflicts=(),
+            model_call_request=_model_call_request(),
+            plan_version=None,
+            evidence_snapshot_id="snap-1",
+            budget_context="scan-1",
+        )
+
+
+def test_dossier_request_freezes_evidence_items_against_caller_mutation():
+    items = [_evidence_item()]
     request = DossierRequest(
         call_site=A_FACT,
         subject_ref="file-1",
         eligibility_reason=REMAINS_AMBIGUOUS,
-        evidence_refs=refs,
+        evidence_items=items,
+        conflicts=(),
         model_call_request=_model_call_request(),
         plan_version=None,
         evidence_snapshot_id="snap-1",
         budget_context="scan-1",
     )
-    refs.append("mutated")
-    assert request.evidence_refs == ("obs-key-1",)
-    assert isinstance(request.evidence_refs, tuple)
+    items.append(_evidence_item(evidence_ref="mutated"))
+    assert request.evidence_items == (_evidence_item(),)
+    assert isinstance(request.evidence_items, tuple)
 
 
 def test_validation_unavailable_rejects_bare_string_missing():
@@ -713,7 +769,8 @@ def test_dossier_request_requires_plan_version_at_placement():
             call_site=C_PLACEMENT,
             subject_ref="file-1",
             eligibility_reason="several_legal_nodes_plausible",
-            evidence_refs=(),
+            evidence_items=(_evidence_item(),),
+            conflicts=(),
             model_call_request=_model_call_request(),
             plan_version=None,
             evidence_snapshot_id=None,

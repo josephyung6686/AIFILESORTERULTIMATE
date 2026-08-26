@@ -22,7 +22,14 @@ from eval_harness.store import create_eval_schema
 from evidence_shape.canonical import canonical_json
 from evidence_shape.schema import create_evidence_schema
 from llm_harness.fingerprint import dossier_content_address, prompt_fingerprint
-from llm_harness.records import Conflict, Dossier, EvidenceItem, PromptDefinition
+from llm_harness.dossier import canonical_dossier_bytes, dossier_address
+from llm_harness.records import (
+    Conflict,
+    Dossier,
+    EvidenceItem,
+    PromptDefinition,
+    ReleasedEvidence,
+)
 from llm_harness.schema import create_llm_schema
 from llm_harness.store import record_dossier, record_response
 from llm_harness.validation import validate_response
@@ -73,6 +80,13 @@ def _dossier() -> Dossier:
             ),
         ),
         conflicts=(Conflict(conflict_id="c1", kind="stronger_fact"),),
+        released_evidence=(
+            ReleasedEvidence(
+                observation_key="obs-key-1", address="0:20",
+                value=RELEASED.decode("utf-8"), zone="body",
+                context_before=None, context_after=None, context_truncated=False,
+            ),
+        ),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-probe",
@@ -121,16 +135,12 @@ def run_probe() -> dict:
         dossier_builder="determinism-probe",
         release_audit_id=17,
     )
-    address = dossier_content_address(
-        RELEASED,
-        allowed_vocabulary=VOCABULARY,
-        allowed_schema_bytes=SCHEMA,
-        evidence_snapshot_id="snap-ignored",
-        release_id="rel-probe",
-        audit_id=17,
-    )
+    address = dossier_address(dossier, _prompt())
     return {
         "dossier_content_address": address,
+        "canonical_dossier_sha256": hashlib.sha256(
+            canonical_dossier_bytes(dossier, _prompt())
+        ).hexdigest(),
         "response_sha256": hashlib.sha256(RESPONSE).hexdigest(),
         "verdict": json.loads(canonical_json(_jsonable(verdicts))),
         "grounding_report": json.loads(canonical_json(_jsonable(report))),

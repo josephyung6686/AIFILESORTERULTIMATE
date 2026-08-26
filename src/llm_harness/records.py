@@ -163,7 +163,8 @@ class DossierRequest:
     call_site: str
     subject_ref: str
     eligibility_reason: str
-    evidence_refs: tuple[str, ...]
+    evidence_items: tuple[EvidenceItem, ...]
+    conflicts: tuple[Conflict, ...]
     model_call_request: ModelCallRequest
     plan_version: str | None
     evidence_snapshot_id: str | None
@@ -184,9 +185,20 @@ class DossierRequest:
                 "DossierRequest.model_call_request must be the live "
                 "privacy.release.ModelCallRequest"
             )
-        _freeze_sequence(self, "evidence_refs")
-        if any(not ref for ref in self.evidence_refs):
-            raise MalformedRecord("evidence_refs are ids only and must be non-empty")
+        _freeze_sequence(self, "evidence_items")
+        _freeze_sequence(self, "conflicts")
+        if not self.evidence_items:
+            raise MalformedRecord(
+                "a request with no builder evidence metadata cannot become a dossier; "
+                "P8 does not synthesise kind, location, reliability or basis"
+            )
+        if any(not isinstance(item, EvidenceItem) for item in self.evidence_items):
+            raise MalformedRecord(
+                "DossierRequest.evidence_items must be reference-only EvidenceItem "
+                "records supplied by the dossier builder"
+            )
+        if any(not isinstance(item, Conflict) for item in self.conflicts):
+            raise MalformedRecord("DossierRequest.conflicts must be Conflict records")
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,6 +222,33 @@ class EvidenceItem:
         except ValueError as exc:
             raise MalformedRecord(str(exc)) from exc
         _require(self.basis, EVIDENCE_BASES, name="basis")
+
+
+@dataclass(frozen=True, slots=True)
+class ReleasedEvidence:
+    """One P7 `Materialised` item as the model saw it.
+
+    `value` is the released/redacted value and is the ONLY span-matching source
+    universal validation may use. `address` is P7's span locator; a citation that
+    matches the raw P4 text but not this value is not grounded in what was released.
+    """
+
+    observation_key: str
+    address: str
+    value: str
+    zone: str
+    context_before: str | None
+    context_after: str | None
+    context_truncated: bool
+
+    def __post_init__(self) -> None:
+        if not self.observation_key or not self.address:
+            raise MalformedRecord(
+                "ReleasedEvidence requires observation_key and address; an item with "
+                "no address cannot bind a citation to what P7 released"
+            )
+        if not isinstance(self.context_truncated, bool):
+            raise MalformedRecord("context_truncated is a boolean flag")
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,6 +320,7 @@ class Dossier:
     allowed_vocabulary: tuple[str, ...]
     evidence_items: tuple[EvidenceItem, ...]
     conflicts: tuple[Conflict, ...]
+    released_evidence: tuple[ReleasedEvidence, ...]
     max_dossier_tokens: int
     reduction_rung: str
     release_id: str
@@ -306,10 +346,16 @@ class Dossier:
         _freeze_sequence(self, "allowed_vocabulary")
         _freeze_sequence(self, "evidence_items")
         _freeze_sequence(self, "conflicts")
+        _freeze_sequence(self, "released_evidence")
         if any(not isinstance(item, EvidenceItem) for item in self.evidence_items):
             raise MalformedRecord("evidence_items must be EvidenceItem records")
         if any(not isinstance(item, Conflict) for item in self.conflicts):
             raise MalformedRecord("conflicts must be Conflict records")
+        if any(not isinstance(item, ReleasedEvidence) for item in self.released_evidence):
+            raise MalformedRecord(
+                "released_evidence must be ReleasedEvidence records built from P7's "
+                "Materialised items"
+            )
 
 
 @dataclass(frozen=True, slots=True)

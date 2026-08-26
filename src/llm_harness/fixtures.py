@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from llm_harness.records import Conflict, Dossier, EvidenceItem
+from llm_harness.records import Conflict, Dossier, EvidenceItem, ReleasedEvidence
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -118,6 +118,22 @@ def _member(file_id: str, *, basis: str = DIRECT_ANCHOR) -> EvidenceItem:
     )
 
 
+def _released_for(items: tuple[EvidenceItem, ...]) -> tuple[ReleasedEvidence, ...]:
+    """What P7 released for these witnesses. Structural members release nothing."""
+    return tuple(
+        ReleasedEvidence(
+            observation_key=item.evidence_ref,
+            address=SPAN,
+            value=SPAN,
+            zone="body",
+            context_before=None,
+            context_after=None,
+            context_truncated=False,
+        )
+        for item in items if item.kind == "excerpt"
+    )
+
+
 def _dossier(
     call_site: str,
     eligibility_reason: str,
@@ -130,6 +146,7 @@ def _dossier(
     conflicts: tuple[Conflict, ...] = (),
 ) -> Dossier:
     return Dossier(
+        released_evidence=_released_for(evidence_items),
         dossier_id=dossier_id,
         call_site=call_site,
         subject_ref=subject_ref,

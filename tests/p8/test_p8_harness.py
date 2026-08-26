@@ -17,6 +17,7 @@ from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.eligibility import Eligible
 from llm_harness.fingerprint import prompt_fingerprint
+from llm_harness.dossier import build_dossier, canonical_dossier_bytes
 from llm_harness.harness import run_call
 from llm_harness.records import (
     CallFailed,
@@ -43,12 +44,13 @@ from llm_harness.vocabulary import (
     SPLIT,
     SUMMARIZED_FACTS,
 )
-from p8.conftest import FIXED_CLOCK
+from p8.conftest import FIXED_CLOCK, make_evidence_item
 from p8.test_p8_transport import Recorder
 from privacy.binding import mint_release
 from privacy.consent import ConsentRequirement
 from privacy.denial import RemedyOption
-from privacy.items import CandidateLabel
+from evidence_shape.location import TextSpan
+from privacy.items import Excerpt
 from privacy.policy import Policy
 from privacy.redaction import RedactionManifest
 from privacy.release import (
@@ -61,6 +63,7 @@ from privacy.release import (
     Released,
     Target,
 )
+from privacy.resolve import Materialised
 from privacy.schema import create_privacy_schema
 
 
@@ -123,7 +126,10 @@ def _model_call_request(*, file_id: str = "file-1",
         stage="grouping",
         target=Target(file_ids=(file_id,)),
         model_target=CLOUD,
-        requested_items=(CandidateLabel(label="Passport"),),
+        requested_items=(
+            Excerpt(observation_key="obs-key-1", span=TextSpan(0, 19),
+                    reason="names the school"),
+        ),
         prompt_template_id="template.grouping",
         prompt_fingerprint=fingerprint or "fingerprint.grouping",
         max_dossier_tokens=4000,
@@ -135,7 +141,8 @@ def _request(*, file_id: str = "file-1", fingerprint: str | None = None) -> Doss
         call_site=A_FACT,
         subject_ref=file_id,
         eligibility_reason=REMAINS_AMBIGUOUS,
-        evidence_refs=("obs-key-1",),
+        evidence_items=(make_evidence_item(),),
+        conflicts=(),
         model_call_request=_model_call_request(file_id=file_id, fingerprint=fingerprint),
         plan_version=None,
         evidence_snapshot_id="snap-1",
@@ -162,6 +169,21 @@ def _needs_consent() -> NeedsConsent:
             why="sensitive text",
         ),
     )
+
+
+def _materialised(**overrides) -> Materialised:
+    values = dict(
+        observation_key="obs-key-1",
+        span="0:19",
+        value=RELEASED_MATERIAL,
+        zone="body",
+        context_before=None,
+        context_after=None,
+        context_truncated=False,
+        unit_length=64,
+    )
+    values.update(overrides)
+    return Materialised(**values)
 
 
 def _budget(*, files: int = 1000, rate: int = 1, cost: str = "10") -> ScanBudget:
@@ -247,7 +269,7 @@ class RecordingGate:
                 release_id=release_id,
                 audit_id=17 + len(self.released),
                 policy_version=POLICY_VERSION,
-                materialised_items=(),
+                materialised_items=(_materialised(),),
                 redaction_manifest=RedactionManifest(entries=()),
                 model_target=request.model_target,
             )
@@ -314,18 +336,32 @@ def test_released_issues_once_validates_and_persists(harness_conn):
     assert len(gate.requests) == 1
     assert gate.requests[0] is request.model_call_request
     assert isinstance(gate.requests[0], ModelCallRequest)
-    assert isinstance(gate.requests[0].requested_items[0], CandidateLabel)
+    assert isinstance(gate.requests[0].requested_items[0], Excerpt)
     assert len(gate.released) == 1
     granted = gate.released[0]
     assert granted.audit_id == 17
+    dossier = build_dossier(
+        request, granted,
+        reduction_rung=REDUCTION_NONE,
+        allowed_vocabulary=("school",),
+        prompt=prompt,
+    )
     assert recorder.calls == [
         build_call_payload(
-            prompt, b"",
+            prompt, canonical_dossier_bytes(dossier, prompt),
             model_target=CLOUD,
             policy_version=POLICY_VERSION,
             release_id=granted.release_id,
         ).model_visible_bytes,
     ]
+    # The model saw what P7 released — addressed and in context, not a joined blob.
+    assert RELEASED_MATERIAL.encode("utf-8") in recorder.calls[0]
+    assert b'"address":"0:19"' in recorder.calls[0]
+    assert granted.release_id.encode("utf-8") not in recorder.calls[0]
+    assert dossier.dossier_id != granted.release_id
+    assert harness_conn.execute(
+        "SELECT dossier_id FROM llm_dossier"
+    ).fetchone()["dossier_id"] == dossier.dossier_id
     assert _count(harness_conn, "llm_response") == 1
     assert _count(harness_conn, "llm_verdict") == 1
     assert _count(harness_conn, "llm_grounding_report") == 1
@@ -795,8 +831,10 @@ def test_exactly_three_p7_branches_and_needs_consent_has_no_conversion_path():
 def test_request_stays_reference_only_until_release(harness_conn):
     prompt = _prompt()
     request = _request(fingerprint=prompt_fingerprint(prompt))
-    assert isinstance(request.model_call_request.requested_items[0], CandidateLabel)
+    requested = request.model_call_request.requested_items[0]
+    assert isinstance(requested, Excerpt)
     assert not hasattr(request, "materialised_items")
+    assert not any(hasattr(item, "value") for item in request.evidence_items)
     gate = RecordingGate(harness_conn, prompt=prompt, decision=_denied())
     _run(
         harness_conn, request,
@@ -807,9 +845,8 @@ def test_request_stays_reference_only_until_release(harness_conn):
     )
     assert gate.requests[0] is request.model_call_request
     payload = canonical_json({
-        "requested_items": [
-            {"label": request.model_call_request.requested_items[0].label},
-        ],
+        "requested_items": [{"observation_key": requested.observation_key}],
+        "evidence_items": [item.evidence_ref for item in request.evidence_items],
     })
     assert "Columbia University" not in payload
 
