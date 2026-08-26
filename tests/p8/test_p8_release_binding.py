@@ -269,3 +269,81 @@ def test_transport_never_uses_a_release_id_as_a_dossier_id():
         and node.value.attr == "release_id"
     ]
     assert offenders == [], offenders
+
+
+# --- two falsey values that meant the opposite of what they said ----------------
+
+
+def test_an_empty_cited_span_does_not_match_everything():
+    """`"" in anything` is True. A model emitting `"cited_span": ""` bypassed span
+    checking at every site, and took the metadata branch down with it: the
+    `is not None` guard sent an empty string to the substring test rather than to
+    the address comparison, so neither check ever ran."""
+    from llm_harness.records import Citation
+    from llm_harness.validation import _check_citation
+
+    citation = Citation(
+        evidence_ref=KEY,
+        cited_span="",
+        metadata_field_name="not_the_address",
+        why_it_supports="why",
+    )
+    checked, reason = _check_citation(citation, _dossier(), lambda key: RAW)
+    assert reason == CITATION_SPAN_MISMATCH
+    assert checked.span_matched is False
+
+
+def test_a_false_unknown_is_not_an_abstention():
+    """`"unknown": false` is not the schema's unknown, and it is not an abstention.
+
+    The `is not None` guard read every falsey value as an abstention and threw the
+    payload and its citations away: a real claim was recorded as one the model had
+    declined to make, with nothing left to check. `validation._validate_claim`
+    already required the Mapping shape and called anything else schema-invalid;
+    Site A now agrees with it, so the response is rejected rather than
+    reinterpreted.
+    """
+    from llm_harness.sites import _proposal
+
+    for falsey in (False, 0, "", []):
+        assert _proposal({
+            "payload": {"field": "school", "value": "Columbia"},
+            "unknown": falsey,
+            "citations": [{
+                "evidence_ref": KEY,
+                "cited_span": REDACTED,
+                "why_it_supports": "names it",
+            }],
+        }) is None, falsey
+
+
+def test_a_real_unknown_is_still_an_abstention():
+    from llm_harness.sites import _proposal
+
+    parsed = _proposal({
+        "payload": {"field": "school"},
+        "unknown": {"insufficiency_statement": "no labelled school"},
+    })
+    assert parsed is not None
+    proposal, citations = parsed
+    assert proposal.unknown is True
+    assert proposal.citations == ()
+    assert citations == ()
+
+
+def test_a_claim_keeps_its_spans_on_the_way_to_site_a():
+    """P6's `Proposal` carries bare keys. A key alone cannot say whether the model
+    quoted the release or invented the quotation, so both shapes travel."""
+    from llm_harness.sites import _proposal
+
+    parsed = _proposal({
+        "payload": {"field": "school", "value": "Columbia"},
+        "citations": [{
+            "evidence_ref": KEY, "cited_span": REDACTED,
+            "why_it_supports": "names it",
+        }],
+    })
+    assert parsed is not None
+    proposal, citations = parsed
+    assert proposal.citations == (KEY,)
+    assert [item.cited_span for item in citations] == [REDACTED]

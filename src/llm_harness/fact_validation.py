@@ -23,12 +23,21 @@ from facts.llm_seam import (
 from facts.states import LLM_SUPPORTED, POSSIBLE
 
 from llm_harness.authorship import COMPONENT_VERSION
-from llm_harness.records import CheckedCitation, P8Verdict, ValidationUnavailable
+from llm_harness.records import (
+    CheckedCitation,
+    Citation,
+    Dossier,
+    P8Verdict,
+    ValidationUnavailable,
+)
+from llm_harness.validation import check_citations
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
     ACCEPT_DIRECT,
     CITATION_NOT_FOUND,
+    CITATION_NOT_IN_DOSSIER,
+    CITATION_SPAN_MISMATCH,
     CONTRADICTED_BY_STRONGER,
     FIELD_NOT_IN_ACTIVE_SCHEMA,
     LLM_SUPPORTED as P8_LLM_SUPPORTED,
@@ -49,9 +58,16 @@ _DISPOSITION = {
     ABSTAIN: ABSTAIN,
 }
 
+#: Three P8 citation reasons, one P6 consequence. P6's vocabulary has a single
+#: word for a citation that does not hold -- `citation_absent_from_evidence` --
+#: and P8 keeps the three ways it can fail: the key is outside what P7 released,
+#: the key no longer resolves in the store, or the quoted span is not in the
+#: released value. Collapsing them at P8 would lose which one happened.
 _REASON_TO_CHECK = {
     FIELD_NOT_IN_ACTIVE_SCHEMA: FOUR_CHECKS[0],
     CITATION_NOT_FOUND: FOUR_CHECKS[1],
+    CITATION_NOT_IN_DOSSIER: FOUR_CHECKS[1],
+    CITATION_SPAN_MISMATCH: FOUR_CHECKS[1],
     VALUE_NOT_NORMALIZABLE: FOUR_CHECKS[2],
     CONTRADICTED_BY_STRONGER: FOUR_CHECKS[3],
 }
@@ -117,19 +133,6 @@ def proposal_state_from_p8(verdict: P8Verdict) -> str:
     return LLM_SUPPORTED
 
 
-def _checked_citations(
-    citations: Sequence[str], citable_keys: set[str],
-) -> tuple[CheckedCitation, ...]:
-    return tuple(
-        CheckedCitation(
-            citation_ref=key,
-            resolved=key in citable_keys,
-            span_matched=key in citable_keys,
-        )
-        for key in citations
-    )
-
-
 def _verdict(
     request: FactRequest,
     proposal: Proposal,
@@ -163,14 +166,27 @@ def _run_checks(
     dependencies: FactValidationDependencies,
     *,
     policy_version: str,
-    dossier_id: str,
+    dossier: Dossier,
+    citations: Sequence[Citation],
+    evidence_resolver: Callable[[str], object],
 ) -> P8Verdict | ValidationUnavailable:
+    dossier_id = dossier.dossier_id
     allowlist = _freeze_str_sequence(request.allowlist, name="allowlist")
     if isinstance(allowlist, ValidationUnavailable):
         return allowlist
-    citations = _freeze_sequence(proposal.citations, name="citations")
-    if isinstance(citations, ValidationUnavailable):
-        return citations
+    keys = _freeze_sequence(proposal.citations, name="citations")
+    if isinstance(keys, ValidationUnavailable):
+        return keys
+    rich = _freeze_sequence(citations, name="citations")
+    if isinstance(rich, ValidationUnavailable):
+        return rich
+    if not all(isinstance(item, Citation) for item in rich):
+        return ValidationUnavailable(missing=("citations",))
+    if tuple(item.evidence_ref for item in rich) != tuple(keys):
+        # P6's `Proposal` carries bare keys and cannot carry a span, so Site A
+        # gets both shapes. Two lists that disagree are two answers to the same
+        # question; the caller built them from one claim, and they must match.
+        return ValidationUnavailable(missing=("citations",))
     observations = _freeze_sequence(
         request.citable_observations, name="citable_observations")
     if isinstance(observations, ValidationUnavailable):
@@ -180,7 +196,10 @@ def _run_checks(
         return existing
 
     citable_keys = {item.observation_key for item in observations}
-    checked = _checked_citations(citations, citable_keys)
+    grounded = check_citations(rich, dossier, evidence_resolver)
+    if isinstance(grounded, ValidationUnavailable):
+        return grounded
+    checked, citation_reasons = grounded
 
     if proposal.field_key not in allowlist:
         return _verdict(
@@ -189,10 +208,23 @@ def _run_checks(
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
         )
-    if not citations or any(key not in citable_keys for key in citations):
+    # Check two, coarse then fine. P6 owns which observations exist for this file
+    # version; P7 owns which of them the model was actually shown, and whether the
+    # quotation is in the released text. A key that is not a P6 observation at all
+    # fails the coarse check -- asking whether it was released would be asking
+    # about something that does not exist. Both reach P6 as the one word its
+    # vocabulary has for it, `citation_absent_from_evidence`.
+    if not keys or any(key not in citable_keys for key in keys):
         return _verdict(
             request, proposal, outcome=REJECT,
             reasons=(CITATION_NOT_FOUND,),
+            citations_checked=checked, policy_version=policy_version,
+            dossier_id=dossier_id,
+        )
+    if citation_reasons:
+        return _verdict(
+            request, proposal, outcome=REJECT,
+            reasons=citation_reasons,
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
         )
@@ -233,28 +265,39 @@ def validate_fact_proposal(
     model_identifier: str,
     prompt_fingerprint: str,
     policy_version: str,
-    dossier_id: str,
+    dossier: Dossier,
+    citations: Sequence[Citation],
+    evidence_resolver: Callable[[str], object],
 ) -> P8Verdict | ValidationUnavailable:
     """Run Site A's four §3.6 checks and hand the consequence to P6.
 
     ``proposal_state`` is derived from the `P8Verdict` and passed to
     `apply_verdict` with no default. This module does not write facts or
     unresolved rows itself.
+
+    `citations` are the model's citations with their spans intact. P6's
+    `Proposal` carries bare observation keys, and a key alone cannot say whether
+    the model quoted the release or invented the quotation.
     """
     missing = _missing(dependencies)
     if missing:
         return ValidationUnavailable(missing=missing)
+    if not isinstance(dossier, Dossier):
+        return ValidationUnavailable(missing=("dossier",))
+    if not callable(evidence_resolver):
+        return ValidationUnavailable(missing=("evidence_resolver",))
 
     if proposal.unknown:
         p8 = _verdict(
             request, proposal, outcome=ABSTAIN, reasons=(),
             citations_checked=(), policy_version=policy_version,
-            dossier_id=dossier_id,
+            dossier_id=dossier.dossier_id,
         )
     else:
         p8 = _run_checks(
             request, proposal, dependencies, policy_version=policy_version,
-            dossier_id=dossier_id,
+            dossier=dossier, citations=citations,
+            evidence_resolver=evidence_resolver,
         )
         if isinstance(p8, ValidationUnavailable):
             return p8

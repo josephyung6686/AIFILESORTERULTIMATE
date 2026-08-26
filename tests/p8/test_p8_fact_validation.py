@@ -159,14 +159,57 @@ def _proposal(subject_file, *, field_key="subject", value="BUSIB 4300",
         field_key=field_key, value=value, citations=citations, unknown=False)
 
 
-def _validate(conn, request, proposal, *, dependencies=None, **kwargs):
-    kwargs.setdefault("dossier_id", DOSSIER)
+def _released_dossier(request, *, dossier_id=DOSSIER):
+    """A dossier that released every observation P6 says is citable, verbatim.
+
+    These tests probe P6's four checks, so the release is made transparent: what
+    the model saw is exactly what the store holds. The tests that probe the
+    release binding itself withhold and redact deliberately.
+    """
+    return _site_a_dossier(
+        evidence_items=tuple(
+            _item(o.observation_key) for o in request.citable_observations),
+        released_evidence=tuple(
+            _release(o.observation_key, o.raw_value)
+            for o in request.citable_observations),
+        allowed=tuple(request.allowlist),
+        dossier_id=dossier_id,
+    )
+
+
+def _quoting(proposal, dossier):
+    """Each citation quotes its own release exactly."""
+    from llm_harness.records import Citation
+
+    by_key = {item.observation_key: item for item in dossier.released_evidence}
+    keys = proposal.citations if proposal.citations is not None else ()
+    return tuple(
+        Citation(
+            evidence_ref=key,
+            cited_span=by_key[key].value if key in by_key else "unreleased",
+            metadata_field_name=None,
+            why_it_supports="fixture",
+        )
+        for key in keys
+    )
+
+
+def _validate(conn, request, proposal, *, dependencies=None, dossier=None,
+              citations=None, resolver=None, **kwargs):
+    if dossier is None:
+        dossier = _released_dossier(request)
+    if citations is None:
+        citations = _quoting(proposal, dossier)
     return validate_fact_proposal(
         conn, request, proposal,
         dependencies=dependencies if dependencies is not None else _deps(),
         model_identifier=MODEL,
         prompt_fingerprint=PROMPT,
         policy_version=POLICY,
+        dossier=dossier,
+        citations=citations,
+        evidence_resolver=resolver if resolver is not None
+        else (lambda key: "the store still holds it"),
         **kwargs,
     )
 
@@ -296,7 +339,9 @@ def test_none_dependencies_is_unavailable(subject_file, p6_conn):
         model_identifier=MODEL,
         prompt_fingerprint=PROMPT,
         policy_version=POLICY,
-        dossier_id=DOSSIER,
+        dossier=_released_dossier(request),
+        citations=_quoting(proposal, _released_dossier(request)),
+        evidence_resolver=lambda key: "the store still holds it",
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("normalize", "contradicts")
@@ -741,7 +786,8 @@ def test_site_a_verdict_carries_the_dossier_id_not_the_file_id(p6_conn, subject_
     """
     request = _request(p6_conn, subject_file)
     verdict = _validate(
-        p6_conn, request, _proposal(subject_file), dossier_id="dossier-address-1",
+        p6_conn, request, _proposal(subject_file),
+        dossier=_released_dossier(request, dossier_id="dossier-address-1"),
     )
     assert verdict.dossier_id == "dossier-address-1"
     assert verdict.dossier_id != request.file_id
@@ -751,15 +797,295 @@ def test_two_dossiers_over_one_file_do_not_collide_on_verdict_id(p6_conn, subjec
     """`verdict_id` is a PRIMARY KEY; `file_id:field_key` repeats on re-validation."""
     request = _request(p6_conn, subject_file)
     first = _validate(
-        p6_conn, request, _proposal(subject_file), dossier_id="dossier-address-1",
+        p6_conn, request, _proposal(subject_file),
+        dossier=_released_dossier(request, dossier_id="dossier-address-1"),
     )
     second = _validate(
-        p6_conn, request, _proposal(subject_file), dossier_id="dossier-address-2",
+        p6_conn, request, _proposal(subject_file),
+        dossier=_released_dossier(request, dossier_id="dossier-address-2"),
     )
     assert first.verdict_id != second.verdict_id
 
 
-def test_validate_fact_proposal_requires_a_dossier_id(p6_conn, subject_file):
+def test_validate_fact_proposal_requires_the_dossier_it_judged(p6_conn, subject_file):
+    """A bare `dossier_id` could not be checked against anything. The dossier is
+    the authority for both the address and what was released, and it has no
+    default: a Site A call with no dossier is `ValidationUnavailable`, never a
+    pass."""
     parameters = inspect.signature(validate_fact_proposal).parameters
-    assert parameters["dossier_id"].kind is inspect.Parameter.KEYWORD_ONLY
-    assert parameters["dossier_id"].default is inspect.Parameter.empty
+    assert "dossier_id" not in parameters
+    for name in ("dossier", "citations", "evidence_resolver"):
+        assert parameters[name].kind is inspect.Parameter.KEYWORD_ONLY, name
+        assert parameters[name].default is inspect.Parameter.empty, name
+
+    request = _request(p6_conn, subject_file)
+    result = validate_fact_proposal(
+        p6_conn, request, _proposal(subject_file), dependencies=_deps(),
+        model_identifier=MODEL, prompt_fingerprint=PROMPT, policy_version=POLICY,
+        dossier=None, citations=(), evidence_resolver=lambda key: "x",
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("dossier",)
+    assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
+
+
+# --- Site A's citations are bound to what P7 released ----------------------------
+#
+# `195da8c` split the two citation sources for sites B-E: the released dossier
+# excerpt matches the span, the store only confirms the key still resolves. Site A
+# never went through `_check_citation` at all -- it took `citable_observations`
+# from P6's `FactRequest`, which is every observation for the file version, and
+# synthesised `span_matched` as a copy of `resolved`. A model citing a key P7
+# withheld, with a span it invented, was accepted and the fact was written.
+
+
+def _site_a_dossier(*, evidence_items, released_evidence, allowed=("subject",),
+                    dossier_id=DOSSIER):
+    from llm_harness.records import Dossier
+    from llm_harness.vocabulary import A_FACT, REDUCTION_NONE, REMAINS_AMBIGUOUS
+
+    return Dossier(
+        dossier_id=dossier_id,
+        call_site=A_FACT,
+        subject_ref="file-1",
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        plan_version=None,
+        policy_version=POLICY,
+        allowed_vocabulary=allowed,
+        evidence_items=evidence_items,
+        conflicts=(),
+        released_evidence=released_evidence,
+        max_dossier_tokens=4000,
+        reduction_rung=REDUCTION_NONE,
+        release_id="rel-1",
+    )
+
+
+def _item(key):
+    from llm_harness.records import EvidenceItem
+    from llm_harness.vocabulary import DIRECT_ANCHOR
+
+    return EvidenceItem(
+        evidence_ref=key, kind="excerpt", location="heading",
+        excerpt_span=(0, 10), reliability_state="direct", basis=DIRECT_ANCHOR,
+    )
+
+
+def _release(key, value):
+    from llm_harness.records import ReleasedEvidence
+
+    return ReleasedEvidence(
+        observation_key=key, address="0:10", value=value, zone="heading",
+        context_before=None, context_after=None, context_truncated=False,
+    )
+
+
+def _claim_bytes(key, span):
+    return json.dumps({"claims": [{
+        "claim_ref": "c1",
+        "payload": {"field": "subject", "value": "BUSIB 4300"},
+        "citations": [{
+            "evidence_ref": key, "cited_span": span,
+            "why_it_supports": "names the subject",
+        }],
+    }]}, separators=(",", ":")).encode("utf-8")
+
+
+@pytest.fixture()
+def two_observations(p6_conn, tmp_path):
+    """One observation P7 released, one it withheld. Both are P6-citable."""
+    file_id, content_hash = _record(
+        p6_conn, tmp_path, name="Syllabus.pdf",
+        body=b"BUSIB 4300 Syllabus, Spring 2026")
+    released = _observe(
+        p6_conn, run_id="r-1", file_id=file_id, content_hash=content_hash,
+        raw="BUSIB 4300", label="heading")
+    withheld = _observe(
+        p6_conn, run_id="r-2", file_id=file_id, content_hash=content_hash,
+        raw="Prof. Jane Roe", label="instructor")
+    assert released != withheld
+    return file_id, content_hash, released, withheld
+
+
+def _dispatch_site_a(conn, dossier, response_bytes, request):
+    from llm_harness.sites import FactSiteDependencies, SiteDependencies, dispatch
+
+    return dispatch(
+        conn, dossier, response_bytes,
+        site_dependencies=SiteDependencies(
+            fact=FactSiteDependencies(
+                fact_request=request, fact_dependencies=_deps()),
+            placement=None, residual=None, template=None,
+        ),
+        evidence_resolver=lambda key: "BUSIB 4300",
+        contradicts=_never_contradicts,
+        model_id=MODEL, prompt_fingerprint=PROMPT, dossier_builder="fixture",
+        release_audit_id=17, policy_version=POLICY,
+    )
+
+
+def _only_verdict(result):
+    assert not isinstance(result, ValidationUnavailable), result
+    verdicts, _report = result
+    assert len(verdicts) == 1, verdicts
+    return verdicts[0]
+
+
+def test_site_a_rejects_a_citation_to_an_observation_p7_withheld(
+    p6_conn, two_observations,
+):
+    """P6 says the key is citable. P7 did not release it. The model never saw it."""
+    from llm_harness.vocabulary import CITATION_NOT_IN_DOSSIER
+
+    file_id, content_hash, released, withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    assert withheld in {o.observation_key for o in request.citable_observations}
+
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+    )
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(withheld, "Prof. Jane Roe"), request))
+
+    assert verdict.outcome == REJECT
+    assert CITATION_NOT_IN_DOSSIER in verdict.reasons
+    assert verdict.may_propose is False
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_site_a_rejects_a_span_that_is_not_in_the_released_value(
+    p6_conn, two_observations,
+):
+    """A real released key quoted with text the release does not contain."""
+    from llm_harness.vocabulary import CITATION_SPAN_MISMATCH
+
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+    )
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(released, "ECON 1105"), request))
+
+    assert verdict.outcome == REJECT
+    assert CITATION_SPAN_MISMATCH in verdict.reasons
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_site_a_span_matching_source_is_the_release_and_not_the_store(
+    p6_conn, two_observations,
+):
+    """With redaction on, the store holds the raw text and the model saw the
+    redacted one. Matching against the store accepts a quotation the model could
+    not have read, and rejects the one it did."""
+    from llm_harness.vocabulary import CITATION_SPAN_MISMATCH
+
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "[REDACTED] 4300"),),
+    )
+    quoting_the_store = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(released, "BUSIB 4300"), request))
+    assert quoting_the_store.outcome == REJECT
+    assert CITATION_SPAN_MISMATCH in quoting_the_store.reasons
+
+    quoting_the_release = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(released, "[REDACTED] 4300"), request))
+    assert quoting_the_release.outcome == ACCEPT_DIRECT
+
+
+def test_site_a_records_a_real_span_result_and_not_a_copy_of_resolved(
+    p6_conn, two_observations,
+):
+    """`span_matched` was `resolved` under another name, so no span was ever
+    compared. A resolved key with a bad span must differ on the two flags."""
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+    )
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(released, "ECON 1105"), request))
+    checked = verdict.citations_checked[0]
+    assert checked.resolved is True
+    assert checked.span_matched is False
+
+
+def test_site_a_still_writes_the_fact_when_the_citation_is_grounded(
+    p6_conn, two_observations,
+):
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+    )
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(released, "BUSIB 4300"), request))
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert [row["field_key"] for row in facts_for_file(
+        p6_conn, file_id, content_hash)] == ["subject"]
+
+
+def test_two_citation_shapes_that_disagree_are_unavailable(p6_conn, two_observations):
+    """P6's `Proposal` carries bare keys and cannot carry a span, so Site A hands
+    both shapes down. Two lists built from one claim that name different keys are
+    two answers to the same question, and whichever one the release check reads
+    would be checking a different citation from the one P6 records."""
+    from llm_harness.records import Citation
+
+    file_id, content_hash, released, withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _released_dossier(request)
+    proposal = Proposal(
+        field_key="subject", value="BUSIB 4300", citations=(released,),
+        unknown=False)
+
+    result = _validate(
+        p6_conn, request, proposal, dossier=dossier,
+        citations=(Citation(
+            evidence_ref=withheld, cited_span="Prof. Jane Roe",
+            metadata_field_name=None, why_it_supports="fixture"),),
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("citations",)
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_a_citation_that_is_not_a_p8_record_is_unavailable(p6_conn, two_observations):
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    proposal = Proposal(
+        field_key="subject", value="BUSIB 4300", citations=(released,),
+        unknown=False)
+    result = _validate(
+        p6_conn, request, proposal, citations=(released,),
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("citations",)

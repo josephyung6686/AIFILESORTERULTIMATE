@@ -273,7 +273,12 @@ def _deps(**overrides):
         basis_key=BASIS_KEY,
         learning_scope="file",
         learning_subject_id="file-1",
-        evidence_resolver=lambda key: RELEASED_MATERIAL if key == "obs-key-1" else None,
+        # P4's store, as a double. `obs-key-1` is the literal fixture key;
+        # `_direct_bytes` cites the real content-addressed one (M14).
+        evidence_resolver=lambda key: (
+            RELEASED_MATERIAL
+            if key == "obs-key-1" or key.startswith("sha256:") else None
+        ),
         site_dependencies=SiteDependencies(
             fact=None, placement=None, residual=None, template=None,
         ),

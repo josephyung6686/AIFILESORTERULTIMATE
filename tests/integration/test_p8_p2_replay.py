@@ -23,6 +23,7 @@ from p8.conftest import (
     RELEASED_MATERIAL,
     make_dossier,
     make_fact_bundle,
+    make_released_evidence,
     make_verdict,
     record_subject,
 )
@@ -99,15 +100,29 @@ def subject(replay_conn, tmp_path):
 
 
 def _dossier(key: str = "obs-key-1"):
+    """A reference AND what P7 released under it.
+
+    An `evidence_items` entry is the reference the model is allowed to cite; the
+    text it may quote is `released_evidence`. A dossier with the first and not
+    the second showed the model a handle and no material, so every citation to it
+    is ungrounded -- which is what Site A now says.
+    """
     return make_dossier(
         evidence_items=(
             EvidenceItem(
                 evidence_ref=key,
                 kind="excerpt",
                 location="body",
-                excerpt_span=(0, 4),
+                excerpt_span=(0, len(RELEASED_MATERIAL)),
                 reliability_state="direct",
                 basis=DIRECT_ANCHOR,
+            ),
+        ),
+        released_evidence=(
+            make_released_evidence(
+                observation_key=key,
+                address=f"0:{len(RELEASED_MATERIAL)}",
+                value=RELEASED_MATERIAL,
             ),
         ),
     )

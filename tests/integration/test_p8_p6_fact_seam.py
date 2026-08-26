@@ -112,14 +112,76 @@ def _deps(*, normalize=_fixture_normalize, contradicts=_fixture_contradicts):
     return FactValidationDependencies(normalize=normalize, contradicts=contradicts)
 
 
+def _released_dossier(request):
+    """The dossier P7 released for this request, transparent: what the model saw
+    is exactly what the store holds. These tests probe the P6 seam, not redaction.
+    """
+    from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
+    from llm_harness.vocabulary import (
+        A_FACT,
+        DIRECT_ANCHOR,
+        REDUCTION_NONE,
+        REMAINS_AMBIGUOUS,
+    )
+
+    return Dossier(
+        dossier_id=DOSSIER,
+        call_site=A_FACT,
+        subject_ref=request.file_id,
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        plan_version=None,
+        policy_version=POLICY,
+        allowed_vocabulary=tuple(request.allowlist),
+        evidence_items=tuple(
+            EvidenceItem(
+                evidence_ref=o.observation_key, kind="excerpt",
+                location="heading", excerpt_span=(0, len(o.raw_value)),
+                reliability_state="direct", basis=DIRECT_ANCHOR,
+            )
+            for o in request.citable_observations
+        ),
+        conflicts=(),
+        released_evidence=tuple(
+            ReleasedEvidence(
+                observation_key=o.observation_key,
+                address=f"0:{len(o.raw_value)}", value=o.raw_value,
+                zone="heading", context_before=None, context_after=None,
+                context_truncated=False,
+            )
+            for o in request.citable_observations
+        ),
+        max_dossier_tokens=4000,
+        reduction_rung=REDUCTION_NONE,
+        release_id="rel-1",
+    )
+
+
+def _quoting(proposal, dossier):
+    from llm_harness.records import Citation
+
+    by_key = {item.observation_key: item for item in dossier.released_evidence}
+    keys = proposal.citations if proposal.citations is not None else ()
+    return tuple(
+        Citation(
+            evidence_ref=key,
+            cited_span=by_key[key].value if key in by_key else "unreleased",
+            metadata_field_name=None, why_it_supports="fixture",
+        )
+        for key in keys
+    )
+
+
 def _validate(conn, request, proposal, *, dependencies=None):
+    dossier = _released_dossier(request)
     return validate_fact_proposal(
         conn, request, proposal,
         dependencies=dependencies if dependencies is not None else _deps(),
         model_identifier=MODEL,
         prompt_fingerprint=PROMPT,
         policy_version=POLICY,
-        dossier_id=DOSSIER,
+        dossier=dossier,
+        citations=_quoting(proposal, dossier),
+        evidence_resolver=lambda key: "the store still holds it",
     )
 
 

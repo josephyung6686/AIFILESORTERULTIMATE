@@ -35,12 +35,21 @@ from llm_harness.placement_validation import (
     validate_placement_response,
     validate_residual_response,
 )
-from llm_harness.records import Dossier, MalformedRecord, ValidationUnavailable
+from llm_harness.records import (
+    Citation,
+    Dossier,
+    MalformedRecord,
+    ValidationUnavailable,
+)
 from llm_harness.template_validation import (
     TemplateDependencies,
     validate_template_response,
 )
-from llm_harness.validation import report_from_verdicts, schema_invalid_verdict
+from llm_harness.validation import (
+    parse_citation,
+    report_from_verdicts,
+    schema_invalid_verdict,
+)
 from llm_harness.vocabulary import (
     A_FACT,
     B_GROUP,
@@ -110,7 +119,15 @@ def _one_claim(response_bytes: bytes) -> Mapping[str, object] | None:
     return claim if isinstance(claim, Mapping) else None
 
 
-def _proposal(claim: Mapping[str, object]) -> Proposal | None:
+def _proposal(
+    claim: Mapping[str, object],
+) -> tuple[Proposal, tuple[Citation, ...]] | None:
+    """One claim as P6 sees it, plus the citations with their spans intact.
+
+    P6's `Proposal` carries bare observation keys. A key alone cannot say whether
+    the model quoted what P7 released or invented the quotation, so Site A keeps
+    both shapes and hands both down.
+    """
     payload = claim.get("payload")
     payload = payload if isinstance(payload, Mapping) else {}
     field_key = payload.get("field")
@@ -118,25 +135,30 @@ def _proposal(claim: Mapping[str, object]) -> Proposal | None:
         # An abstention still names the field it could not fill; a claim with no
         # field is schema-invalid, not an anonymous unknown.
         return None
-    if claim.get("unknown") is not None:
+    unknown = claim.get("unknown")
+    if unknown is not None:
+        # `"unknown": false` is a claim the model made, not one it declined. The
+        # `is not None` guard read every falsey value as an abstention and threw
+        # the payload and every citation away with it. `validation` already
+        # requires the Mapping shape; Site A now agrees with it.
+        if not isinstance(unknown, Mapping):
+            return None
         return Proposal(
             field_key=field_key, value=None, citations=(), unknown=True,
-        )
+        ), ()
     raw = claim.get("citations")
     if not isinstance(raw, list):
         return None
-    citations: list[str] = []
+    citations: list[Citation] = []
     for item in raw:
-        if not isinstance(item, Mapping):
+        parsed = parse_citation(item)
+        if parsed is None or not parsed.evidence_ref:
             return None
-        ref = item.get("evidence_ref")
-        if not isinstance(ref, str) or not ref:
-            return None
-        citations.append(ref)
+        citations.append(parsed)
     return Proposal(
         field_key=field_key, value=payload.get("value"),
-        citations=tuple(citations), unknown=False,
-    )
+        citations=tuple(item.evidence_ref for item in citations), unknown=False,
+    ), tuple(citations)
 
 
 def _fact_site(
@@ -145,6 +167,7 @@ def _fact_site(
     response_bytes: bytes,
     bundle: FactSiteDependencies,
     *,
+    evidence_resolver,
     model_id: str,
     prompt_fingerprint: str,
     dossier_builder: str,
@@ -166,16 +189,19 @@ def _fact_site(
     claim = _one_claim(response_bytes)
     if claim is None:
         return finished((schema_invalid_verdict(dossier),))
-    proposal = _proposal(claim)
-    if proposal is None:
+    parsed = _proposal(claim)
+    if parsed is None:
         return finished((schema_invalid_verdict(dossier),))
+    proposal, citations = parsed
     verdict = validate_fact_proposal(
         conn, bundle.fact_request, proposal,
         dependencies=bundle.fact_dependencies,
         model_identifier=model_id,
         prompt_fingerprint=prompt_fingerprint,
         policy_version=policy_version,
-        dossier_id=dossier.dossier_id,
+        dossier=dossier,
+        citations=citations,
+        evidence_resolver=evidence_resolver,
     )
     if isinstance(verdict, ValidationUnavailable):
         return verdict
@@ -215,6 +241,7 @@ def dispatch(
             return ValidationUnavailable(missing=("fact_dependencies",))
         return _fact_site(
             conn, dossier, response_bytes, site_dependencies.fact,
+            evidence_resolver=evidence_resolver,
             model_id=model_id,
             prompt_fingerprint=prompt_fingerprint,
             dossier_builder=dossier_builder,

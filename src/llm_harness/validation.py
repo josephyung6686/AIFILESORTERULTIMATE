@@ -105,7 +105,8 @@ _ZERO_COUNTS = dict(
 )
 
 
-def _parse_citation(raw: object) -> Citation | None:
+def parse_citation(raw: object) -> Citation | None:
+    """One citation parser. Site A used to reduce citations to bare keys."""
     if not isinstance(raw, Mapping):
         return None
     cited_span = raw.get("cited_span")
@@ -159,16 +160,47 @@ def _check_citation(
             CheckedCitation(citation.evidence_ref, False, False),
             CITATION_NOT_FOUND,
         )
-    if citation.cited_span is not None:
+    if citation.cited_span:
         matched = citation.cited_span in released.value
-    else:
+    elif citation.cited_span is None:
         matched = citation.metadata_field_name == released.address
+    else:
+        # `"" in anything` is True. An empty span is not a quotation of the
+        # release, and the `is not None` guard sent it to the substring test
+        # rather than to the address comparison -- so neither check ever ran.
+        matched = False
     if not matched:
         return (
             CheckedCitation(citation.evidence_ref, True, False),
             CITATION_SPAN_MISMATCH,
         )
     return CheckedCitation(citation.evidence_ref, True, True), None
+
+
+def check_citations(
+    citations: Sequence[Citation],
+    dossier: Dossier,
+    evidence_resolver: Callable[[str], object],
+) -> tuple[tuple[CheckedCitation, ...], tuple[str, ...]] | ValidationUnavailable:
+    """Every site's citation check, in input order, over one dossier.
+
+    Site A ran its own: it took the citable set from P6's `FactRequest`, which is
+    every observation for the file version, and set `span_matched` to a copy of
+    `resolved`. A key P7 withheld, quoted with a span the model invented, was
+    accepted and the fact was written. There is one check now, and it is bound to
+    the release.
+    """
+    checked: list[CheckedCitation] = []
+    reasons: list[str] = []
+    for citation in citations:
+        result = _check_citation(citation, dossier, evidence_resolver)
+        if isinstance(result, ValidationUnavailable):
+            return result
+        item, reason = result
+        checked.append(item)
+        if reason is not None:
+            reasons.append(reason)
+    return tuple(checked), tuple(reasons)
 
 
 def _make_verdict(
@@ -347,7 +379,7 @@ def _validate_claim(
 
     citations: list[Citation] = []
     for item in citations_raw:
-        parsed = _parse_citation(item)
+        parsed = parse_citation(item)
         if parsed is None:
             return schema_invalid_verdict(dossier, claim_ref)
         citations.append(parsed)
@@ -362,16 +394,10 @@ def _validate_claim(
             citations_checked=(),
         )
 
-    checked: list[CheckedCitation] = []
-    reasons: list[str] = []
-    for citation in citations:
-        checked_result = _check_citation(citation, dossier, evidence_resolver)
-        if isinstance(checked_result, ValidationUnavailable):
-            return checked_result
-        item, reason = checked_result
-        checked.append(item)
-        if reason is not None:
-            reasons.append(reason)
+    checked_all = check_citations(citations, dossier, evidence_resolver)
+    if isinstance(checked_all, ValidationUnavailable):
+        return checked_all
+    checked, reasons = checked_all
 
     if reasons:
         return _make_verdict(
