@@ -958,3 +958,51 @@ def test_harness_does_not_invoke_the_client_itself():
 def test_eligible_marker_is_not_a_public_run_call_branch():
     assert Eligible not in (P8Verdict, Refusal, NeedsConsent, ValidationUnavailable, CallFailed)
     assert "Eligible" not in llm_harness.__all__
+
+
+# --- R6: the P6 consequence and the P8 verdict are one write --------------------
+
+
+def test_a_failed_p8_verdict_write_does_not_leave_a_p6_fact_behind(
+    harness_conn, subject, monkeypatch,
+):
+    """Site A writes twice: P6's fact, then P8's verdict row about it.
+
+    Unsplit, a failure between them leaves P6 holding an `llm_supported` fact whose
+    judgement no P8 verdict records -- a fact with no provenance, which is the exact
+    shape `record_cd_verdict` was repaired for.
+    """
+    import sqlite3
+
+    import llm_harness.harness as harness_module
+    from facts.file_facts import facts_for_file
+
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    request = _request(fingerprint=prompt_fingerprint(prompt), key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
+
+    def explode(*_a, **_k):
+        raise sqlite3.IntegrityError("verdict row refused")
+
+    monkeypatch.setattr(harness_module, "record_verdict", explode)
+    with pytest.raises(sqlite3.IntegrityError):
+        _run(
+            harness_conn, request,
+            gate=gate,
+            model_client=ModelClient(
+                model_target=CLOUD, invoke=Recorder(reply=_direct_bytes(key)),
+            ),
+            prompt=prompt,
+            deps=_deps(site_dependencies=bundle),
+        )
+
+    file_id, content_hash, _key = subject
+    assert [
+        row for row in facts_for_file(harness_conn, file_id, content_hash)
+        if row["field_key"] == "school"
+    ] == []
+    assert harness_conn.execute(
+        "SELECT count(*) AS c FROM llm_verdict"
+    ).fetchone()["c"] == 0

@@ -308,3 +308,4 @@ def test_site_a_bundle_rejects_a_bare_callable():
 
     with pytest.raises((TypeError, ValueError)):
         FactSiteDependencies(fact_request=_permissive, fact_dependencies=_permissive)
+

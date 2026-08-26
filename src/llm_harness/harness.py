@@ -12,6 +12,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, fields
 from decimal import Decimal
 
+from database_agent.db import transaction
 from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.budgets import (
     BudgetExhausted,
@@ -270,6 +271,27 @@ def _issue_and_validate(
         return result
     if not isinstance(result, ModelResponse):
         return ValidationUnavailable(missing=("model_response",))
+    # One transaction spans the consequence and the verdict that justifies it.
+    # Site A's dispatch writes P6's fact; `_record_verdicts` writes the P8 row
+    # about it. Split, a failure between them leaves P6 holding an
+    # `llm_supported` fact whose judgement nothing records.
+    with transaction(conn):
+        return _validate_and_record(
+            conn, request, dossier, result, released,
+            deps=deps, observed_at=observed_at,
+        )
+
+
+def _validate_and_record(
+    conn: sqlite3.Connection,
+    request: DossierRequest,
+    dossier,
+    result: ModelResponse,
+    released: Released,
+    *,
+    deps: CallDependencies,
+    observed_at: str,
+) -> P8Verdict | ValidationUnavailable:
     checked = dispatch(
         conn,
         dossier,
