@@ -1,0 +1,397 @@
+{
+  "id": "engineering.electrical-schematic",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Electrical schematics and wiring design (REFUSED)",
+  "one_line": "REFUSED. The roster hint describes a set of document types on one medium — schematic sheets, wiring diagrams, harnesses and panel drawings — and the discipline that produced them. Both are values, not an organizational situation. `electrical schematic` is already enumerated verbatim in the engineering schema anchor's own `work_types[]` beside `PCB layout`, `CAD model`, `engineering drawing` and `bill of materials`, and that anchor's `work_types_note` says those are candidate VALUES of engineering_artifact_type, not child schemas. The coverage is not lost: circuit, control and power design definition activates the engineering schema exactly as a mechanical drawing does, the discipline resolves as a field value once R1c adjudicates engineering_artifact_type, the building-services subset is construction_property.drawings-revisions, the shop wiring subset is manufacturing.work-instruction, and unattached sheets land in the named residuals. Placeholder row (J-IND): it writes NO field rows, because the engineering schema declares none (PR-6).",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on two legs outright, and the third leg's apparent difference dissolves under examination into a field value and a neighbour's evidence. CONNECTION.md section 2 states the test directly: a template row exists only if its detection signals, recommended dimensions, or privacy rules differ from its schema's default template. (1) DIMENSIONS — cannot differ, structurally. The engineering schema declares no field rows (PR-6; engineering.json carries `fields: []` and `template.dimension_order: []`), and _CONTRACT rule 8 permits a template to branch only on a field its own schema declares. There is no order for this row to differ in. Even taking the anchor's conditional researched order, project -> design_item -> lifecycle_stage -> engineering_artifact_type, this row would recommend that same order with the last level PINNED to one value. Pinning a dimension to a value is a filter, not a different order, and a filter on a value is the definition of what CONNECTION.md section 2 forbids when it says a subdomain is never a third roster kind, never a schema per work type, never a schema per file format. (2) PRIVACY — identical. The anchor's sensitivity_why already covers proprietary design definition, supplier data, vulnerabilities, safety analyses and export-controlled technical data; a wiring diagram is in that set on the same reasoning, at the same level, with no rule of its own. Nothing about circuit design changes what may be sent to a model that mechanical design did not already change. (3) DETECTION SIGNALS — the only live leg, and it fails on three independent grounds. The steelman is real and worth stating: connectivity structure — stable reference designators, net names, and pin or terminal cross-references — is genuinely absent from the anchor's ten deterministic signals, and it fires on files that carry no title block, no requirement identifier and no product-structure table. (3a) But that evidence is not THIS row's; it is shared by at least three sibling roster ids. A netlist is the handoff artifact BETWEEN schematic capture and board layout: main-board.net contains exactly the reference designators and nets that engineering.electrical-schematic and engineering.pcb-layout would both claim, and engineering.drawing-package and engineering.cad-model claim the sheet and the model forms of the same design item. Evidence that four sibling rows claim identically is not a boundary between rows; it is one schema recognizing one design item, with the discipline recorded as a value. (3b) For most of the real corpus the connectivity signal is unavailable at launch. 00 places proprietary EDA files in the design-and-creative extractor, where `unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty` — an Altium .SchDoc or an OrCAD .DSN yields filename, format and metadata, not nets. What remains is the extension, and 00 binds the engine to `treat the file extension as a routing signal rather than an assumption about meaning`. A row whose signal is `.sch` is a row whose signal is a file format. (3c) For the text-bearing subset the signal exists but points elsewhere. A .kicad_sch is an S-expression file, routed by 00 through the structured-text extractor for `Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files`, and it almost always sits under a project directory with a repository marker — which is code.software-project's deterministic evidence, not this row's. (4) THE ESCAPE ROUTE, CLOSED — recorded here so the row cannot be resurrected from the JSON alone. A resurrector will argue that a wiring artifact records a relation between two labelled roles, a source terminal and a destination terminal, and that a two-role relation defeated the never-alone charge for other rows. Three answers, any one sufficient. (a) A from-terminal/to-terminal pair is not two parties whose relation the artifact records; it is two positions inside one design item, so the relation is internal to the item the engineering schema already keys on, and naming it names the item again. (b) The pincer: where a from/to table is joined to an identified controlled item and a revision, the anchor's own drawing/title-block and product-structure signals already fire and the engineering schema activates without this row; where it is not, the table is a shop build sheet or a maintenance aid and manufacturing.work-instruction owns it. There is no third branch. (c) The deletion test: delete the discipline word (electrical, circuit, wiring, harness, panel) and delete the file format, and what remains is an identified design item under revision with controlled technical artifacts — which is the engineering schema's default template, unmodified. Keeping the id as a row to preserve legacy coverage would be the 574's mistake: inventing a filing world to save an id.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "REFUSED ROW — none of these activate this id. Recorded as a RECOMMENDATION TO R1c for the engineering anchor, whose ten deterministic signals do not currently include connectivity: a connectivity structure in which stable reference-designator-shaped labels recur across a net or node listing AND at least one pin, terminal or connector cross-reference joins two of them. The relation among the labelled parts is the signal; a reference-designator-shaped token alone is a stock code, a grid reference, a room number or a spreadsheet cell address.",
+      "REFUSED ROW — RECOMMENDATION TO R1c: a from/to wiring table whose columns pair an origin terminal or connector-pin slot with a destination terminal or connector-pin slot for the same identified assembly, together with a conductor property column such as gauge, colour or cable identifier. Absent the identified assembly this is a build aid, and manufacturing.work-instruction owns it.",
+      "REFUSED ROW — RECOMMENDATION TO R1c: an electrical-rules or design-rules check report that enumerates warnings against reference designators and nets belonging to one named design file. It is verification evidence for the anchor's requirement-to-verification signal, reached by a different structure than a test report.",
+      "REFUSED ROW — the discipline itself is a VALUE. Where a labelled document-type or title-block slot reads schematic, wiring diagram, single-line diagram, harness drawing or panel layout, that string is a candidate value of engineering_artifact_type (or a widened canonical artifact_type) under NJ-ENG-1, not evidence of a distinct organizational situation."
+    ],
+    "needs_llm": [
+      "whether an electrical drawing sheet controls a reusable designed product or is building-services information issued for one property's construction — the seam this refusal hands to construction_property.drawings-revisions, and the same question the engineering anchor already routes to an LLM",
+      "whether a from/to wire list is design definition for a harness, a shop assembly instruction, or a maintenance troubleshooting aid, when the identified assembly appears only in prose",
+      "whether an EDA project directory is principally a repository under code.software-project or a controlled design definition under engineering, when both a repository marker and an item identifier are present"
+    ],
+    "never_alone": [
+      "the words schematic, circuit, wiring, harness, panel, single-line, netlist, PCB or electrical alone. Every one of them appears in a building's construction set, a maintenance manual, a physics course handout, a datasheet and an electronics hobby blog capture",
+      "an EDA extension alone — .sch, .kicad_sch, .SchDoc, .DSN, .brd, .net, .asc. 00 binds the engine to treat the extension as a routing signal rather than an assumption about meaning, and .sch alone is ambiguous between three vendors and a plain-text scheduling file",
+      "a reference-designator-shaped token alone (R12, U3, C7, TB1). The same shape is a spreadsheet cell address, a room or rack label, a standards clause number and a part-catalogue stock code",
+      "a from/to pair of short labels alone. Cable schedules, seating charts, network patch panels, freight manifests and plumbing schedules all carry an origin and a destination column",
+      "a drawing-series sheet prefix alone (E-102, EL-04). It is a sheet index position inside somebody's drawing set, and the set may be a building's, which is construction_property's evidence, not engineering's",
+      "a component manufacturer or EDA vendor name alone. Role ambiguity here is the same defect 00 identifies for a university name — the vendor may be the tool that drew the file, the maker of a part on it, a cited reference or the employer",
+      "an image that looks like a diagram alone, and the absence of EXIF on it. 00 forbids missing EXIF as screenshot proof, and a photographed whiteboard circuit sketch is a picture of thinking, not a controlled definition",
+      "parent-folder context naming a board, panel or harness alone. Activation is not grouping: a sparse member of an accepted design neighbourhood may join the group without receiving the group's facts"
+    ]
+  },
+  "proposed_context_terms": [
+    "reference designator",
+    "net name",
+    "netlist",
+    "schematic sheet",
+    "single-line diagram",
+    "terminal block",
+    "wire number",
+    "connector pinout",
+    "harness drawing",
+    "electrical rules check",
+    "as-wired"
+  ],
+  "work_types": [],
+  "grouping_reasons": [
+    "REFUSED ROW — this id owns no grouping reason of its own. The grouping a person actually wants here is already written on the engineering anchor: one identified design item's requirements, definition, analyses, changes and verification evidence across its lifecycle. A board's schematic, its netlist, its layout, its BOM and its ERC report are one design item's controlled definition, and they group under that reason without this row existing.",
+    "The second grouping people expect — every electrical file together, regardless of item — is a collector, not a group with a reason. It is the same defect as filing by employer name: it assembles a folder, not a neighbourhood."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case by binding contract: the engineering schema declares no field rows (PR-6), so no template on it can name a dimension. The emptiness is itself part of the refusal. The order this row would have recommended is the anchor's conditional order with engineering_artifact_type pinned to one value, and a pinned value is a filter rather than a different recommendation. The user may later add an artifact-type level and see their schematics gather there; that is the schema's default template doing its job, not this row.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "code_structured",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".sch",
+      ".kicad_sch",
+      ".SchDoc",
+      ".DSN",
+      ".net",
+      ".asc",
+      ".dwg",
+      ".dxf",
+      ".xlsx",
+      ".csv",
+      ".rpt",
+      ".zip",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "power-supply.kicad_sch",
+      "source_type": "code_structured",
+      "observations": [
+        "S-expression text listing symbol entries whose Reference properties read R12, C7, U3",
+        "net labels VBUS, GND, SW recur across the entries",
+        "the file sits beside a .kicad_pcb, a .kicad_pro and a .git directory"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — it is refused; the connectivity structure is the engineering schema's evidence, recommended to the anchor",
+        "any engineering field — the schema declares no field rows",
+        "that the repository marker beside it is decorative; a repository root is code.software-project's deterministic evidence and the two claims must be resolved on their own evidence, not by extension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Main-Board_RevC.SchDoc",
+      "source_type": "design_creative",
+      "observations": [
+        "proprietary compound-document container; the extractor yields filename, format and basic metadata only",
+        "no readable nets, no readable title block, no readable revision slot",
+        "a revision-shaped suffix appears in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — it is refused, and in any case the only evidence present is an extension",
+        "a revision fact from the filename suffix; RevC is an observation",
+        "that an unreadable file is an empty file — 00 requires indexed-but-unreadable instead",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "main-board.net",
+      "source_type": "code_structured",
+      "observations": [
+        "plain-text listing of net names each followed by a set of reference-designator and pin pairs",
+        "a header line names the design file that generated it",
+        "no title block, no approval slot, no requirement identifier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this file discriminates schematic from layout — it is the HANDOFF between them and both sibling ids claim it identically; that shared claim is a principal reason this row is refused",
+        "any engineering field — the schema declares no field rows",
+        "a design item fact from the generating filename alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "E-102_Lighting-and-Power-Layout_Rev4_IFC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a drawing sheet with circuit symbols, cable references and a distribution-board schedule",
+        "title block names a site address, a client, a consulting practice and a project number",
+        "an Issued For Construction stamp and a revision cloud with a revision-history table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — THE COLLISION FIXTURE. It is an electrical schematic sheet by every surface test and it is construction_property.drawings-revisions by its discriminating evidence: a site address joined to an issue status in a professional instruction lifecycle",
+        "engineering activation from the circuit symbols; the controlled object is a property, not a reusable design item",
+        "a construction fact and an engineering fact from the same slot; each relation must be independently evidenced",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PanelA_Terminal-Schedule.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns headed Terminal, From Device, To Device, Cable Ref, Core, Function",
+        "a sheet tab named Panel A and a second tab named Spares",
+        "no item identifier, no revision slot, no approver"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the from/to pair is an internal relation of one assembly, not two parties, and without an identified controlled item this is a build aid that manufacturing.work-instruction claims",
+        "a design item fact from the sheet tab name",
+        "that a from/to table is distinctive — cable schedules, patch-panel logs and plumbing schedules share the shape",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "HarnessB_Wire-List_RevA.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry wire number, gauge, colour, from-connector and pin, to-connector and pin",
+        "a header block names the harness part number and an issue letter",
+        "a released status cell and a checker name are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the identified harness part number with an issue and an approval slot is precisely the engineering ANCHOR's controlled-definition signal, which fires without this row and proves the row adds nothing",
+        "any engineering field — the schema declares no field rows",
+        "a manufacturing execution fact; no batch, asset or operation appears",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ERC_report_2026-05-04.rpt",
+      "source_type": "text_document",
+      "observations": [
+        "enumerated warnings, each naming a reference designator, a pin and a net",
+        "a header naming the source design file and a timestamp",
+        "no requirement identifiers and no pass/fail disposition"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — it is verification-shaped evidence for the engineering anchor, recommended there, and it is generated output rather than definition",
+        "requirement satisfaction; the report traces to nets, not to requirement identifiers",
+        "a design item fact from the source filename alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Datasheet_LM2596_Rev-J.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a semiconductor manufacturer's letterhead, absolute-maximum tables and a typical-application circuit diagram",
+        "the circuit diagram carries reference designators and net labels",
+        "a document revision letter and a publication date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the schematic on page one is an ILLUSTRATION in a vendor reference document, not a controlled definition of anything the user designed",
+        "a design item fact from the part number; it is a catalogue identifier for a component someone else made",
+        "an engineering relation from the manufacturer name; role ambiguity strikes it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-03-11 at 14.02.13.png",
+      "source_type": "ocr",
+      "observations": [
+        "a captured region of an EDA canvas; OCR recovers R12, 10k and a net label",
+        "window chrome and a cursor are visible at the edge",
+        "no title block, no file identity, no revision"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — a handful of OCR'd designators is the weakest form of the evidence this row was already refused for holding",
+        "a design item fact by reading across from the schematic the screenshot was taken from",
+        "screenshot status from the absence of EXIF; 00 forbids that inference",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": [
+        "a phone photograph of a whiteboard bearing a hand-drawn circuit sketch",
+        "capture properties present; no readable structure beyond a few marker strokes",
+        "it sits in a camera roll beside unrelated photographs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row — a picture of thinking is not a controlled definition, and this row is refused in any case",
+        "a design item fact from a neighbouring design folder; the graph assembles context and does not copy facts onto sparse files",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.pcb-layout",
+      "why": "Same schema, same design item, same evidence. main-board.net is the fixture on both sides: it is the netlist handed from schematic capture to board layout and both ids would claim it in full. The only discriminator anyone can name is which artifact-type value the file carries — symbols and nets with no physical geometry versus footprints, copper and drill data — and a discriminator between values is not a boundary between rows. This is a collision that resolves by DELETING BOTH ROWS into the engineering schema's default template, not by drawing a line.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "why": "A schematic printed to a controlled sheet IS a drawing-package sheet. Fixture: HarnessB_Wire-List_RevA.csv with its part number, issue letter and checker — a drawing-package row claims it as an associated list, this row would claim it as wiring design, and the engineering anchor's own title-block signal already fires on it without either. Same recommendation: the discipline is a value on one node.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.cad-model",
+      "why": "An EDA project is a model container the same way a mechanical CAD project is. Fixture: power-supply.kicad_sch beside its .kicad_pcb and .kicad_pro — indistinguishable in kind from an assembly model beside its part models. Both ids would be claiming the same relation, which is the engineering schema's relation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "why": "RECIPROCAL, and the sharpest boundary this refusal has to state. E-102_Lighting-and-Power-Layout_Rev4_IFC.pdf is an electrical schematic sheet by every surface test and belongs to construction_property. FROM THIS SIDE: circuit symbols, cable references and a distribution-board schedule are not enough; where the title block joins a SITE ADDRESS to an ISSUE STATUS in a professional instruction lifecycle, the sheet is site information for one property and this material must not be claimed. FROM THAT SIDE: the same drawing conventions on a sheet that identifies a reusable designed product or assembly with no site, client or issue-for-construction relation are engineering's controlled definition, and construction_property must not claim it merely because a consulting practice drew it. Neither side may infer the other's relation from the shared drawing vocabulary.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "why": "RECIPROCAL. PanelA_Terminal-Schedule.xlsx is the shared fixture. FROM THIS SIDE: a from/to terminal table with no identified controlled item, no issue and no approval is a build aid — this material must not be claimed as design definition on the strength of the wiring vocabulary alone. FROM THAT SIDE: the same table joined to an identified assembly with an issue letter and an approver (HarnessB_Wire-List_RevA.csv) is design definition and manufacturing must not claim it as an instruction merely because someone will wire from it. The seam is the identified controlled item, not the table shape.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "why": "RECIPROCAL, and the reason leg 3c fails. FROM THIS SIDE: power-supply.kicad_sch is text-bearing and sits under a repository root with a .git directory and project manifests; 00 routes text-bearing structured files through the structured-text extractor and tells code to rely on repository roots and package files, so the repository evidence is code's and this row must not claim the directory because its files describe hardware. FROM THAT SIDE: a repository is not the whole story where an identified design item, issue status and approval structure also appear — code must not swallow a controlled design definition merely because it is version-controlled in git.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The correct home for a standalone electrical drawing or wire list with durable meaning but no reliably evidenced design item, project or property. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” Named on this row's must_consider_residuals.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for the large middle of this material — a netlist, a terminal schedule, an ERC report or an EDA source file that is plainly technical but whose controlled item, discipline and owning schema cannot be established from its own evidence. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.” Named on this row's must_consider_residuals.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Where proprietary EDA containers yield nothing but a filename and a format, this is the honest destination rather than a filename-only purpose inference. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Component datasheets, application notes and standards extracts carry circuit diagrams and are reading material, not design definition. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photographed whiteboard circuit sketch or a lone panel photo with no accepted design neighbourhood. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded for completeness and as leg 2 of the refusal: it is IDENTICAL to the engineering schema anchor's, and identity is the point. Circuit, control and power design definition sits inside the same proprietary-design, supplier-data, vulnerability and export-controlled envelope the anchor already describes, at the same level, under the same rule that privacy policy is enforced before any model or connector receives content. No sensitivity rule exists here that the schema does not already carry, so this leg of the node test yields no difference. No handling class is assigned.",
+  "open_question": "NEEDS-JOSEPH NJ-ELEC-1: the connectivity signal is real and the engineering anchor does not have it. This refusal recommends R1c ADD it to engineering.json's deterministic list (see recognition.deterministic, marked as recommendations) rather than let it die with the id; the alternative is that engineering ships blind to EDA source files and netlists that carry no title block. This row must not edit the anchor. NJ-ELEC-2: engineering.electrical-schematic, engineering.pcb-layout, engineering.cad-model, engineering.drawing-package and engineering.bill-of-materials are five roster ids that appear to be five VALUES already enumerated in engineering.json's work_types[]. If this refusal is correct, the same argument retires the other four, and R1c should decide the family in one operation rather than five times; the alternative is that one artifact-type slice survives arbitrarily. NJ-ELEC-3: where a building-services electrical design is prepared by a consulting practice for a developer, the sheet is simultaneously a reusable engineered system and site information for one property. This row recommends construction_property.drawings-revisions on the site-address-plus-issue-status evidence, which is a narrower answer than the anchor's NJ-ENG-3; confirm the two are consistent or make NJ-ENG-3 govern. NJ-ELEC-4: if R1c overrules this refusal, the row cannot be built as written — it would need a dimension the engineering schema does not declare, so PR-6 would have to be lifted for engineering first."
+}

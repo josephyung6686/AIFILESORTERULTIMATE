@@ -1,0 +1,572 @@
+{
+  "id": "engineering.verification-validation",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Verification and validation evidence",
+  "one_line": "Planned testing against a stated requirement and the executed record that says whether it passed: verification plans and protocols, requirement-to-result matrices, executed test and qualification reports, third-party accredited laboratory reports, and the deviation or retest records that close a failure. The organising relation is a pre-stated acceptance criterion paired with a recorded actual result for an identified article, not the word 'test' and not a document-type name. Placeholder row (J-IND, full J-DEPTH): fields stay empty under PR-6; the two proposed keys record what R1c must adjudicate before this template can branch on anything.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "verdict": "survives, on legs two and three; leg one is real but narrow",
+    "charge_considered": "The strongest case for refusing this row is that `verification plan/procedure/report` and `validation report` are two literal entries in the engineering schema row's own `work_types[]`, that the row's roster name ('Test plans, protocols and validation reports') is a list of three document types, that the right-hand side of a V-model is a lifecycle position and `lifecycle_stage` is already a proposed key on the schema, and that the schema anchor already carries both the verification-matrix deterministic signal and the fixture `BPA-210_DVT-07_Verification-Report.pdf` on its own default list. On that reading the row is simultaneously a value of `engineering_artifact_type` and a value of `lifecycle_stage`, which is the 574's exact failure.",
+    "leg_1_detection_signals": "PARTIALLY DIFFERENT. The schema's ten deterministic signals are definition structures — title block, requirements table, TDP manifest, BOM parent/child, change disposition — and one of them does name a verification matrix. But three discriminations that actually decide files in this corpus appear nowhere on the schema, and two of them are refusals: (a) the protocol/report seam, where the identical grid with systematically empty result and disposition columns and no execution date is a plan and not evidence, which `business_operations.product-requirements` already argues from its side ('Executed results transfer the file'); (b) the third-party issuer relation, an accreditation or scope reference plus a report number in the issuer's own series plus a named standard designation plus a sample-received description plus a conclusion clause scoped to that sample — a relation no other engineering artifact has, because every other engineering artifact is authored by the design authority itself; (c) the raw-measurement refusal, that an instrument export with no acceptance criterion is not verification evidence. These are additional signals, not a restatement, but they are the weakest of the three legs and this row does not pretend otherwise.",
+    "leg_2_dimension_order": "DIFFERENT, and this is the decisive leg. The schema's researched default order is project -> design_item -> lifecycle_stage -> engineering_artifact_type. This row recommends design_item -> engineering_artifact_type. `lifecycle_stage` must be dropped precisely because this row IS the lifecycle position: across this corpus that level's value is constant, so it opens a branch that never branches and buys one directory of depth for nothing. `project` is demoted because a large, ordinary share of this material — accredited laboratory reports, standard-scoped qualification packages, reusable protocols — carries the article and the standard but no project token at all, so the schema's first level would open on a fact the files cannot supply. The schema default also cannot express this corpus's most useful optional order, institution-first for the externally issued subset, because `institution` is not in its order at all.",
+    "leg_3_privacy": "DIFFERENT IN KIND, not degree. The schema is potentially_sensitive because engineering packages carry proprietary and export-controlled design definition. This row's defining privacy rule is instead a refusal about people: summative human-factors and usability VALIDATION produces signed participant consent forms, session video and transcripts that look exactly like validation evidence and are a person's record. `business_operations.user-research` is a REFUSED row and carries those very fixtures, so nothing downstream is holding that line; this row must hold it, and its rule is that participant-bearing material never acquires a design_item and routes to Protected Records. A schema whose sensitivity story is proprietary technical data cannot state that rule.",
+    "why": "Two of three legs differ, one of them structurally and one of them as a refusal, so the row is not a duplicate of its schema's default template. It is honestly narrower than its roster name implies: it is not 'test documents', it is the acceptance-criterion-to-recorded-result relation. If R1c later widens the schema default to carry the protocol/report seam and an institution level, this row's justification narrows to leg three alone and should be re-tested."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract. PR-6 leaves the engineering schema with no declared fields, and a template may not copy or re-declare its schema's list. The set that would become legal on a file this row recognises is the engineering schema row's proposed project, design_item, lifecycle_stage, engineering_artifact_type and revision_or_baseline — none of which are canonical yet — plus canonical `institution` in the issuing-laboratory role, plus the universals.",
+  "proposed_fields": [
+    {
+      "key": "verification_method",
+      "type": "enum",
+      "example": "test",
+      "example_values": ["test", "analysis", "inspection", "demonstration", "simulation"],
+      "why_no_existing_key": "No canonical key names the MEANS OF PROOF. `work_type` is the academic schema's key for syllabus/homework/lecture. `record_type` is finance's. The engineering schema's proposed `engineering_artifact_type` names the kind of document — a verification report — and cannot distinguish a report that proves a requirement by physical test from one that proves the same requirement by analysis, even though those two files are produced by different people, cite different inputs and are challenged in different ways. The four-method vocabulary is stable across industries and is the axis a reader uses when asking how a requirement was closed.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE, deliberately. Making method a folder level scatters the evidence for a single requirement across sibling directories and breaks the one chain this row exists to preserve. It is a search and filter fact, not a destination.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled method column in a verification matrix or a labelled method field in a protocol header can be direct. Otherwise validation needs a method term co-occurring with a structure that matches it — recorded instrument readings for test, model inputs and margins for analysis, characteristic-by-characteristic conformity for inspection. Rule family: term-plus-structure context. R2 owns any pattern; this row writes no regex and no threshold.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "verification_status",
+      "type": "enum",
+      "example": "pass with deviation",
+      "example_values": ["planned", "in progress", "pass", "fail", "pass with deviation", "waived", "superseded by retest"],
+      "why_no_existing_key": "Nothing canonical carries a disposition. `stage` is the workflow position of a research artifact and the engineering schema's `lifecycle_stage` is the maturity of the design, not the outcome of a proof. The disposition is the single most retrieved fact in this corpus — the open and failed items are what a reader looks for — and it is the fact that distinguishes a plan from evidence.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE. A disposition is mutable: a retest flips fail to pass and a waiver flips it again. Folder membership must not churn as a result changes, and 00 separates facts from paths precisely so that a fact like this can be recorded without becoming a location.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled pass/fail or disposition column, or a labelled conclusion field, can be direct. A conclusion stated in prose is possible or llm_supported. Validation requires the disposition to sit beside a pre-stated acceptance criterion — a bare pass/fail column also appears on inspection sheets, checklists, CI output and site certificates, none of which are this row. Rule family: disposition-plus-acceptance-criterion co-occurrence.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "proposed_context_terms": [
+    "acceptance criterion",
+    "recorded result",
+    "verification method",
+    "test procedure",
+    "configuration under test",
+    "sample tested",
+    "deviation",
+    "retest",
+    "witnessed by",
+    "conclusion"
+  ],
+  "proposed_context_terms_note": "PROPOSED candidates for R6, not design. 00 states the pattern-plus-context shape for course codes only and does not list these. Every one of them is offered as context that must accompany other evidence, never as a trigger.",
+  "recognition": {
+    "deterministic": [
+      "an executed acceptance structure: a pre-stated acceptance-criterion column paired with a recorded-actual column and a per-row disposition, joined to an identified article or configuration and an execution date. The pairing of criterion with recorded actual is the signal; neither column alone is",
+      "a requirements verification matrix: stable requirement identifiers on one axis and method, procedure reference and result or status across, all scoped to one identified item",
+      "a planned-but-unexecuted protocol: the same acceptance structure with the result and disposition columns systematically empty and no execution date or signature block. This is a plan OF this row, and the emptiness is what distinguishes it from evidence and from an acceptance-criteria sheet owned by a requirements row",
+      "a third-party laboratory report cover relation: an issuing organisation with an accreditation or scope reference, a report identifier in that issuer's own series, a named standard designation, a sample-received description naming a model or serial, and a conclusion clause scoped to the sample tested",
+      "a qualification package structure: numbered protocol steps with pre-stated acceptance criteria, executed pages carrying initials and dates, and a deviation log reconciled before final approval. This activates engineering only when the qualified object is a design item; when the qualified object is a production process, a plant asset or a computer system, it is manufacturing's",
+      "a deviation, concession or waiver record that names a failed verification, the affected requirement identifier and a disposition with approval",
+      "a retest record that names the superseded run and repeats one acceptance row rather than the whole matrix",
+      "an archive manifest exposing a procedure, raw results and a signed report under one test or campaign identifier, read without extracting members to disk",
+      "parent-folder context naming a test campaign may raise plausibility only after one acceptance structure is present in a member file; it never fires this template by itself"
+    ],
+    "needs_llm": [
+      "whether a pass/fail table verifies a design requirement, inspects a manufactured unit against a drawing, accepts an installed instance at a site, or reports a research experiment, when the trace links are prose rather than labelled slots",
+      "whether a document titled validation validates a product against a user need, qualifies a production process, or validates a computer system",
+      "whether a protocol is a reusable standing method held for future use or the record of one executed run",
+      "whether an analysis report is verification-by-analysis evidence closing a named requirement or an exploratory design study with no requirement in view",
+      "whether a document on a laboratory's letterhead is test evidence, a calibration certificate for an instrument, or a certificate of conformity",
+      "whether a test summary inside a design review deck is the verification evidence itself or a governance summary of evidence held elsewhere"
+    ],
+    "never_alone": [
+      "the words test, testing, protocol, validation, verification, qualification, acceptance, pass, fail, result or report. Every one of them is common to manufacturing, clinical, research, code and construction material",
+      "a pass/fail column alone. Inspection sheets, site certificates, CI output, checklists and audit findings all carry one, and the discriminator is whether an acceptance criterion was stated before the result was recorded",
+      "a laboratory, notified body or certification house name alone. An organisation name is never-alone evidence, and a lab's letterhead appears on quotations, calibration certificates and certificates of conformity as readily as on test evidence",
+      "a standard designation alone. The same designation appears in a standards-library copy, a purchase specification, a marketing claim and a certificate, none of which are this row",
+      "a serial, sample or article number alone. It can be a stock code, an asset tag, an invoice line, a warranty reference or an arbitrary number",
+      "a raw instrument export alone. Measurement data with no acceptance criterion beside it is not verification evidence, and treating a channel-and-timestamp CSV as a test result is this row's most common false positive",
+      "a filename token such as DVT, DV, PV, IQ, OQ, PQ, SAT, FAT, HALT or HAST alone. These are campaign abbreviations, and 00's rule that a bare short token is not proof applies to them",
+      "a witness, tester or approver signature block alone. Contracts, deliveries, site diaries and timesheets carry signature blocks",
+      "a requirement-shaped identifier alone with no method and no result. That evidence belongs to the requirements row until a recorded outcome appears beside it",
+      "a CAD, spreadsheet or PDF extension or source_type alone. 00 requires extension to be a routing signal rather than an assumption about meaning"
+    ]
+  },
+  "work_types": [
+    "verification plan",
+    "verification procedure or test protocol",
+    "executed verification report",
+    "requirements verification matrix",
+    "design validation report",
+    "qualification protocol and report",
+    "third-party accredited laboratory test report",
+    "environmental or durability test report",
+    "EMC or product safety test report",
+    "test deviation, concession or waiver",
+    "test readiness review record",
+    "raw test data set",
+    "retest record"
+  ],
+  "work_types_note": "Values of a type field, never child nodes. Test METHODS — crash, durability, EMC, HALT, drop, ingress — are values of the proposed verification_method or of the artifact type, and engineering.automotive-program has already stated the same rule from its side.",
+  "grouping_reasons": [
+    "one requirement's plan, procedure, executed result, deviation and any retest, held as a chain rather than scattered by method",
+    "one test campaign's package: procedure, raw data, setup photographs, the calibration inputs that made the measurement admissible, and the signed report",
+    "one design item's complete verification evidence set across all methods, which is what a reader assembles when asking whether the item is proven",
+    "one externally issued laboratory report together with the internal requirement it closes, where the two carry different identifiers and neither identifier appears on both",
+    "a sparse instrument export or setup photograph may join a test-campaign neighbourhood without acquiring design_item, requirement or disposition facts; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the engineering schema with no declared destination-eligible fields, and a template may only branch on a field its own schema declares, so the machine-readable order must stay empty until R1c adjudicates. Subject to that, the researched recommended order is design_item -> engineering_artifact_type, which differs from the schema's researched default of project -> design_item -> lifecycle_stage -> engineering_artifact_type in two argued ways. lifecycle_stage is dropped because this template IS a lifecycle position, so that level's value is constant across the corpus and opens a branch that never branches. project is demoted below design_item, and dropped entirely for the externally issued and standard-scoped subset, because accredited laboratory reports and reusable qualification packages routinely carry an article and a standard with no project token, and a first level the files cannot fill is a fabricated fact. Three optional branches, all evidence-conditional: (a) institution first, grouping one issuing laboratory's reports together, where a corpus is dominated by third-party evidence — an order the schema default cannot express because institution is not in it; (b) revision_or_baseline as a leaf under engineering_artifact_type where a corpus spans several released baselines and retest history matters; (c) the schema default restored unchanged where verification evidence is a minority of a project-organised engineering corpus and separating it would fragment the item's story. verification_method and verification_status are proposed as NON-destination facts and appear in no order: method scatters one requirement's evidence, and status churns as a retest lands. The user may reverse, remove, add or flatten any of this; it is a recommendation, not a filesystem.",
+    "time_first": false,
+    "time_first_why": "The retrieval question here is which item and which kind of proof, not when. An execution date is load-bearing evidence for whether a run happened and which build it used, but a date-first order would separate a failure from the retest that closed it."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "code_structured",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210_DVT-07_Verification-Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "shared fixture bytes with the engineering schema row's own default file list",
+        "a table whose left column holds stable requirement identifiers and whose adjacent columns hold method, acceptance criterion, recorded actual and a per-row disposition",
+        "a configuration-under-test block naming an article serial and a build standard",
+        "an execution date and a tester/approver signature pair on the cover"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline",
+        "verification_method",
+        "verification_status",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the campaign token DVT-07 identifies a design item on its own",
+        "that a pass conclusion licenses copying design_item onto the raw data files sitting beside it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DVPR_BPA-210_RevA_issued.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a design verification plan and report grid: requirement identifier, method, sample size and acceptance criterion columns fully populated",
+        "the recorded-actual and pass/fail columns are systematically empty across every row",
+        "no execution date, no tester initials, no signature block"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "verification_method",
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "verification_status of any kind, including planned-as-pass",
+        "that an issued plan is evidence that anything was proven",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "TR-2026-04188_EMC_EN-55032_Class-B.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer letterhead carrying an accreditation scope reference",
+        "a report identifier in the issuing laboratory's own numbering series, unrelated to any internal requirement identifier",
+        "a named standard designation and a sample-received description giving a model name and serial",
+        "a conclusion clause explicitly scoped to the sample tested"
+      ],
+      "facts_legal": [
+        "institution",
+        "engineering_artifact_type",
+        "verification_method",
+        "verification_status",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the issuing laboratory is the design authority or the owner of the item",
+        "that the standard designation is a design_item",
+        "that a compliant conclusion is a certificate of conformity",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FAI-Report_AS9102_BPA-210-001_SN0004.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE. Reads as verification evidence: a serialized article, a characteristic-by-characteristic table, an accept/reject column, an inspector signature and a date",
+        "the left column holds drawing characteristic numbers and nominal dimensions with tolerances, not requirement identifiers",
+        "the stated object is whether the production process reproduced the released definition on this unit"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row is active",
+        "verification_method or verification_status",
+        "that a shared design_item and drawing revision make this design verification evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SECOND COLLISION FIXTURE. Issuer letterhead with an accreditation reference, a certificate number, measured values against tolerances and a conformity statement — structurally near-identical to the accredited test report above",
+        "the object is a measuring instrument's own conformity and its due date, not any design item",
+        "cited inside BPA-210_DVT-07 as the evidence that the measurement was admissible"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an accreditation reference plus a pass statement is enough to activate this row",
+        "that being cited by a verification report transfers the report's design_item onto this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SAT-Report_Chiller-CH-02_2026-06-14_witnessed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "shared fixture bytes with engineering.commissioning-handover, which argued this boundary first and whose statement of it is adopted here unchanged",
+        "as landed there: tags, setpoints and witness signatures for a unit installed at a location, with a named accepting party",
+        "the variant that concerns this row additionally carries SYS-REQ identifiers down the left and a verification-method column"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "verification_method",
+        "verification_status",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that witnessed acceptance of an installed instance proves the design satisfies a requirement",
+        "design_item from a plant tag such as CH-02, which names an installed instance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "TEK00042.CSV",
+      "source_type": "spreadsheet",
+      "observations": [
+        "an oscilloscope export: a short instrument header giving model, timebase and vertical scale, then two channel columns and a time column",
+        "no requirement identifier, no acceptance criterion, no disposition, no article reference anywhere in the file",
+        "sits in a directory beside an executed report and eleven sibling captures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "design_item, verification_method or verification_status copied from the report next to it",
+        "that raw measurement data is verification evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "DVT-07_Test-Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extracting members: an executed report PDF, a procedure DOCX, twelve instrument CSVs, four setup photographs, one calibration certificate and a signed deviation form",
+        "the archive name carries the campaign token; the article serial appears only inside member names",
+        "several members belong to different rows than the archive as a whole"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "facts for individual members from the archive name",
+        "that the calibration certificate inside becomes this row's evidence by membership",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-06-14 at 11.24.03.png",
+      "source_type": "ocr",
+      "observations": [
+        "a screen capture of a pass/fail summary table already present in the executed report",
+        "OCR recovers a disposition column and two requirement-shaped identifiers; the surrounding application chrome is also captured",
+        "no EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that the absence of EXIF proves this is a screenshot",
+        "that OCR of a table creates a second, independent verification record",
+        "design_item or verification_status from an OCR'd fragment alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Test_setup_thermocouple_placement.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of an instrumented article on a bench, taken during a run",
+        "carries capture EXIF; no text, no identifier, no acceptance structure",
+        "referenced by figure number in the executed report but the reference lives in the report, not in the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "camera_information"
+      ],
+      "must_not_conclude": [
+        "design_item or a requirement identifier acquired from the report that cites it",
+        "that a bench photograph is verification evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "P04 consent signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "PRIVACY REFUSAL FIXTURE. Shared fixture bytes with business_operations.user-research, which is a REFUSED row, so nothing downstream is holding this line",
+        "a signed participant consent form collected during a summative human-factors validation session for a medical device",
+        "carries a participant code, a handwritten signature, a date, and prose describing what the session recorded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the word validation activates this row",
+        "design_item, verification_method or verification_status",
+        "that participant-bearing material may be filed under an item folder because the study validated that item"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Re: DVT-07 retest results.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled mail slots: subject carrying the campaign token, date, sender and recipients",
+        "body states in prose that two rows passed on retest and one remains open",
+        "one attachment: a revised executed report; the acceptance structure lives in the attachment, not in the mail"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "verification_status for the campaign from a prose sentence in a mail body",
+        "that the mail is the verification record rather than correspondence about one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.requirements-specification",
+      "why": "A blank verification plan and a requirements document with an acceptance-criteria column are the same grid with the same identifiers down the left. Direction one: the requirements row owns intended criteria stated before the thing exists, with no result column. Direction two: this row owns the same grid once it is organised around methods, sample sizes and a place for outcomes, and owns it outright once outcomes are recorded. Fixture bytes: DVPR_BPA-210_RevA_issued.xlsx is this row's even while empty, because its columns are a plan of proof; the acceptance-criteria table inside SYS-REQ-042_Braking-System-Requirements_RevB.docx is the requirements row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "why": "Reciprocating the boundary that row landed first, using its words. That row's object is the INSTANCE: proving that the unit installed at a location behaves as its design definition says and that a named party accepts it. This row's object is the REQUIREMENT: proving that the DESIGN satisfies what was asked of it. Shared fixture bytes: SAT-Report_Chiller-CH-02_2026-06-14_witnessed.pdf. Tags, setpoints and witness signatures alone are that row; the same sheet extended with requirement identifiers and a verification-method column is a two-group question within one schema.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "why": "Verification by analysis is a real method, so the same file can be read as an analysis product or as verification evidence. Direction one: the analysis row owns a study whose output is a margin, a field plot or a comparison of options, with no requirement in view. Direction two: this row owns it once a named requirement identifier and a stated acceptance criterion sit beside the computed margin and a disposition follows. Fixture bytes: BPA-210_FEA_Loadcase-3_RevA.pdf, the schema anchor's own analysis fixture, is the analysis row's when it reports margins and this row's when the same margins are tabulated against SYS-REQ identifiers with a pass column.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.product-certification",
+      "why": "An accredited laboratory report and the certificate issued on the strength of it arrive together and share an issuer, a standard and a model name. Direction one: this row owns the report — measured results against stated limits, scoped to the sample tested. Direction two: the certification row owns the instrument that grants market permission — a certificate or declaration naming a scheme, a validity period and a marking right, with no measured results. Fixture bytes: TR-2026-04188_EMC_EN-55032_Class-B.pdf is this row's; the one-page certificate citing that report number is the certification row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "why": "Both rows point at the same physical article. Direction one: the prototype row owns what the article IS — its build standard, its deviations from the released definition, its serial and its history. Direction two: this row owns what the article SHOWED — the run, the criteria and the outcome. Fixture bytes: the configuration-under-test block inside BPA-210_DVT-07_Verification-Report.pdf is a citation of the prototype row's fact, not this row's evidence for it; a build record naming SN0004's deviations with no acceptance criterion never becomes this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "why": "Reciprocating the boundary that row landed first. That row takes a test report when its requirement column cites a published airworthiness code paragraph and its result is consumed by a means-of-compliance finding; this row takes it when the requirement traced is the organisation's own identifier and the reader is the design team. Same fixture bytes: a flammability test report referenced from Compliance-Checklist_Cabin-Interiors_Rev-D.xlsx can genuinely be both, which is a two-group question rather than a boundary failure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.embedded-firmware",
+      "why": "Reciprocating the boundary that row landed first. If the organising structure is a requirement-identifier-to-method-to-result matrix, this row owns it and the image version is configuration-under-test metadata; if the organising structure is a release manifest and the test result is one member of it, the firmware row owns it. Same fixture bytes: SN100_HIL-Verification_v1.4.2.pdf whose body is a requirement matrix is this row's; the same version cited inside SN100_FW-v1.4.2_OTA-Package.zip's manifest is the firmware row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.automotive-program",
+      "why": "Reciprocating the boundary that row landed first, on the fixture bytes it named: BPA-210_DVT-07_Verification-Report.pdf. Direction one: this row owns planned testing against a stated requirement and the report that says whether it passed, in any industry. Direction two: the automotive row owns a vehicle programme's own gated structure; crash and durability testing are methods, and a method is a value, so a programme does not take a report merely because the report is automotive.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.stage-gate-review",
+      "why": "A design review deck routinely embeds a verification status summary. Direction one: the review row owns the governed gate event — attendees, actions, entry and exit criteria, a decision. Direction two: this row owns the underlying evidence the summary points at. Fixture bytes: PDR_Braking-System_2026-04-18.pptx, the schema anchor's own review fixture, stays with the review row even when one slide reproduces the verification matrix; the matrix file itself is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "why": "The sharpest collision on the node, because both sides carry a serialized article, a conformity table, an accept/reject column and a signed inspector. Direction one: this row's left column is requirement identifiers and its object is whether the DEFINITION satisfies what was asked. Direction two: the inspection row's left column is drawing characteristics and nominal dimensions and its object is whether the PROCESS reproduced the definition on this unit. Fixture bytes: FAI-Report_AS9102_BPA-210-001_SN0004.pdf is the inspection row's and is this row's collision fixture; LOT-24-081_Final-Inspection.xlsx, already named by the schema anchor, is the inspection row's even though it cites Rev C.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "why": "A calibration certificate is structurally near-identical to an accredited test report: issuer, accreditation reference, certificate number, measured values against tolerances, conformity statement. Direction one: this row owns evidence about a design item. Direction two: the calibration row owns evidence about a measuring instrument's own conformity and its due date. Fixture bytes: Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf is the calibration row's even when it is a member of DVT-07_Test-Package.zip, and its presence in that archive does not transfer the campaign's design_item onto it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "why": "Qualification protocols share their entire skeleton across the seam: numbered steps, pre-stated acceptance criteria, executed pages with initials, a deviation log, an approval. The discriminator is the OBJECT qualified. Direction one: this row takes a qualification package whose object is a design item. Direction two: the QMS row takes one whose object is a production process, a plant asset or a computer system. Fixture bytes: IQ-OQ-PQ_Fill-Line-2_Protocol-and-Report_2026.pdf is the QMS row's — a fill line is an asset, not a designed product — and the word validation in its title is exactly the never-alone token this row refuses.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.failure-analysis",
+      "why": "A failed verification and a failure investigation cite the same article and the same symptom. Direction one: this row owns the record that a criterion was not met and the disposition that followed. Direction two: the failure-analysis row owns the investigation of WHY — teardown, fractography, fishbone, root cause. Fixture bytes: the signed deviation form inside DVT-07_Test-Package.zip is this row's; a teardown report opened because of that deviation is the failure row's, and the two are linked rather than merged.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-requirements",
+      "why": "Reciprocating the boundary that row landed first, in its terms. A test protocol and an acceptance-criteria sheet are the same grid of scenarios with the same identifiers down the left; an execution record — results, an operator, a date and a sign-off against each case — supports this row because it records what WAS proven, while intended criteria written before the thing exists, with no result column, support that row. Executed results transfer the file. This row adds one clarification in the other direction: a plan that is organised around methods and sample sizes is already this row's even before it is executed.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "why": "Automated test output is the highest-volume pass/fail material a person owns. Direction one: the code row owns results that are a build's own artifact — a JUnit or coverage XML emitted into a repository tree, keyed to test function names and a commit. Direction two: this row owns results keyed to stable requirement identifiers with a human-approved disposition. Fixture bytes: a junit.xml under a repository root is the code row's however many pass/fail elements it contains; a software verification report tabulating those runs against SYS-REQ identifiers with an approver is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.lab-notebook-protocols",
+      "why": "The word protocol names both a standing bench method and a test procedure, and both carry numbered steps and recorded readings. Direction one: the research row owns a method whose object is producing knowledge, with no acceptance criterion and no design item — its landed fixture Protocol_RNA-extraction_v2.docx is squarely that. Direction two: this row owns a procedure whose steps end in a pre-stated criterion and a disposition for an identified designed item. An R&D prototype run can genuinely produce both files; neither inherits the other's facts.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract. Co-activation with manufacturing, code, research, business_operations and construction_property is declared on the engineering SCHEMA row, and a template may not widen its schema's co-activation set. Every cross-schema case this row meets is expressed as a collision instead, and the two files most tempting to mark as co-activations — the SAT report and the airworthiness-cited flammability report — are same-schema two-group questions recorded in grouping_reasons, not also_holds edges. That distinction is the correction the finance.crypto-assets pass had to make and it is applied here from the start.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone test report, laboratory certificate or inspection sheet with durable meaning but no reliably evidenced design item and no accepted project belongs here rather than activating from the word test.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a grid of criteria, an instrument export or a results mail is clearly technical but whether it plans, proves, inspects, accepts or merely discusses cannot be established from the file's own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Test packages arrive as archives and vendor-proprietary instrument formats; these retain basic metadata without filename-only purpose inference and without extraction.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "This row's defining privacy route. Participant consent forms, session recordings and transcripts produced by human-factors or usability VALIDATION are a person's record wearing this row's vocabulary, and they must never acquire a design item.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Screen captures of results dashboards and pass/fail summaries duplicate a record that already exists and should not become a second one.",
+      "provenance": "design",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "Bench and setup photographs carry no identifier and no acceptance structure; they may sit beside a campaign without joining it.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "engineering.prototype-build",
+      "entity": "an identified physical article",
+      "this_side": "the article in the role of configuration under test: what it showed, expressed through verification_method and verification_status against a requirement",
+      "other_side": "the article in the role of build subject: what it is, expressed through design_item and revision_or_baseline plus its deviations from the released definition",
+      "why": "Same entity, two roles, and conflating them is how a serial number starts propagating design facts. A verification report cites the article's identity; it does not establish it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "entity": "a serialized unit carrying a signed conformity table",
+      "this_side": "the design-proof role: does the definition satisfy the requirement, keyed to requirement identifiers",
+      "other_side": "the production-conformance role: does this unit match the definition, keyed to drawing characteristics and nominal dimensions",
+      "why": "The two roles use different left-hand columns and different keys on the same-looking sheet. FAI-Report_AS9102_BPA-210-001_SN0004.pdf is the fixture on which the split is visible.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two distinct reasons, and only the first is inherited. Inherited: verification evidence is proprietary design definition under another name, routinely carries supplier data, safety-critical findings and export-controlled or distribution-restricted content, and failure records are commercially and legally consequential. Specific to this row: VALIDATION against user need regularly produces identifiable human material — signed participant consent, session video, transcripts, and in medical-device human factors, use-error records adjacent to clinical material. That material is not weaker engineering evidence; it is a different domain's protected record wearing this row's vocabulary, and this row's rule is to refuse it and route it to Protected Records. No handling class is assigned; 00's rule that privacy policy is enforced before any model or connector receives content is what governs.",
+  "open_question": "NEEDS-JOSEPH NJ-VV-1: canonical `institution` is the finance schema's issuer key; may it be reused for an issuing test laboratory or notified body, or does that overload a key whose defined role is a financial account issuer? This row depends on the reuse for its institution-first optional branch and mints nothing. NJ-VV-2: are verification_method and verification_status two keys or one disposition key with method folded into engineering_artifact_type; and does R1c accept two proposals that both decline destination eligibility, since a non-destination fact has no precedent on this schema. NJ-VV-3: the qualification seam — does a qualification package activate engineering when its object is a design item and manufacturing when its object is a process or asset, as recommended here, or should all IQ/OQ/PQ material sit in manufacturing.quality-management-system regardless of object. NJ-VV-4: business_operations.user-research is REFUSED, so no landed row owns summative usability validation participant material; this row routes it to Protected Records, but the reciprocal owner is unassigned and someone must hold it."
+}

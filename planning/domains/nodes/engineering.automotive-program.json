@@ -1,0 +1,346 @@
+{
+  "id": "engineering.automotive-program",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Automotive vehicle programme and homologation (REFUSED - industry name over the engineering default template)",
+  "one_line": "REFUSED. A vehicle programme is an engineering project in one industry, and every structure this row could recognise is either the engineering schema's own default template - whose landed fixtures are already an automotive brake-pedal programme - or an existing sibling role row on the same schema: engineering.project and engineering.stage-gate-review for the milestones, engineering.requirements-specification for the customer requirements, engineering.product-certification for the type approval. What is left over is the word automotive, which is a sector name and is constitutionally never-alone evidence.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on all three legs, and is a duplicate twice over - of its own schema's default template, and of four sibling rows already on the roster. (1) DETECTION SIGNALS: none are its own. The engineering schema row's default template is illustrated end to end with an automotive brake programme - SYS-REQ-042_Braking-System-Requirements_RevB.docx, BPA-210-001_Brake-Pedal-Assembly_RevC.dwg, BPA-210_Product-Structure.xlsx, ECR-1187_BPA-210_Bushing-Material.pdf, BPA-210_DVT-07_Verification-Report.pdf, TDP_BPA-210_Baseline-C.zip - so this row's core evidence is the default's evidence, byte for byte, and a template whose fixtures are the schema's own default fixtures is the schema's default template. Every remaining candidate signal already has a sibling owner on this same schema: the type-approval certificate, the EC Certificate of Conformity and the regulation-scoped approval test report are engineering.product-certification's relation of approved product to named regulation to approving authority to certificate number; the customer technical specification is engineering.requirements-specification; the gateway pack and the programme timing plan are engineering.stage-gate-review and engineering.project; the hazard analysis and design FMEA are engineering.risk-analysis-fmea; the design-verification and production-validation reports are engineering.verification-validation; the mule and verification-prototype build records are engineering.prototype-build; the part-submission packet and the audit file are manufacturing.supplier-qualification and manufacturing.quality-management-system; the ECU release package is engineering.embedded-firmware. Subtract all of those and what remains is a sector noun and its vocabulary - vehicle, OEM, tier one, model year, VIN, vehicle line. A sector noun cannot activate anything, by read-across from 00's rule that “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” The reasoning there is role ambiguity, and an industry name is weaker still: it names who the employer is, not what the file is, and the engineering schema row already refuses the same move for code - a repository is not engineering merely because its employer builds hardware. (2) DIMENSIONS: identical. The engineering schema's researched default order is project, then design_item, then lifecycle_stage, then engineering_artifact_type; the automotive rendering of that is programme, then assembly, then gate, then artifact - the same four levels carrying industry-flavoured values. The two levels that felt genuinely automotive are both values, not dimensions: a vehicle line is a project or design_item value, and a model year is a time level that 00 keeps out of first position for record domains - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and in practice is a token inside the programme name rather than an independent fact. The order is empty in any case under PR-6, which is itself part of the finding: a placeholder template that recommends what its schema already recommends is the schema's default template. (3) PRIVACY RULES: identical. The engineering schema is already potentially_sensitive for proprietary design definition, supplier data, safety analyses and export-controlled or critical-technology information; camouflaged prototype photographs and crash-test footage are more of that, not a different rule. The one object whose privacy rule genuinely differs - a VIN-bearing Certificate of Conformity or registration document sitting in a private person's files - differs by belonging to finance.vehicle-records and logistics.fleet-vehicle, and pulling it into an engineering programme folder would be a harm rather than a gain. Coverage is therefore routed to the siblings named in collides_with and, where no controlled-definition or certification evidence survives, to the residual templates in falls_through_to. No field was proposed and no dimension was invented to keep the id.",
+  "node_test": {
+    "distinct_detection_signals": false,
+    "distinct_detection_signals_why": "Every discriminating structure is owned either by the engineering schema's default template (drawing title block, requirements structure, BOM/product structure, engineering change, analysis package, verification matrix, technical data package manifest) or by a named sibling row on the same schema. The residue is sector vocabulary, which is never-alone.",
+    "distinct_dimension_order": false,
+    "distinct_dimension_order_why": "programme/assembly/gate/artifact is the schema default's project/design_item/lifecycle_stage/engineering_artifact_type with industry values substituted. model_year and vehicle_line are values, not levels.",
+    "distinct_privacy_rules": false,
+    "distinct_privacy_rules_why": "Same potentially_sensitive posture and same reasons as the engineering schema. The one differing privacy object (a VIN-bearing conformity or registration document) belongs to finance.vehicle-records, not here.",
+    "verdict": "refuse"
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None that belong to this row. Any labelled structure strong enough to fire here - an item-plus-revision title block, a requirement-identifier table with a verification-method column, a parent/child product structure, an affected-item change record, an approved-product-plus-named-regulation-plus-approval-number certificate, a gate decision record - already fires either the engineering schema's default template or a named sibling. This entry is recorded as a deterministic signal only to make explicit that the refusal is not for want of looking."
+    ],
+    "needs_llm": [
+      "Whether a document that names a vehicle line is a controlled design definition (engineering default template), a regulatory conformity file (engineering.product-certification), a gate decision (engineering.stage-gate-review), a programme schedule (engineering.project or business_operations.project-delivery), a part-submission or audit record (manufacturing.supplier-qualification, manufacturing.quality-management-system), or a private owner's vehicle paperwork (finance.vehicle-records). This is a routing question among existing rows, not evidence for a new one."
+    ],
+    "never_alone": [
+      "The words automotive, vehicle, car, OEM, tier one, powertrain, chassis, body-in-white or mobility. Each names a sector or a subsystem of one, and a sector name says who the employer is, not what the file is. Read across from 00 on organisation names: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "A vehicle line or nameplate token alone (XJ, MY27-XJ, Model-3-style stubs). It is a project or design_item VALUE, and the same stub appears on marketing decks, dealer paperwork, motoring press PDFs and a private owner's service invoice. Tempting false file: Brochure_XJ_MY27.pdf, which is a sales brochure.",
+      "A model-year token alone. It is a bare four-digit-shaped number wearing a prefix and 00 already forbids a bare four-digit number as proof; MY27 also collides with an ordinary calendar year, a fiscal year and a document version.",
+      "A VIN-shaped seventeen-character alphanumeric string alone. Tempting false file: Certificate-of-Conformity_WVWZZZ1JZ3W386752.pdf, which is a private owner's vehicle paperwork and belongs to finance.vehicle-records - a VIN identifies a built car and a person's property, never a controlled design definition.",
+      "A regulation or standard identifier alone (an ECE regulation number, an ISO or IATF number, an ASIL letter). These are values from one regulator's catalogue; D4's rule that a jurisdiction is a value and never a field name applies with equal force to a regulation catalogue. The certificate structure they sit inside is engineering.product-certification's, not this row's.",
+      "A supplier or OEM company name in a title block, letterhead or folder name. It is an organisation name, and on a technical drawing the same string may be the designer, the customer, the approver, the print vendor or a cited standards body.",
+      "A .dwg, .stp, .catpart or .prt extension, or a proving-ground photograph with no readable slots. 00 forbids extension alone and forbids inferring purpose from a filename alone; a camouflaged-prototype JPEG carries no controlled-definition structure at all.",
+      "A folder named for a programme. Parent-folder context may raise plausibility once a controlled-definition or certification structure is present; it never fires by itself, and here it would only ever be arguing for engineering.project."
+    ]
+  },
+  "proposed_context_terms": [],
+  "proposed_context_terms_note": "None proposed. Every term this row would have offered - type approval, conformity of production, certificate of conformity, homologation, design freeze, start of production, part submission, hazard analysis - is a context term for an existing sibling (engineering.product-certification, engineering.stage-gate-review, engineering.risk-analysis-fmea, manufacturing.supplier-qualification). Proposing them here would create a second claimant for terms those rows need.",
+  "work_types": [],
+  "work_types_note": "Empty by refusal, and empty by rule. Homologation dossier, certificate of conformity, customer technical specification, design FMEA, hazard analysis, DV report, PV report, gate pack, timing plan and part-submission packet are all VALUES of the engineering schema's work_type enum (or manufacturing's), exactly as the engineering schema row already lists released technical data package, verification plan/procedure/report and design review package among its own work types. ALIGNMENT is explicit that work types are values, never nodes; asking for a node per automotive work type is the 574's original mistake in miniature.",
+  "grouping_reasons": [],
+  "grouping_reasons_note": "A vehicle programme is a real grouping neighbourhood - files genuinely cluster around one programme. That is exactly the point: it is a grouping fact, and CONNECTION.md keeps activation and grouping separate. P9 may group a programme's files without this schema row existing, and engineering.project is the row that already carries the programme identity when no more specific sub-domain applies.",
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case under binding PR-6 (the engineering schema declares no field rows). The emptiness is itself evidence for leg two of the refusal: the order this row would have recommended - programme, assembly, gate, artifact - is the engineering schema's researched default with industry values substituted, and 00 already assigns the recommendation to the domain template rather than to a sector: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.” Nothing about a vehicle changes which parent makes which child intelligible; a brake-pedal drawing revision needs its assembly for the same reason 00 gives generally, that “A work type such as Homework 3 is meaningful only after the course is known”.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true,
+    "note": "Deliberately empty. This row's plausible source types and extensions would be a verbatim copy of the engineering schema row's list, which is itself part of the refusal - the file kinds do not discriminate, and 00 forbids extension alone as proof in any case."
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210-001_Brake-Pedal-Assembly_RevC.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "title block carries an item/assembly identifier, a drawing number, a revision letter, an approval slot and sheet information",
+        "the assembly is an automotive brake pedal, and this filename is one of the engineering schema row's own landed default-template fixtures"
+      ],
+      "facts_legal": [
+        "the engineering schema's design_item and revision-or-baseline structure, subject to R1c promoting those keys",
+        "universals only until then: file type, creation date, duplicate family, version family"
+      ],
+      "must_not_conclude": [
+        "that an automotive template fired - the engineering schema's DEFAULT template already recognises this exact file",
+        "a folder path",
+        "that the industry is a fact about the file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "e11r-2018-858-00234-03_Whole-Vehicle-Type-Approval_XJ.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled approval-number slot, a named approving authority, a named regulation, an approved type/variant/version designation and a validity statement",
+        "no drawing number, no requirement identifier, no revision block, no product structure"
+      ],
+      "facts_legal": [
+        "engineering.product-certification's relation of approved product to named regulation to approving authority to certificate identifier"
+      ],
+      "must_not_conclude": [
+        "that homologation is a distinct automotive filing situation - it is product certification whose regulation catalogue happens to be road-vehicle regulations, and D4 makes a regulator's catalogue a set of values",
+        "a design_item, from the type designation alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CTS_Brake-Pedal-Assembly_OEM-XJ_Rev4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered requirement clauses with acceptance criteria and verification methods, issued by a customer to a supplier",
+        "the customer is a vehicle manufacturer and the document is titled a customer technical specification"
+      ],
+      "facts_legal": [
+        "engineering.requirements-specification's requirement-identifier plus verification-method structure"
+      ],
+      "must_not_conclude": [
+        "that a requirement is automotive-shaped because its issuer builds cars - the structure is identical to a customer specification issued by any OEM in any sector",
+        "a supplier or customer organisation name as an activating fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MY27-XJ_Gateway-3_Design-Freeze_Review-Pack.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a named gate, a decision slot, attendee/approver names, and open-issue and readiness sections",
+        "the programme token MY27-XJ appears in the filename and on the cover slide"
+      ],
+      "facts_legal": [
+        "engineering.stage-gate-review's gate-and-decision structure; the programme identity is engineering.project's"
+      ],
+      "must_not_conclude": [
+        "that milestones make an automotive node - a gate pack in this industry is structurally a gate pack",
+        "a lifecycle_stage from the filename token MY27",
+        "a model year from a bare four-digit-shaped token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carrying function, failure mode, effect, cause, current controls and action columns for an identified assembly",
+        "the method name in the filename is the automotive-industry harmonised FMEA handbook"
+      ],
+      "facts_legal": [
+        "engineering.risk-analysis-fmea's structured-failure-analysis relation for an identified item"
+      ],
+      "must_not_conclude": [
+        "that a sector-published method name creates a sector node - the method name is a value inside the analysis, exactly like a regulation number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PPAP_BPA-210_Level-3_Submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists mixed members - a submission warrant, dimensional results, material and performance test results, a process flow, a control plan and referenced design records",
+        "members straddle two schemas without being extracted to disk"
+      ],
+      "facts_legal": [
+        "manufacturing.supplier-qualification's part-approval relation for the packet as a whole"
+      ],
+      "must_not_conclude": [
+        "that the referenced design records inside make the packet an engineering design-definition file - the packet's purpose is supplier part approval",
+        "facts copied from one member onto its siblings inside the archive"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Certificate-of-Conformity_WVWZZZ1JZ3W386752.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a seventeen-character VIN-shaped identifier in the filename and in a labelled slot, a manufacturer name, a type-approval number and technical characteristics of one built car",
+        "it sits in a private person's document folder beside an insurance schedule and a service invoice"
+      ],
+      "facts_legal": [
+        "finance.vehicle-records' record_type over one owned vehicle"
+      ],
+      "must_not_conclude": [
+        "an engineering programme from the type-approval number it cites - the number is a citation here, not an approval this filer holds",
+        "that a VIN is a design_item",
+        "that a technical vocabulary makes a personal ownership document an engineering file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle-Programme-Timing-Plan_MY27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "task rows with owners, planned and actual dates and milestone markers including a start-of-production date",
+        "no item identifier, no revision, no requirement identifier, no product structure"
+      ],
+      "facts_legal": [
+        "a project identity only - engineering.project as the branch root, or business_operations.project-delivery if no technical definition evidence appears anywhere in the neighbourhood"
+      ],
+      "must_not_conclude": [
+        "the engineering schema, from a schedule alone - the schema row already states that a project plan alone is not controlled technical definition",
+        "a lifecycle_stage from a schedule status column"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ECU-BCM_SW-3.4.1_Release-Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest exposes a build identifier, a signed binary, release notes and a version-controlled source reference",
+        "the target is a body-control module in a vehicle"
+      ],
+      "facts_legal": [
+        "engineering.embedded-firmware's relation, and code.software-project's repository evidence where the repository structure is present"
+      ],
+      "must_not_conclude": [
+        "engineering activation because the employer builds vehicles - the engineering schema row already refuses that move for repositories"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-05-12 at 09.14.33.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a homologation tracker grid with regulation numbers and approval statuses, cropped mid-row",
+        "no complete labelled record, no certificate number legible in full"
+      ],
+      "facts_legal": [
+        "universals only - file type, creation date, duplicate family"
+      ],
+      "must_not_conclude": [
+        "a certification fact from a partial OCR grid",
+        "that the screenshot inherits facts from the tracker file it was taken from"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": [
+        "a camouflaged prototype vehicle photographed at a proving ground; no readable text, EXIF present but location stripped",
+        "it sits in a folder beside two gate-pack PDFs"
+      ],
+      "facts_legal": [
+        "photos-schema capture facts only, and only where the photos schema activates"
+      ],
+      "must_not_conclude": [
+        "a programme fact copied from the neighbouring gate packs",
+        "a screenshot conclusion from missing EXIF fields",
+        "any engineering fact - a picture of a car is not a controlled design definition"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering",
+      "why": "This is the load-bearing collision: the row collides with its own schema's default template. Fixture bytes BPA-210-001_Brake-Pedal-Assembly_RevC.dwg are already a landed default-template fixture on engineering.json, alongside SYS-REQ-042_Braking-System-Requirements_RevB.docx and TDP_BPA-210_Baseline-C.zip. Direction one: the engineering default owns any file whose evidence is an identified design item plus a controlled technical artifact plus a revision or baseline, in any industry. Direction two: this row owns nothing that is left after that, because the only residue is the sector name.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.product-certification",
+      "why": "Fixture bytes e11r-2018-858-00234-03_Whole-Vehicle-Type-Approval_XJ.pdf. Direction one: product-certification owns the relation of an approved product to a named regulation or standard, an approving body and a certificate identifier - whatever the regulation catalogue. Direction two: this row would have claimed the same file under the word homologation, which is that relation with road-vehicle regulations as its values; under D4 a regulator's catalogue supplies values, never a node. Recommendation to R1c: product-certification should carry a type-approval example so the coverage is visibly absorbed.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "why": "Fixture bytes CTS_Brake-Pedal-Assembly_OEM-XJ_Rev4.pdf. Direction one: requirements-specification owns a document whose rows or clauses carry stable requirement identifiers with acceptance criteria and verification methods, regardless of who issued it. Direction two: this row's customer-requirements half is that structure with a vehicle manufacturer as the issuer, and an issuer is an organisation name - never-alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.stage-gate-review",
+      "why": "Fixture bytes MY27-XJ_Gateway-3_Design-Freeze_Review-Pack.pptx. Direction one: stage-gate-review owns the pack assembled for one decision gate and the decision it produced. Direction two: this row's milestones half is exactly that; a design freeze and a start-of-production readiness gate are gate values, and gate names are industry vocabulary sitting inside a structure the sibling already owns.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.project",
+      "why": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: engineering.project is the branch root for engineering material carrying a project or product identity but no more specific sub-domain - which is precisely what a vehicle programme is. Direction two: this row is that root with an industry adjective, which is why it cannot be a separate node.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.risk-analysis-fmea",
+      "why": "Fixture bytes DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx. Direction one: risk-analysis-fmea owns structured analysis of how a design or process can fail. Direction two: an automotive hazard analysis with an integrity-level classification is a value set inside that structure, not a second structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "why": "Fixture bytes BPA-210_DVT-07_Verification-Report.pdf, already a landed engineering default fixture. Direction one: verification-validation owns planned testing against a stated requirement and the report that says whether it passed. Direction two: design verification and production validation reports in a vehicle programme are that relation; crash and durability testing are methods, and a method is a value.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "why": "Fixture bytes PPAP_BPA-210_Level-3_Submission.zip. Direction one: supplier-qualification owns the packet whose purpose is deciding whether a supplier's part may be used and keeping the evidence that it still may. Direction two: this row would have claimed the same packet because it cites design records; the design records inside are engineering's, but the packet's purpose is not, and 00's archive discipline forbids copying a member's facts onto the container.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.embedded-firmware",
+      "why": "Fixture bytes ECU-BCM_SW-3.4.1_Release-Package.zip. Direction one: embedded-firmware owns software written to run on a specific piece of hardware, with code.software-project owning repository structure. Direction two: this row would have claimed it because the hardware is a car - which is the employer-builds-hardware fallacy the engineering schema row already names.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "why": "Fixture bytes Certificate-of-Conformity_WVWZZZ1JZ3W386752.pdf. Direction one: finance.vehicle-records owns purchase, registration, service and insurance records for a vehicle a person or business owns, and this is the fixture where the refusal protects the user - a VIN-bearing conformity document is personal property paperwork. Direction two: this row would have absorbed it on the type-approval number it cites, which would file a person's car documents inside a manufacturer's programme. logistics.fleet-vehicle takes the same document when the filer runs a fleet.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "why": "Fixture bytes Battery-Cell-Ageing-Study_2026.xlsx - measurement series with test conditions, no item identifier and no revision. Direction one: research owns work whose object is knowledge rather than a designed item. Direction two: this row would have claimed it as advanced-engineering material because the cells go into vehicles; the intended-vehicle destination is not evidence about the file.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract and by refusal. _CONTRACT restricts also_holds_with to schema rows, and a refused template has no schema of its own to co-activate. The genuine dual-membership cases in this material - a firmware release that is both a repository artifact and a released configuration item, a change driven by a shop-floor nonconformance - are already carried on engineering.json's own also_holds_with with code and manufacturing.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone type-approval certificate, conformity certificate, datasheet or single drawing with durable meaning but no reliably evidenced controlled item and no accepted programme belongs here rather than activating from sector words.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the large middle of this material - a timing plan, a gate deck, a specification extract - where whether the file defines, approves, makes, tests or merely manages something cannot be established from its own evidence, and where the sector name is the only thing suggesting a home.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "For the VIN-bearing conformity or registration document when finance.vehicle-records does not activate: it identifies a person's property and should not be exposed to reach a filing decision.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty. The split this material most wants is the vehicle manufacturer as CUSTOMER against the same manufacturer as APPROVAL HOLDER against a supplier as ISSUER - three roles for one organisation string on one drawing's title block. There is no canonical key to split against, and minting one for a refused row would be the worst possible reason to touch the shared vocabulary. Recorded as NJ-AUTO-3 in the memo instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded to show it is IDENTICAL to the engineering schema's, which is leg three of the refusal. Programme material carries proprietary design definition, supplier data, safety analyses and export-controlled or critical-technology information - the same reasons the engineering schema row already gives. Camouflaged prototype imagery and crash-test footage are more of the same category, not a new rule. No handling class is assigned.",
+  "open_question": "NJ-AUTO-1 (the asymmetry with engineering.aerospace-airworthiness) and NJ-AUTO-2 (whether engineering.product-certification should carry an explicit type-approval fixture so this coverage is visibly absorbed) are recorded in engineering.automotive-program.research.md. Both are R1c's to adjudicate; neither is a reason to keep this row."
+}

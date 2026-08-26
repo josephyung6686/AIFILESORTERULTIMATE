@@ -1,0 +1,542 @@
+{
+  "id": "hr.training-development",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Training and learning development",
+  "one_line": "The employer's provision of learning as a repeatable curriculum: course and module content, catalogues and enrolment, session delivery records, assessments, and the completion, renewal and certification evidence a cohort produces. It is the only hr situation whose strongest anchor can contain no employee at all - a module with learning objectives, an assessment and a facilitator script activates it - and the only one whose corpus splits into a reusable-content half and a per-learner-completion half with different privacy postures. Also carries the legacy row soft.training-material where a product or tool course is delivered TO THE ORGANISATION'S OWN STAFF. PLACEHOLDER ROW (J-IND): writes no field rows because the hr schema declares none under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty by PR-6 and D1: the hr schema is a placeholder that declares no canonical field rows, so this template inherits none and may serialize none. Its proposed vocabulary is recorded in proposed_fields for R1c. The one genuinely new concept this row contributes upward is a curriculum identity that recurs across cohorts and years; everything else it needs is already proposed by the schema row.",
+  "proposed_fields": [
+    {
+      "key": "learning_programme",
+      "type": "string",
+      "example": "Data Protection Essentials (module 3 of 5); or Leadership Programme 2026",
+      "why_no_existing_key": "MINTING, with the alternative named. No canonical key holds the NAMED UNIT OF INSTRUCTION that recurs across cohorts, years and learners. `subject` is the closest candidate and 00 uses it for exactly this concept in the academic world (\"subject = BUSIB 4300\"), but its validation rule family is course-code-plus-academic-context - 00: a candidate \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" - and an employer course carries a prose title, no code, and none of that academic context, so the rule that makes `subject` trustworthy cannot fire here. `work_type` is the wrong altitude: it separates a certificate from a slide deck, not Fire Marshal Training from Unconscious Bias. `project` is bounded delivery work that ends; a course is deliberately re-run. `people_cycle` is the cohort, not the curriculum, and collapsing them would lose the fact that makes this row distinct - the same programme spans many cycles. R1c may instead choose to widen `subject` beyond academia with a second rule family; this row states the alternative rather than assuming the mint.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true, and this is the only hr key this row would put first. A programme name is an organisational artefact, not a person: a branch called Fire Marshal Training discloses nothing about any individual, unlike a branch named for an employee or a case. It is also the level that makes the rest intelligible - a file called `Module 3 - facilitator guide.docx` or `Cohort B attendance.xlsx` is meaningless without its programme, in the same way 00's Homework 3 is meaningless without its course.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A course-title slot in an LMS export, a certificate's award line, or a catalogue row is a direct observation. Deciding that a prose title names a programme rather than a topic, a meeting series, a policy or a product remains an interpretation, and course titles are renamed and versioned between years. No regex and no threshold is specified here; R2 owns patterns.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "people_cycle",
+      "type": "string",
+      "example": "Spring 2026 cohort; or the FY2026 mandatory-training year",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `people_cycle` is already proposed by the hr schema row and this situation supplies independent evidence for it: a cohort, a delivery wave, and a renewal year are all bounded process instances that join a sign-in sheet, a recording, an evaluation and a completion roster which share nothing else. This row asks R1c to note that here the cycle must sit BELOW the programme, not above it - the reverse of the schema row's prose default - because a cohort is unintelligible without its course while a course is perfectly intelligible without a cohort.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true for the same reason the schema row proposes it: a cohort or renewal year names a process instance, not a person.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled cohort or session date is direct evidence, but the same date can mean the session, the enrolment, the completion, the certificate issue, or the renewal due date. Those are five different roles and no generic date rule separates them.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "workforce_member",
+      "type": "string",
+      "example": "J Patel, or LMS user 004218",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Already proposed by the hr schema row. The evidence this row adds is the training matrix cell: a value that exists only at the intersection of a named learner and a named course, which is a stronger and more disclosing join than a name appearing in a document. This row supports the schema row's destination_eligible: false and asks R1c to keep it false here specifically, because a completion state is an assertion about a person's compliance standing.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed false. A folder named for a learner beneath a course named Harassment Prevention or Substance Misuse Awareness discloses more than the file does. The fact supports search and roster association; it must not become folder depth.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled learner slot or LMS user column is a direct observation; deciding that the named person is the LEARNER rather than the trainer, approver, manager, author or a person used as an example in the course content requires the surrounding structure.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "CURRICULUM STRUCTURE WITHOUT A PERSON. A document whose labelled parts are learning objectives, a module or unit number within a stated sequence, timings, activity or exercise instructions, knowledge-check questions with answers or a pass mark, and a trainer or facilitator script. This is the row's signature signal and the one the hr schema default cannot produce: it activates with no employee, no workforce population and no case anywhere in the bytes.",
+      "A COURSE CATALOGUE. A table whose rows are courses and whose columns combine title, provider or internal owner, delivery mode, duration, prerequisite, target audience and seat cost. The rows being COURSES rather than people is what separates this from every other hr spreadsheet.",
+      "A COMPLETION MATRIX. A grid whose rows are learners, whose columns are named courses, and whose cells carry a completion state, a completion date, a renewal or expiry date, or an exemption marker. The two-dimensional learner-by-course shape is the discriminator; a one-dimensional list of people with dates is a roster and could be any personnel process.",
+      "AN ENROLMENT OR LEARNING-SYSTEM EXPORT. Structured rows combining a learner identifier, a course identifier, enrolment date, completion date, score, attempt count or progress percentage. The presence of BOTH a course identifier and a per-learner progress state is required; either alone is not this row.",
+      "A COMPLETION OR ATTENDANCE ARTEFACT NAMING ITS COURSE. A certificate, transcript of learning, CPD log, or sign-in sheet whose slots jointly carry a course title, an awarding or delivering body, a learner, and a date - AND which is joined to an employer-side enrolment, roster, matrix or cost record. Without that employer-side anchor the same artefact is the individual's own credential, not this row's.",
+      "A SESSION DELIVERY RECORD ANCHORED TO A COURSE. An agenda, sign-in sheet, recording or evaluation form whose header names a course and a session or cohort within a sequence, rather than a meeting subject and attendees.",
+      "AN E-LEARNING CONTENT PACKAGE. An archive or directory whose manifest exposes course-authoring markers - a course manifest file, sequenced module folders, a quiz or assessment definition, a media directory - inspected without extraction. 00: \"the normal scan should never extract archive contents to the filesystem\"."
+    ],
+    "needs_llm": [
+      "Whether a document is the GOVERNING RULE or the TEACHING OF IT. A policy and its awareness course quote each other almost verbatim; the discriminating structure is approval, version control, scope and effective date on one side versus learning objectives, an audience, an activity and an assessment on the other. Where a single PDF contains both - a policy with a quiz stapled to the back - both may hold and neither copies the other's facts.",
+      "Whether a course is delivered to the organisation's OWN STAFF or to its CUSTOMERS. This is the whole of the absorbed soft.training-material coverage and the vocabulary is identical: onboarding, curriculum, modules, enablement, certification, completion. Only the audience discriminates, and the audience is frequently stated only in a speaker note or an invitation.",
+      "Whether an induction item is joiner-scoped delivery or a general curriculum whose first module happens to be titled Induction. hr.onboarding-offboarding has already argued this seam from its side and named the same fixture; this row accepts that framing.",
+      "Whether a heterogeneous cohort packet is, in 00's words, \"purpose-coherent despite topic diversity, which members appear to be supporting materials rather than unrelated records, and whether any member conflicts with the proposed purpose.\" A 360-degree feedback report inside a leadership-programme pack does conflict: it is an assessment of a person and hr.performance-cycle's evidence, and its protection must run before the packet's.",
+      "Whether an exemption, deferral or adjustment marker in a completion matrix records an administrative waiver or a health, disability, pregnancy or religious circumstance. The safe response is abstention and protection; the marker is retained as a literal observation and never resolved into a reason.",
+      "Whether unlabelled prose is course content, a conference talk, a reading item, a product manual, or a consultant's deliverable. The model may abstain."
+    ],
+    "never_alone": [
+      "A CERTIFICATE PDF NAMING A PERSON AND A COURSE. This is the tempting false file. `Excel Advanced - Udemy - certificate.pdf` and `Certificate of Completion - Fire Marshal Training - J Patel.pdf` are structurally identical; only an employer-side enrolment, roster, matrix, seat-cost or mandatory-training anchor makes the second this row's evidence. Without it the certificate is the individual's own credential and 00 already has a home for it: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "The words training, course, module, learning, curriculum, workshop, academy, onboarding, certification, enablement, CPD, or LMS alone. They appear in sales collateral, product documentation, conference programmes, university material, job descriptions, and the marketing pages of the software this row is sometimes about.",
+      "A slide deck with an agenda and numbered sections. That is the shape of nearly every presentation ever made; without learning objectives, an audience, an activity or an assessment it is not curriculum.",
+      "A person's name plus a date plus a course-shaped title, in prose. A meeting invitation, an expense claim, a CV line, an email signature and a LinkedIn export all produce that triple.",
+      "A named provider, awarding body, or platform - a university, a professional institute, a vendor academy. 00 forbids a university name as sole proof, and the same reasoning holds for a training provider: it is a role perspective, not a personnel process.",
+      "A budget or invoice line labelled training, L&D, courses or seats. That is finance and business_operations evidence unless course-level or learner-level structure is present.",
+      "A quiz, test, exam or assessment shape alone. Academic assessment, recruitment testing, product QA checklists, and customer surveys all share it.",
+      "Membership in a download session, a mailbox folder, or a parent directory named Training, L&D, Learning, Academy or Courses. 00: \"A session should never be treated as proof of topic\".",
+      "Source type or extension alone, including a SCORM-shaped zip, an mp4, or a .csv export.",
+      "Absence of EXIF as proof that a photographed sign-in sheet or an LMS screen capture is a screenshot."
+    ]
+  },
+  "proposed_context_terms": [
+    "learning objectives",
+    "module",
+    "facilitator guide",
+    "trainer notes",
+    "pre-work",
+    "knowledge check",
+    "pass mark",
+    "assessment attempt",
+    "cohort",
+    "enrolment",
+    "seat",
+    "delivery mode",
+    "prerequisite",
+    "completion date",
+    "renewal due",
+    "refresher",
+    "mandatory training",
+    "training matrix",
+    "training needs analysis",
+    "development plan",
+    "learning pathway",
+    "CPD hours",
+    "awarding body",
+    "sign-in sheet",
+    "course evaluation"
+  ],
+  "work_types": [
+    "curriculum, module, lesson plan, facilitator guide, or trainer script",
+    "course catalogue, prospectus, or learning pathway definition",
+    "enrolment, registration, nomination, or waitlist record",
+    "session agenda, sign-in or attendance sheet, or session recording",
+    "assessment instrument, knowledge check, exam, or attempt record",
+    "completion roster, training matrix, or compliance-training status report",
+    "certificate, transcript of learning, CPD log, or renewal notice",
+    "individual development plan, learning agreement, or study-support record",
+    "post-course evaluation or trainer and provider assessment",
+    "training needs analysis or skills and competency framework",
+    "e-learning content package, authored course export, or course media asset",
+    "apprenticeship, qualification, or externally accredited programme record"
+  ],
+  "grouping_reasons": [
+    "One programme across its content, catalogue entry, enrolment, sessions, assessments and completions - the join that only this row produces, because the same programme recurs across cohorts and years.",
+    "One cohort or delivery wave within a programme: its sign-in sheet, recording, evaluation responses and completion roster, which share a date and nothing else.",
+    "One renewal or mandatory-training year across the matrix, the chase correspondence, the exception list and the audit extract.",
+    "One learner's learning history within an accepted employer programme, held as an association and never as a copied competency, capability or compliance conclusion about them.",
+    "One module family across authored source, exported package, delivered deck and recording, joined by universal duplicate_family and version_family facts rather than by any hr-only field.",
+    "A sparse member - `Module 3 - facilitator guide.docx`, `Cohort B attendance.xlsx`, `Slide deck v2.pptx` - may join a programme group by accepted membership without a programme fact being written onto it. 00: the graph \"does not automatically copy those missing facts onto sparse files.\"",
+    "No group is valid where the only shared evidence is the word training, a provider name, a folder name, or a download session; a lone course-shaped file with no enrolment or cohort anchor is safer in a residual than inside an invented curriculum."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6: no hr field is canonical, so none may be serialized as a dimension. The recommendation is held as prose for R1c and it deliberately DIFFERS from the hr schema row's prose default. The schema row recommends work type or named people programme first, then workforce unit or cohort, then people cycle. This row recommends learning_programme first, people_cycle (the cohort or renewal year) second, and work_type third, with workforce_unit demoted below all of them and workforce_member never a level at all. The reason is the intelligibility rule 00 states for Homework 3: a module guide, an attendance sheet and an evaluation form are meaningless without their course, and a cohort is meaningless without its course, but a course is fully meaningful without either. Demoting workforce_unit is the second departure: a course is deliberately re-used across departments, so leading with the department would shatter one curriculum into copies. It is not time-first: a session date, an enrolment date, a completion date, a certificate issue date and a renewal due date are five different roles inside one programme, and leading with any of them would scatter it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "audio_video",
+      "code_structured"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".mp4",
+      ".m4a",
+      ".json",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Data Protection Essentials - Module 3 - facilitator guide.docx",
+      "source_type": "text_document",
+      "observations": [
+        "headed sections labelled Learning objectives, Timing, Activity, Debrief, and Knowledge check with model answers",
+        "module 3 of 5 stated in a running header",
+        "no employee, department, roster, or case reference appears anywhere in the document"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "learning_programme or people_cycle while those keys remain proposals",
+        "that the data-protection subject matter makes this a compliance or policy record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Mandatory training matrix - FY2026 - all staff.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are named employees with employee IDs; columns are named courses",
+        "cells contain Complete with a date, Overdue, Not required, or Exempt",
+        "a second sheet computes completion percentage by department",
+        "renewal due dates appear beside several completion dates"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "workforce_member or learning_programme as stored facts before R1c",
+        "that Overdue evidences misconduct, negligence, or a capability concern",
+        "that Exempt evidences a health, disability, or pregnancy circumstance",
+        "that the by-department sheet makes this an analytics file",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Induction completion roster - Sept 2026 intake.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns combine joiner name, start date, and a set of named induction modules with completion states",
+        "the cohort is defined by a start date AND the columns are courses",
+        "already named as the shared fixture by hr.onboarding-offboarding"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that only one of the two rows may hold it - the start-date cohort and the course-completion grid are both genuinely present",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate of Completion - Fire Marshal Training - J Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for learner name, course title, awarding body, completion date, certificate number, and a stated expiry",
+        "a delivering-organisation logo and an assessor signature",
+        "no enrolment, cost, roster, or employer-side workflow context inside the file itself"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "this row's activation from the certificate alone - see never_alone; an employer-side enrolment or matrix anchor is required",
+        "that the expiry date has passed or that the person is currently qualified",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "L&D catalogue 2026 - course list.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per course with title, internal owner, external provider, delivery mode, duration, prerequisite, target audience, and cost per seat",
+        "no individual learner appears",
+        "a status column marks courses as Active, Retired, or Under review"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the cost-per-seat column makes this a procurement or budget file",
+        "learning_programme as a canonical fact",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Individual Development Plan - J Patel - FY26.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled development objectives, target capabilities, agreed learning activities with courses named, manager sign-off, and review dates",
+        "a header field references the FY26 review outcome",
+        "named by hr.performance-cycle from its side as the shared fixture"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "the review rating, the calibration, or any assessment of the person - those are hr.performance-cycle's atoms",
+        "workforce_member before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "LMS export - completions 2026-Q2.csv",
+      "source_type": "code_structured",
+      "observations": [
+        "header row: user_id, user_email, course_id, course_title, enrolment_date, completion_date, score, attempts, status",
+        "learners are pseudonymous identifiers rather than names, but the email column re-identifies them",
+        "several rows show multiple attempts and a failing score"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that pseudonymous user IDs make the export non-sensitive when an email column is present",
+        "that a failing score is a competency or capability finding about the person",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Harassment Prevention - post-course evaluation responses.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for course, session date, trainer, rating items, and a free-text comment column",
+        "no respondent identifier, but the free text names the trainer and describes incidents raised in the room",
+        "attached to one session and one cohort roster rather than fielded across a listening programme"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that anonymity makes the free-text column safe to summarise remotely",
+        "that a low trainer rating is a performance fact about the trainer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Manual Handling refresher - session sign-in sheet.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a printed header with course title, date, site, and trainer, and a signature column with handwritten names",
+        "several handwritten entries are only partly legible",
+        "the image has no camera metadata"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that missing EXIF proves this is a screenshot rather than a photograph",
+        "that attendance evidences competence or statutory compliance",
+        "a partly legible handwritten name as a learner fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Leadership Programme 2026 - cohort pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists pre-work briefs, session decks, action-learning templates, a coaching log, and per-participant 360-degree feedback reports",
+        "member names repeat a cohort label",
+        "the 360 reports name individuals and their rated colleagues"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the archive may be unpacked to disk or sent to a cloud model",
+        "that the 360 reports become learning records by packet membership - they are assessments of people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Train the Trainer - Session 4 recording.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container metadata carries duration and a recording date",
+        "the opening minute states the course title and session number aloud, and a shared screen shows a module slide",
+        "participant voices and some names occur throughout"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "participant identity from voices",
+        "that a recording with an agenda is a meeting record",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Course enrolment confirmation - Data Protection Essentials.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a learning-platform no-reply address; recipient is the enrolee",
+        "body carries labelled course, cohort, start date, joining link, and a cancellation policy",
+        "a seat-cost line and a purchase-order reference appear in the footer"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "this row's activation from the email source type",
+        "that the seat cost makes it a finance record rather than an enrolment record - both readings are available",
+        "that the joining link may be followed",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Excel Advanced - Udemy - certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "learner name, course title, platform name, completion date, and a verification URL",
+        "no employer name, cost centre, enrolment record, cohort, or roster anywhere in the corpus around it",
+        "sits beside a personal card receipt for the same purchase"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this row activates - it is the collision fixture and looks exactly like the Fire Marshal certificate",
+        "an employer relationship from the fact that the skill is used at work",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Safeguarding Policy v3.1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "controlled-document header with version, owner, approval body, effective date, and review date",
+        "numbered clauses stating obligations and scope",
+        "no learning objectives, audience, activity, or assessment"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this row activates because staff must be trained on it",
+        "that a mandatory-training matrix row naming the same policy pulls the policy into this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Onboarding to Acme Analytics Suite - customer enablement deck.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "modules, learning objectives, exercises, and a certification path - structurally identical to internal curriculum",
+        "a speaker note reads 'for delivery to the client admin team during week one of the rollout'",
+        "the deck carries the vendor's product branding, not the holder's staff-facing template"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that curriculum structure alone activates this row - the audience decides",
+        "that the word Onboarding relates it to hr.onboarding-offboarding",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "Induction is the contested word and that row has already argued this seam from its side; this row accepts its framing verbatim and reciprocates. Shared fixture bytes: `Induction completion roster - Sept 2026 intake.xlsx`. HR.ONBOARDING-OFFBOARDING MUST NOT TAKE a curriculum, a module structure, a completion roster spanning tenured staff, a development plan, or a mandatory-training matrix, even when its first item is named Induction. THIS ROW MUST NOT TAKE a first-day or first-week agenda that exists only because someone started, nor an induction sign-in sheet tied to one start date. Where the same workbook carries a start-date cohort AND a learner-by-course grid, both rows may hold and neither copies the other's facts. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.performance-cycle",
+      "signal": "That row has already argued this seam and named the fixture; this row reciprocates with the same bytes. Shared fixture: `Individual Development Plan - J Patel - FY26.docx`, an individual development plan attached to a review outcome. HR.PERFORMANCE-CYCLE MUST NOT TAKE a curriculum, course catalogue, session record, or completion roster merely because a review recommended training. THIS ROW MUST NOT TAKE the review instrument, the rating, or the calibration merely because a development action was an output. The discriminator is whether the file ASSESSES THE PERIOD JUST ENDED or DELIVERS A LEARNING ACTIVITY; the development plan is the seam and both rows may legitimately hold it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.dei-program",
+      "signal": "That row already lists this one in its collides_with; this is the reciprocal statement. Shared fixture: an unconscious-bias or inclusive-hiring course with a completion roster. HR.DEI-PROGRAM MUST NOT TAKE the curriculum, facilitator guide, assessment, or per-learner completion grid merely because the subject matter is inclusion. THIS ROW MUST NOT TAKE the inclusion strategy, the representation monitoring, the demographic cut, or the statutory diversity report merely because training is one of its actions. The discriminator is whether the file's atoms are LEARNING DELIVERY or PROGRAMME STRATEGY AND POPULATION MEASUREMENT. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "Shared fixture: the by-department completion-percentage sheet inside `Mandatory training matrix - FY2026 - all staff.xlsx`. HR.WORKFORCE-ANALYTICS MUST NOT TAKE the learner-by-course grid whose cells are per-person compliance states and whose purpose is to chase individuals. THIS ROW MUST NOT TAKE a training-spend, skills-gap, or completion-rate analysis whose rows are population cuts and whose purpose is measurement. The discriminator, borrowed from that row's own seam with performance-cycle, is whether a PERSON IS THE ROW AND THE ACTION, or a member of a cut. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "The sharpest collision in this row, because the bytes can be identical. Shared fixture: `Certificate of Completion - Fire Marshal Training - J Patel.pdf`. CAREER.CREDENTIALS-LICENSES MUST NOT TAKE an employer's completion roster, training matrix, enrolment record, or course catalogue merely because each cell could be copied to the individual it names. THIS ROW MUST NOT TAKE one person's own certificate, licence, CPD log, or renewal notice held as their own qualification evidence, with no employer enrolment, cost, cohort, or roster anchor present. The discriminator is employer-side provision structure, not whose device holds the bytes. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.online-course",
+      "signal": "Shared fixture: `Excel Advanced - Udemy - certificate.pdf`, this row's declared collision fixture, and the platform course materials around it. ACADEMIC.ONLINE-COURSE MUST NOT TAKE an employer-mandated course whose enrolment, seat cost, cohort and completion state are administered by the employer, merely because it is delivered on a commercial platform. THIS ROW MUST NOT TAKE self-directed study a person bought, enrolled in and completed on their own account, merely because the skill is occupational. The discriminator is who enrolled and who holds the completion record, not the platform. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "Shared fixture: `Safeguarding Policy v3.1.pdf` and the awareness course that quotes it. BUSINESS_OPERATIONS.POLICY-HANDBOOK MUST NOT TAKE a facilitator guide, module, knowledge check, or completion roster merely because the subject is a policy. THIS ROW MUST NOT TAKE the controlled governing document, its version history, its approval record, or an employee's signed acknowledgement of it - the schema row already places the acknowledgement, and an acknowledgement is a signature, not a completion. The discriminator is approval-and-scope structure versus objectives-audience-assessment structure. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "This carries the absorbed legacy row soft.training-material, where the same product course can face either way. Shared fixture: `Onboarding to Acme Analytics Suite - customer enablement deck.pptx`. BUSINESS_OPERATIONS.GO-TO-MARKET MUST NOT TAKE an internal course delivered to the organisation's own staff merely because the subject is a product or a tool. THIS ROW MUST NOT TAKE customer, partner, or field enablement content, product documentation, or a certification programme sold to users, even when its structure is module-for-module identical to internal curriculum. The discriminator is the audience, and it is frequently stated only in a speaker note or an invitation - see needs_llm. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "hr.engagement-survey",
+      "why": "That row has already stated this seam and this is the reciprocal: a post-course evaluation is both a listening instrument and a learning record. It holds where the evaluation is fielded as part of a listening programme; this row holds where it is attached to one session and one cohort roster, as `Harassment Prevention - post-course evaluation responses.csv` is. Both may hold the same bytes, neither copies the other's cuts, and the stricter handling governs the free-text column."
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "why": "Statutory safety training is simultaneously learning delivery and safety-competence evidence. `Manual Handling refresher - session sign-in sheet.jpg` and the Fire Marshal certificate carry both readings: this row holds the course, cohort and completion; that row holds the competence requirement, the risk assessment it discharges, and the incident context. Neither converts the other's facts."
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "why": "A mandatory-training matrix is both a learning record and audit evidence that a control operated. Co-activation is lawful; the audit row holds the control, the finding and the sample, while the per-learner grid and its protection stay here."
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "why": "An external provider's course produces both a programme record and a supplier relationship record. The curriculum, cohort and completions stay here; the contract, statement of work, invoice, and provider performance review stay with the vendor row."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "The material names learners and their completion, failure, attempt, exemption or chase status but no accepted programme group is established - or the programme is established and the member is a 360 report, a coaching note, an exemption reason, an evaluation free-text column, or a health-adjacent adjustment. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\""
+    },
+    {
+      "template": "Independent Records",
+      "when": "A durable standalone learning artefact has no employer-side programme, cohort or enrolment anchor: a lone certificate, a completion notice, a catalogue extract, a policy PDF, or a course deck with no audience evidence. This is the residual 00 names for exactly these bytes: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\""
+    },
+    {
+      "template": "Reading Inbox",
+      "when": "Course-adjacent material is reading rather than delivery - a provider's white paper, a conference handout, a textbook chapter, a saved article recommended in a module - with no enrolment or cohort anchor. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\""
+    },
+    {
+      "template": "Receipts and Confirmations",
+      "when": "An isolated enrolment confirmation, seat invoice, joining instruction, or booking record arrives with no programme group accepted. 00: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\""
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "career.credentials-licenses",
+      "this_role": "The employer as provider and record-keeper of learning: the curriculum it authored or bought, the cohort it enrolled, the sessions it ran, and the completion and renewal state it must be able to evidence.",
+      "other_role": "The individual as holder of their own qualification: the certificate, licence, CPD log and renewal notice they keep as evidence of what they are qualified to do, whoever paid for it."
+    },
+    {
+      "domain": "academic.online-course",
+      "this_role": "Learning the employer commissions, mandates, funds and tracks against a workforce.",
+      "other_role": "Learning the person undertakes on their own account, in their own name, with their own enrolment - including on the same platform and in the same subject."
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "this_role": "The teaching of a rule: objectives, audience, activity, assessment, cohort, completion.",
+      "other_role": "The rule itself: the controlled document, its version, its owner, its approval, its scope, and the signed acknowledgement that a person has read it."
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's corpus splits, and the split is one of its arguments for existing. The content half - modules, facilitator guides, catalogues, decks, recordings of general courses - contains no personal data and is closer to reusable organisational content than to a personnel record; treating all of it as protected would over-protect and would hide from the user material they legitimately want to browse and re-use. The completion half is the opposite and is in some respects sharper than the hr default: a learner-by-course cell is an assertion about one named person's standing, and the course titles themselves leak - Substance Misuse Awareness, Safeguarding, Harassment Prevention, Return to Work, Reasonable Adjustments. An Exempt or Deferred marker can encode a health, disability, pregnancy or religious circumstance without ever naming it, and a failed-attempt count is easily misread as a capability finding. Evaluation free text and coaching notes name colleagues candidly. The row is therefore recorded as potentially_sensitive because the union of its corpus is, and the per-learner side must be protected before any cloud step and must not appear in general summaries; it invents no handling class, which is P7's, and it does not claim that a fire-safety slide deck is sensitive.",
+  "open_question": "NEEDS-JOSEPH NJ-TD-1: adjudicate `learning_programme` against the alternative of widening the existing `subject` key. 00 uses subject for the academic instance of exactly this concept, but subject's trustworthiness comes from a course-code-plus-academic-context rule that cannot fire on a prose course title. The alternatives are (a) mint learning_programme as a role-specific key, (b) widen subject with a second rule family for employer courses, or (c) refuse both and let programme identity live only as a group label - which would cost this row its recommended first dimension and most of its distinctness. NEEDS-JOSEPH NJ-TD-2: settle whether a template may recommend a dimension order that CONTRADICTS its schema row's prose default. This row recommends programme first and demotes workforce_unit below cohort, which is the reverse of the hr schema row's recommendation, and it believes the contradiction is the point - but the contract does not say whether a template may override its schema's default order or only refine it. NEEDS-JOSEPH NJ-TD-3: decide the posture for the split corpus. The content half is not personal data and the completion half is acutely personal. The alternatives are (a) one row-level potentially_sensitive posture, which over-protects the content half, (b) a per-member posture decided at group-membership time, which the current contract does not describe, or (c) splitting into two rows, which this memo argues against because the join between a course and its completions is the whole value of the row. NEEDS-JOSEPH NJ-TD-4: decide how far the absorbed soft.training-material coverage reaches. This row claims only courses delivered to the organisation's own staff and routes customer, partner and field enablement to business_operations.go-to-market. If Joseph intends soft.training-material to mean product documentation generally, that coverage is not here and no row currently claims it - product manuals and help content would fall to Reading Inbox by default."
+}

@@ -1,0 +1,412 @@
+{
+  "id": "hr.org-design-headcount",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Organisation design and headcount planning",
+  "one_line": "The workforce as a STRUCTURE OF POSTS rather than a population of people: establishment and post registers, organisation charts, headcount and FTE plans, spans-and-layers work, post descriptions and grade architecture, and reorganisation proposals with their consultation packs. It activates on post-structure evidence - a position identifier with a grade or FTE beside a reporting-to slot, or a current-versus-proposed pairing - which is evidence the hr schema's default template does not contain, because a plan whose every seat reads Vacant identifies no employee and instantiates no personnel process. PLACEHOLDER ROW (J-IND): the hr schema declares no canonical field rows under PR-6, so this row writes none and freezes no dimension.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty twice over. The hr schema row is `launch: placeholder` and declares no canonical field rows under PR-6, so there is nothing for this template to reference; and a template may not copy its schema's list even when one exists. The legal set on any file this row recognises is the universals (file type, creation date, language, duplicate family, version family, sensitivity status) plus, if and only if R1c promotes them, hr's proposed `workforce_unit` and `people_cycle`. `workforce_member` and `personnel_case` are proposed by hr but are the WRONG ROLE here: this row's subject is a post, not a person, and this row has no case.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. The two keys this material needs already exist as hr schema proposals and are reused rather than re-minted: `workforce_unit` for the establishment being designed (Customer Operations, Hong Kong warehouse) and `people_cycle` for the bounded design round (FY27 planning round, 2026 restructure). The one string this world is saturated with - a post or position identifier such as POS-0412 - is deliberately NOT proposed as a field. It is a ROW-LEVEL datum inside a register, not a file-level fact about the register; a single establishment sheet carries hundreds of them, so no extractor could write one onto the file. It is evidence, never a key, and certainly never a folder level.",
+  "recognition": {
+    "deterministic": [
+      "a post or establishment register whose header row jointly carries a position/post identifier, a grade or band, an FTE or headcount value, and a reporting-to or parent-post slot. The JOINT post-structure is the signal. A staff list of names, titles and emails carries none of it and does not activate this row",
+      "a current-versus-proposed pairing inside one file: labelled As-Is and To-Be columns, a Current and Proposed slide pair over the same unit, or a delta column of post, FTE or headcount changes. Two structure states in one artifact is design evidence and is not present in any executed personnel record",
+      "a hierarchy whose NODES carry post attributes (title, grade, FTE, vacancy or filled status) and whose EDGES are reporting relations, including a machine-readable HRIS position export whose fields name a parent position or manager position id. The hierarchy shape alone discriminates nothing; the post attributes on the nodes do",
+      "a restructure or consultation pack whose labelled sections combine a design rationale, a schedule of affected or at-risk posts, a selection or pooling method, and a consultation timetable. This structure appears in no other hr situation",
+      "a post or job description carrying an approved post reference, a grade, an evaluation score, or a reporting line, and carrying NO open requisition reference, advertisement text or closing date. The requisition slots move the same document to career.employer-side-hiring",
+      "an organisation-effectiveness analysis whose measures are structural - management-to-individual-contributor ratio, layer count by unit, average span, target layers - rather than population measures over time. Attrition, absence, tenure and cost-per-head are hr.workforce-analytics measures and do not activate this row"
+    ],
+    "needs_llm": [
+      "whether a resource plan is an establishment plan or a project delivery allocation. Approved posts, grades, vacancies and continuing capacity support this row; named work packages, allocation percentages, milestones and a bounded end date support business_operations.project-delivery. This is the single hardest call on the node and both rows name the same fixture",
+      "whether a boxes-and-arrows hierarchy is a workforce establishment or a legal-entity group structure. Jurisdictions, share percentages, incorporation numbers and holding relations make it a corporate record; grades, FTE and reporting lines make it a workforce record",
+      "whether a structural analysis is DESIGNING the establishment (a proposed target state is present) or REPORTING on the workforce population (a time series over an existing population). The presence of a proposed column, not the subject matter, decides it",
+      "whether a structure document is a published current-state chart or an unannounced proposal, because the second requires protection even when it names no individual at all - a distinction the hr default cannot make because it keys protection to employee-identifying content",
+      "whether a heterogeneous consultation pack is purpose-coherent as one reorganisation when its members include policy extracts, union correspondence, legal advice, spreadsheets and slide decks from several schemas"
+    ],
+    "never_alone": [
+      "the words org chart, organogram, organisation design, structure, headcount, FTE, establishment, restructure, reorg, span, or layer alone. All appear in strategy decks, board papers, budget narratives, consultancy marketing, software documentation and cited material",
+      "a boxes-and-arrows or tree shape alone. Family trees, legal-entity charts, network diagrams, product taxonomies, decision trees, mind maps and system architecture diagrams share the shape exactly. This is the never_alone that the tempting false file `Group structure chart - entities and shareholdings.pdf` trips",
+      "a company, department, function or site name alone. The design says: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” The same reasoning voids a company name on a chart",
+      "a list of employee names, job titles, or manager names alone. A directory export, a distribution list, a meeting attendee list and a contacts file all carry them and none is an establishment",
+      "a bare FTE-shaped decimal, headcount integer, grade or band code, span ratio, layer count, percentage, or year",
+      "a source type or extension alone, including .vsdx, .pptx, .xlsx, .csv, .drawio, .png, .pdf",
+      "membership in a download session, mailbox folder, or parent directory named Org, Org Design, People, HR, Planning, Restructure, Transformation, or Confidential",
+      "a CONFIDENTIAL, DRAFT or DO NOT CIRCULATE watermark or filename token alone. It marks handling, not subject, and appears on pricing, M&A, board and legal material",
+      "absence of EXIF as proof that an image of an org chart is a screenshot rather than a photograph of a whiteboard",
+      "a budget line labelled salaries, wages, headcount or FTE alone. Without row-level post structure the file stays with business_operations.budget-forecast or finance"
+    ]
+  },
+  "proposed_context_terms": [
+    "position id",
+    "post reference",
+    "reports to",
+    "parent position",
+    "grade",
+    "band",
+    "FTE",
+    "establishment",
+    "vacancy",
+    "vacant",
+    "as-is",
+    "to-be",
+    "current state",
+    "proposed structure",
+    "span of control",
+    "layers",
+    "at risk",
+    "selection pool",
+    "consultation period",
+    "job evaluation"
+  ],
+  "work_types": [
+    "organisation chart or structure diagram of a current state",
+    "establishment or post register",
+    "headcount, FTE or workforce capacity plan",
+    "reorganisation or restructure proposal and options paper",
+    "consultation pack, affected-post schedule, or selection-criteria document",
+    "post or job description and job-evaluation record",
+    "role, title and grade architecture record",
+    "spans-and-layers or organisation-effectiveness analysis",
+    "integration, transfer or merger people-structure plan",
+    "approved structure sign-off or implementation schedule"
+  ],
+  "grouping_reasons": [
+    "one design round: current-state extracts, options papers, structural analysis, the proposal, and the approved structure, held together by purpose rather than by content similarity. The design says: “Topic answers what a file is about, while purpose answers what the file was for.”",
+    "one reorganisation from proposal through consultation, affected-post schedule and selection method to the implemented structure",
+    "one establishment unit's chart across successive versions, where the versions are SEMANTICALLY distinct - v3 and v7 propose different structures - unlike the versions of an executed payroll register, which describe the same run",
+    "a sparse hierarchy image that joins a design neighbourhood by accepted membership without receiving the round's unit or cycle facts",
+    "no group is valid when a lone hierarchy diagram carries no post attributes, or when members carry “irreconcilable course, institution, project, term, or purpose facts” - a current-state chart of one unit and a proposal for another are not one design round"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6: the hr schema declares no canonical field rows, so no key may become a folder dimension yet and this row freezes nothing. The recommendation is held as prose for R1c and it INVERTS the hr default. hr's default prose order is work type or named people programme first, then workforce unit, then people cycle. This row recommends workforce unit FIRST, then the design round (people cycle), then work type - because an establishment artifact is ABOUT a unit, and leading with work type would collect every unit's org chart into one undifferentiated bucket while splitting one unit's design round across chart, register, analysis and proposal folders. Version family is load-bearing here rather than incidental, because successive versions propose different structures rather than restating one event. Two levels are forbidden outright: a personnel case level, because this row has no case; and an individual's name, because the design says “It should avoid using authorship or creator identity as a destination dimension.” Not time-first: a planning year qualifies a design round, it does not define this world.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "presentation",
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".docx",
+      ".pdf",
+      ".vsdx",
+      ".drawio",
+      ".png",
+      ".heic",
+      ".zip",
+      ".json",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Establishment by post - Customer Ops - Feb 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row carries post reference, job title, grade, FTE, reports-to post, and status",
+        "the incumbent column reads Vacant or TBC on most rows and is empty on several",
+        "control totals sum FTE and approved posts, not pay"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any hr fact as canonical - the schema declares none under PR-6",
+        "that this is a staff list, a payroll register, or a contacts export",
+        "a post reference as a file-level fact; it is a row-level datum",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FY27 establishment and headcount plan v5.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides show current and proposed reporting lines as a paired sequence",
+        "tables label approved posts, vacancies, grades, locations and headcount deltas",
+        "no work packages, milestones or delivery schedule appear"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "workforce_unit or people_cycle while those keys remain hr proposals awaiting R1c",
+        "that every person named on a proposed box occupies the proposed post",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Org chart 2026.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "boxes naming people and reporting lines",
+        "a company name in the title",
+        "headcount numbers per function"
+      ],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a chart of named people is impersonal because it is a diagram",
+        "activation of business_operations.organisational-records - that row names this exact file and hands it to this row; the reciprocal is stated here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Restructure proposal - CONFIDENTIAL - do not circulate v9.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sections give a design rationale, a schedule of at-risk posts, a selection pooling method, and a consultation timetable",
+        "posts are identified by reference and grade; no individual is named anywhere in the document",
+        "a watermark and a filename token both say confidential"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the absence of any person's name makes the file non-sensitive - this is the fixture that breaks the hr schema default's employee-identifying test",
+        "activation from the confidential watermark alone",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Phoenix resource plan.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows assign named people to work packages",
+        "columns carry allocation percentage, milestone, start, end and project role",
+        "no post reference, grade, vacancy status or reporting-to slot appears, and allocations terminate at project closure"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of this row - THIS IS THE COLLISION FIXTURE. Names, job titles and utilisation percentages are not establishment evidence",
+        "an establishment plan from a capacity-shaped spreadsheet",
+        "that this row's absence releases the file from hr's stricter handling where individuals are named against costs",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Group structure chart - entities and shareholdings.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "boxes and connecting lines in a strict hierarchy, exactly the shape of an org chart",
+        "each box carries a legal entity name, an incorporation jurisdiction and a company number; each edge carries an ownership percentage",
+        "no grade, FTE, post reference or person appears"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of this row - THE SECOND COLLISION FIXTURE. The hierarchy shape is shared and discriminates nothing; the node attributes decide",
+        "a workforce structure from a corporate structure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Spans and layers analysis.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns give unit, manager count, individual-contributor count, span ratio, current layers and TARGET layers",
+        "a proposed-state column exists beside every current-state column",
+        "no time series, no attrition, absence, tenure or cost-per-head measure"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of hr.workforce-analytics merely because the file is analytical - the target column makes it design, not reporting",
+        "a population fact from a structural ratio",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "JD - Head of Customer Operations - approved.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots give post reference, grade, job-evaluation score, reporting line and direct reports",
+        "no requisition reference, advertisement copy, closing date or application route appears",
+        "an approval signature block names the reward and HR approvers"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "recruiting purpose from a job description shape - the requisition slots are what would move it",
+        "that the same bytes with a requisition reference stay here; they move to career.employer-side-hiring",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Salaries and headcount budget FY27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows give department, FTE, average salary, on-cost and total budget",
+        "columns are budget periods and the sheet reconciles to a finance total",
+        "no post reference, grade architecture or reporting-to slot appears"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation from the word headcount in the filename - the never_alone on budget lines covers exactly this",
+        "an establishment plan from an FTE-by-department cost model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 11.42.13.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a browser chrome strip, an HRIS page heading, and a table of position id, title, grade, FTE, parent position and a vacancy flag",
+        "the same post rows appear in the establishment spreadsheet elsewhere in the corpus",
+        "no text layer exists; every string is OCR output"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that missing EXIF proves this is a screenshot rather than a photograph",
+        "post rows as facts from OCR strings alone",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_2287.HEIC",
+      "source_type": "image",
+      "observations": [
+        "a phone photograph of a whiteboard covered in boxes and arrows drawn by hand",
+        "no label is legible; no grade, FTE or post reference is readable",
+        "it sits in the same download-and-capture neighbourhood as two design-round decks"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "an org-design fact from a hierarchy shape with no readable post attributes - this is the sparse file, and the correct activation set is empty",
+        "the design round's unit or cycle copied onto it from the neighbours",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Reorg consultation pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists the proposal, paired as-is and to-be charts, an affected-post schedule, an FAQ, selection criteria, union correspondence and a legal advice note",
+        "members are content-incoherent but the outer name and several members repeat one reorganisation",
+        "members originate in at least three schemas"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that every member carries the pack's purpose - the legal advice note is legal evidence that happens to travel here",
+        "that the archive may be sent to a cloud model before its members are assessed",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "Shared fixture, named identically on both sides: `Project Phoenix resource plan.xlsx`. That row authored this edge one-way and recorded that R1c owes the reciprocal; this is the reciprocal. BUSINESS_OPERATIONS.PROJECT-DELIVERY MUST NOT TAKE a plan whose rows are approved posts with grades, FTE, vacancy status and reporting lines that outlive any project. THIS ROW MUST NOT TAKE a plan whose rows are allocations of named people against work packages on a project's own schedule, ending when the project ends. Where one file carries both, hr's posture is the stricter and governs handling even where the other row wins on grouping. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.organisational-records",
+      "signal": "Two shared fixtures, both named on both sides: `Org chart 2026.pptx`, which that row already hands to this one, and `Group structure chart - entities and shareholdings.pdf`, which this row hands back. BUSINESS_OPERATIONS.ORGANISATIONAL-RECORDS MUST NOT TAKE a hierarchy whose nodes carry post attributes - title, grade, FTE, vacancy status - and whose edges are reporting relations. THIS ROW MUST NOT TAKE a hierarchy whose nodes are legal entities carrying jurisdictions and company numbers and whose edges carry ownership percentages, nor the constitutional and registry records of the entity itself. The shape is identical on both fixtures; only the node attributes discriminate. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "Shared fixture: `Spans and layers analysis.xlsx`. HR.WORKFORCE-ANALYTICS MUST NOT TAKE a structural analysis that carries a proposed or target state beside the current one - that is design work, not reporting. THIS ROW MUST NOT TAKE a headcount, attrition, absence, tenure, diversity or cost-per-head series over an existing population, even when it is cut by organisational unit. The discriminator is a target column, not the subject matter. Same-schema collision: two accepted groups may both claim the file, and neither copies the other's facts. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "Shared fixture: `JD - Head of Customer Operations - approved.docx`. CAREER.EMPLOYER-SIDE-HIRING MUST NOT TAKE a post description that carries an approved post reference, grade and evaluation score with no requisition, advertisement or closing date - that is an establishment artifact defining a seat. THIS ROW MUST NOT TAKE the same document once it carries an open requisition reference, advertisement copy, application route or candidate-facing material, nor any interview, scorecard or offer record. One document may pass from this row to that one when a post is opened; the requisition slots are the transition. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "Shared fixture: `Salaries and headcount budget FY27.xlsx`. BUSINESS_OPERATIONS.BUDGET-FORECAST MUST NOT TAKE a file whose rows are posts with grades, FTE and reporting lines merely because a cost column exists. THIS ROW MUST NOT TAKE an FTE-by-department cost model that reconciles to a finance total and carries no post-level structure, even when its filename says headcount. The never_alone on budget lines is the operative rule. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.compensation-planning",
+      "signal": "Shared fixture: a grade and title architecture record, and the job-evaluation score on `JD - Head of Customer Operations - approved.docx`. HR.COMPENSATION-PLANNING MUST NOT TAKE the grade structure when it is being used to define or renumber posts in an establishment. THIS ROW MUST NOT TAKE salary ranges, benchmarking data, pay-review rounds, bonus pools or benefits design, which price a grade rather than shape the structure. A grade is the seam: this row assigns posts to grades, that row assigns money to grades. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.practice-administration",
+      "signal": "Reciprocating an edge that row authored: it states that a staffing grid read alone is this row's material and only its clinical-session content moves it there. Restated from this side with the same fixture class: CLINICAL_PRACTICE.PRACTICE-ADMINISTRATION MUST NOT TAKE an establishment register of posts, grades and FTE merely because the employer is a practice. THIS ROW MUST NOT TAKE a rota that names clinics, patient-facing sessions or clinical cover for a named service; a staff-by-day grid alone discriminates nothing and belongs to neither on its own. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by oversight: `also_holds_with` joins SCHEMA rows, and this is a template. The genuine co-activations this row's material produces are recorded on the file examples as `also_schema` and are already licensed by the hr schema row's own `also_holds_with` list - `legal` on the restructure proposal and the consultation pack (collective consultation and redundancy law), `career` on the approved post description, `photos` on the HRIS screenshot. `business_operations` co-activation on a headcount plan that also supports a budget is likewise hr's schema-level edge, not this row's to author.",
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "an unannounced structure proposal, an at-risk or affected-post schedule, a selection-criteria document, or any chart naming individuals against grades or proposed deletions, where this row does not activate. The design says: “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” This row reads that local-only, no-content-in-prompts posture as the right default for unannounced design material and invents no handling class."
+    },
+    {
+      "template": "Independent Records",
+      "when": "a durable standalone approved chart, post register, post description or headcount summary with no design round and no accepted group. The design says: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” An approved establishment record has exactly that shape."
+    },
+    {
+      "template": "One-Off Images",
+      "when": "a photographed hierarchy - a whiteboard, a printed chart on a wall - with no readable post attributes and no design neighbourhood. `IMG_2287.HEIC` is the fixture."
+    },
+    {
+      "template": "Temporary Screenshots",
+      "when": "a captured HRIS or charting-tool screen that reminds the user of something but has no accepted design round"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "career.employment-records",
+      "this_role": "the POST as an approved establishment position, described and graded independently of whoever sits in it",
+      "other_role": "the individual's own record of the job they hold - contract, offer, title history, changes to their terms"
+    },
+    {
+      "domain": "business_operations.organisational-records",
+      "this_role": "the workforce establishment: posts, grades, reporting relations and their proposed changes",
+      "other_role": "the legal and constitutional structure of the entity: incorporation, entities, ownership, officers and registers"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The harm here has a DIFFERENT SHAPE from the rest of the hr schema, which is why this row exists rather than deferring to the default. hr keys protection to employee-identifying content; this row's most damaging file, `Restructure proposal - CONFIDENTIAL - do not circulate v9.docx`, names no individual at all and identifies posts only by reference, yet premature disclosure of which posts are marked for deletion causes collective, anticipatory harm to everyone who occupies them and is an industrial-relations event in itself. The risk is also time-bounded in a way no other hr material is: the same structure chart is protected on Monday and published on the intranet on Friday. This row therefore treats a proposed or unannounced structure as protected even when depersonalised, and correspondingly declines to treat a published current-state chart as a personnel record merely because it prints names. This catalogue value assigns no handling class and states no threshold; per-file assessment governs, and where a file also names individuals against grades or at-risk status the stricter side wins.",
+  "open_question": "NEEDS-JOSEPH NJ-ORG-1: the contract has no vocabulary for pre-announcement confidentiality, and this row's sharpest fixture depends on one. Alternatives: (a) treat an unannounced proposed structure as protected by default even when no person is named - this row's answer, argued from collective and anticipatory harm; (b) key sensitivity strictly to person-naming, which leaves the single most damaging file in this world unprotected; (c) mint a confidentiality-state or announcement-state fact, which is a product-level decision about the shared vocabulary that one template row must not make. Recorded, not resolved; no field was proposed. NEEDS-JOSEPH NJ-ORG-2: this row recommends INVERTING the hr default dimension order - workforce unit before work type - and that recommendation is currently unenforceable because PR-6 leaves both keys as proposals. If R1c refuses `workforce_unit`, leg two of this row's node test weakens to detection signals and privacy alone; the row would still survive on those two, but Joseph should know the order recommendation dies with the key. NEEDS-JOSEPH NJ-ORG-3: three reciprocals are now authored from this side that other rows asked R1c to supply - business_operations.project-delivery (explicitly one-way, reciprocal owed), business_operations.organisational-records (which asserts this row owns `Org chart 2026.pptx`), and clinical_practice.practice-administration (which names the hr family rather than this id). R1c should CONFIRM these rather than double-author them; none of those files was edited by this row. NEEDS-JOSEPH NJ-ORG-4: a post description that carries BOTH an approved post reference and an open requisition is genuinely dual. Alternatives: co-membership in two accepted groups with disjoint facts, or a single owner decided by which slot set is more complete. This row states the transition rule (requisition slots move it to career.employer-side-hiring) but cannot settle simultaneity, and career.employer-side-hiring has not stated its side."
+}

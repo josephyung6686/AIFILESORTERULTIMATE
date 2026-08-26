@@ -1,0 +1,484 @@
+{
+  "id": "government.school-district-administration",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "School district and local education authority administration",
+  "one_line": "The authority tier that administers many schools it does not itself teach in — a district, school board, local education authority or education ministry office running admissions and place allocation, statutory pupil returns, per-school funding formula allocation, cross-school staffing and certification, attendance-zone and transport planning, and school improvement or intervention. It is not activated by a district's name, a school's letterhead, an education word, or a household's receipt of a school document. Its distinct evidence is an operative record whose unit of account is a SET of institutions under one administering body; its distinct privacy rule is that named-minor pupil material is protected by default at population scale rather than case by case. It declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema, not licences to write facts. Every accepted signal must evidence the holder as the ADMINISTERING TIER over a set of institutions. A single school administering itself, a household receiving school documents, and a vendor selling to a district all fail this precondition even when the bytes are identical.",
+      "a per-institution table whose repeated key is an institution identifier and whose rows enumerate MANY schools under one body — a funding allocation statement with per-school formula lines and a pupil-count driver, a roll or census summary with one row per school, an attendance or exclusion return broken out by school — combined with an addressee or issuing block naming the district, board, authority or education department",
+      "a statutory return structure addressed upward from the authority to a state, provincial or national education department: a named census or collection date, a collection or return reference, per-pupil or per-school response rows, and a declaration or sign-off block by a named authority officer; a school's own copy of its single return does not carry the multi-school aggregation",
+      "a place-allocation round artifact: applicant or application references, ranked school preferences, an oversubscription criterion or distance measure applied, an allocated institution code, an offer status, and a named offer or round date shared across the whole file",
+      "an admissions or exclusion appeal record with an independent panel constitution, appellant and responding-school blocks, stated grounds, panel reasoning and a decision, plus an appeal reference repeated across the panel bundle",
+      "an authority-issued school improvement, intervention, warning, support or monitoring notice naming a school as the RECIPIENT and the district, board or authority as the ISSUER, with required actions and a monitoring cadence; the direction of issue is the signal, not the evaluative vocabulary",
+      "a cross-school staffing instrument: a certification or endorsement tracker keyed by employee with an assigned-school column spanning several schools, a district-wide vacancy or deployment plan, or a collective agreement whose parties are the employing authority and a teaching workforce association covering all its schools",
+      "an attendance-zone, catchment, school-organisation or transport-planning record: proposed boundary changes with affected-school lists, consultation response analysis, place-supply or surplus-capacity projections, or route schedules with eligible-pupil counts and per-route cost",
+      "a governing-body packet whose numbered items are about OTHER institutions — a board of education agenda with per-school capital, closure, opening, staffing or policy items, a superintendent's or director's report covering the estate, and a resolution or minute adopting them",
+      "an archive or export manifest from a student information, admissions or finance system operated at authority scale, listing per-school members; the manifest is read, the archive is not unpacked to strengthen recognition"
+    ],
+    "needs_llm": [
+      "deciding the ADMINISTERING TIER when identical bytes may sit with the district office, one of its schools, a school the district does not operate, a state education department above it, a parent, a teacher, a union, a vendor or a journalist; interpretation may use only a bounded local dossier and must abstain when the tier is unresolved",
+      "separating a public education authority from a private school group, a charter or academy management organisation, a state-owned education contractor, a parent-teacher association, an education charity, a private accreditor and a teaching union when branding, statutory citation and pupil vocabulary all overlap",
+      "recognizing an unlabelled school-organisation options paper, a place-planning narrative, an intervention case note or a safeguarding chronology whose function is expressed only in prose with no labelled slots",
+      "deciding whether a per-school table is an operative allocation, return or roster produced BY the authority, or a published performance or spending comparison downloaded ABOUT districts for reading",
+      "deciding whether a mixed packet is authority-side administration or a household's collection of school letters, report cards, forms and consent slips that happen to name the same district",
+      "interpreting multilingual or jurisdiction-specific education-administration forms whose role vocabulary — trust, academy, board, division, authority, county office, directorate — is not covered by deterministic structure rules",
+      "abstaining whenever the evidence cannot cite an administering-tier role; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a school district, school board, education authority, ministry of education, superintendent or school name alone; the body may be issuer, employer, counterparty, subject of reporting, service provider, or simply the school a child attends",
+      "education-administration vocabulary alone — pupil, student, enrolment, admissions, curriculum, attendance, SEN, IEP, safeguarding, truancy, catchment, per-pupil funding; topic is not tier",
+      "a school-identifier-shaped token alone (a URN, NCES, DfE, CEEB, state or provincial school code); one such code names one institution and is exactly the evidence a household document also carries. The signal is MANY such codes as the repeated key of an operative table",
+      "a bare 4-digit number, a bare school year string such as 2025-26, or a term word; a year or term is a cycle value, not proof of an authority-side record",
+      "a letterhead, crest, .gov or .k12 style domain, district email address, PDF producer string or metadata author alone",
+      "a child's report card, school letter, permission slip, timetable, fee notice, uniform order or absence letter held by the household; the district issued it, and the household still owns the record",
+      "an IEP, 504 plan, SEN statement, EHC plan or accommodation letter alone; held by the family it is the family's plan, and only a caseload roster or authority-side casework structure moves it here",
+      "a teacher's own class lists, lesson plans, gradebooks, observation feedback and certification certificates; a district employer name on a teacher's file is employment evidence, not authority-side administration",
+      "a published school-performance table, inspection summary, school-spending comparison, district budget book or board-minutes copy downloaded for reading; publication by an authority is not authority-side custody",
+      "a vendor's proposal, invoice, catalogue or contract addressed to a district; counterparty value does not activate this row",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named School, District, Board, Education, Admissions or Schools alone",
+      "a shared download session or browser batch of school-related PDFs; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is an admissions-portal capture; the system “must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "work_types": [
+    "admissions policy, application round, oversubscription criteria, place allocation, offer, waiting list, appeal, or in-year transfer record",
+    "statutory pupil or workforce census, collection instrument, return, validation query, resubmission, or data-quality report",
+    "funding formula, per-school allocation statement, budget share, deficit or surplus recovery plan, capital allocation, or grant claim",
+    "attendance, absence, exclusion, suspension, alternative-provision, or elective-home-education record held by the authority",
+    "special-education referral, assessment, plan, annual review, placement, mediation, or tribunal response held by the authority",
+    "safeguarding referral, child-protection chronology, attendance-enforcement case, or multi-agency record held by the authority",
+    "school improvement plan, intervention or warning notice, monitoring visit note, support brokerage, or governance intervention",
+    "cross-school staffing: recruitment campaign, deployment plan, certification and endorsement tracking, grievance, or collective agreement",
+    "school-organisation planning: place-supply projection, catchment or attendance-zone review, consultation, amalgamation, opening, expansion, or closure proposal",
+    "transport routing and eligibility, catering, cleaning, estate maintenance, or other authority-operated shared service",
+    "board of education or authority committee governance: agenda, numbered papers, report, resolution, minute, and publication copy",
+    "records access, disclosure, retention and destruction administration over pupil and staff records held by the authority"
+  ],
+  "grouping_reasons": [
+    "one admissions round, linked by an exact round, offer-date or application reference across policy, criteria, allocation output, offer letters, waiting lists and appeal bundles",
+    "one statutory collection cycle, linked by an exact collection or census reference across the instrument, the return, validation queries, resubmissions and the quality report",
+    "one funding cycle, linked by an exact allocation reference across the formula, per-school statements, budget shares, adjustments and claim reconciliation",
+    "one named school's improvement or intervention case, linked by an exact notice or case reference across the notice, action plan, visit notes, evidence and closure — without copying the school anchor onto sparse members",
+    "one board or committee governance cycle, linking agenda, numbered papers, decisions, actions and the publication copy",
+    "one pupil, family or staff case, but only inside a protected, locally processed group with exact case anchors, minor-safe display labels, and no cross-person semantic joining",
+    "one authority system export or archive manifest, kept shallow until per-school and per-pupil access boundaries are known",
+    "duplicate and version families remain universal relationships; repeated policy, form, allocation and notice versions do not acquire new facts from neighbourhood context",
+    "no group is a valid outcome for a standalone published table, notice or board minute; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema fieldless and a template cannot branch on undeclared fields. The prose recommendation this row would make if fields were ratified differs from the schema default in one specific way: between the authority-side function and the cycle, this world needs an INSTITUTION dimension, because a per-school allocation line, an improvement notice or an attendance return is unintelligible without knowing which school it is about — “a parent dimension should provide the context required to understand the child.” Named pupils, families and staff must never become a dimension at any level. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders,” and because the operative cycles here are school years, admissions rounds and census points rather than calendar years. Any later order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "contacts",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".zip",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Pupil Census Return 2026-01-15 - District 12 - all schools.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header block naming an issuing education department and a collection reference",
+        "one row per school with a repeated institution-identifier column, roll counts by year group, meal-eligibility and special-education counts",
+        "a census-date value repeated across every row",
+        "a sign-off row naming an authority officer and a submission timestamp"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the district is the pupils' data controller for any purpose beyond the observation",
+        "that any pupil-level count is a validated statistic",
+        "that a single school's identifier makes this a school-side file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reception Round 1 Allocations - National Offer Day 2026-04-16.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for application reference, ranked school preferences, oversubscription criterion applied, distance measure, allocated institution code and offer status",
+        "many distinct allocated institution codes in one file",
+        "a single offer-date value shared by every row"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a named child or address becomes an organizing label",
+        "that the allocation is final, lawful or appealable"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Admissions Appeal Panel Decision - Ref A-2026-0417.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "panel constitution block naming independent members and a clerk",
+        "appellant block, responding-school block, stated grounds, panel reasoning, decision line",
+        "an appeal reference repeated in the header of every page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the decision is correct, final or binding",
+        "that the appellant family's other files inherit this reference"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Funding Allocation Statement 2026-27 - District 12 - per school.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per school with formula factor columns, a pupil-count driver, per-pupil rates and block subtotals",
+        "an authority total row reconciling to a departmental grant line",
+        "a version marker distinguishing indicative from final allocation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any figure is an audited or spendable amount",
+        "that the file is a school's own budget"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Board of Education Agenda Packet - 2026-03-10.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered agenda items with attached paper references",
+        "items concerning several named schools: a capital item, a staffing item, a policy first reading",
+        "a superintendent's report covering the whole estate and a closed-session notice"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any item was adopted",
+        "that a corporate board-governance reading applies because the packet is agenda-shaped"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "School Improvement Notice - Northgate Primary - 2026-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer block naming the authority, recipient block naming one school and its governing body",
+        "required actions, monitoring cadence, escalation statement",
+        "a notice reference repeated on the covering letter and the action plan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the school is failing, or that any judgement is accurate",
+        "that an external accreditation or inspection cycle is in play"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Teacher Certification Tracker - District 12 - 2025-26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "employee reference, assigned-school column spanning several schools, endorsement or subject codes, expiry dates, vacancy flags",
+        "a filter row scoped to the authority rather than to one site"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any certification is currently valid",
+        "that a named teacher becomes an organizing label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Collective Agreement - District 12 and Teachers Association 2026-2029.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "parties block naming the employing authority and a workforce association",
+        "salary schedule tables, grievance procedure, class-size and assignment articles applying across all schools",
+        "signature and ratification blocks"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the agreement is in force, or how it applies to any individual",
+        "that the union-side holder role applies"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Attendance and Exclusion Return - Term 2 - District 12.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "per-school and per-pupil rows with absence-code columns and permanent-exclusion flags",
+        "a term identifier repeated across the file",
+        "an enforcement-referral column naming an authority team"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any named child is truant, excluded or at risk",
+        "that codes carry a handling class"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Catchment Review - Attendance Zone Consultation Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "proposed boundary options with affected-school lists and place-supply projections",
+        "consultation response counts and a themed analysis section",
+        "a recommendation to the board with an option preference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any boundary change was adopted",
+        "that address or postcode data becomes a dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Home-to-School Transport Contract - Routes 4-11 - Evaluation Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tender reference, evaluation panel, scored criteria, bidder summaries and an award recommendation",
+        "route schedules with eligible-pupil counts and per-route cost"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the award is final",
+        "that the vendor's own copy would read the same way"
+      ],
+      "also_schema": "business_operations.procurement-sourcing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Place appeal Ref A-2026-0417 - hearing arrangements.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is an authority appeals clerk address; recipients are an appellant and a school office",
+        "the exact appeal reference appears in the subject and body",
+        "an attached hearing pack is named but not opened"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the appellant's other mail joins this group",
+        "that the attachment's contents can be assumed from its name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SIS Export - District 12 - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "an encrypted archive whose member list is unreadable",
+        "the filename suggests a student information system export"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that pupil records are inside",
+        "that the district is the holder",
+        "any sensitivity result derived from the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-03-02 at 09.14.31 - Admissions Portal Allocation Screen.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in filename pattern and capture metadata",
+        "OCR reveals an allocation table with several institution codes and an offer-status column"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the capture is authority-side rather than an applicant's own portal view",
+        "that absent EXIF would have proved screen origin"
+      ],
+      "also_schema": "photos.screenshot-captures",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "School Performance Tables 2025 - District 12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-school outcome columns and rankings across the whole district",
+        "a published-statistics footer with a release date and a national source",
+        "no addressee block, no operative slot, no sign-off"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder administers these schools",
+        "that a per-school table is by itself authority-side evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "IEP - Jordan Lee - Annual Review 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "named pupil, named school, goals, services, review-meeting attendees and signatures",
+        "no caseload roster, no authority case reference, no multi-school context"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder is the authority",
+        "that education-administration vocabulary establishes the administering tier"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.education-institution-governance",
+      "signal": "The same admissions data, statutory returns, funding records, staffing files and inspection correspondence occur on both sides; the neighbour has already authored this seam reciprocally. The deciding evidence is the administrative tier and the unit of account. Same fixture both ways — an enrolment or roll census: one school's own registry return about its own registered students belongs to the institution row; the same census as a multi-school aggregation held by the district office, with an institution identifier as the repeated row key, belongs here. A district that operates exactly one school is genuinely ambiguous and should abstain.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.education-accreditation",
+      "signal": "The shared fixture is a school evaluation report with numbered judgements and a visit record; the neighbour has already authored this seam reciprocally. Accreditation requires the reviewing body to sit OUTSIDE the reviewed institution's line of management on a published standards edition and a voluntary or membership cycle. Same fixture both ways — a rated visit report on Northgate Primary: issued by an external accreditor or inspectorate applying a standards edition it is accreditation; issued by the district that operates Northgate as part of its own improvement and intervention cycle it is administration of its own system and belongs here.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.municipal-administration",
+      "signal": "Independently elected school boards, county education offices and general-purpose municipalities all produce agenda packets, budgets, capital programmes and public notices. Same fixture both ways — a governing-body agenda packet with per-site capital items: where the body's remit is the general local estate (roads, parks, housing, waste, planning) it is municipal administration; where the numbered items, the statutory reporting line to an education department and the funding formula are all education-specific and cover a set of schools, it is this row. A combined municipality with an internal education directorate should route by the directorate evidence, not by the corporate name.",
+      "design_cite": null
+    },
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "Report cards, attendance letters, permission slips, timetables, school fee notices and admission offer letters are issued BY this row's world and held BY households. Same fixture both ways — an admissions offer letter naming one child and one allocated school: in a family's folder with no allocation output, round reference or authority-side sign-off it is the household's schooling record; the same offer as one row inside a round allocation file covering many applicants and many schools belongs here. A district name on a household document never crosses this seam.",
+      "design_cite": null
+    },
+    {
+      "domain": "academic.iep-accommodation-plans",
+      "signal": "Special-education plans exist on both sides. Same fixture both ways — `IEP - Jordan Lee - Annual Review 2026.pdf`: held by the family as their child's plan it belongs to the neighbour and is Protected Records when no group is accepted; the same document inside an authority special-education caseload with an assessment or case reference, a placement decision, a mediation or tribunal response and other children's cases alongside it belongs here. Membership in an authority caseload never copies a plan fact onto the family's copy, and neither side may semantically join across children.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "Agenda, numbered papers, minutes, resolutions and register packets are structurally identical for a corporate or charity board and a board of education. Same fixture both ways — an agenda packet with a consent calendar and closed session: where the body is a company, association or charity board governing its own organisation it is the neighbour; where the body is a public education authority whose numbered items decide matters for schools it does not itself run, and whose meetings carry statutory open-meeting and publication structure, it is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.trade-union",
+      "signal": "A collective agreement, grievance file, bargaining proposal or salary schedule is one document with two holders. Same fixture both ways — `Collective Agreement - District 12 and Teachers Association 2026-2029.pdf`: held by the association with its own membership, mandate, bargaining-committee and ratification-ballot material it is the union row; held by the employing authority alongside its staffing plans, deployment and cross-school payroll administration it is this row. The parties block names both; the surrounding operative material decides.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "A transport, catering, cleaning or curriculum-materials tender run by the authority is legitimately both a buyer-side sourcing record and school-district administration. Procurement owns the notice, specification, bid, evaluation and award structure; this row owns the education-specific drivers — eligible-pupil counts, route-to-school mapping, per-school service levels. Neither erases the other and neither is a mutex."
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "A district teacher recruitment campaign is legitimately both employer-side hiring and cross-school staffing administration. The hiring row owns requisition, candidate and interview structure; this row owns the deployment, vacancy-by-school and certification-coverage view. A candidate's own application material never activates this row."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "pupil-level, family, casework, safeguarding, special-education, attendance-enforcement or staff-personal material lacks a safe accepted authority-side group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone published notice, allocation statement, consultation report, board minute or policy has durable value but no accepted administrative group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document is clearly education-administrative but the administering tier — district, single school, department above, union, vendor or household — cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published performance table, official-statistics release, education policy paper, inspection summary or comparative spending report is held for reading rather than as authority-side work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an encrypted student-information export, damaged return, unreadable case-system binary or unknown format cannot yield evidence beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Stricter than the government schema default, and this is one of the three reasons the node exists. The schema default treats citizen casework as one protected slice among many public functions; here the ordinary operative artifact is a named-minor record at population scale — pupil censuses, place allocations with home addresses, attendance and exclusion returns, meal-eligibility flags, special-education caseloads, safeguarding referrals, and staff certification and grievance files. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Published performance tables, board minutes and allocation statements can be low-risk bytes, but their presence must never lower the posture of the underlying per-pupil extract, and small per-school counts remain disclosive even when the published aggregate is not.",
+  "open_question": "NEEDS-JOSEPH: (1) If PR-6 is lifted, decide centrally whether an institution concept may be destination-eligible for this row — a per-school branch is the only dimension that makes an allocation line or an improvement notice intelligible, but a visible school branch under an authority folder can itself disclose which school a family or a case concerns. (2) Decide whether a single-school authority, an academy or charter management organisation, and a combined municipality with an education directorate are inside this row, inside government.education-institution-governance, or an explicit abstain. (3) Decide whether public-authority status for education bodies comes only from deployment-specific gazetteers (R4) or may be user-confirmed."
+}

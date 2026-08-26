@@ -1,0 +1,484 @@
+{
+  "id": "government.library-administration",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Library service administration",
+  "one_line": "J-DEPTH placeholder template for the service side of running a library: the bibliographic and holdings record of the stock, the circulation and membership record of who borrowed what, the programming record of what was run in the building, and the service-performance return the authority files about itself. It is not activated by the word library, by a library's name, by a book title, or by a downloaded catalogue record of something the user is reading. Its distinct default against the government schema is two-part: a content-structural detector (labelled bibliographic and item/circulation slot structures that no other government sibling produces) and a privacy rule the schema default does not state — the patron-to-title link is the sensitive fact, so a borrower's reading may never become a display label or a folder level even where the person is already known. It declares no government field rows and no folder dimensions under PR-6, so activation unlocks only recognition, safety posture, universal facts, and grouping.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema, not licences to write government facts. Every accepted signal must evidence the corpus holder on the SERVICE side — running stock, membership, circulation, programming, or the service's own performance return — not reading, borrowing, citing, or visiting a library.",
+      "BIBLIOGRAPHIC TRANSFER STRUCTURE: a record whose internal structure is a bibliographic exchange format rather than prose — an ISO 2709 leader followed by a length-prefixed directory of numeric field tags, or an XML tree whose elements are record / leader / controlfield / datafield with numeric tag attributes and subfield codes. The structure is the signal; the titles inside it are not.",
+      "HOLDINGS-AND-ITEM SLOT PAIR: a labelled item-level slot holding a shelf-classification-shaped string beside a labelled item-barcode-shaped slot, repeated down a list. Neither half alone: a classification-shaped number on its own is a decimal, and a barcode-shaped digit run on its own is a stock or asset tag from any inventory.",
+      "CIRCULATION LEDGER STRUCTURE: labelled loan-transaction slots co-occurring in one row — an item identifier, a borrower identifier, and a loan-lifecycle slot (issue, due, return, renewal, hold, reservation, overdue). The lifecycle slot is what separates this from a plain stock inventory, which has quantities but no borrower and no due date.",
+      "MEMBERSHIP ADMINISTRATION SIDE: a membership application, card issue, or borrower-record maintenance document held with the ISSUING service's own form structure and internal reference — not a card a person keeps.",
+      "STOCK LIFECYCLE ON THE SELECTION SIDE: an acquisition, approval-plan, standing-order, donation-accession, stocktake, or withdrawal/weeding list carrying supplier or fund slots beside item identifiers, produced by the service that owns the shelves.",
+      "SERVICE PERFORMANCE RETURN: a labelled statistical return about the service's own operation — service points, opening hours, visits, active borrowers, issues, stock additions and withdrawals — submitted upward under a named return or collection cycle. The service is the RESPONDENT here, which is what keeps it out of the statistical-authority sibling.",
+      "PROGRAMMING AND OUTREACH ADMINISTRATION: a booking, registration, risk-assessment, or attendance record for an activity run IN a service point (reading challenge, class visit, rhyme time, digital-skills session, mobile-library route), where the venue is the corpus holder's own service point rather than a place the user attended.",
+      "INTERLENDING WORKFLOW: a request or supply record carrying a lending-request reference, a requesting-library and supplying-library pair, and a bibliographic citation — the two-library pair is what distinguishes it from a citation a researcher saved."
+    ],
+    "needs_llm": [
+      "Distinguishing a committee agenda pack ABOUT the library service (municipal governance evidence, library only as subject) from a service-run operational document (this template's evidence). The governance-cycle structure decides it, not the word library.",
+      "Distinguishing a bibliographic export the service produced from a bibliographic export a researcher downloaded from a catalogue to feed a reference manager — identical file structure, opposite roles.",
+      "Deciding whether a withdrawal list is stock weeding (this template) or a records-disposal schedule (archives) or a collection deaccession (museum), when the list itself carries only identifiers and dates.",
+      "Reading a service-point screenshot far enough to tell an operational queue from a public-catalogue search result, without extracting the patron names visible on it.",
+      "Judging whether a mixed consultation packet about library closures belongs to the consultation proceeding or to the service's own operating record."
+    ],
+    "never_alone": [
+      "The path or filename token 'Library' is not evidence of this template and is usually not even a document: the design already excludes it as a scan-time directory name — “The engine should ignore node_modules, .git, venv, build, dist, target, vendor, Pods, site-packages, Library, __pycache__, build artifacts, caches, auto-save folders, previews, and generated dependency trees.” A macOS user's home contains that directory; a library service is not implied by it.",
+      "A library's NAME (Central Library, County Library Service, a university library) is an organisation name and is never-alone evidence. The design forbids a template that would “use an author or organization merely as a collector”, and a service name in a header is exactly a collector.",
+      "A book, author, publisher, ISBN-shaped or ISSN-shaped token alone. That is a bibliographic citation, which appears in reading material, research bibliographies, invoices and shop confirmations far more often than in a service record.",
+      "A shelf-classification-shaped decimal alone. The same shape is a version string, a section number, a price, and a paragraph reference.",
+      "A digit-run barcode alone. Every inventory, asset register, warehouse manifest, and retail stock list has one.",
+      "The words catalogue, collection, holdings, accession, circulation, loan, renewal, or overdue as bare vocabulary. Each has a dominant non-library sense (product catalogue, photo collection, financial holdings, museum accession, banking circulation, credit loan, subscription renewal, overdue invoice).",
+      "A due date alone. It is the single most common labelled date slot in billing.",
+      "A person's name beside a title is not authorisation to write a reading fact; it is the reason this material is protected.",
+      "Absence of a governance block is not proof that a library-subject document is operational rather than committee material.",
+      "Extension alone: .mrc, .mrk, .xml, .csv, .pdf carry no domain."
+    ]
+  },
+  "proposed_context_terms": [
+    "PROPOSED for R6, not design: circulation, borrower record, holdings, shelfmark, accession, withdrawal, interlending, service point, active borrowers, issues per head. Each is proposed only as a CONTEXT term that must co-occur with a labelled slot structure; none may fire alone, and 00 lists none of them."
+  ],
+  "work_types": [
+    "bibliographic record, catalogue export, authority record, or metadata cleanup batch",
+    "holdings and item record, shelf list, stocktake, or relabelling batch",
+    "acquisition request, approval-plan list, standing order, supplier invoice reconciliation, or donation accession",
+    "withdrawal, weeding, transfer, or stock-rotation list",
+    "membership application, card issue, borrower-record amendment, or lapsed-member review",
+    "circulation report, holds and reservations queue, overdue and recall notice batch, or fines and charges ledger",
+    "interlending request, supply record, or reciprocal-scheme return",
+    "programme or event plan, booking, registration list, risk assessment, or attendance record",
+    "service-performance return, annual statistical return, opening-hours schedule, or service-point review",
+    "collection-development, stock-editing, or access policy for the service"
+  ],
+  "grouping_reasons": [
+    "one stock lifecycle for a single collection or service point, linked by exact item or accession identifiers moving from acquisition through cataloguing to withdrawal",
+    "one operational reporting cycle for one service, linking circulation reports, holds queues, and notice batches produced on the same run date and named for the same service point",
+    "one programme season or campaign, linking plan, publicity, booking list, risk assessment and attendance record by an exact programme name and season, without copying attendee facts onto sparse members",
+    "one statistical return cycle for one reporting year, linking the collection instruction, the worksheet, and the submitted return",
+    "one interlending request, linking the request, the supply record and the return, but only inside a protected local group and never joined across borrowers",
+    "one membership case, protected, anchored on the service's own reference and never joined to what the person borrowed"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, and this row cannot differ from its schema here: PR-6 leaves the government schema fieldless, and a template may only branch on a field its schema declares, so there is no legal level to order. The structure this world wants remains prose until canonical adjudication: service function or bounded lifecycle first (stock, membership and circulation, programming, performance), then the exact collection, service point, programme, or return cycle, then the document's function. Two levels are affirmatively ruled out rather than deferred: a borrower must never become a dimension, and a title or shelf classification must never become a dimension, because either would publish a person's reading on the filesystem. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Whatever order is later adjudicated stays editable, because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".xml",
+      ".mrc",
+      ".mrk",
+      ".eml",
+      ".ics",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "bib_export_adult_fiction_2026-08.mrc",
+      "source_type": "opaque_binary",
+      "observations": [
+        "first bytes are a fixed-width leader followed by a length-prefixed directory of three-digit numeric field tags",
+        "readable ASCII runs appear between record separators; no page structure, no prose paragraphs",
+        "sibling file in the same folder is a load report naming a target catalogue"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "duplicate family",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any government fact row — the schema declares none",
+        "that the titles inside the records describe the corpus holder's reading",
+        "that the file is unreadable or encrypted merely because it is not prose"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "catalogue_records_local_history.marcxml",
+      "source_type": "code_structured",
+      "observations": [
+        "XML tree of record elements containing leader, controlfield and datafield elements with numeric tag attributes and subfield codes",
+        "an item-level element repeats a shelf-classification-shaped string beside a barcode-shaped digit run",
+        "no borrower slot anywhere in the file"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "language",
+        "duplicate family",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose = research bibliography without evidence of a reference-manager workflow",
+        "that a shelf-classification-shaped decimal is a version number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Overdue items report - Riverside branch - 2026-08-18.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row carries labelled borrower-name, borrower-barcode, item-barcode, title, due-date and days-overdue columns",
+        "rows repeat per person; one branch name in the filename",
+        "a charges column holds currency-shaped values"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a borrower name as any dimension or display label",
+        "a title as any dimension or display label — the borrower-to-title pair is the protected fact here",
+        "that the currency column makes this a finance record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Stock selection meeting - approvals - August 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled supplier and fund-code slots above a decision table of proposed titles with copy counts",
+        "signature block names a stock librarian role, not a committee",
+        "no agenda item numbering and no resolution wording"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "language",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the supplier name organises the material — an organisation used merely as a collector is forbidden as a level",
+        "that this is a procurement tender without a notice, specification or bid structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Libraries and Culture Committee - Agenda Pack - 12 May 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered agenda items, officer reports as numbered appendices, a declarations-of-interest item and a resolutions section",
+        "the subject of several items is the library service, including a branch closure option appraisal",
+        "publication footer names a public-body meeting date"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "language",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "this template — the governance-cycle structure is the municipal-administration sibling's evidence and a library subject does not move it",
+        "that the option appraisal's savings figures are a finance record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Annual return - public library statistics 2025-26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled return-name and reporting-year slots on a cover sheet",
+        "worksheets for service points, opening hours, visits, active borrowers, issues, additions and withdrawals",
+        "a validation sheet flags cells against the prior year; the submitting body is the corpus holder"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "duplicate family",
+        "version family",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "the statistical-programme sibling — the corpus holder is the RESPONDENT, not the collecting authority",
+        "that aggregate counts about borrowers are individually identifying"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ILL request 1198442 - supply record.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled requesting-library and supplying-library slots with a lending-request reference repeated in a header",
+        "a bibliographic citation block and a named end user with a contact slot",
+        "a copyright declaration signature line"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "the end user's name or the cited work as a dimension",
+        "purpose = research output because a citation is present"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Weeding list - withdrawn stock 2026-Q2.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled item-barcode, shelf-classification, last-issued-date and withdrawal-reason columns",
+        "reason values are condition and low-issue codes, not retention-schedule references",
+        "no borrower column"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an archives disposal decision — a retention-schedule reference is absent",
+        "a museum deaccession — no accession-register or provenance block is present",
+        "that a shelf classification may become a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Library membership application - completed form.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing service's own form reference and version in the footer",
+        "labelled applicant name, date of birth, address and proof-of-address slots, with a guardian consent block",
+        "an office-use box carries a borrower reference and a staff initial"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an identity-document fact — the proof-of-address evidence is a slot on someone else's form, not the document itself",
+        "the applicant's name as a dimension or a display label"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 10.14.22 - fulfilment queue.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR text shows a staff-side queue with borrower names, item titles and hold status columns",
+        "window chrome and a staff-login string are visible at the top edge",
+        "no file-internal labelled slots — every string is pixels first"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "borrower-to-title pairs read off a screen as facts",
+        "that missing capture metadata proves this is a screenshot"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Library strategy consultation - responses export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists mixed members: a response spreadsheet, free-text response documents, and a scanned petition",
+        "one consultation reference repeats in the member filenames",
+        "members are content-incoherent but share the call identifier"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "duplicate family",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "this template — a shared consultation identifier is the public-consultation sibling's grouping evidence",
+        "any member's content read without unpacking"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Class visit - Year 4 - Tuesday.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary names a school group and a service point as location",
+        "organiser slot is a service email address; attendees are staff roles",
+        "no description body"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a programme fact copied from a neighbouring programme plan onto this sparse event",
+        "that a school name activates an education sibling"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "The Future of Public Libraries - sector report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page names a sector body and a publication month; body is an argued report with endnotes",
+        "no service reference, no item identifiers, no borrower slots",
+        "downloaded into a general downloads location"
+      ],
+      "facts_legal": [
+        "file type",
+        "creation date",
+        "language",
+        "sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "this template — the subject is libraries, the evidence is reading material",
+        "a policy-development fact from a sector body's report"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.municipal-administration",
+      "signal": "Shared fixture: Libraries and Culture Committee - Agenda Pack - 12 May 2026.pdf. Both worlds hold library-subject material produced by the same authority. This template requires service-operational structure (stock, item, borrower, programme, or performance slots); municipal administration owns the governance cycle (numbered agenda items, officer reports, minutes, resolutions) whatever the subject is. Library as SUBJECT goes to municipal; library as OPERATOR comes here.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.archives-recordkeeping",
+      "signal": "Shared fixture: Weeding list - withdrawn stock 2026-Q2.csv. Both hold lists of things being removed. Archives requires a retention or disposal schedule reference and a records series; this template requires item barcodes and stock-condition or low-issue reasons. A digitisation batch of local-studies material sits on the seam and needs the same discriminator applied to its manifest.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.museum-collection",
+      "signal": "Shared fixture family: accession and deaccession lists, condition and stocktake records. Museum collection requires an accession register entry with provenance and object description; this template requires circulating-stock structure — copies, barcodes, shelf classification, loan lifecycle. A rare-books or local-studies collection inside a library service is the genuinely contested case and is left to evidence, not to the holder's name.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-procurement",
+      "signal": "Shared fixture: Stock selection meeting - approvals - August 2026.docx and the supplier framework behind it. Procurement owns the notice, specification, received bid, evaluation and award structure on the buying side; this template owns title-level selection against a fund, which is stock management even when a framework supplier is named. A library-management-system tender is procurement's, not this row's.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.statistical-programme",
+      "signal": "Shared fixture: Annual return - public library statistics 2025-26.xlsx. The statistical sibling holds the collecting authority's cycle — instruction, instrument, microdata, release. This template holds the same instrument on the RESPONDENT side, where the corpus holder is the service filing about itself. The bytes can be identical; the role slot decides.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-consultation",
+      "signal": "Shared fixture: Library strategy consultation - responses export.zip. A shared consultation identifier across content-incoherent members is the consultation row's own grouping evidence. This template takes only the service's operational contribution to it (service-point data, opening-hours schedules), never the response corpus.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.education-institution-governance",
+      "signal": "Shared fixture family: a university library's catalogue export, circulation report and membership record. The structures are identical to a public service's. Where the corpus holder is the institution, the institution's governance row holds it; where the corpus holder is a standalone public library service, this row does. Roster placement under government does not settle a university library, and that is recorded as an open question rather than decided here.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations",
+      "signal": "Shared fixture family: supplier invoices, stocktake sheets, staffing rotas, an inventory with barcodes. A bookshop's, a publisher's, or a company's internal knowledge-centre records have the same barcode-and-supplier shape. This template requires a public library service exercising a public function; a commercial holder's stock record stays business operations however book-shaped it is.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit",
+      "signal": "Shared fixture family: programme plans, attendance registers, volunteer rotas, funder reports for a reading campaign. A charity-run or community-managed library produces exactly these. Where the holder is a charity accounting to its board and funders, nonprofit holds it; where the holder is the statutory service, this row does. Neither is decided by the building.",
+      "design_cite": null
+    },
+    {
+      "domain": "legal",
+      "signal": "Shared fixture family: copyright declarations on interlending forms, licence agreements for electronic resources, and requests for borrower data. Legal owns the executed agreement and the person's legal record; this template owns the operational form the declaration sits on. A subpoena or disclosure request for borrowing history is legal's document and this row's protected data, and must not be filed by what it discloses.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone service notice, opening-hours schedule, published stock policy, statistical return copy, or programme flyer has durable value but no accepted service-side workflow or group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Protected Records",
+      "when": "any borrower, membership, interlending, fines, staff-side queue, or borrowing-history material lacks a safe accepted group — the default outcome for this row's person-linked half",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a sector report, professional article, or saved PDF is ABOUT libraries rather than produced by running one",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a bibliographic transfer file or system dump is structurally unreadable to the extractor and carries no readable service context",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's operational half is a record of what named people read, which is a stronger disclosure than the identity of the person alone: the borrower-to-title pair is the sensitive fact, and it appears in overdue reports, holds queues, interlending requests, fines ledgers and staff-screen captures. Membership applications carry dates of birth, addresses, proof-of-address evidence and guardian consent, including for children. Programme registers name attendees. The government schema's default already protects casework and submissions; this row adds the rule that the CONTENT of a loan may never become a display label or a folder level even where the person is already known, because the design requires that protected material “should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” The bibliographic half is genuinely public-facing, but its presence cannot lower the posture of a mixed export.",
+  "open_question": "NEEDS-JOSEPH: (1) The row is fieldless under PR-6, and the two facts this world is saturated with — an item/bibliographic identifier and a borrower identifier — are deliberately NOT proposed as keys, because the first would immediately raise whether a title may be a folder level (answer here: no) and the second is the protected half of a disclosure pair. If PR-6 lifts, adjudicate centrally, not in this child. (2) Roster placement puts library administration under government, but academic, corporate and charity-run libraries produce byte-identical catalogue and circulation records; decide whether this row is holder-scoped to statutory public services with the others collided out (its current reading), or whether it is a cross-schema situation that government merely hosts. (3) Decide which sibling owns a rare-books or local-studies collection held inside a library service: this row, government.museum-collection, or government.archives-recordkeeping."
+}

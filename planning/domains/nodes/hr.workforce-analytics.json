@@ -1,0 +1,479 @@
+{
+  "id": "hr.workforce-analytics",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Workforce analytics and people reporting",
+  "one_line": "The employer's measurement of its own workforce as a population rather than as individuals: stock-and-flow headcount and movement reporting, attrition and absence analysis, workforce cost and FTE reporting, demographic monitoring and statutory workforce disclosures, and the periodic metrics packs and dashboards assembled from them. It activates on a population-and-period structure, never on a metric word, a percentage, or a spreadsheet shape. PLACEHOLDER ROW (J-IND): it writes NO field rows because the hr schema declares none (PR-6; D1's deferral stands), and its defining rule is that aggregation is not de-identification.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty by contract and by PR-6. A template references its schema's fields and never copies them, and the hr schema row declares no canonical field rows at all - its vocabulary (workforce_member, workforce_unit, people_cycle, personnel_case) is still proposed and sits with R1c under NJ-HR-1. The legal fact set on any file this row recognizes is therefore the universals plus whatever R1c approves on hr. This row mints nothing to compensate.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Two keys were genuinely tempting and both were refused. (1) A reporting-period key: the reporting period is the single fact this material always carries, but hr already proposes `people_cycle` for a bounded people cycle and a measurement period is exactly that; minting a second period key would create the variant this pass exists to prevent. (2) A population-cut or measure key: a cut is `workforce_unit` where it resolves to a real unit, and a measure name (attrition rate, Bradford score, FTE) is a value inside content, never a key and never a folder level - the same reasoning that keeps an asset ticker off finance.crypto-assets. Both are recorded as arguments here rather than as proposals.",
+  "recognition": {
+    "deterministic": [
+      "a spreadsheet whose header row carries a population stock-and-flow family - an opening and a closing headcount or FTE beside joiner and leaver counts - across a labelled period or snapshot slot, with organisational units appearing as ROW VALUES rather than as the file's own subject. Both halves are required: the balance family alone is a finance reconciliation shape, and a unit column alone is on every operational sheet",
+      "a labelled point-in-time or period slot (an as-at date, snapshot date, or reporting period) sitting beside aggregate count or rate measure columns, while NO personnel-process slot is present - no case or grievance reference, no review period beside a rating, no pay-run identifier. The absence is not the signal; the population-plus-period pair is the signal, and the missing process slots are what separate it from every other hr sibling's deterministic rule",
+      "a demographic cross-tabulation whose axes are a labelled job category, grade, or pay quartile against a labelled protected-characteristic category, and whose cells are counts, proportions, or gap measures describing the organisation's own workforce",
+      "an absence measurement structure: labelled occasions and days-lost columns beside a named absence index or trigger column, one row per population member or unit, with no diagnosis, certificate, or fitness-for-work slot",
+      "a presentation whose slide titles are measurement nouns - headcount, attrition, absence, workforce cost, diversity, engagement score - and whose embedded tables carry period-over-period columns. `00` expects presentation extraction to yield \"slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, and slide-level page boundaries\", which is exactly the structure that separates a metrics pack from a programme document",
+      "an HRIS or analytics export whose filename carries an export timestamp and whose rows are one employment EVENT each - a termination, hire, or transfer with an effective date and a categorical reason - with no case file, no meeting record, and no signed outcome beside it",
+      "a workbook whose sheet names are themselves the measurement partition (Summary, By BU, Movement, Trend) over a single labelled period. `00` expects spreadsheet extraction to yield \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\", and it is the sheet-name partition plus the period cell together that carry the reading"
+    ],
+    "needs_llm": [
+      "whether a headcount table measures the actual population or plans a future establishment. Approved-post, vacancy, effective-from and sign-off columns move it to hr.org-design-headcount; a closing balance reconciled from an opening balance keeps it here",
+      "whether a utilisation or capacity sheet measures a workforce population over a period or a project's delivery against its scope. Billable hours against work packages and a bounded end date are business_operations; employment status and movement over a period are this row",
+      "whether a given cut of an aggregate table is small enough to identify a person. The model must abstain and route to protection rather than assert de-identification - `00`: \"It must return unknown where support is insufficient.\" No threshold is stated here and none may be invented",
+      "whether free text inside a metrics packet - exit-interview verbatims, survey comments, case summaries pasted into a slide - is protected member content that the packet's aggregate posture does not cover",
+      "whether a workforce dashboard describes the user's own organisation or is a vendor demonstration, benchmark, or published market study about somebody else's workforce",
+      "whether a periodic pack that summarises engagement scores and diversity measures alongside headcount is this row's artifact or belongs to the instrument-owning sibling; the discriminator is whether the file contains the instrument and its programme or only the resulting measures"
+    ],
+    "never_alone": [
+      "the words headcount, attrition, turnover, FTE, utilisation, diversity, dashboard, metrics, analytics, or people alone. The collision fixture `Project Atlas resource utilisation Q1.xlsx` contains four of them and is business_operations",
+      "the absence of any person's name as proof that a file is aggregate or safe. A single row cut to one small unit re-identifies a leaver without naming one; safety is never inferred from an absence",
+      "a percentage, rate, ratio, index score, currency amount, or a bare year or quarter token",
+      "a department, business-unit, cost-centre, or location name alone. In this material such a string is a column VALUE far more often than it is the file's subject, and copying it up as a fact is the specific error this row is most prone to",
+      "an employee-ID column alone. A payroll register, a benefits enrolment extract, a learning completion roster and an access-review list all have one",
+      "a chart, pivot table, slide-deck, or dashboard-tile shape alone",
+      "source type or extension alone, including spreadsheet, presentation, CSV, PDF, image, OCR, archive, and proprietary analytics containers",
+      "a vendor or tool name in a filename, footer, or export banner",
+      "membership in a download session, mailbox folder, or parent directory named People, HR, Reporting, Dashboards, Metrics, or Board",
+      "the user's employer appearing as letterhead, author, or custodian - the never-alone rule inherited from the hr schema, and the one that would otherwise let this row swallow every operational spreadsheet in the corpus",
+      "absence of EXIF as proof that an image of a dashboard tile is a screenshot"
+    ]
+  },
+  "proposed_context_terms": [
+    "headcount",
+    "opening headcount",
+    "closing headcount",
+    "joiners",
+    "leavers",
+    "FTE",
+    "attrition rate",
+    "turnover",
+    "voluntary",
+    "involuntary",
+    "tenure",
+    "as at",
+    "snapshot date",
+    "reporting period",
+    "days lost",
+    "absence occasions",
+    "pay quartile",
+    "median gap",
+    "workforce cost",
+    "span of control"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. `00` states the pattern-plus-context shape for course codes only; it does not list these. Each is offered as the second half of a pair, never as a trigger.",
+  "work_types": [
+    "headcount and movement report reconciling an opening to a closing population",
+    "attrition or turnover analysis, including tenure and reason breakdowns",
+    "absence and sickness measurement, including named absence indices and trigger reporting",
+    "workforce cost, FTE, and span-of-control reporting",
+    "demographic or diversity monitoring return over the organisation's own workforce",
+    "statutory workforce disclosure prepared or published by the employer",
+    "periodic people metrics pack, board people slide, or workforce dashboard export",
+    "workforce planning scenario or supply-and-demand model",
+    "HRIS analytic extract or event-level export used as a reporting source"
+  ],
+  "work_types_note": "Values of the hr schema's work-type vocabulary, narrowing its single entry `workforce census, movement, attrition, absence, cost, or diversity analysis`. They are values, not child nodes, and no dimension may be minted from them.",
+  "grouping_reasons": [
+    "one reporting period's metrics pack across its source extracts, working workbook, deck, and distributed PDF",
+    "one recurring measurement series - the same monthly or quarterly report across periods - held through the universal version_family and duplicate_family facts rather than an HR-only field",
+    "one statutory disclosure cycle from source extract through draft, approved return, and published document",
+    "one analysis question, such as an attrition deep-dive, across extract, model workbook, and findings note",
+    "a sparse export may join a period's accepted pack by group membership without receiving that pack's period or unit facts",
+    "no group is valid when a lone metric-shaped sheet carries no population structure and no period label; residual placement is safer than inventing a reporting series"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6: the hr schema declares no canonical field rows, so this row has no legal dimension to recommend and may not mint one. The recommendation is held as prose for R1c and it differs from the schema's stated default. The hr default is work type or named people programme first, then workforce unit or cohort, then people cycle. This row recommends people cycle - the reporting period - FIRST, then work type, and recommends that workforce unit be OMITTED rather than demoted. The reason is evidential: a measurement report's purpose is to span units and slice them, so a unit level would force one column value to be copied up as the file's own fact and would scatter a single period's pack across unit folders. The reporting period is the only fact this material always carries and always carries singly. This is not time_first: a capture or modification date does not define the world here, a labelled reporting period does, and the two are routinely different by weeks.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "presentation",
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".pdf",
+      ".docx",
+      ".png",
+      ".zip",
+      ".eml",
+      ".pbix",
+      ".twbx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Headcount and movement - FY26 Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names Summary, By BU, Movement, Trend",
+        "header row on By BU: Business unit / Opening HC / Joiners / Internal in / Internal out / Leavers / Closing HC / FTE / Attrition %",
+        "a labelled cell reading As at 31 Dec 2025",
+        "row values are organisational unit names; no person appears anywhere"
+      ],
+      "facts_legal": [
+        "a work-type value from this row's list",
+        "a people-cycle value if R1c approves the key, sourced from the labelled reporting period",
+        "the universals: file type, creation date, language, duplicate family, version family, sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a workforce unit fact for the file from a unit name that is a row VALUE in a multi-unit table",
+        "any individual employee, since no person is named",
+        "that the workbook is safe to summarise because it is aggregate; a small-unit row plus a leaver count is a re-identification surface"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "attrition_export_2026-02-01T0300.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per termination event",
+        "columns employee_id / department / termination_date / termination_reason / tenure_months / voluntary_flag",
+        "export timestamp in the filename; no case reference, no meeting note, no signed outcome"
+      ],
+      "facts_legal": [
+        "a work-type value: HRIS analytic extract used as a reporting source",
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "a personnel-case fact from a categorical termination reason; a reason code is a value in an export, not a case outcome",
+        "a workforce-member fact that is filable, even though employee IDs are present - a pseudonymous identifier is still employee-identifying content",
+        "a folder path",
+        "that the file is aggregate because it is called an export; it is person-level and takes the protected posture"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Gender pay gap report 2025 - final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading naming the employer and the snapshot date",
+        "mean and median hourly pay gap figures, bonus gap, and a four-quartile distribution table",
+        "a signed declaration by a named officer"
+      ],
+      "facts_legal": [
+        "a work-type value: statutory workforce disclosure",
+        "a people-cycle value from the labelled reporting year, if the key is approved",
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "a workforce-member fact from the signing officer; a signatory is not the subject of a personnel record",
+        "a pay-review or salary-structure fact - the report measures a distribution, it does not set one",
+        "a folder path",
+        "that the employer name alone establishes the hr reading"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EEO-1 Component 1 - 2025 - submitted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a grid of counts by labelled job category against sex and race or ethnicity categories",
+        "an establishment identifier and a labelled snapshot payroll period",
+        "a submission confirmation line"
+      ],
+      "facts_legal": [
+        "a work-type value: statutory workforce disclosure",
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "a diversity PROGRAMME fact; a monitoring return is a measurement, not an initiative",
+        "a jurisdiction field - under D4 the form name is a record-type VALUE from one jurisdiction's catalogue, never a field name and never a dimension",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Bradford factor report - Ops - Mar 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns employee_id / occasions / days lost / Bradford score / trigger reached",
+        "a labelled rolling twelve-month window",
+        "no diagnosis, certificate, or fitness-for-work column"
+      ],
+      "facts_legal": [
+        "a work-type value: absence and sickness measurement",
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "a clinical fact of any kind; an absence occasion count is not a health condition and no clinical schema is licensed by it",
+        "an employee-relations case fact from a trigger-reached flag; a trigger is a measurement threshold in the employer's own report, not an opened case",
+        "a folder path",
+        "that aggregation applies - this is person-level and takes the protected posture"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "People dashboard - Feb 2026.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles Headcount, Attrition, Absence, Diversity, Engagement score",
+        "embedded tables with period-over-period columns and prior-year comparators",
+        "speaker notes naming the distribution audience",
+        "no survey instrument, no programme plan, no action owners"
+      ],
+      "facts_legal": [
+        "a work-type value: periodic people metrics pack",
+        "a people-cycle value from the labelled month, if the key is approved",
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "an engagement-survey fact about the instrument, its wave, or its fielding, from a headline score on a slide",
+        "a DEI programme fact from a diversity slide",
+        "a folder path",
+        "that the deck may be summarised freely because it is a summary; free-text comments quoted on a slide remain protected member content"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Headcount by cost centre - budget submission FY27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns cost centre / approved posts / filled / vacant / effective from / salary cost / on-costs",
+        "a forward-looking financial year in the filename",
+        "an approval sign-off block on the Summary sheet"
+      ],
+      "facts_legal": [
+        "the universals only, unless the population-and-period reading is established elsewhere in the workbook"
+      ],
+      "must_not_conclude": [
+        "that this row is active. Approved-post, vacant, effective-from and sign-off columns are the establishment-plan structure and belong to hr.org-design-headcount; salary cost by cost centre for a future year is a finance budget line",
+        "an attrition or movement fact from a vacancy count; a vacancy is an unfilled post, not a leaver",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Project Atlas resource utilisation Q1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns name / role / work package / billable hours / capacity hours / utilisation % / department",
+        "a milestone tab and a project end date",
+        "no opening or closing population balance, no employment status, no joiner or leaver column"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "that this row is active. This is THE collision fixture: it carries four of this row's metric words and none of its structure. Utilisation measures people against a project's scope; workforce analytics measures a population against a period",
+        "a workforce-unit fact from the department column",
+        "an attrition or movement fact from a person rolling off a work package",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Clinic staffing grid - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a day-by-session grid with clinician initials in cells",
+        "session codes and clinic-list references along one axis",
+        "a leave marker in several cells"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "that this row is active while clinical-session content is present. The same fixture is named by clinical_practice.practice-administration, which states that a staffing grid read alone is hr.org-design-headcount or hr.workforce-analytics material and only its clinical-session content moves it there; this side reciprocates on the same bytes",
+        "an absence-measurement fact from a leave marker; a rota marker is a coverage note, not a measured absence occasion",
+        "an employment fact about a named person from a set of initials",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Q1 people metrics pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking, per `00`: \"Compressed archives should yield their manifests without extraction\"",
+        "members 01 headcount.xlsx, 02 attrition.csv, 03 exit interview verbatims.docx, 04 board slide.pptx",
+        "a single quarter token shared across all four member names"
+      ],
+      "facts_legal": [
+        "a work-type value: periodic people metrics pack",
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "that the packet's aggregate posture covers every member; the verbatims member is protected free text and the strictest member governs content exposure",
+        "any member's internal facts from the manifest alone, since nothing was extracted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 10.12.31.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of an HRIS tile reading Headcount 1,248 with a movement arrow",
+        "a manager's name and avatar legible in the page chrome",
+        "no EXIF"
+      ],
+      "facts_legal": [
+        "the universals"
+      ],
+      "must_not_conclude": [
+        "a reporting-period fact; a tile shows a live figure and names no period",
+        "a workforce-member fact from the manager name in the chrome; the person who was logged in is not the subject of the record",
+        "screenshot status from the absence of EXIF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "People analytics model.pbix",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a proprietary analytics container; no text extractor exists for it",
+        "the filename is the only readable evidence"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "any measure, population, or period fact from the filename alone",
+        "that the file is empty. `00`: \"The system should never silently treat an unsupported format as an empty document\", and \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "hc.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "two columns, no header row: a short string and an integer",
+        "sits in the same download session as Headcount and movement - FY26 Q3.xlsx"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a reporting-period or workforce-unit fact copied from the neighbouring workbook. This is the sparse-file case: the file may join the period's accepted group without receiving any of its facts",
+        "that hc abbreviates headcount",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr.org-design-headcount",
+      "signal": "Shared fixture: `Headcount by cost centre - budget submission FY27.xlsx`, and the headcount table generally. HR.ORG-DESIGN-HEADCOUNT MUST NOT TAKE a period-over-period reconciliation of the population that actually existed, merely because the word headcount appears. HR.WORKFORCE-ANALYTICS MUST NOT TAKE approved posts, vacancies, effective-from dates, reporting lines, or a signed establishment proposal, merely because they are counted. The discriminator on the same bytes is tense and unit: a measurement counts filled positions over a closed period, a plan authorises posts for a future one."
+    },
+    {
+      "domain": "hr.engagement-survey",
+      "signal": "Shared fixture: `People dashboard - Feb 2026.pptx` and its Engagement score slide. HR.ENGAGEMENT-SURVEY MUST NOT TAKE a metrics pack merely because one slide reports a survey score. HR.WORKFORCE-ANALYTICS MUST NOT TAKE the instrument, the item bank, the fielding wave, the response dataset, or the free-text comment file - those carry the survey's own structure and its own protection. The discriminator is whether the file contains the instrument or only the resulting measure."
+    },
+    {
+      "domain": "hr.dei-program",
+      "signal": "Shared fixtures: `EEO-1 Component 1 - 2025 - submitted.pdf` and `Gender pay gap report 2025 - final.pdf`. HR.DEI-PROGRAM MUST NOT TAKE a monitoring return or statutory disclosure merely because its axes are protected characteristics; a measurement is not an initiative. HR.WORKFORCE-ANALYTICS MUST NOT TAKE a DEI strategy, target-setting document, network or programme record, or action plan, merely because it quotes a representation figure."
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "Shared fixtures: `attrition_export_2026-02-01T0300.csv` and the trigger column in `Bradford factor report - Ops - Mar 2026.xlsx`. HR.EMPLOYEE-RELATIONS MUST NOT TAKE a categorical reason code or a measurement trigger as a case; there is no case reference, no meeting record, and no outcome. HR.WORKFORCE-ANALYTICS MUST NOT TAKE a grievance, disciplinary, capability, or investigation file merely because a spreadsheet of case counts could be built from it."
+    },
+    {
+      "domain": "hr.payroll-benefits-administration",
+      "signal": "Shared fixture: a workforce-cost report against `March 2026 payroll register - FINAL.xlsx`, the register named on the hr schema row. HR.PAYROLL-BENEFITS-ADMINISTRATION MUST NOT TAKE an FTE and cost report that carries no pay-run identifier, no deductions, and no remittance structure. HR.WORKFORCE-ANALYTICS MUST NOT TAKE a payroll register merely because it can be summed into a cost figure; a register's rows are payment obligations, not a measured population."
+    },
+    {
+      "domain": "hr.compensation-planning",
+      "signal": "Shared fixture: `Gender pay gap report 2025 - final.pdf` and its quartile table. HR.COMPENSATION-PLANNING MUST NOT TAKE a published distribution measurement as a pay-review artifact. HR.WORKFORCE-ANALYTICS MUST NOT TAKE a salary structure, benchmarking file, pay-review model, or bonus pool proposal merely because it contains distributions; those set pay, they do not report it."
+    },
+    {
+      "domain": "business_operations",
+      "signal": "Shared fixture: `Project Atlas resource utilisation Q1.xlsx`. BUSINESS_OPERATIONS MUST NOT TAKE a workforce population measured over a period merely because the reporting artifact is an operational deck or a KPI sheet. HR.WORKFORCE-ANALYTICS MUST NOT TAKE project utilisation, delivery capacity, or resource allocation against work packages and milestones, merely because the rows are people. Utilisation is measured against scope; workforce analytics is measured against a period."
+    },
+    {
+      "domain": "finance",
+      "signal": "Shared fixture: the salary-cost columns in `Headcount by cost centre - budget submission FY27.xlsx`. FINANCE MUST NOT reduce a workforce movement report to a cost line. HR.WORKFORCE-ANALYTICS MUST NOT TAKE a budget, forecast, or management-accounts pack merely because it carries a headcount or salaries line - the hr schema's never-alone rule on budget lines applies here in its sharpest form, because this row is the one that finds counting attractive."
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "Shared fixture: `Clinic staffing grid - March 2026.xlsx`. Reciprocates the boundary already stated by clinical_practice.practice-administration, which names this row on the same bytes. CLINICAL_PRACTICE MUST NOT TAKE a staffing grid read alone. HR.WORKFORCE-ANALYTICS MUST NOT TAKE it once clinic lists, session codes, or patient-session cover are the grid's content, and must never read a leave marker as a measured absence."
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: `also_holds_with` is declared on schema rows, and a template may not widen its schema's co-activation set. The hr schema row already declares business_operations, finance, clinical_practice, and legal. Two file examples carry `also_schema: business_operations` - the published statutory disclosures - which is lawful precisely because business_operations is on the schema's list. Nothing here adds a target.",
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "person-level analytic material - an event-level export, an absence report, a packet whose members include free-text verbatims, or a screenshot with legible personal content - is sensitive but this row's population-and-period structure is absent or uncertain. `00`: \"it should normally remain local-only and must not cause filenames or content to be exposed in model prompts\""
+    },
+    {
+      "template": "Independent Records",
+      "when": "a published or submitted workforce disclosure stands alone with no reporting series around it - `00`'s \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\""
+    },
+    {
+      "template": "Review Later",
+      "when": "a metric-shaped spreadsheet or deck is partly legible but its population, period, or ownership cannot be settled - `00`'s \"files whose meaning is partly understood but whose final location requires a future decision\", and the residual review set `00` describes as \"14 spreadsheets and presentations with unclear purpose\""
+    },
+    {
+      "template": "Unsupported or Encrypted",
+      "when": "a proprietary analytics container or a password-protected pack cannot be read - `00`'s \"password-protected archives, unreadable documents, damaged files, and unknown formats\", represented rather than moved"
+    },
+    {
+      "template": "Temporary Screenshots",
+      "when": "a dashboard-tile capture carries no legible personal content and no accepted reporting group - `00`'s \"screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship\". Where personal content IS legible, Protected Records governs instead"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "career",
+      "this_role": "the employer measuring its own workforce as a population over a period",
+      "other_role": "the individual's own employment, achievement, and work-history evidence, including a review or separation letter about them"
+    },
+    {
+      "domain": "business_operations",
+      "this_role": "people as the measured workforce population",
+      "other_role": "the project, function, budget, or operational process whose performance is being measured, in which people appear as a resource"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's material looks safer than it is, and that is its defining privacy problem rather than a degree of the schema's. Every other hr sibling triggers protection because an employee is named; here a table can name nobody and still disclose - a cut to one small unit crossed with a leaver count, an absence trigger, or a demographic category identifies a person without containing a person's name. Person-level analytic extracts (event exports, absence reports) are plainly employee-identifying, and aggregate packs routinely carry protected members such as exit-interview verbatims. Therefore the operative rule is that aggregation is not de-identification and the absence of a name is not evidence of safety: employee-identifying and small-cell content is protected before any cloud step, raw content does not appear in general summaries, and automated movement requires explicit policy. No threshold, cell-size rule, or handling class is stated here; NJ-HR-4 on the schema row owns that question and this row invents nothing to pre-empt it.",
+  "open_question": "NEEDS-JOSEPH NJ-WFA-1: confirm the recommended order. The hr schema's prose default leads with work type or programme, then workforce unit, then people cycle; this row recommends people cycle first, work type second, and workforce unit OMITTED rather than demoted, because a measurement report exists to span units and a unit level would copy a column value up as the file's own fact. The alternatives are (a) adopt this row's order, (b) keep the schema default and accept that a quarterly pack scatters across unit folders, (c) allow a unit level only for corpora where every report is genuinely single-unit. Nothing can be encoded until PR-6 lifts and R1c rules on `people_cycle` under NJ-HR-1. NEEDS-JOSEPH NJ-WFA-2: decide where person-level analytic exports live. `attrition_export_2026-02-01T0300.csv` and `Bradford factor report - Ops - Mar 2026.xlsx` are reporting artifacts whose rows are individuals. This row claims them, with the protected posture, because their purpose is the population; the alternative is a bright line that any file carrying an employee identifier leaves this row for hr.payroll-benefits-administration or hr.employee-relations, which would be simpler to enforce but would strand the ordinary attrition analysis in a case-file row. NEEDS-JOSEPH NJ-WFA-3: settle whether a periodic pack that reports engagement scores and diversity measures is one artifact here or splits to hr.engagement-survey and hr.dei-program. This row claims the pack and leaves the instrument and the programme with the siblings; the boundary is stated reciprocally in `collides_with` but neither sibling row has landed to agree it. NEEDS-JOSEPH NJ-WFA-4: this row depends on the schema's NJ-HR-4 - whether aggregated workforce material stays protected by default with no documented de-identification rule. This row answers yes and states no threshold. If NJ-HR-4 resolves the other way, the `sensitivity_why` here must be rewritten, not merely softened."
+}

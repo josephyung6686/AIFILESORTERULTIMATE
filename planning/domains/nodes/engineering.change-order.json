@@ -1,0 +1,439 @@
+{
+  "id": "engineering.change-order",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Engineering change requests, orders and notices",
+  "one_line": "The controlled transaction that supersedes a released design definition: the request that proposes it, the board disposition that approves or rejects it, the order or notice that instructs it, the redlines and affected-documents list it carries, the effectivity that says from which unit it applies, and the deviation or waiver that permits a bounded departure instead. The organizing anchor is a change identifier that points at other controlled artifacts rather than containing technical content of its own — which is why it files differently from the definition it changes. Placeholder template row (J-IND, researched at full J-DEPTH): PR-6 leaves the engineering schema with no declared fields, so this row writes no field rows and its recommended dimension order stays conditional prose rather than a machine-readable order.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "leg_1_detection_signals": "DIFFERENT. The engineering schema's default carries exactly one change-shaped deterministic signal among ten — an engineering-change structure identifying an affected design item and current/replacement revision with a technical reason and disposition. That single line is the schema proving it can activate; it is not a filing rule. This row's discriminators are structures the default never names and that no other engineering artifact carries: a from/to supersession pair on one item identifier (a released drawing carries its own revision, never a predecessor/successor pair); an affected-documents table whose rows are OTHER artifacts by number and revision, making this a manifest of pointers rather than a technical document; an effectivity slot naming from which serial, lot, date or stock-exhaustion the change applies, which is a join to production that a requirement, drawing, analysis or verification report never has; and a change-board disposition roster. A drawing package and a change order both have approval blocks and item numbers; only one of them says what it replaces and from when.",
+    "leg_2_dimension_order": "DIFFERENT. The engineering schema's researched default is project -> design_item -> lifecycle_stage -> engineering_artifact_type. This row drops lifecycle_stage and recommends project -> design_item -> engineering_artifact_type, for an evidential reason rather than an aesthetic one: a change record's own state is a DISPOSITION (submitted, approved, rejected, implemented, closed) and not a product lifecycle gate, so filing it under lifecycle_stage would either file it under the state of a different thing or open a level the change's own evidence cannot fill. It would also make folders unstable, because a design item's lifecycle stage advances while an approved change's meaning does not. The change identifier itself is deliberately NOT recommended as a level: a directory per change number produces one-file folders and scatters an item's change trail, so it stays searchable metadata exactly as revision_or_baseline does on the schema row.",
+    "leg_3_privacy": "DIFFERENT IN KIND, not merely in degree. Every engineering artifact is proprietary; the change record is the one that routinely states WHAT WAS WRONG. A reason-for-change field naming a field failure, a safety defect, a warranty trend, a supplier dispute or a cost problem is an admission attached to an identified item and an identified approver, which is why the change file is more exposing than the drawing it changes and why a redline photographed on a whiteboard is more exposing than the released print. Marked inference: 00 supplies the binding rule that privacy is enforced before any model or connector receives content; it does not name engineering change records.",
+    "charge_answered": "The strongest case against this row is that `engineering change request/order/notice` is already a value in the engineering schema's own work_types enum, and ALIGNMENT holds that work types are values and never nodes. That case is answered in the memo: a work_type value describes what one file IS; this row exists because a change transaction is a MULTI-FILE, MULTI-ITEM object whose members (request, minutes, order, redline, register, notice mail, deviation) carry different work_type values and still file together, and whose filing rule differs from the schema default on two independent legs above. The second charge — that request/order/notice is a lifecycle progression, i.e. a stage — is answered by the row refusing to split on it: ECR-1187 and ECO-1187 are both this row's evidence and both file identically, which is precisely what a stage-shaped node could not do."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract. PR-6 leaves the engineering schema placeholder with fields: [], and a template may never copy its schema's list. Subject to R1c adjudicating the schema row's proposals, the legal set on any file this row recognizes is project plus the engineering schema's proposed design_item, engineering_artifact_type and revision_or_baseline, plus the universals (file_type, creation_date, language, duplicate_family, version_family, sensitivity_status). lifecycle_stage is referenced by the schema but is explicitly NOT recommended as a dimension here.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. The one key this material genuinely tempts is a change identifier (ECR/ECO/ECN number). It is not proposed, for two reasons that would survive R1c anyway: it is a record identifier, and a folder level named for it yields one-file directories that scatter a single item's change trail; and the whole reason this row differs from its schema is that the change points AT artifacts rather than containing them, so the number's job is retrieval and link-following, not destination. A change identifier belongs in search and in the group edge, not in the tree. Recorded as NJ-ECO-1 rather than minted. The from/to revision pair reuses the schema's existing revision_or_baseline proposal rather than minting a variant, per the brief's reuse rule.",
+  "proposed_context_terms": [
+    "affected documents",
+    "affected item",
+    "reason for change",
+    "disposition",
+    "effectivity",
+    "supersedes",
+    "change board",
+    "redline",
+    "deviation",
+    "waiver",
+    "interchangeability",
+    "implemented on"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only and does not list these. They are candidates for confirming a change-shaped token, never for firing on their own.",
+  "recognition": {
+    "deterministic": [
+      "a change structure carrying a change identifier together with an affected-item identifier and a from/to revision or baseline pair on that same item; the supersession relation among labelled slots is the signal, never the word `change` and never a `Rev C` token alone",
+      "an affected-documents table listing OTHER controlled artifacts by number and revision (drawing, product structure, specification, work instruction) under one change identifier; this manifest-of-pointers shape is what separates a change record from every artifact it names",
+      "a disposition slot bound to an approval roster: approved, rejected, on-hold or deferred with named approving roles and dates recorded on the same page as the affected item",
+      "an effectivity slot stating from which serial number, lot, date or on-exhaustion-of-stock the change applies; a requirement, drawing, analysis or verification report never carries a from-which-unit slot",
+      "a reason-for-change classification beside the affected item (form/fit/function, safety, cost, supplier obsolescence, field failure, interchangeability), distinct from a drawing's free-text revision note",
+      "a change register or log whose rows are change identifiers and whose columns are affected item, change type, status and date; a register activates on its own row structure and carries no single design_item",
+      "a marked-up or clouded copy of a controlled artifact bearing revision triangles or change clouds together with a reference to a change identifier",
+      "a deviation or waiver structure bounding a permitted departure from a named requirement or drawing by quantity, serial range or expiry date, with an approval slot",
+      "an archive manifest exposing several of the above under one change identifier, read without extracting members to disk",
+      "parent-folder context naming a change number or a `Changes`/`ECO` folder may raise plausibility only after one change structure is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether the object of a disposition is the released definition (all future units) or one produced quantity (a lot, a serial range, material on hand) — engineering change versus nonconformance disposition, when both use the same use-as-is / rework / scrap vocabulary",
+      "whether a change order amends a contract's price, scope and dates or a design's definition, when one document carries both a commercial and a technical section",
+      "whether minutes carrying a change agenda actually record dispositions on identified items, or only attendance, discussion and actions",
+      "whether a supplier's product-change notification has been adopted as an internal change or is only correspondence received and filed",
+      "whether a marked-up print is change evidence or a personal annotation on a reading copy",
+      "whether an unnumbered draft was ever dispositioned, when the file carries the form structure and none of the decision slots are filled",
+      "whether a `revision` word in prose means a design revision, a document edit, a code commit or a contract amendment"
+    ],
+    "never_alone": [
+      "the words `change request`, `change order`, `ECR`, `ECO`, `ECN`, `variation` or `amendment` alone — the same words name contract amendments, construction instructions, and code-review artifacts",
+      "an approval or signature block alone — every controlled engineering artifact carries one, which is why it cannot discriminate this row from the drawing it changes",
+      "a single revision token such as `Rev C` alone — a revision letter belongs to the artifact that bears it; only a from/to pair bound to a change identifier is change evidence",
+      "a part, item or assembly number alone — it appears on drawings, product structures, purchase orders, packing lists, inspection records and service documents",
+      "a bare number treated as a change number — 00's rule that a bare four-digit-style number is not proof applies directly: `1187` is a change number, a part number, a year, a page count or a price",
+      "an organisation or supplier name alone — a company name is never-alone evidence under 00's rule against a name as sole proof, and this row sees supplier letterheads constantly",
+      "a file extension alone — 00: `treat the file extension as a routing signal rather than an assumption about meaning`; a `.dwg` is not a change and a `.pdf` is not an order",
+      "a blank change-request form's labels alone — a template carries every slot this row keys on and none of the values; labels without values evidence a form, not a change",
+      "a folder named `ECO`, `Changes` or a download session — 00 forbids a download session as a topic, and a working folder name is not a fact",
+      "absence of EXIF on a photographed redline — 00: `the system must not mistake the absence of EXIF for proof that an image is a screenshot`"
+    ]
+  },
+  "work_types": [
+    "engineering change request",
+    "engineering change proposal",
+    "engineering change order",
+    "engineering change notice",
+    "change board agenda or disposition minutes",
+    "change register or log",
+    "affected-documents list",
+    "redlined or clouded markup",
+    "deviation permit",
+    "waiver or concession",
+    "effectivity or implementation notice",
+    "supplier product-change notification received",
+    "change impact or cost-impact assessment",
+    "obsolescence-driven change"
+  ],
+  "work_types_note": "Values of the schema's engineering_artifact_type role, not nodes. No child node is requested for any of them; that is the 574's failure mode and the charge this row had to answer.",
+  "grouping_reasons": [
+    "one change identifier and every member of its transaction: request, impact assessment, redlines, board minutes, approved order, notice mail and archive package",
+    "one design item's change trail across many change identifiers, which is the retrieval question this row exists to answer and the reason the change number is not a folder level",
+    "one change identifier and the artifacts it names in its affected-documents table — a link, never a fact transfer: the order says BPA-210-001 goes Rev C to Rev D, and the drawing file must still be evidenced on its own",
+    "one deviation or waiver and the bounded quantity or serial range it permits",
+    "a sparse `Change Request Form.docx` may sit in a change neighbourhood without acquiring a design_item, a change identifier or a disposition"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Machine-readable order stays empty because PR-6 leaves the engineering schema with no declared destination-eligible fields, and a template may only branch on a field its schema declares. The researched recommendation, conditional on R1c: project -> design_item -> engineering_artifact_type. This is the schema default MINUS lifecycle_stage, and the omission is the point — a change record's own state is a disposition, not a product lifecycle gate, so that level would file the change under the state of a different object and would move as the item matured. Two optional branches: (a) for a change register, no design_item level at all, because a register's rows span many items and inventing one would be a fabricated fact; (b) where a corpus is organised by programme rather than by item, project alone with design_item demoted to search. The change identifier is never a level. The user may reverse, remove, add or flatten any of this; 00's rule that extraction does not create a final folder path governs.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "archive", "design_creative", "filesystem"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".pptx", ".eml", ".msg", ".zip", ".dwg", ".png"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "ECR-1187_BPA-210_Bushing-Material.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a change-identifier-shaped token and an item-identifier-shaped token",
+        "labelled Affected Item slot holding BPA-210 and a labelled Current Revision slot holding C",
+        "labelled Reason for Change block naming a supplier obsolescence and a field-return trend",
+        "Requested By and Date slots filled; Disposition slot present and EMPTY"
+      ],
+      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the change was approved — the disposition slot is empty and a request is not an order",
+        "a replacement revision, which no slot on this file states",
+        "an effectivity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ECO-1187_BPA-210_Bushing-Material_RevC-to-RevD.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "from/to revision pair on one item identifier, in the filename and again in labelled Current/New Revision slots",
+        "Affected Documents table with four rows naming a drawing number, a product-structure number, a material specification and a work-instruction number, each with its own revision",
+        "Effectivity slot reading `from serial 4400`",
+        "Disposition slot reading Approved with four named approver roles and dates"
+      ],
+      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the four artifacts named in the affected-documents table have acquired this file's facts — they are links, and each must be evidenced on its own",
+        "a manufacturing batch or lot fact from the effectivity serial number",
+        "an approver's name as a destination — 00 forbids authorship as a destination"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ECO_Register_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row: Change No, Affected Item, Type, Raised, Status, Closed",
+        "sixty-plus rows spanning at least nine distinct item identifiers",
+        "Status column values are dispositions, not lifecycle gates",
+        "no title block, no approval block, no single affected item"
+      ],
+      "facts_legal": ["project", "engineering_artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a single design_item — the sheet spans many, and picking the most frequent would be an invented fact",
+        "a revision_or_baseline",
+        "that every listed change is this corpus's material"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ECN-1187 distribution - action required.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries the change identifier; body states the item and the new revision",
+        "labelled recipient list spanning engineering, purchasing and production distribution groups",
+        "one attachment named for the approved order"
+      ],
+      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "must_not_conclude": [
+        "a folder path",
+        "facts about the attachment without opening it — the mail's claim about the attachment is context, not extraction",
+        "a recipient's organization as a project",
+        "that mail addresses may be exposed — 00 treats addresses and message content as potentially sensitive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Deviation-Permit-0087_BPA-210_Shim-Thickness.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Departs From slot naming a drawing number and a dimension callout",
+        "labelled Quantity Covered slot reading 200 units and an Expiry slot",
+        "approval roster with two named roles",
+        "no new revision is created anywhere on the page"
+      ],
+      "facts_legal": ["project", "design_item", "engineering_artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a revision change — a deviation permits a bounded departure and explicitly does NOT supersede the definition",
+        "a production lot fact from the quantity slot",
+        "that the underlying drawing has been superseded"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CCB_2026-05-12_Minutes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "attendance list and a numbered agenda whose items are change identifiers",
+        "each agenda item carries an affected item and a decision word (approved, deferred, rejected)",
+        "actions and owners recorded at the end"
+      ],
+      "facts_legal": ["project", "engineering_artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a single design_item — the minutes disposition several",
+        "that a decision word in prose is an approval slot, when no change identifier is bound to it"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ECO-1187_Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a redlined print, a cost-impact sheet, the signed order and a supplier quotation",
+        "member paths repeat one change identifier",
+        "manifest read without extraction"
+      ],
+      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "must_not_conclude": [
+        "a folder path",
+        "member-level facts that only extraction could establish",
+        "a supplier or price fact from a member filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "BPA-210-001_RevD_redline.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a controlled drawing sheet with title block, item number and revision D",
+        "clouded regions and revision triangles overlaid on two views",
+        "a stamp in the margin referencing the change identifier"
+      ],
+      "facts_legal": ["project", "design_item", "engineering_artifact_type", "revision_or_baseline"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is the released Rev D drawing — a redline is change evidence and the released sheet is engineering.drawing-package's file",
+        "a change fact from the clouds alone, without the change-identifier stamp"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Change Request Form.docx",
+      "source_type": "text_document",
+      "observations": [
+        "every slot this row keys on is present: Affected Item, Current Revision, New Revision, Reason, Disposition, Effectivity",
+        "every slot is empty or carries placeholder text",
+        "sits in a folder beside two filled change requests"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": [
+        "a folder path",
+        "a design_item, a revision or a disposition — labels without values evidence a template, not a change",
+        "a change identifier borrowed from the two neighbours in the same folder",
+        "that the neighbourhood makes this file filable"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4471.HEIC",
+      "source_type": "ocr",
+      "observations": [
+        "photograph of a redlined print taped to a whiteboard",
+        "OCR yields an item-shaped token, the word REV and dense but broken text",
+        "no camera EXIF present"
+      ],
+      "facts_legal": ["file_type", "creation_date", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that missing EXIF proves a screenshot — 00: `the system must not mistake the absence of EXIF for proof that an image is a screenshot`",
+        "a revision fact from a broken OCR token",
+        "a change identifier from a partially recognised number"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LOT-24-081_NCR-0442_Bushing-Cracking.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Affected Part slot holding BPA-210 and a labelled Lot slot holding 24-081",
+        "Disposition slot reading `rework` with an approval roster",
+        "Quantity Affected slot reading 340 pieces; a Containment section",
+        "no revision pair anywhere on the page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an engineering change — the disposition's object is one produced quantity, not the released definition",
+        "a revision_or_baseline",
+        "that a matching part number transfers this file into the change trail"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "VO-014_Level-2-Cladding-Instruction.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered variation instruction with a priced sum and a time-effect statement",
+        "labelled slots naming a site address, a contract clause reference and an architect's instruction role",
+        "approval signatures from employer and contractor sides",
+        "no item identifier and no revision pair"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a design_item from a building element name",
+        "an engineering change from a numbered, priced, approved change structure alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PCN-2026-0331_Supplier-Bushing-EOL.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier letterhead; a product-change notification with a from/to supplier part number and a last-order date",
+        "an item-identifier-shaped token that belongs to the SUPPLIER's catalogue, not this corpus's",
+        "no internal change identifier, no disposition, no affected-documents table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an internal change — the issuer is the supplier and the recipient's decision is not on the page",
+        "a design_item from a supplier catalogue number",
+        "an organisation name as sole proof of anything"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "THE collision fixture. `LOT-24-081_NCR-0442_Bushing-Cracking.pdf` carries an affected part number, a use-as-is/rework/scrap disposition, an approval roster and a reason — nearly every signal this row keys on. The discriminator is the OBJECT of the disposition: a nonconformance dispositions one produced quantity (a lot, a serial range, material on hand) and dies with that material; this row's change alters the released definition and applies to all future units, which is why only this row's fixture carries a from/to revision pair and an effectivity. Reciprocal: an NCR that PROPOSES a design change spawns a separate ECR file, and the two are group members, never one file's two homes.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "Reciprocating the edge that row already wrote against this id, on the same discriminator and naming both fixtures. `VO-014_Level-2-Cladding-Instruction.pdf` is theirs: a site, a contract clause and an instruction role. `ECO-1187_BPA-210_Bushing-Material_RevC-to-RevD.pdf` is this row's: an item identifier, a revision pair and a specification. Both are numbered, priced, time-affecting and approved, so the change structure itself discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "A commercial change order amends a signed contract's price, scope or dates and is signed by two parties. `CO-07_Statement-of-Work-Amendment.pdf` has a change number and an approval block and no affected design item, no revision pair and no effectivity. The trap runs the other way too: an engineering change order carrying a cost-impact page is still this row's, because the cost is an impact of a definition change rather than an amendment to an obligation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Same event, two files, two homes. `BPA-210-001_RevD_redline.pdf` (clouded, stamped with a change identifier) is this row's; the released `BPA-210-001_Brake-Pedal-Assembly_RevD.dwg` that the change produced is theirs. A revision block on a released sheet is the RESULT of a change and is never this row's evidence; a from/to pair bound to a change identifier is.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "An affected-documents table and a product-structure table are both grids of item numbers with revisions. The discriminator: a product structure asserts a parent/child composition with quantities and is design-authoritative; an affected-documents table asserts that each listed artifact must be reissued under one change identifier and carries no quantities.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "`CCB_2026-05-12_Minutes.docx` is minutes by shape — attendance, agenda, actions. The discriminator is whether the agenda items are change identifiers carrying dispositions on identified items; without that binding, it is a meeting record and this row must not fire.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A pull request titled `change bushing material config` has an identifier, a diff (a from/to), a review roster and an approval. The engineering schema row's own node test states the governing rule: revision control alone is shared with code and never activates engineering on its own. The discriminator is a physical or system configuration item and a controlled definition outside the repository.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "signal": "`PCN-2026-0331_Supplier-Bushing-EOL.pdf` — a supplier's own product-change notification with a from/to part number. The discriminator is the issuer role and whose definition is changing: an inbound notification about the supplier's product is supplier correspondence; the internal change it triggers is a separate file and is this row's.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "business_operations",
+      "why": "Restricted to the engineering schema row's declared co-activations. A change board's minutes can be simultaneously a governed meeting record (attendance, actions, decisions) and a change record (dispositions bound to identified items and change identifiers). Both relations are independently evidenced on `CCB_2026-05-12_Minutes.docx`; neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "why": "An effectivity-bearing change order is genuinely both: it alters the released definition (this row) and instructs production from a stated serial or lot (execution evidence). The two relations sit in different labelled slots on the same page, which is why this is co-activation and not the nonconformance collision above.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with_note": "Deliberately narrow. `construction_property` is NOT listed even though the engineering schema row allows it, because at template level the construction change is a collision — a variation instruction is a site/contract record OR a design change on the discriminating evidence, not both at once.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "An approved order, a distribution notice, a register or a supplier change notification that has durable meaning but whose affected item and project cannot be reliably evidenced belongs here rather than activating on the word `change`.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The blank form, the undispositioned draft, the photographed redline and the nonconformance/variation lookalikes all land here: the file is partly understood and the deciding question — whose definition is changing, and was it decided — cannot be answered from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected change package or an unreadable proprietary markup file keeps basic metadata rather than having a purpose inferred from its filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is the ORIGINATOR of a change against the AUTHORITY that dispositioned it — both sit in labelled slots on the same page. There is no canonical key for either role, `authored_by` is not a destination under 00's rule against authorship as a destination, and minting a pair of role keys to solve one template's problem is exactly the move that produced thousands of private field names. Recorded in must_not_conclude on the order fixture instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the one engineering artifact that routinely states what was wrong. A reason-for-change field can name a field failure, a safety defect, a warranty trend, a supplier dispute or a cost problem, bound to an identified item and named approvers — an admission with a signature on it. Change packages also carry supplier quotations and pricing, and the notice mails carry distribution lists (00 treats addresses and message content as potentially sensitive). No handling class is assigned; 00's binding rule that privacy policy is enforced before any model or connector receives content governs.",
+  "open_question": "NJ-ECO-1: a change identifier has no canonical key and is deliberately not proposed — confirm it stays search-and-link metadata rather than becoming a field, and confirm it may never be a folder level. NJ-ECO-2: which side owns a nonconformance that proposes a design change, when the two live in one PDF rather than two files. NJ-ECO-3: whether a deviation or waiver — which permits a departure without superseding anything — belongs on this row at all or is a distinct organizational situation."
+}

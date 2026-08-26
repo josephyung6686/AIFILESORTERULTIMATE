@@ -1,0 +1,352 @@
+{
+  "id": "law_practice.pleadings",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Pleadings and originating process",
+  "one_line": "REFUSED. The class is real - the complaint, the claim form, the petition, the defence, the counterclaim, the reply, the amended statement of case - but it is not a node ON THIS SCHEMA, because the structure that identifies it is the tribunal caption plus a bound party pair, and that structure is the `legal` safety schema's own PROCEEDING activation signal, not `law_practice`'s. The `law_practice` DEFAULT TEMPLATE requires an artefact whose own labelled slots separate a practitioner-or-firm role from a client role; a pleading has no client slot, only parties and a counsel signature block, and a counsel signature block is a role name. What remains once the safety neighbour is served is a document-type word ('pleading') that the schema already carries as a work_type VALUE, sitting at the document-function level the schema's own recommendation already names. Coverage is routed, not dropped: the filed and served instrument to `legal` on `legal`'s evidence and into `legal.practice-matter-file`'s one shallow protected packet, the holder's own pleading to `legal.personal-legal-matters`, the transmission layer to `law_practice.court-filing-record`, the blank party-less form to `law_practice.precedent-bank`, and the isolated third-party document to Protected Records.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "THE NODE TEST FAILS ON ALL THREE LEGS, AND EACH FAILS FOR ITS OWN REASON. (1) DETECTION SIGNALS ARE NOT THIS SCHEMA'S - THEY ARE THE SAFETY NEIGHBOUR'S. `law_practice`'s default requires both an exact matter reference repeated across two or more artefacts AND at least one artefact whose own labelled slots separate a practitioner or firm role from a client role. A pleading carries neither leg on its own face: it carries a tribunal caption, a party-versus-party pair, numbered allegations, a prayer for relief, a statement of truth or verification, and a counsel signature block. The caption-plus-party-pair IS `legal`'s proceeding structure, and the counsel block is a role name, which the schema itself rules never-alone. The schema anchor conceded this in writing before this row was dispatched: every file inside a practitioner's matter with an executed-instrument or proceeding shape - and it names the pleading first - is `legal`'s on `legal`'s own evidence, and `law_practice` does not displace it, because `legal` is one of 00's four safety domains and its protection runs first. A row cannot own detection signals that fire a different schema. (2) DIMENSION ORDER IS NOT DIFFERENT - IT IS ONE VALUE OF THE SCHEMA'S OWN FUNCTION LEVEL. The schema's recommendation held as prose is: the client only where the corpus genuinely spans more than one and the user has approved it, then the matter, then the DOCUMENT FUNCTION, then the period last. 'Pleading' is a label at that function level, not a reordering of it. Branching a level for it in a single-proceeding corpus is exactly what 00 forbids the engine to validate - it must not 'create meaningless one-child levels'. The contrast with the landed sibling is decisive: `law_practice.court-filing-record` earned its keep by ARGUING THE FUNCTION LEVEL AWAY (a receipt is a leaf beside the document it attests, never a branch). This row does the opposite - it IS the function level's value. (3) PRIVACY RULES ARE NOT STRICTER THAN THE DEFAULT - THEY ARE THE DEFAULT, AND ARGUABLY LOOSER. 00: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' A pleading is that material, so it receives the safety posture from `legal` whether or not this row exists. `law_practice`'s claim to a posture stricter than `legal`'s rests on protecting a THIRD PARTY who never chose this filesystem - true of a privilege log, an attendance note, a deponent's proof. A pleading's named persons are the proceeding's own parties, already inside the safety default, and a filed pleading is frequently the most PUBLIC document in the matter. Being looser than a safety default is not a licence to create a node. FOUR INDEPENDENT KILL VECTORS CONFIRM IT. (a) IT IS A WORK_TYPE VALUE, verbatim in `law_practice.work_types`: 'pleading, application, submission and written case'. The dispatch is explicit that work types are values of a field, not child nodes. (b) IT IS A DOCUMENT TYPE. Complaint, petition, particulars of claim, defence, answer, reply, counterclaim are document-type words. Apply the schema's deletion test - delete every entity name and every document-type word - and what survives a pleading is a caption and a party pair, which is `legal`'s. (c) THE RESCUE IS A LIFECYCLE STAGE. The one tempting save - 'the DRAFT pleading is practitioner-side, the FILED one is legal's' - distinguishes draft from settled from served from filed from amended. That is a lifecycle stage, not a node, and the tracked-changes draft still carries the same caption and party pair. (d) THE ONE STRUCTURALLY DISTINCT RESIDUE IS ALREADY A SIBLING. A pleading form whose party slots are bracketed placeholders, whose statement of truth is blank and whose signature line is empty BY DESIGN is precisely the schema's inverse-recognition PRECEDENT-BANK signal, and `law_practice.precedent-bank` is a roster row. Taking it here duplicates that row. NO COVERAGE IS LOST - see `falls_through_to`, `collides_with` and the file examples, each of which names the row or residual that receives the material.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "A DOCUMENT-TYPE WORD ON THE FIRST PAGE - Complaint, Petition, Particulars of Claim, Statement of Claim, Defence, Answer, Counterclaim, Reply, Rejoinder, Amended Statement of Case. This is the token the refused id was named after, and on its own it identifies a genre, not a holder, a side, a matter or a schema. It is true of the published specimen pleading in a practitioner textbook, of the blank firm precedent, and of the holder's own divorce petition, none of which is this world's evidence.",
+      "A TRIBUNAL CAPTION - the court or tribunal name block, the party-versus-party line and the case-number slot. Far from being this row's evidence, it is the `legal` safety schema's own proceeding activation signal, and it fires there first. Reading it as `law_practice` evidence inverts the safety order 00 sets.",
+      "A PARTY-VERSUS-PARTY TOKEN IN A FILENAME ('Hartley v Nash'). Two names and a versus are an entity pair, and the schema's rule stands unchanged: delete every entity name and see what structure survives. Nothing does.",
+      "A COUNSEL OR FIRM SIGNATURE BLOCK, a practising-certificate reference, a bar or roll number, a chambers or firm letterhead. These are role names, and the schema states without qualification that a role name can never carry a schema. This is the specific never-alone that the tempting false file trips: `Pleadings - Smith v Jones - specimen from practitioner text.pdf` carries a full counsel block on its face and belongs to Reading Inbox.",
+      "A NUMBERED-PARAGRAPH LAYOUT WITH A PRAYER FOR RELIEF. Structure without a labelled slot pair is genre, not evidence; the same layout appears in a model form, a seminar handout and an unfiled draft.",
+      "A .DOCX WITH TRACKED CHANGES, A VERSION TOKEN ('v4', 'CLEAN', 'REDLINE') OR A 'DRAFT' WATERMARK. This is a version-family and lifecycle signal, not a domain signal, and 00 treats the extension as a routing signal rather than an assumption about meaning.",
+      "A COURT FILE-STAMP, A CONFORMED STAMP OR AN E-FILING ENVELOPE NUMBER. Positive evidence, but of a TRANSMISSION EVENT, and `law_practice.court-filing-record` already owns it - its landed fixture is the same conformed complaint named in this row's examples."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BECAUSE THE ROW IS REFUSED, and empty for a second reason that would hold even if it were not: `law_practice` declares no field rows under PR-6, so no dimension may branch, and the material co-activates `legal`, a safety domain whose protection runs before any placement. The substantive finding is that this row does not DIFFER from the schema's recommendation - it is one label at the schema's own DOCUMENT FUNCTION level, which the schema already places after the matter on 00's own reasoning that 'A work type such as Homework 3 is meaningful only after the course is known'. An amended statement of case is unintelligible without its proceeding in exactly that way. Nothing here is capture-based, so `time_first` stays false; and whatever a sibling eventually recommends stays a recommendation, since 'the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".txt",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Complaint - Hartley v Nash - CONFORMED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one caption block: court name, division, party-versus-party line, case-number slot",
+        "numbered allegation paragraphs, jurisdiction and venue headings, causes of action, a prayer for relief",
+        "a counsel signature block naming a firm, an address and a bar number; a verification line",
+        "a registry stamp bearing a received moment and an entry identifier applied over the first page",
+        "NO client slot, no engagement or retainer slot, no practitioner-and-client role pair anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that `law_practice.pleadings` activates. The caption and party pair are `legal`'s proceeding structure and `legal` is a safety domain whose detection and protection run first",
+        "any law_practice fact - the schema declares none and this refused row proposes none",
+        "that the holder is counsel. The signature block names a firm, and a firm name is a role name, which is never-alone",
+        "a folder path, or a Pleadings branch under the matter",
+        "that the conformed stamp makes this file this row's. The stamp is a transmission event and `law_practice.court-filing-record` names this same fixture on its own side"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Amended Particulars of Claim - 41127-0006 - v4 tracked.docx",
+      "source_type": "text_document",
+      "observations": [
+        "same caption and party pair as the filed version; tracked revisions and margin comments by two named reviewers",
+        "a matter reference token in the filename that recurs across the corpus",
+        "a DRAFT watermark and a version token; the statement of truth is present but unsigned"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that draft-versus-filed rescues the row. Draft, settled, served, filed and amended are LIFECYCLE STAGES of one document, and a lifecycle stage is not a node",
+        "that tracked changes are practitioner evidence. They are a version-family signal available to any editor of any document",
+        "that the recurring matter reference alone activates `law_practice`. The schema's default needs BOTH legs, and the second leg - an artefact whose labelled slots separate a practitioner role from a client role - is absent here",
+        "that the unsigned statement of truth means unfiled, unserved or ineffective"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Defence and Counterclaim - Nash - served 2026-06-11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "caption identical to the claim; responsive numbered paragraphs (admitted, denied, not admitted) then a counterclaim section",
+        "signature block naming a DIFFERENT firm from the one on the complaint",
+        "a served-on date token in the filename only"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which SIDE the holder is on. Two counsel blocks across two documents in one corpus establish two firms, not the holder's role - this is the family's defining failure and it routes to Review Later",
+        "that the opposing party's pleading is the holder's work product",
+        "that a served-on date in a filename is a service fact"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Claim Form N1 - blank - firm precedent v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a pleading-shaped form whose party slots are bracketed placeholders and whose statement of truth and signature lines are empty BY DESIGN",
+        "drafting notes and optional-clause alternatives in coloured text; a firm template version marker in the footer",
+        "no case number, no client, no third party named anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is a pleading in a proceeding. It is the photographic negative of one - `legal` does not fire because there is no bound party pair and no execution block",
+        "that it belongs here. This is the schema's INVERSE-RECOGNITION precedent-bank signal and `law_practice.precedent-bank` is the roster row that owns it",
+        "that it is protected material. It contains no client and no third party at all"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Instructions to Counsel to settle Particulars of Claim - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled INSTRUCTING slot and a labelled INSTRUCTED or COUNSEL slot",
+        "a numbered enclosure index; a background-facts section; specific questions on which advice is sought",
+        "the same matter reference as the draft pleading"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a pleading. It is ABOUT one, and its own structure is a counsel-instruction slot pair - one of the schema's genuine signals, owned by `law_practice.opinions-advice`",
+        "any privilege, work-product protection or legal effect from the instructing structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan 2026-06-11 - petition pages 1-8.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "flatbed-scan page geometry with skew; OCR recovers a caption-like block and paragraph numbering with character errors",
+        "no reliable case-number slot; the signature area resolves as noise",
+        "filename carries a scan date and a page range, nothing else"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a matter, a party, a court or a side from degraded OCR - every candidate here is `possible` at best",
+        "that a scan date is a document date, a filing date or a service date",
+        "that missing structure proves absence of structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Draft POC - your comments by Friday.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipient blocks crossing an explicit role boundary; subject carries an abbreviation and the matter reference",
+        "attachment name matching the tracked draft; body gives instructions and a requested return date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an email discussing a pleading is a pleading",
+        "that a requested return date is a deadline, or that any deadline is calculated or judged",
+        "that the attachment name creates a fact about the attachment"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pleadings - Smith v Jones - specimen from practitioner text.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a complete pleading with caption, party-versus-party line, numbered allegations, prayer for relief and a full counsel signature block",
+        "BUT ALSO: a running chapter header, a publisher imprint and ISBN, page numbers continuous with a surrounding volume, and commentary footnotes keyed to the paragraphs",
+        "the case number slot reads as a placeholder pattern; no matter reference recurs anywhere else in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a perfectly formed pleading is a live proceeding. THIS IS THE COLLISION FIXTURE: it satisfies every surface signal the refused row would have used and belongs to none of them",
+        "a client, a matter, a party or a holder role from a specimen",
+        "that a counsel block proves a practitioner holder - here it is printed illustration"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Divorce Petition - my own - filed copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court caption, petitioner and respondent slots, numbered grounds, a signed statement of truth, a registry stamp",
+        "the petitioner name matches the corpus holder's own name on identity and finance material",
+        "no firm letterhead, no matter reference, no engagement record anywhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a practitioner side. The holder is a PARTY, and `legal.personal-legal-matters` is the landed row for a person's own dispute or proceeding",
+        "that court vocabulary implies professional practice",
+        "any marital, custodial or financial status, or that the petition is valid, effective or current"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pleadings bundle - Hartley v Nash - index and tabs.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a front index of tabbed items with page ranges, followed by the tabbed documents themselves",
+        "a hearing reference and a bundle pagination scheme running across all members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a bundle is a pleading. Its own structure is an INDEX over members, which is `law_practice.evidence-exhibits` / `law_practice.trial-preparation` territory",
+        "that bundle membership copies any fact onto a member",
+        "that the pagination scheme is a filing or docket identifier"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pleadings_41127-0006.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest readable without extraction; member names repeat document-type words and a matter reference",
+        "entries are flagged as password protected; content is not inspected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "the contents from the member names, or a matter from the archive name",
+        "that the archive should be forced open to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-06-11 at 09.14.02 - e-filing portal - submitted.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: display-scale dimensions, a system capture filename pattern, a visible menu bar strip",
+        "OCR recovers a portal heading, a submitted-status word, an envelope number and a truncated document title"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a matter, a court, a party or a filing outcome from a truncated portal screen",
+        "that this is a pleading. The portal event, if anything establishes it, is `law_practice.court-filing-record`'s",
+        "that absent EXIF would have proved screen origin - the positive capture evidence did, and 00 rules the absence out"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+  "collides_with": [
+    "legal",
+    "legal.personal-legal-matters",
+    "legal.practice-matter-file",
+    "law_practice.court-filing-record",
+    "law_practice.precedent-bank",
+    "law_practice.motions-and-briefs",
+    "law_practice.appeals"
+  ],
+  "also_holds_with": [
+    "legal"
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded on a refused row because the material still exists and must still be protected while it is routed elsewhere. A pleading names parties, and in family, immigration, criminal and personal-injury proceedings it narrates the intimate facts of people who never chose this filesystem. 00 places this material inside the safety perimeter directly - 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed' - and names it again as isolated protected material: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.' The finding of this row is that the posture is delivered by `legal` and does NOT differ from it, which is the third leg of the failed node test rather than a reason to keep the id. Publicly filed does not mean safe to expose: a docket may be public while the holder's possession of the file, its neighbours and its folder label are not. No handling class is assigned; that is P7's.",
+  "open_question": "Three, stated rather than smoothed, and all three are R1c's to adjudicate because this row may not edit a neighbour. (1) SIBLING SYMMETRY: `law_practice.motions-and-briefs`, `law_practice.appeals` and `law_practice.orders-and-judgments` rest on the same caption-plus-party-pair structure separated only by a document-type word, so the argument that refuses this row appears to reach them too; R1c should decide whether they are refused together, folded into one proceeding-documents row that must still defeat the `legal` concession, or retained on evidence this row did not see. (2) A DEAD DEFERRAL: `law_practice.court-filing-record` states that it holds neither the document that was filed, its siblings owning that on the document's own evidence, and it lists `law_practice.pleadings` in `collides_with`; if this refusal stands, that deferral points at nothing and R1c should redirect it to `legal` and `legal.practice-matter-file`. (3) THIRD-PARTY PROTECTION: `legal` protects the HOLDER's own record, while the pleading in a practitioner corpus is about someone else; routing to `legal` plus Protected Records is this row's answer, but whether that is sufficient, or whether `law_practice` needs a third-party posture attaching at schema level, is a Joseph decision."
+}

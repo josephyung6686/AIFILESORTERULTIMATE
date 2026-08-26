@@ -1,0 +1,529 @@
+{
+  "id": "engineering.commissioning-handover",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Commissioning and handover packages",
+  "one_line": "The evidence that transfers a built, installed and proven instance of an engineered system from the party that designed and built it to the party that will operate it: the as-built reconciliation of what was actually installed against the released design definition, the pre-commissioning, loop-check, FAT/SAT and functional-performance results witnessed on the installed unit, the punch list that survives acceptance, and the signed taking-over certificate plus the operating dossier (O&M manuals, asset schedule, spares, warranties, training records, control backups) that goes with it. The anchor is not a stage: it is a THREE-PLACE relation among an identified installed instance, an acceptance/transfer act, and the controlled design definition the instance is reconciled against. Absorbs the legacy row eng.as-built-record. Placeholder row: it writes NO field rows, because the engineering schema declares none (PR-6; D1's deferral stands).",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "schema_default_template": "The engineering anchor's researched default fires on a relation among an identified design item, a lifecycle/design state, and controlled technical artifacts, and its conditional dimension order is project -> design_item -> lifecycle_stage -> engineering_artifact_type, time_first false.",
+    "detection_signals_differ": "The schema default is satisfied by an item plus a controlled artifact: a drawing with a title block and revision, a requirements table with verification columns, a BOM with parent/child rows. NONE of those is sufficient here, and this row adds two structures the default never requires. (1) An INSTALLED-INSTANCE identity - a tag, unit, loop, circuit, skid or serial that names one physically located copy of the design item, not the design item itself. A released drawing package for Chiller model CH-2000 has no instance; a SAT sheet for CH-02 in Plant Room 3 does. (2) An ACCEPTANCE-AND-TRANSFER structure - a taking-over, acceptance, energisation or beneficial-use act with two named parties, a date that starts a defects-liability or warranty period, and a residual punch list carrying owners. The schema default has no concept of a counterparty taking custody. A file that carries only one of the two is not this row: an as-built drawing with no acceptance act is a drawing-package issue, and an acceptance certificate with no reconciled technical definition is a contract or project-closure record on a neighbouring schema.",
+    "dimension_order_differs": "The default puts the design item above everything technical. This row inverts the top of that order: the deployed INSTANCE precedes the design item, because a handover pack is assembled around the unit that was delivered, not around the design that generated it, and because one design item legitimately produces many separately-handed-over instances whose packs must not merge. The pack is also purpose-coherent rather than content-coherent - a certificate, a drawing, a spreadsheet, a video and a password schedule sit together because they were transferred as one act. \"The documents are content-incoherent but purpose-coherent.\" A content-similarity order would split exactly the bundle a handover is.",
+    "privacy_rules_differ": "The schema's sensitivity reason is proprietary design definition and export-controlled technical data. This row's reason is different in kind and survives after the IP concern lapses: a handover pack routinely carries LIVE OPERATIONAL ACCESS to a running installation - control-system backups with default engineering passwords, BMS/SCADA account schedules, alarm and safety setpoints, key and access-control schedules, site addresses, and named operator contacts with roles. That is credential and physical-access material, not intellectual property, and it argues for excerpt-only recognition and local-first handling on files the schema default would treat as ordinary technical documents. This is a posture, not a handling class; P7 owns classes.",
+    "why": "Accepted as a template. The row is not co-extensive with any lifecycle_stage value, is not a document-type bundle, and is not a duplicate of the schema default or of engineering.verification-validation. Its distinguishing relation is custody transfer of a located instance, argued in full in the memo."
+  },
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "CH-02 (Chiller 2, Plant Room 3)",
+      "why_no_existing_key": "REUSE, NOT A MINT. `asset` already exists as a proposal on the manufacturing anchor (example CNC-07) and this row deliberately adopts that spelling rather than minting installed_instance, tag_number or unit_id as a variant. No canonical key covers it: the anchor's proposed `design_item` names the designed configuration (Chiller model CH-2000, Brake Pedal Assembly BPA-210) and one design item yields many separately commissioned instances; canonical `location` names a place, and two chillers in one plant room share a location while never sharing a handover; canonical `project` names the undertaking that delivered the instance, not the instance. The reason this row proposes anything at all is that the instance is precisely what changes hands, and it is the same handle the receiving operator will key its asset register on - which is why the boundary with manufacturing.asset-register is a role_split rather than a collision.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE, and proposed ABOVE design_item for this template only. A loop check sheet, a punch item, a warranty start date and an as-built markup are unintelligible until the unit they belong to is known, which is 00's parent-makes-child-intelligible rule applied to a deployed instance. It is not authorship and not an organisation collector.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled tag/unit/equipment-number slot on a test sheet, asset schedule or certificate can be direct. Otherwise validation requires a tag-shaped token co-occurring with one acceptance-or-test structure on the same document - a witnessed pass/fail column, a takeover signature block, or an asset-schedule row with a warranty date. R2 owns the pattern family; this row writes no regex and no threshold.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an acceptance or taking-over structure that names two parties, an identified system or package, a date of taking over or beneficial use, and a defects-liability or warranty period that starts from it; the two-party custody act is the signal, never the word 'handover' in a filename",
+      "a witnessed test record whose header carries an installed-instance identity (tag, loop, circuit, unit, skid or serial) and whose body carries stepwise expected-versus-recorded results with witness signature slots for both the installing and the receiving party - a SAT, loop check, functional performance test or integrated systems test",
+      "a drawing, model or schematic carrying an AS-BUILT or AS-INSTALLED status slot together with a reference to the issued-for-construction revision it supersedes; the reconciliation relation fires, not the red ink and not the words 'as built' alone",
+      "a punch, snag or defect schedule whose rows carry item, tag or location, discipline, raised-by, OWNER, category and a closed/signed-off column - the owner column is what distinguishes it from an internal defect log",
+      "an operating dossier structure: an O&M or building-manual volume whose contents page joins equipment data sheets, maintenance schedules, spares lists, warranty terms and commissioning results for one named installation",
+      "an asset or equipment handover schedule whose rows join tag, description, manufacturer, model, serial, location, warranty start and maintenance interval - the schedule that becomes the operator's register",
+      "an archive whose manifest names as-built drawings, test and commissioning certificates, warranties, spares, training records or a control-system backup under one installation, read from the manifest without extracting members",
+      "an operator training or competence record naming the installation, the systems covered, dated sessions and attendee sign-off - training on a delivered system, not a generic course certificate",
+      "a control-system backup or setpoint schedule identified to a named installation and carrying account, password, alarm-limit or interlock columns; this is a recognition signal AND a privacy trigger in the same structure",
+      "parent-folder context naming a handover, O&M or takeover package may raise plausibility only after one of the structures above is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a signed completion-shaped certificate transfers an ENGINEERED SYSTEM to an operator or closes a BUILDING CONTRACT at a property - the surrounding evidence is a tag and test results in one case and contract parties and a contract sum in the other, and the certificate itself often shows both",
+      "whether a functional test proves the design (verification against a requirement identifier) or proves the installation (acceptance of a located instance against its design definition), when the traceability is prose rather than labelled slots",
+      "whether an as-built markup is the FINAL reconciled record for a handover or one issue in a controlled revision sequence still under change control",
+      "whether a spreadsheet of equipment is a handover asset schedule, an operator's live asset register, a procurement list or a spares order",
+      "whether 'commissioning' names the technical proving of a plant, a domestic appliance safety record, an artistic commission, or the funding of a piece of work",
+      "whether a punch or defect list belongs to acceptance of a delivered installation or to warranty-period failures already in the operator's hands"
+    ],
+    "never_alone": [
+      "the words commissioning, handover, takeover, as-built, acceptance, SAT, FAT, punch, snag or O&M alone. Every one of them appears on the construction, manufacturing, resource-operations, business-operations and creative sides of the roster, and 'commissioning' additionally names an unrelated act in creative and funding contexts",
+      "a tag- or serial-shaped token alone. It can be a stock code, an asset tag already owned by an operator, a purchase line, a meter number, a drawing number or an arbitrary identifier",
+      "a signature block, a stamp or a date that starts a period, alone. Contracts, leases, certificates, policies and warranties all carry them",
+      "a red-lined or marked-up drawing alone. Markup is a state of a document, not proof that a reconciliation to an installed instance happened",
+      "an archive named handover-pack.zip alone; 00's rule that an extension is a routing signal rather than an assumption about meaning applies to manifest-free archives here",
+      "a test report with pass/fail columns alone. Production inspection, design verification, calibration, laboratory experiment and site compliance testing all produce that shape",
+      "the presence of an operator's or contractor's organisation name anywhere in the file. An organisation name is never-alone evidence and cannot by itself establish that a transfer occurred, who transferred to whom, or that this row applies",
+      "a project name plus an engineering-looking file. That is business_operations.project-delivery or the engineering schema default unless an instance identity and an acceptance act are both present"
+    ]
+  },
+  "proposed_context_terms": [
+    "taking over",
+    "beneficial use",
+    "defects liability period",
+    "as-built",
+    "as-installed",
+    "pre-commissioning",
+    "loop check",
+    "site acceptance test",
+    "factory acceptance test",
+    "functional performance test",
+    "integrated systems test",
+    "energisation",
+    "punch list",
+    "witness",
+    "O&M manual",
+    "spares and consumables",
+    "warranty start",
+    "operator training"
+  ],
+  "work_types": [
+    "commissioning plan or method statement",
+    "pre-commissioning and flushing record",
+    "loop check or point-to-point sheet",
+    "factory acceptance test report",
+    "site acceptance test report",
+    "functional performance test record",
+    "integrated systems test record",
+    "energisation or first-fire record",
+    "punch, snag or defect schedule",
+    "taking-over or acceptance certificate",
+    "as-built drawing set",
+    "as-built model or point cloud reconciliation",
+    "red-line markup reconciled to issued revision",
+    "operation and maintenance manual",
+    "asset or equipment handover schedule",
+    "spares and consumables list",
+    "warranty and guarantee schedule",
+    "operator and maintainer training record",
+    "control-system backup and setpoint schedule",
+    "seasonal or deferred commissioning record",
+    "defects-liability close-out record"
+  ],
+  "work_types_note": "These are VALUES of a work-type or artifact-type field, never child rows. The strongest objection to this row is that it is a bundle of these document types; the memo defeats that objection by showing that none of them activates the row alone and that the row's relation is custody transfer of a located instance, which no value in this list names.",
+  "grouping_reasons": [
+    "an exact installed-instance identity (tag, loop, unit, skid or serial) shared between a test record, a punch item, an as-built sheet and an asset-schedule row",
+    "an exact package, system or handover-pack reference shared across members of one transfer",
+    "an archive manifest that lists the members of one pack, read without extraction",
+    "an acceptance date that starts a defects-liability or warranty period and is repeated as a labelled slot on several members",
+    "a transmittal or pack index that enumerates its own members by document number"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: PR-6 leaves the engineering schema with no declared destination-eligible fields, so no order may be serialized. The researched recommendation, conditional on R1c ratifying `asset` and the anchor's proposed keys, is asset -> design_item (or project where one project delivered many instances) -> engineering_artifact_type. This differs from the schema default deliberately at the top level: the default leads with project/design_item, and this row leads with the deployed instance because a handover is assembled around the unit that changed hands. revision_or_baseline stays metadata; an as-built status is a slot on a document, not a folder level. Not time-first: acceptance date, test date, document date and warranty start are four different dates on the same pack and leading with any of them scatters one transfer across calendar folders. The user may reverse, flatten or remove any of this.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "audio_video",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".dwg",
+      ".dxf",
+      ".ifc",
+      ".rvt",
+      ".jpg",
+      ".heic",
+      ".mp4",
+      ".eml",
+      ".ics",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Taking-Over Certificate - Package 4 - Substation SS-03 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots naming the works or package, the party issuing and the party taking over, and a stated date of taking over",
+        "a defects-liability or warranty period expressed as running from that date",
+        "a reference to outstanding items listed in an attached schedule",
+        "two signature blocks with named roles"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: engineering_artifact_type",
+        "conditional on R1c: project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the transfer is legally effective, that the period has expired, or that the defects are closed",
+        "that the receiving organisation named on the certificate owns any other file in the corpus"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SAT-Report_Chiller-CH-02_2026-06-14_witnessed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header carrying an equipment tag, location and the design reference the unit was installed against",
+        "numbered test steps with expected value, recorded value and pass/fail",
+        "setpoint and interlock verification rows",
+        "contractor and client witness signature slots with dates"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: design_item",
+        "conditional on R1c: engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the recorded setpoints are current, correct or safe",
+        "that a design requirement is verified - this proves the installation, not the design"
+      ],
+      "also_schema": "engineering.verification-validation only where the same sheet also carries stable requirement identifiers and a verification-method column",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "210-PID-004 Rev D (AS BUILT).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title block with drawing number, revision D and a status slot reading AS BUILT",
+        "a revision history row referencing Rev C issued for construction",
+        "annotated line and instrument tags differing from the superseded issue"
+      ],
+      "facts_legal": [
+        "conditional on R1c: design_item",
+        "conditional on R1c: engineering_artifact_type",
+        "conditional on R1c: revision_or_baseline"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is the latest revision of the design definition",
+        "that a handover occurred, from the AS BUILT stamp alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Punch List - Harbour Pump Station - rev 7.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for item number, tag or location, discipline, raised by, owner, category, target date and closed date",
+        "rows referencing the same tags that appear on the test sheets",
+        "a sign-off column with initials"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any item is actually closed, or that the installation is fit for use",
+        "that the named owners are the holder's colleagues"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Handover Pack - Line 3 Packaging Cell.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest or index member naming as-built drawings, test certificates, an asset schedule, spares, warranties, training records and a controls backup",
+        "member names sharing one installation reference",
+        "mixed member types under one root"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "the contents of unexamined members",
+        "that every member belongs to this row - a calibration certificate inside remains independently manufacturing evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Asset Handover Schedule - Line 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows joining tag, description, manufacturer, model, serial number, location, warranty start and maintenance interval",
+        "a column referencing the O&M manual section for each row"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the operator has accepted the assets or that the register is live",
+        "that warranty is in force"
+      ],
+      "also_schema": "manufacturing where the same sheet is being maintained as the operator's live register rather than transferred as a deliverable",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PLC-Backup-and-Setpoints_LINE3_v1.4.zip",
+      "source_type": "code_structured",
+      "observations": [
+        "controller project files and a setpoint or parameter export identified to a named installation",
+        "an account or access schedule listing engineering and operator logins",
+        "alarm limit and interlock tables"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any credential is current, or that it may be surfaced in a prompt, a preview or a folder label",
+        "that the controller logic is a software repository"
+      ],
+      "also_schema": "code where an actual repository root, manifest or source structure is independently present",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Operator Training Attendance - Line 3 - 2026-06-20.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "installation and systems covered named in the header",
+        "dated sessions with topics",
+        "attendee names, employers, roles and signatures"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset",
+        "conditional on R1c: engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any attendee is competent, certified or authorised to operate",
+        "that the named people are the holder's own staff"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Energisation window and witness attendance - SS-03.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipients spanning the installing and receiving parties",
+        "an exact package and tag reference in the subject",
+        "a proposed energisation date and named witnesses",
+        "an attached tag list"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that energisation happened, or that anyone attended",
+        "that the attachment's content is known without reading it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4417.HEIC",
+      "source_type": "image",
+      "observations": [
+        "capture metadata with date and coordinates",
+        "OCR of an equipment nameplate showing manufacturer, model and serial",
+        "a printed tag label visible in frame"
+      ],
+      "facts_legal": [
+        "conditional on R1c: asset only when a nameplate or tag is legibly read and matches an accepted pack anchor"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a walkdown, test or handover occurred because a photograph of equipment exists",
+        "an installation identity from coordinates alone"
+      ],
+      "also_schema": "photos on capture evidence, which remains independently true",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Practical Completion Certificate - Harbour Works.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE. Named contract and contract parties, a site address, a stated date of practical completion, a rectification or defects period running from it, and a contract administrator's signature",
+        "no equipment tag, no test result, no reference to a design definition being reconciled"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row is active - the anchor here is a contract at a property, not an installed instance and its design definition",
+        "that the presence of the word completion makes it an acceptance of an engineered system"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "LOT-24-081_Final-Inspection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "COLLISION FIXTURE. Batch or lot identifier, sampled characteristic rows, measured values, pass/fail and an inspector sign-off, citing drawing Rev C",
+        "no located instance, no counterparty taking custody"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a design revision citation makes it engineering evidence",
+        "that a pass/fail column implies acceptance of an installation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Site Acceptance Test pack - client copy.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "COLLISION FIXTURE. Password-protected archive; no manifest readable",
+        "the filename is the only evidence available"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an installation, a tag, an acceptance act or a sensitivity result from the filename",
+        "that it should be opened or moved to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.construction-project",
+      "why": "That row explicitly retains the handover envelope as its own: a handover, O&M or building-manual pack assembled against ONE contract at ONE site. The same bytes can satisfy both. THIS SIDE fires when the pack is anchored to an identified installed SYSTEM or plant instance reconciled against a controlled design definition - tags, loop checks, SAT results, setpoints, an as-built P&ID superseding an issued-for-construction revision. THAT SIDE fires when the pack is anchored to a JOB - a contract at a property, with contract parties, a contract sum, a programme and a practical-completion certificate closing the works. Shared fixture bytes: 'Handover Pack - Harbour Works.zip'. Its manifest naming as-built drawings, commissioning results, warranties and a health-and-safety file is that row's own signal; the same archive activates this row only if the manifest also resolves to tagged systems with witnessed acceptance results. Second shared fixture: 'Practical Completion Certificate - Harbour Works.pdf' is theirs in both directions and is this row's collision fixture. Where a plant package genuinely carries both relations explicitly, the schema anchors already allow engineering and construction_property to coexist.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "why": "The nearest sibling and the most dangerous one, because both hold witnessed test evidence with pass/fail columns. THAT SIDE's object is the REQUIREMENT: a verification matrix or test report linking stable requirement identifiers to method, procedure, configuration-under-test and result, proving that the DESIGN satisfies what was asked of it. THIS SIDE's object is the INSTANCE: proving that the unit actually installed at a location behaves as its design definition says, and that a named party accepts it. Shared fixture bytes: 'SAT-Report_Chiller-CH-02_2026-06-14_witnessed.pdf'. A SAT sheet carrying only tags, setpoints and witness signatures is this row; the same sheet extended with SYS-REQ identifiers and a verification-method column legitimately holds both. A design verification report on a prototype with no located instance and no counterparty is never this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "why": "As-built drawings are the contested set, and this row absorbed the legacy as-built record. THAT SIDE owns the controlled issued drawing set and the transmittal sequence that releases revisions. THIS SIDE owns the terminal reconciliation: the sheet stamped AS BUILT that records what was actually installed against the issue it supersedes, delivered as part of a transfer. Shared fixture bytes: '210-PID-004 Rev D (AS BUILT).pdf'. The discriminator is whether the sheet is one issue in a live controlled sequence, still subject to change control (drawing-package), or the final reconciled record travelling inside a pack with an acceptance act (this row). An AS BUILT stamp with no pack and no acceptance evidence is drawing-package, not this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "why": "Project close-out and handover language overlap almost exactly. THAT SIDE owns schedule, budget, governance and delivery-status evidence, including a close-out report with lessons learned and a final cost position. THIS SIDE owns technical acceptance of an installed instance. Shared fixture bytes: 'Project Closeout Report - Harbour Works.pptx'. Slides reporting milestones met, spend against budget and outstanding actions are that row even when the project was an engineering project and the word handover appears on every slide; the same deck becomes contested only if it embeds tag-level acceptance results and a takeover date, and then both may hold.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.grid-connection",
+      "why": "Energisation, witness testing, commissioning and takeover are that row's native vocabulary for a connection to a network. THAT SIDE fires on the connection agreement, the network operator relationship, the connection point and the energisation of a supply. THIS SIDE fires on the plant or system being handed to whoever will run it, whether or not a network is involved. Shared fixture bytes: 'RE Energisation window and witness attendance - SS-03.eml'. A substation energised as part of a plant handover to the plant's own operator is this row; the same substation energised under a distribution network operator's connection process, with a connection reference and network-operator counterparty, is theirs. Both may hold when a single package contains both relations.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "why": "That row is REFUSED, and its refusal routes certificates by the situation they evidence rather than activating a certificate node. The overlap is real because it lists a boiler or heating commissioning certificate, a water-hygiene or pressure-test certificate and a calibration certificate among its values. A domestic boiler commissioning certificate or a landlord gas safety record is NOT this row and must not be captured by the word commissioning: it evidences a dwelling's compliance situation and routes as that refusal directs. This row takes such a certificate only when it arrives as a member of an engineered installation's transfer, and even then the certificate keeps its own independent meaning rather than becoming an engineering fact.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing",
+      "why": "Calibration certificates, spares lists and equipment data sheets travelling inside a handover pack are independently manufacturing evidence about the equipment. Membership in the pack does not erase that, and manufacturing evidence does not make the pack.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property",
+      "why": "A plant or infrastructure handover can be simultaneously the transfer of an engineered system and the closing record of a contract at a site. Both relations must be independently evidenced; neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "why": "A control-system backup delivered at handover may also be a genuine repository artifact when repository structure is independently present. Controller logic is not a repository merely because it is code-shaped.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "why": "A handover meeting pack can carry governed project decisions and tag-level technical acceptance in one file.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations",
+      "why": "A generation or network asset handed to an operator can carry both an energy-operations relation and an engineering transfer relation on disjoint evidence.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A lone acceptance certificate, warranty schedule, training record or asset sheet with durable meaning but no reliably evidenced installation or accepted pack belongs here rather than activating from the words handover or commissioning.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a test sheet, punch list, marked-up drawing or handover-shaped archive is readable but whether it accepts an installation, verifies a design, inspects production or closes a contract cannot be settled from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected handover archives, proprietary controller and CAD binaries, and damaged pack members are represented without forcing inspection or inventing purpose from a filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Control-system backups, account and password schedules, key and access-control schedules, and alarm or interlock setpoint tables carry live operational access to a running installation and should be represented locally without surfacing filenames or content to models.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A walkdown or nameplate photograph with no legible tag and no accepted pack anchor is an image with no association; the existence of a commissioning project nearby is not an association.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "manufacturing.asset-register",
+      "why": "The same physical entity, on opposite sides of the transfer, keyed on the same proposed `asset` handle. THIS SIDE holds the unit as a DELIVERABLE: its as-built definition, its acceptance evidence, its outstanding punch items, its warranty start and the dossier that accompanies it. THAT SIDE holds the same unit as an OPERATED asset: its register row, its criticality, its maintenance regime and its in-service history. Shared fixture bytes: 'Asset Handover Schedule - Line 3.xlsx'. Transferred as a deliverable inside a pack it is this row; maintained as the operator's live register with in-service updates it is theirs. The handover schedule is literally the seed of the register, which is why this is a role split and not a collision.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "why": "Defect rectification spans the seam. THIS SIDE holds punch and snag items that are conditions of acceptance, owned by the delivering party before takeover. THAT SIDE holds work orders raised by the operator against an asset already in service. Shared fixture bytes: 'Punch List - Harbour Pump Station - rev 7.xlsx'. The discriminator is which side of the taking-over date the item was raised on and who owns it, and where that is unclear the file goes to Review Later rather than being assigned by guess.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Handover packs concentrate three separable exposures that a drawing or a requirements table does not. First, live operational access: control-system backups with default or delivered engineering credentials, BMS and SCADA account schedules, alarm and interlock setpoints, and key or access-control schedules. Second, physical-site exposure: site addresses, plant room locations, single-line diagrams and access routes for a running installation. Third, named people in operational roles: witnesses, trainees, operators and emergency contacts with employers and signatures. Recognition should work from labelled headers, manifests and minimum excerpts rather than full pack content, and credential-bearing members should route to Protected Records rather than being previewed. This is a posture for this template, not a new handling class; P7 owns classes and 00's rule that privacy policy is enforced before any model or connector receives content governs.",
+  "open_question": "NJ-ENG-CH-1 (the row's own existence, and the most important): if R1c ratifies the anchor's proposed `lifecycle_stage`, does this row survive as a template or collapse into the VALUE lifecycle_stage = commissioning/handover? This pass argues it survives because the row is not co-extensive with that value in either direction - a commissioning plan written during detailed design is this row and a final design review held during the commissioning window is not - but the alternative is real: demote to a value, route as-built reconciliation to engineering.drawing-package and acceptance evidence to engineering.verification-validation, and lose the custody-transfer relation entirely. NJ-ENG-CH-2: the handover envelope is claimed by construction_property.construction-project as the reason that row survives its own demotions. This pass authors a mutex on the anchor (system-and-design-definition versus job-at-a-site) rather than conceding, but R1c must ratify it reciprocally or one of the two rows loses its centre; the same 'Handover Pack - Harbour Works.zip' fixture is named on both sides. NJ-ENG-CH-3: should `asset` be reused across manufacturing and engineering as one key, as proposed here, or does the deliverable/operated distinction need two keys? One key plus a role_split is recommended, but it means the field carries different reliability rules on each side. NJ-ENG-CH-4: may a handover pack's credential-bearing members be split to Protected Records while the rest of the pack remains grouped, or must the whole pack inherit the strictest posture? Splitting is recommended; inheriting is safer and would make a large ordinary technical corpus invisible."
+}

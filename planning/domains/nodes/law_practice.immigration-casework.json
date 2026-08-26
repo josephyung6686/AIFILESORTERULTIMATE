@@ -1,0 +1,480 @@
+{
+  "id": "law_practice.immigration-casework",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Immigration casework (representative side)",
+  "one_line": "The representative's side of one person's application or claim to an immigration authority: the authorisation-of-representative instrument that names a practitioner FOR an applicant on the authority's own record, the form set prepared for filing, the indexed evidence dossier assembled to prove eligibility, the fee authorisation, the authority's receipt, biometrics, interview and evidence-request notices addressed to the representative, the response to each, the personal declaration, the country-conditions and expert material, the decision, and the maintenance, renewal, appeal and closure record. It is NOT activated by the words immigration, visa, asylum, petition or status, by an authority name such as USCIS, the Home Office or IRCC, by a country or nationality, by a case- or receipt-number-shaped token, or by a law-firm name; every one of those is never-alone and `identity.immigration-visa` already struck them. It differs from `law_practice`'s default template on all three legs of the node test: its anchor is an AUTHORITY-ISSUED case reference paired with a REPRESENTATIVE-AUTHORISATION instrument carrying a client-consent block, not a firm-allocated matter reference plus a litigation apparatus; its recommended order must seed the CASE-TYPE level ineligible because the natural third dimension here (asylum, removal defence, trafficking, domestic-violence self-petition) discloses the client's protected status without ever naming the client; and its residual routing splits a genuinely public country-conditions library out of an otherwise wholly protected file. It concedes the larger half of its world in two directions: the applicant's own copy of the same bytes is `identity.immigration-visa`'s, and any captioned appeal or removal-proceeding document is `legal`'s on `legal`'s own evidence, `legal` and `identity` being safety domains whose protection runs first.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED UNCHANGED FROM THE SCHEMA AND NOT WEAKENED HERE. These are activation signals, not licences to write facts: `law_practice` declares no field rows, so nothing below becomes an extractable fact. Every accepted signal is a STRUCTURE plus a LABELLED SLOT. Apply the schema's deletion test verbatim in this world: delete every authority name (USCIS, Home Office, IRCC, EOIR, an embassy, a consulate), every country and nationality, every firm name, and every subject-matter word (immigration, visa, asylum, petition, sponsorship, status, permit, removal), and if nothing structural survives, nothing fires. That deletion removes almost everything a naive detector would have used here, which is exactly why this row is written around two structures that survive it.",
+      "THE AUTHORISATION-OF-REPRESENTATIVE STRUCTURE, and it is this row's decisive and most distinctive signal because it is the only artefact in the whole `law_practice` family whose own printed layout separates the practitioner role from the client role FOR A THIRD READER - a government authority - rather than for the two parties alone. The observable structure is a form with a part or block whose labelled slots describe an attorney, accredited representative, adviser or agent (name, bar or registration line, firm, address, signature, date), a separate part whose labelled slots describe the applicant or petitioner being represented (name, an authority-issued person identifier slot, address), and a distinct CONSENT block signed by the represented person authorising that named representative to act. Real instances: the United States Form G-28 Notice of Entry of Appearance as Attorney or Accredited Representative, whose parts are literally split attorney-information / client-consent; the Canadian IMM 5476 Use of a Representative, which additionally has a paid-versus-unpaid representative declaration; a United Kingdom application's immigration-adviser block naming an OISC-regulated or solicitor adviser. Read through 00's direct-fact path for the slots - \"a labeled form field\". The tri-partite shape is the signal; the form's identifier and the authority's name are not, and a blank unsigned copy of the same form is public material that activates nothing (see never_alone).",
+      "AN AUTHORITY NOTICE ADDRESSED TO THE REPRESENTATIVE, which is the schema's two-role requirement satisfied by the authority itself rather than by the firm. The structure is a notice whose own header carries an issuing-authority block, a labelled case, receipt or application reference, a notice-function label (receipt, biometrics appointment, interview, request for evidence, intent to deny, transfer, decision), an applicant slot, AND a separate representative or attorney-of-record delivery block. That last block is the whole signal: the same notice sent to the applicant alone is `identity.immigration-visa`'s, and the two copies can be byte-similar apart from the delivery block. A United States Form I-797C Notice of Action carrying an attorney-copy line, or an authority letter whose salutation and address block name the adviser and quote both the authority's reference and the adviser's own file reference, are the concrete cases. TWO REFERENCES IN TWO LABELLED SLOTS - the authority's and the representative's - is the strongest single observation in this row, because it is a structure the applicant's own copy cannot have.",
+      "AN EVIDENCE-INDEX-AGAINST-A-REQUIREMENT structure, this row's replacement for the schema default's disclosure-review and bundle-index signals, and structurally different from both. The observable shape is a table or tabbed index that maps each enclosed document to a NUMBERED REQUIREMENT OR TAB rather than to a control number and a coding decision: an exhibit list with tab letters, document descriptions and page ranges compiled to prove eligibility; or a request-for-evidence response index whose left column restates each numbered item the authority asked for and whose right column names the enclosure answering it. There is no responsive / not-responsive coding column, no privilege column and no production range, because there is no adverse party and no disclosure exercise - which is precisely why the schema default's disclosure signals do not fire on a clean immigration file at all.",
+      "A MULTI-APPLICANT CASE-TRACKING structure: one table, MANY unrelated applicants, columns pairing an applicant identifier with an authority receipt or case reference, a filing date, a priority or lodgement date, a next-action or authority-response-due date, and a responsible caseworker. The PORTFOLIO shape over PEOPLE is the signal. It is deliberately stated so it can be separated from two near-identical tables: the schema default's limitation-and-listing diary, whose date column is a limitation or hearing date over MATTERS; and an `hr` sponsorship tracker, whose rows are the holder's own employees and whose owning column is an employer, not a representative. Read through 00's spreadsheet path; the discriminating columns are the authority reference and the multiplicity of unrelated data subjects, never the sheet name.",
+      "A PREPARED-BUT-UNFILED APPLICATION SET: a form set carrying an applicant's answers in its labelled slots together with drafting apparatus that only a preparer produces - a signature line still blank with a flag, a covering checklist enumerating what must still be obtained, internal query comments addressed to the applicant, or a version marker on a form that is not itself versioned by the authority. This is the immigration analogue of the schema's inverse-recognition precedent-bank signal and its mirror image: the precedent bank is an instrument with its PARTY slots empty by design, this is a government form with its EXECUTION slot empty and its party slots filled. Both are files on which `legal` cannot fire, and both are produced only by a practitioner.",
+      "A PERSONAL-DECLARATION-UNDER-PREPARATION structure: a first-person narrative in numbered paragraphs with an attestation or declaration clause, carried in an editable document with tracked changes, drafting comments, or an interpreter's certificate block. The numbered-paragraph-plus-attestation grammar is the observation. Nothing about the narrative's CONTENT is used as an activation signal, and this row states that as a rule rather than an omission: reading a claim's grounds to decide where a file belongs is the exact operation this row's privacy posture forbids."
+    ],
+    "needs_llm": [
+      "Deciding whether a heterogeneous folder is one applicant's assembled dossier or an unrelated pile of the same person's records, when the only anchor is an evidence index and the members are content-incoherent. This is 00's own licensed case - \"The documents are content-incoherent but purpose-coherent.\" - and it must be run as 00 runs it, from a bounded dossier of anchors and short excerpts, with the validator rejecting any conclusion that the excerpts do not support. It must never be run by sending the declaration or the identity documents themselves.",
+      "Deciding whether a covering letter is a representative's submission letter to an authority or the applicant's own covering letter, when the letterhead is generic. The observable seam is whether the letter writes about the applicant in the third person while signing in a professional capacity, versus writing in the first person. This is language interpretation that no rule resolves, and abstaining to Review Later is the correct cheap error.",
+      "Deciding whether a country-conditions document, a policy note or a published determination is a working member of one case's evidence dossier or an unfiled copy of public reading material, when no exact case reference appears on it. Absent an accepted anchor the answer is the residual, not the case."
+    ],
+    "never_alone": [
+      "The words immigration, visa, asylum, petition, sponsor, status, permit, residence, removal, deportation, naturalisation, consular or biometrics, alone or in any combination with each other. `identity.immigration-visa` already struck this vocabulary for the applicant side and the strike binds harder here, because on the representative side the same words additionally saturate blank forms, public guidance, practice manuals, marketing pages and CLE materials.",
+      "An authority, embassy, consulate, tribunal or law-firm name. An organisation name is never-alone under the schema's own precondition, and here it is worse than useless: the authority's name appears identically on the applicant's copy, on a blank public form, on a news article and on a practice textbook. THE TEMPTING FALSE FILE THIS TRIPS: `Immigration Law Practice Manual - AILA - 2026 edition.pdf` carries a professional-body name, a practitioner audience, the whole subject vocabulary and a legal-services context, and is a book. Nothing structural survives the deletion test on it, so it falls to Reading Inbox.",
+      "A case-, receipt-, application-, A-number-, barcode- or reference-shaped token without BOTH a labelled authority slot and a representative-side structure. THE TEMPTING FALSE FILE THIS TRIPS: `I-797C Notice of Action - Receipt - EAC2690123456.pdf` sitting in the applicant's own drive has the authority, the reference, the notice function and the applicant slot, and is `identity.immigration-visa`'s. Only the representative delivery block, or the co-presence of an accepted authorisation instrument, moves it.",
+      "A country, nationality, city, port of entry, or a foreign-language document with a certified translation attached. A translation certificate is a translator's structure and can accompany an academic transcript, a commercial contract or a birth record.",
+      "A person's name, date of birth, photograph, passport or national-identifier token, address history, or biometric reference. These are privacy signals; under a fieldless schema none of them is an immigration fact, and copying one onto a group member is forbidden.",
+      "A practitioner role name - attorney, solicitor, adviser, accredited representative, consultant, counsel - a bar number, a registration number, or a practising certificate. The schema states this and this row cannot weaken it: a role name is never-alone, and the discriminator must be the AUTHORISATION STRUCTURE or the AUTHORITY'S DELIVERY BLOCK, not the assertion that a lawyer touched the file.",
+      "A blank or public government form, a downloaded instruction booklet, a filing-fee schedule, or a policy manual. Every one of them has the authority's letterhead, the form identifier, the labelled slot layout and the whole vocabulary, and none of them has a person in it. Emptiness of the applicant slots is disqualifying evidence here, not weak evidence.",
+      "A folder name such as Immigration, Visa, Clients or Cases, a bounded download session, or semantic similarity between two applicants' dossiers. 00 is explicit that a session is a retrieval clue - \"A tight download session alone is never sufficient\" - and cross-applicant similarity is actively suppressed here: two unrelated applicants' dossiers are similar BY CONSTRUCTION because the same authority prescribes the same evidence list, so similarity is the one signal guaranteed to merge two people who must never be merged."
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of entry of appearance",
+    "use of a representative",
+    "attorney or accredited representative",
+    "client's consent to representation",
+    "attorney of record",
+    "our reference",
+    "receipt notice",
+    "request for evidence",
+    "notice of intent to deny",
+    "priority date",
+    "exhibit index",
+    "index of supporting documents",
+    "declaration of applicant",
+    "certificate of translation",
+    "certificate of interpretation"
+  ],
+  "work_types": [
+    "consultation, eligibility assessment and options note",
+    "authorisation of representative and client-consent record",
+    "application, petition or claim form set prepared for filing",
+    "supporting-evidence index, exhibit compilation and enclosure schedule",
+    "filing fee authorisation, payment and refund record",
+    "authority receipt, biometrics, appointment and interview notice",
+    "request for evidence, notice of intent to deny, and the response prepared",
+    "personal declaration, affidavit, and supporting witness or sponsor statement",
+    "country-conditions, expert-evidence and background-material compilation",
+    "decision, approval, refusal and reasons record",
+    "appeal, motion to reopen or reconsider, and judicial-review record",
+    "status maintenance, extension, renewal, change-of-address and travel-permission record",
+    "naturalisation or citizenship application record",
+    "employer, sponsor or institution attestation obtained for a client's application",
+    "case-management export, filing calendar and priority-date tracker",
+    "file closure, original-documents return, and retention record"
+  ],
+  "grouping_reasons": [
+    "ONE APPLICANT'S CASE from authorisation to decision, joined by an exact repeated AUTHORITY case or receipt reference AND an accepted authorisation instrument: the consultation note, the authorisation form, the prepared form set, the evidence index, the fee record, each authority notice, each response, the declaration, the decision, and the closure record. Content-incoherent and purpose-coherent, which is 00's licence for the group - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no applicant, status, case-type or eligibility fact onto any member.",
+    "ONE EVIDENCE-REQUEST CYCLE within a case: the authority's numbered request, the response index, the enclosures it names, and the transmittal proof, joined by one explicit request identifier. This is the row's bounded sub-group and the only one that should ever be proposed automatically, because its membership is enumerated by the authority's own numbering rather than inferred.",
+    "ONE DOCUMENT across draft, signed, filed and stamped versions - the universal version_family fact, supported by hashes or explicit revision markers, never by a `-final` suffix and never by a form identifier, since every applicant's copy of the same form has the same identifier.",
+    "ONE SUCCESSIVE-APPLICATION LINEAGE for the same applicant, where an earlier decision, permit or evidence set is re-filed in support of a later application. It is joined ONLY by an exact repeated authority person-identifier or an explicit cross-reference in a covering letter. A shared applicant NAME never establishes it, and neither does date adjacency.",
+    "A STOP RULE THAT IS SPECIFIC TO THIS ROW AND STRONGER THAN THE SCHEMA'S. Two dossiers for two applicants are near-identical by construction, because the authority prescribes the evidence list. Therefore no group may form on document-set composition, on shared authority name, on shared case type, on shared country, or on embedding similarity. 00's stop rule is the governing text - \"It should not form a supported group when there is no valid anchor\" - and here the only valid anchors are an exact authority reference and an accepted authorisation instrument."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, and then ARGUED PAST THE CONTRACT because the argument is this row's clearest difference from its schema's default. By contract: a dimension may only branch on a field the same schema declares, and `law_practice` declares none under PR-6, so an empty order is the only compliant serialisation. THE PROSE RECOMMENDATION, AND HOW IT DIFFERS. The schema's default holds the client level ineligible (a visible client name discloses that a representation exists) and then recommends matter, then DOCUMENT FUNCTION, then period, on 00's parent-must-make-the-child-intelligible rule - \"A work type such as Homework 3 is meaningful only after the course is known\" - which holds here unchanged: a response index is meaningless without the request it answers, and a renewal is meaningless without the status being renewed. THIS ROW ADDS A SECOND INELIGIBLE LEVEL THAT THE DEFAULT DOES NOT HAVE, and it is the substantive delta. The natural second or third dimension of an immigration practice is the CASE TYPE, because that is how the work is really organised and how every practice-management system labels it. It must be seeded ineligible here. The default's reasoning is that a client name discloses a RELATIONSHIP; the reasoning here is stronger and different in kind, because a case-type folder discloses a STATUS about a person WITHOUT NAMING THEM: a branch called asylum, removal defence, trafficking, domestic-violence self-petition or crime-victim states that the human being underneath it is a claimed refugee, is facing removal, or is a victim of trafficking or domestic violence. That is a fact about a third party who never chose this filesystem, written into a path where every later index, backup, sync client, screenshot and shared screen reads it, and it survives redaction of the name. 00's own warning about visible protected material is the closest design anchor - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Filing date, priority date, receipt date, appointment date, decision date and filesystem date all differ here and a year-first tree would shred a case that spans several of them; nothing in this world is capture-based. AND IT REMAINS A RECOMMENDATION: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" The physical recommendation this row actually makes is one shallow, redacted, user-approved case package per applicant with no automatic internal depth and no case-type branch.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "calendar",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".mp3",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "G-28 Notice of Entry of Appearance - Okonkwo A - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "printed form whose parts are labelled for attorney or accredited representative information, for information about the represented person, and for that person's consent to representation",
+        "practitioner block carries name, firm, address, an eligibility or registration line and a signature with date",
+        "represented-person block carries a name and an authority-issued person-identifier slot",
+        "a separate signature and date under a consent clause, signed by a different hand than the practitioner block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the representation is valid, current, effective, accepted by the authority, or within the practitioner's authorisation",
+        "that the signing practitioner is the holder of this filesystem",
+        "an applicant, case type, status or nationality fact - the schema declares no fields"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "I-797C Notice of Action - Receipt - EAC2690123456.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing-authority header block with a notice-type label and a notice date",
+        "labelled receipt-number, case-type-code, received-date and priority-date slots",
+        "an applicant or petitioner slot",
+        "a separate delivery block naming an attorney or accredited representative, with a courtesy-copy line"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the case is pending, approved, abandoned or timely",
+        "that the receipt number is a case fact - the schema is fieldless and the number is a raw observation",
+        "that a copy of this notice WITHOUT the representative delivery block belongs to this row"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RFE response index - EAC2690123456 - items 1-4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "two-column table restating each numbered item the authority requested against the enclosure answering it",
+        "header repeats the authority's reference and a separate internal file reference",
+        "covering paragraphs in a professional third-person voice about the applicant",
+        "no responsive / not-responsive coding column, no privilege column, no control-number range"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the response is sufficient, complete, or timely",
+        "that the enclosures listed are present in this filesystem",
+        "a disclosure-review or privilege-log reading - the absence of coding columns is what separates this from the schema default"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Exhibit index - relationship evidence - Tabs A to M.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tab letters against document descriptions and page ranges",
+        "descriptions name heterogeneous record types - a civil certificate, bank statements, payslips, tenancy documents, photographs, correspondence",
+        "a compiled-by line in a professional capacity"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the enclosures prove what they are offered to prove",
+        "a relationship, cohabitation, employment or financial fact about any person named",
+        "that the index licenses reading the enclosures into a prompt"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Declaration of Applicant - DRAFT v4 - tracked.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered first-person paragraphs closing on an attestation clause with a signature line and date line still blank",
+        "tracked changes and margin comments addressed to the narrator",
+        "an interpreter's certificate block appended"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "anything derived from the narrative's content - this row activates on the numbered-paragraph-and-attestation grammar and the drafting apparatus, never on what is claimed",
+        "a case type, a ground of claim, a protected characteristic, or a persecution fact",
+        "that the declaration is true, credible or admissible"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case tracker - filed and pending - all applicants.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per person, dozens of unrelated names",
+        "column headers pair an applicant identifier with an authority receipt reference, a filing date, a priority or lodgement date, a next-action-due date and a responsible caseworker",
+        "a case-type column whose values are short category codes"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any row's next-action date is a deadline, that it is met, or that it is missed",
+        "a case-type or status fact for any person in it",
+        "that the case-type column may become a folder level - it is precisely the level this row seeds ineligible"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Biometrics appointment notice - ASC Newark - 2026-09-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority header, appointment-type label, date, time and location slots",
+        "an applicant slot and a what-to-bring list",
+        "no representative delivery block anywhere on the page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row is active - THIS IS THE PRIMARY COLLISION FIXTURE and without a representative delivery block or a co-present accepted authorisation instrument it is `identity.immigration-visa`'s",
+        "an appointment fact, an attendance fact, or a case fact"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Country Policy and Information Note - Nigeria - sexual orientation and gender identity.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a government policy-and-information publication with a version number, a publication date, numbered sections, a bibliography and an assessment section",
+        "no person named anywhere in it, no reference slot, no addressee",
+        "byte-identical to a copy downloadable by anyone"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that its subject describes any applicant in this corpus - THE SECOND COLLISION FIXTURE, and the dangerous inference is the reverse one: concluding a client's ground of claim from what background material sits next to their file",
+        "case membership from topical proximity - only an exact case reference in an accompanying index establishes it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Blank I-130 form and instructions - downloaded.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead, form identifier, edition date, OMB-style expiry line",
+        "labelled slot layout complete and every slot EMPTY",
+        "an instruction booklet appended"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a practitioner holds this filesystem",
+        "any case at all - emptiness of the applicant slots is disqualifying evidence, not weak evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Notice of Appeal - EOIR-26 - In the Matter of Okonkwo A.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tribunal caption block with an In the Matter of line and a person-identifier slot",
+        "a proceeding reference and a certificate of service",
+        "a signature block in a professional capacity"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row displaces `legal` - THE CONCESSION FIXTURE: a tribunal caption plus a matter-identifier slot is `legal`'s proceeding structure, `legal` is a safety domain and its protection runs first",
+        "an appeal outcome, a status, or a deadline"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Retainer - immigration services - flat fee - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a bound party pair with addresses",
+        "scope, fee-basis and disbursement clauses",
+        "an execution block with two signatures and dates"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is distinctively THIS row's - it is the SCHEMA DEFAULT's engagement-terms artefact, and its bound party pair plus execution block also fires `legal`",
+        "that the fee is paid, owed, or reasonable"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "H-1B petition copy and LCA - Ramirez - HR file.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labour-condition attestation naming an employer as the attesting party with wage and worksite slots",
+        "a petition copy filed by the employer as petitioner",
+        "filed inside a personnel record set beside an offer letter and an eligibility-verification form"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a representative holds this - THE THIRD COLLISION FIXTURE: the holder is the SPONSORING EMPLOYER, the two-role split is employer-and-employee, and there is no authorisation instrument, so it is `hr.onboarding-offboarding`'s",
+        "a work-authorisation or eligibility fact about the named employee"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - case status ONLINE.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in the capture metadata and the filename's capture-tool pattern",
+        "OCR yields an authority page chrome, a receipt-number-shaped token and a short status phrase",
+        "no representative block, no addressee, no labelled form slots"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a case status - an OCR'd status phrase is an observation about a web page, not a fact about a case",
+        "that missing EXIF would have proved screen origin - only positive screen evidence does"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "client_documents_okonkwo.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking, per 00 - \"the normal scan should never extract archive contents to the filesystem\"",
+        "member names indicate a passport scan, payslips, a civil certificate, a medical or vaccination certificate and photographs",
+        "no index member, no covering letter member, no reference in any member name"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a case, an applicant or a purpose from the member list - composition is exactly the signal this row's stop rule forbids, because every applicant's dossier has the same composition",
+        "that the archive should be unpacked to improve classification"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case file archive 2019-2024 - password protected.7z",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted container, member list unavailable",
+        "filename carries a date range and a case-file word"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an applicant, a case type, a sensitivity result or a group membership from the filename",
+        "that it should be forced open - \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "identity.immigration-visa",
+      "signal": "THE DEFINING COLLISION, AND THIS ROW CONCEDES THE LARGER HALF. The authority's receipt, biometrics notice, interview notice, evidence request, decision letter, permit and status printout exist BYTE-FOR-BYTE on both sides, because the authority sends one to the applicant and one to the representative. That landed row already holds the personally kept, government-facing packet and has already struck every word and identifier in this world as never-alone. THE DISCRIMINATOR IN THIS DIRECTION is a positive representative-side STRUCTURE, never a role name: an authorisation instrument with a client-consent block, or an authority notice with a separate representative delivery block, or a two-reference header pairing the authority's reference with an internal file reference, or the multi-applicant portfolio table. THE DISCRIMINATOR IN THE OTHER DIRECTION is the plain applicant-addressed notice with no representative structure anywhere on it, which is that row's on that row's own evidence. THE SAME FIXTURE ON BOTH SIDES: `Biometrics appointment notice - ASC Newark - 2026-09-14.pdf`. With no representative delivery block it is `identity.immigration-visa`'s; the same notice carrying an attorney-of-record copy line, or sitting beside an accepted authorisation instrument for the named person, is this row's. `identity` is one of 00's four safety domains - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - so where both are plausible, protection runs first and the organisational reading waits. NOTE FOR R1c: that row's existing collision entry names `legal.practice-matter-file` as the practice side and predates this row; the entry should be re-pointed or duplicated here. This row does not edit it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "THE SAFETY CONCESSION, INHERITED FROM THE SCHEMA AND NARROWED TO THIS WORLD. `legal` activates on an executed-instrument structure (a bound party pair plus an execution block) or a proceeding structure (a tribunal caption with a matter-identifier slot). Immigration casework produces both: the executed retainer, and every captioned document in removal, appeal or judicial-review proceedings. Those are `legal`'s on `legal`'s own evidence and this row does not displace them; `legal` is a safety domain and its protection runs first. What is left for this row is the class on which `legal`'s signals do not fire AT ALL, and in this world that class is unusually large - an administrative application has no adverse party, no caption and no execution block, so the authorisation form, the prepared form set, the evidence index, the fee authorisation, the authority notices and the tracker are all invisible to `legal`. THE SAME FIXTURE ON BOTH SIDES: `Notice of Appeal - EOIR-26 - In the Matter of Okonkwo A.pdf` is `legal`'s on its caption; the response index that answers the authority's evidence request in the same case is this row's, because nothing on it is a caption or an execution block.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "The sibling-marker collision the schema already flagged for the whole family, restated for this row's fixtures. That landed template sits on the `legal` schema, inherits `legal`'s safety default, and recommends one shallow redacted matter packet with no automatic internal depth. Its own recognition is built on practitioner custody and work-product evidence - a client-matter or engagement reference, practitioner letterhead and fee-earner role, filing cover sheet, advice memorandum, or a multi-client case-management export - which would sweep in this row's authorisation form and tracker. THE DISCRIMINATOR IN THIS DIRECTION: the anchor here is the AUTHORITY'S reference plus an authorisation instrument addressed to a government reader, and the recommendation adds a case-type ineligibility rule that the matter-packet row does not carry. THE DISCRIMINATOR IN THE OTHER DIRECTION: a matter with a firm-allocated reference, a litigation or transaction apparatus and no government application workflow is that row's. THE SAME FIXTURE ON BOTH SIDES: `Case tracker - filed and pending - all applicants.xlsx` reads as that row's multi-client case-management export and as this row's multi-applicant tracker; the deciding columns are the authority receipt reference and the priority date. R1c owes the reciprocal; this row does not edit it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "THE EMPLOYER-SIDE COLLISION, and it is a real one because employment-based immigration generates a document set that lives in TWO different holders' corpora with different meanings. THE DISCRIMINATOR IN THIS DIRECTION: an authorisation instrument naming a representative for the individual, and an authority notice delivered to that representative. THE DISCRIMINATOR IN THE OTHER DIRECTION: the holder is the sponsoring employer, the two-role split is employer-and-employee rather than representative-and-client, the file sits in a personnel record set, and the attesting party on the labour or wage attestation is the employer itself. THE SAME FIXTURE ON BOTH SIDES: `H-1B petition copy and LCA - Ramirez - HR file.pdf`. In an HR corpus it is a sponsorship record on `hr`; in a representative's corpus, accompanied by an authorisation instrument for the same person, it is a case member here. Neither reading may write a work-authorisation or eligibility fact about the employee. R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.constituent-casework",
+      "signal": "THE MOST DECEPTIVE COLLISION, because the two situations share the exact tri-partite structure this row calls decisive. A legislator's or ombudsman's office also holds a signed authorisation - a privacy-release form - naming their office to act for a named individual with an immigration authority, and also holds the authority's reply correspondence. THE DISCRIMINATOR IN THIS DIRECTION: the authorisation enters a representative ON THE AUTHORITY'S RECORD for a FILING, and the corpus contains a prepared form set, an evidence index and a fee authorisation. THE DISCRIMINATOR IN THE OTHER DIRECTION: a constituent privacy release authorises an INQUIRY rather than a filing, the office is not entered as a representative, there is no fee record, no form set and no evidence dossier, and the correspondence is a liaison or status enquiry. THE SAME FIXTURE ON BOTH SIDES: a signed one-page release naming an office to act for a named person with an immigration authority - read the surrounding corpus, and if it contains no prepared filing, abstain to Review Later rather than choosing.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "identity",
+      "why": "Routine and structural rather than occasional: an immigration case is BUILT out of other people's identity documents - passports, national identifiers, civil certificates, biometric references - because the authority requires them as evidence. Those documents remain `identity`'s on `identity`'s own evidence and stay protected there; the authorisation instrument, the index that lists them and the notices about them are this row's. Disjoint evidence, one corpus, both schemas fieldless, so the join carries protection and co-activation rather than facts. `identity` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "why": "One case package holds an executed retainer and, if the matter goes to appeal, captioned documents - `legal`'s on its execution and caption structures - beside an authorisation form, an evidence index and a tracker, which are this row's on the authority-and-representative apparatus. Disjoint evidence, one corpus; `legal` is a safety domain and its protection runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "Government filing fees, translation and expert disbursements, and client-money receipts appear as ordinary financial records on their own structure - an issuer-and-billed-to or institution-and-account layout - while the same page may carry an authority reference that makes it a case member here. `finance` is a safety schema and its protective ordering runs first; case membership never converts a financial slot into a case fact, and a fee receipt with no authority reference is finance's alone. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named FIRST and it takes the great majority of this row's material when the row does not confidently activate, because the characteristic isolated file here is a document about a named third party who is a non-citizen and who may be at risk. 00 names this residual and this exact material in one sentence - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" - and separately licenses surfacing without a group, again naming visas: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" A stray declaration, notice, permit copy or dossier archive goes here and the cautious error is the cheap one.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's defining failure, which is frequent: a real professional-looking immigration document whose SIDE is unresolved - representative or applicant, our filing or a copy received, a constituent inquiry or a legal filing. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This row's genuine split from the schema default's residual profile, and it is not a technicality: two whole classes of file inside a working immigration corpus contain NO person at all - the blank public form with its instruction booklet, and the country-conditions note, policy guidance, published determination or practice manual. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" Routing them here rather than to Protected Records matters twice over: it keeps a public library out of the protected area, and it stops a topical background document from implying anything about the people whose files sit next to it.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Encrypted case archives, split archives and unreadable practice-system exports are common here and must be represented without inspection. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a status page or portal, where OCR establishes no accepted case anchor. The capture is screen-origin on its own positive evidence, never on missing metadata.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "identity.immigration-visa",
+      "why": "The schema already borrows this canonical pair for the family under 00's general rule \"The system must separate roles that happen to contain the same entity type\". This row records the split at its sharpest point, which is not two organisations but a PERSON on both sides: the same human being is the `client` here and the HOLDER on the neighbour row, and the same bytes serve both. Neither schema declares fields, so this is a recommendation for R1c and not a serialised fact: the split that would matter, if `law_practice` ever gains fields, is representative-versus-applicant, and it is the split that decides whether a file describes someone else's confidential affairs or the holder's own. It is also the harder direction of a role split than the consulting case, because the applicant is a natural person with no organisational identity to key on. Provenance: inference; the underlying role-separation rule is design.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, and the leg of the node test on which this row differs most sharply from its own schema's default. THE SCHEMA'S ARGUMENT, INHERITED: the exposed person is a third party who never chose this filesystem and cannot consent, and 00's corpus sentence names this exact material - a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - all of which a single immigration case contains about one person at once. THREE THINGS THIS ROW ADDS. FIRST, the exposed third party is by definition a non-citizen whose right to remain is the subject of the file, so exposure can bear on their status itself; the schema's commercial-matter third party has no comparable exposure. SECOND, in protection work the file states, in labelled slots and numbered paragraphs, the ground of the claim - persecution, torture, sexual violence, sexual orientation, religion, political opinion, trafficking, domestic violence - and names family members who may still be in the country of origin. Exposure of that file can endanger people who are not in this filesystem and will never know it exists. That is why this row's recognition is built entirely on document GRAMMAR and refuses to read narrative content, and why cross-applicant semantic similarity is suppressed as a grouping signal. THIRD, and this is the operative difference from the default, the sensitivity survives redaction of the name: a case-type label discloses a protected status about whoever is underneath it, so the disclosure risk here attaches to the FOLDER LEVEL and not only to the file, which is why the template prose seeds the case-type dimension ineligible. Handling policy, class vocabulary and thresholds are P7's; this row records only `potentially_sensitive` and the reasons.",
+  "open_question": "Four, all recorded as NEEDS-JOSEPH in the memo and none silently resolved. NJ-1: detained and removal work carries a tribunal caption, so `legal` fires and its safety protection runs first - does this row then hold only affirmative administrative applications, or does it stay active for the surrounding non-captioned apparatus of a captioned case? NJ-2: `identity.immigration-visa`'s landed collision entry names `legal.practice-matter-file` as the practice side and predates this row; R1c must decide whether to re-point it, duplicate it, or keep both. NJ-3: an accredited non-lawyer representative, a regulated consultant, or a nonprofit caseworker signs the same authorisation instrument and produces an identical corpus while not practising law - does that coverage sit on `law_practice`, on a nonprofit or `business_operations` schema, or on neither? Refusing it would leave a real and large filing world homeless. NJ-4: the case-type ineligibility rule cannot be expressed as anything but prose while PR-6 holds, since there is no field to mark ineligible - decide whether ineligibility rules need a serialised home independent of fields."
+}

@@ -1,0 +1,496 @@
+{
+  "id": "law_practice.opinions-advice",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Opinions and formal advice",
+  "one_line": "A J-DEPTH placeholder template for the ADDRESSED, RELIANCE-BEARING statement of legal position - the closing or enforceability opinion letter, the tax opinion with its reliance level, counsel's advice on merits, the response to an auditor's request for information, the board advice memorandum, and the bring-down, reliance-extension and withdrawal letters that maintain them. It is NOT the word `opinion` and NOT a document-type value: it is the only situation in this family whose evidence is a THREE-ROLE, SELF-SUFFICIENT SINGLE ARTEFACT - an addressee block naming a body that the document itself distinguishes from the client, a clause in the document's own words restricting who may rely on it, and the assumptions / qualifications / scope-of-law grammar that makes a conclusion an opinion rather than a report. That structure lets it fire on ONE file where the `law_practice` default requires an exact matter reference repeated across two or more artefacts, and it carries a handling rule no sibling has: the conclusion may never be stored, surfaced or summarised detached from the assumptions and qualifications that bound it. It deliberately does NOT hold the internal research note or authorities list behind the advice (`law_practice.legal-research`), the unaddressed blank-slot model opinion (`law_practice.precedent-bank`), a court's own opinion or judgment (`law_practice.orders-and-judgments`), advice given in the running text of an email (`law_practice.matter-correspondence`), or an opinion the HOLDER received about the holder's own position (`legal.personal-legal-matters`). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "addressee",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "A GENUINE HOLE, RAISED ONCE AND ONLY BECAUSE THIS ROW'S WHOLE CLAIM RESTS ON IT - and raised with its own defeat argument attached, so R1c can close it either way. The addressee of a formal opinion is the party ENTITLED TO RELY, and in this family that party is routinely NOT the client: an agent bank and a syndicate of lenders on a financing opinion, a named audit firm on a response to an auditor's request, a purchaser's counsel on a transaction opinion, a regulator on a compliance opinion. None of the schema anchor's six proposals can hold that person. `client` cannot - the document itself distinguishes the two, and an opinion frequently says so in terms (`our client`, `you`). `our_firm` is the author half. `subject_of_record`, which `clinical_practice` proposed and `nonprofit` adopted, is the person a record is ABOUT; the addressee is the person a record is TO, and on an enforceability opinion the subject is an instrument and the addressee is a bank - two different slots on the same page. `party` and `counterparty` are not canonical and would be mints. THE HONEST COUNTER-ARGUMENT, which this row does not hide: an addressee is a slot on ordinary correspondence too, so a key named for it risks becoming a synonym for `recipient` across the whole roster, and the concept may be better served by keeping the addressee a LITERAL OBSERVATION that never becomes a fact at all - which is what this row does today and what it can keep doing forever if R1c declines.",
+      "preferred_resolution": "Preference order: (a) DECLINE and record that the addressee stays a literal observation on the evidence and never becomes a fact - this row is fully functional under that outcome and recommends it if there is any doubt; (b) if adopted, adjudicate ONCE for the whole roster rather than for this family, since email, matter-correspondence and regulatory-submission rows would all reach for it, and seed `destination_eligible` FALSE with the reason on the key: an addressee-named branch publishes that a named bank, auditor or regulator is party to a transaction that has not been announced, which is the same disclosure `law_practice` already refused for `client`. Do NOT permit `relying_party`, `recipient_role`, `opinion_addressee` or `reliance_party` as variants.",
+      "why": "The third role that makes this row structurally distinct from its schema's two-role default. It is proposed so the distinction can be argued, not so it can be filed on - and this row prefers the decline."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION AND THE ROW'S WHOLE DIFFERENCE FROM ITS SCHEMA'S DEFAULT. `law_practice`'s default requires BOTH (i) an exact matter reference repeated across two or more artefacts and (ii) a separate artefact whose slots split a practitioner role from a client role. This row RELAXES (i) and REPLACES it with an intra-document structure, because a formal opinion routinely arrives alone - one PDF in a closing binder, one advice in a folder with no surrounding apparatus. The substitute is THE ADDRESSEE-AND-RELIANCE PAIR: a labelled addressee block naming a person or body that is not the author, PLUS a clause in the document's own words restricting who may rely on it or take the benefit of it. Both slots, one artefact, and the professional-role separation is satisfied inside the page rather than across the corpus. Everything else here is a refinement of that pair; nothing here fires without it.",
+      "THE OPINION GRAMMAR, which is what survives the deletion test - delete every entity name, the word `opinion` and the word `advice`, and this remains: a DOCUMENTS-EXAMINED or MATERIALS-CONSIDERED section, an ASSUMPTIONS section stating facts taken as true and expressly not verified, a QUALIFICATIONS or EXCEPTIONS section, a SCOPE-OF-LAW slot disclaiming every jurisdiction but one, an operative conclusion paragraph, and a date the document speaks as of. The co-occurrence of assumptions-plus-qualifications-plus-scope-of-law is the discriminator: a report has findings and a methodology, an opinion has assumptions it declines to check and exceptions it declines to cover.",
+      "A RELIANCE-LEVEL slot - a graded confidence the document states about ITSELF in a labelled position (`will`, `should`, `more likely than not`, `reasonable basis`, `substantial authority`, `good arguable case`, `prospects`). No neighbour in this family produces a document that grades its own conclusion, and it is the tax and merits opinions' cleanest fingerprint. Provenance: inference.",
+      "A THIRD-ROLE ADDRESSEE: the addressee block names an entity the SAME document elsewhere distinguishes from the client - `our client`, `the Company`, `the Borrower` in the body against `to the Agent and the Lenders` or `to the Auditors` in the address. Three separately labelled roles on one page is a structure neither `law_practice`'s two-role default nor any sibling produces.",
+      "AN AUDITOR-REQUEST RESPONSE structure: addressed to a named audit firm, referencing a request made by the client, enumerating matters to which the practice has devoted substantive attention with a short description of each, and closing with an express limitation on the scope of the response. It is simultaneously an opinion artefact and audit evidence, which is why `finance` is this row's coactivation edge.",
+      "AN INSTRUCTED-PROFESSIONAL ADVICE structure: a front sheet naming an advising professional and chambers or firm and a separate INSTRUCTING professional, an `I am asked to advise` or `we have been asked to opine` opening, numbered paragraphs separating the questions asked from the conclusions reached, and a prospects or recommendation paragraph. Note the deliberate seam with the schema anchor's own COUNSEL-INSTRUCTION signal: the anchor's signal is the INSTRUCTIONS front sheet and its bundle index; this row claims the ADVICE that comes back, and where the two are bound into one PDF the file is a candidate for both templates on the same bytes.",
+      "A BRING-DOWN, RELIANCE-EXTENSION or WITHDRAWAL structure, and it is the signal no neighbour anywhere on the roster produces: a short letter whose own slots reference an EARLIER OPINION by its date and its addressee, and confirm, extend to a newly named addressee, qualify or withdraw it. A document whose subject is another document's continuing validity is a distinct artefact shape, and it is the reason this row's grouping is a lineage rather than a single file.",
+      "AN ARCHIVE MANIFEST, read without unpacking, whose member names show several opinion-shaped documents from SEVERAL DIFFERENT AUTHOR FIRMS under one transaction reference - the closing-opinions bundle. Multiple authors under one anchor is the shape; the directory names are observations and become facts on no member."
+    ],
+    "needs_llm": [
+      "Deciding whether the holder GAVE or RECEIVED the advice. The same opinion letter exists in the author's file and in the addressee's file and differs only in which signature block is the holder's. This row is the giver's side; `legal.personal-legal-matters` is the holder-as-advisee side; abstain when the side cannot be cited.",
+      "Separating an addressed opinion from the internal research note that produced it, when a note carries a covering line naming a reader. `law_practice.legal-research` owns the authorities survey and the internal analysis; this row owns the document a named outsider may rely on. The presence of a reliance restriction is the intended discriminator, but a terse internal advice may carry one and a sloppy opinion may omit it.",
+      "Separating a legal opinion from a consulting or advisory deliverable when BOTH carry an addressee block and a no-third-party-responsibility clause - the collision this row treats as its headline, because the use-limitation clause is universal across professional deliverables and is therefore worthless as evidence on its own.",
+      "Deciding whether a copy of a court's own opinion is reference reading, an authority relied on by an accepted matter, or an exhibit. Topic will not separate them; the design's own test is the only one that works - `Topic answers what a file is about, while purpose answers what the file was for.`",
+      "Recognising advice given in unlabelled prose - an attendance note recording oral advice, a strategy email in running text, a scanned handwritten note. The design names this class among the reasons rules are insufficient. Such a file is a `law_practice.matter-correspondence` member unless the addressed-and-reliance structure is present.",
+      "Deciding whether a later short letter is a bring-down of a named opinion, a withdrawal of it, or an unrelated covering letter that happens to cite a date.",
+      "Judging whether a second opinion reviewing another adviser's advice is this row's artefact or a critique filed as work product, when the reviewing document has an addressee but no assumptions section.",
+      "Abstaining whenever the addressee's role cannot be resolved from the artefact itself. `Correct abstention is a successful outcome`."
+    ],
+    "never_alone": [
+      "THE WORD `OPINION`, AND ESPECIALLY A JUDICIAL ONE. This is the row's existential strike and the reason the collision fixture exists: a court's decision and a lawyer's advice letter share the word completely, and the judicial one is published, freely downloaded, and present in enormous numbers in exactly the corpora where this row would fire. A caption plus a bench plus an operative disposition and NO addressee block is `law_practice.orders-and-judgments` or reading material; it is never this row.",
+      "A LIMITATION-OF-LIABILITY OR NO-THIRD-PARTY-RESPONSIBILITY CLAUSE ALONE. The single most dangerous token here, because it is the row's own headline signal in isolated form and it appears on every consulting report, valuation, building survey, actuarial certificate, audit deliverable and market study ever written. It is evidence only in the PAIR with an addressee block AND the assumptions-and-qualifications grammar.",
+      "AN ADDRESSEE BLOCK ALONE. Every letter has one. It resolves nothing about the document's function and names an entity, which is itself a struck token.",
+      "A LAW-FIRM LETTERHEAD BESIDE THE WORD `ADVICE`, and more generally a document-type word beside an entity name. This is the two-role escape route `business_operations.organisational-records` closed and `law_practice` restated: a document-type word is not a labelled party, so a firm name and a type word are two struck tokens, not a structure.",
+      "A MODAL OR GRADED WORD in free text - `should`, `will`, `more likely than not`, `we consider`, `prospects are good`. The reliance-level signal requires the grade to sit in a labelled position that the document supplies about its own conclusion, not to appear in a sentence.",
+      "A NUMBERED-PARAGRAPH LETTER ON PROFESSIONAL LETTERHEAD. Engagement terms, demand letters, complaint responses, planning submissions and insurance declinature letters all have that shape.",
+      "A PRIVILEGED, CONFIDENTIAL, ATTORNEY-CLIENT, LEGALLY-PRIVILEGED or WITHOUT-PREJUDICE LEGEND. Inherited from the schema and restated because it is applied to advice more often than to anything else: the product preserves the literal observation and decides no legal status, and the legend is not evidence that the schema, let alone this template, applies.",
+      "A DETACHED CONCLUSION SENTENCE - an opinion's operative line quoted in an email, pasted into a chat, or captured in a screenshot. It is a REPORT of advice, not the advice, and treating it as this row's evidence is the specific error that this row's privacy rule exists to prevent: severed from its assumptions and qualifications it is a misstatement of the position it appears to state.",
+      "A NAMED BANK, AUDIT FIRM, REGULATOR, CHAMBERS, COUNSEL OR CLIENT. Inherited from the schema in full - a firm name appears as author, as addressee, as opposing counsel, as a cited firm and as an employer.",
+      "A FILENAME OR FOLDER containing `opinion`, `advice`, `memo`, `letter`, `counsel` or `legal`. A folder is an unlabelled position and paths stay local.",
+      "A SOURCE TYPE OR EXTENSION, including every one this row lists. file_kind_plausible is constitutionally never-alone.",
+      "DOWNLOAD-SESSION OR BUNDLE MEMBERSHIP. A set of official-looking PDFs that arrived together is a session - `A session should never be treated as proof of topic` - and a closing bundle qualifies only through the manifest structure above, never through co-arrival.",
+      "A SHARED ADDRESSEE ACROSS TWO DOCUMENTS. Stated as a strike rather than a grouping reason because it is the mistake this row invites: one agent bank is the addressee of hundreds of unrelated opinions, and grouping by addressee would build a folder that names a financial institution and enumerates every deal it is in."
+    ]
+  },
+  "proposed_context_terms": [
+    "we are of the opinion",
+    "it is our opinion",
+    "I am asked to advise",
+    "advice on merits",
+    "advice on quantum",
+    "prospects of success",
+    "opinion letter",
+    "reliance",
+    "may not be relied upon",
+    "addressed to",
+    "for the benefit of the addressees",
+    "assumptions",
+    "documents examined",
+    "materials considered",
+    "qualifications",
+    "exceptions",
+    "we express no opinion",
+    "scope of this opinion",
+    "governed by the laws of",
+    "speaks as of the date",
+    "bring-down",
+    "reliance letter",
+    "more likely than not",
+    "should-level opinion",
+    "substantial authority",
+    "response to auditors",
+    "request for information",
+    "loss contingencies",
+    "substantive attention",
+    "second opinion",
+    "withdrawal of opinion"
+  ],
+  "work_types": [
+    "closing or transaction opinion letter",
+    "enforceability, capacity and due-authorisation opinion",
+    "tax opinion with a stated reliance level",
+    "counsel's advice on merits, quantum or prospects",
+    "board, trustee or committee advice memorandum addressed to a named body",
+    "regulatory or supervisory opinion addressed to an authority",
+    "response to an auditor's request for information",
+    "second opinion or review of another adviser's advice",
+    "reliance letter extending an existing opinion to a newly named addressee",
+    "bring-down, update, qualification or withdrawal of an earlier opinion"
+  ],
+  "grouping_reasons": [
+    "ONE OPINION ACROSS ITS LIFE: draft, negotiated markup, executed and signed, and then its bring-down, reliance extensions, qualifications and withdrawal - joined by the later documents' own explicit reference to the earlier opinion's date and addressee. This is the row's characteristic group and it is a LINEAGE, which is why the anchor is a stated cross-reference and never a `-final` suffix.",
+    "ONE CLOSING'S OPINION SET: several opinions from several different author firms, joined by one exact transaction or matter reference in the bundle manifest or in the opinions' own recitals. `The documents are content-incoherent but purpose-coherent` - a capacity opinion, a tax opinion and a foreign-law opinion say entirely different things and exist for one event.",
+    "ONE ADVICE EPISODE: the questions or instructions that were sent, the advice that came back, and the covering note that transmitted it - joined by an exact matter reference. Membership never copies a client, addressee, conclusion or reliance-level fact onto any member.",
+    "ONE AUDIT CYCLE'S RESPONSES: the auditor's request, the practice's response and any supplemental or update response, joined by an exact audit period reference supplied by the documents.",
+    "NO GROUP AT ALL is normal and correct here. A single opinion letter with nothing around it is complete on its own evidence and is still protected material; `It should not form a supported group when there is no valid anchor`.",
+    "NOT grouping reasons, and each of these is a mistake this row specifically invites: a shared ADDRESSEE (one bank sees hundreds of opinions); a shared LEGAL ISSUE or cited authority across two matters; a shared reliance level; a shared author firm; a shared closing date; co-arrival in one download or one bundle."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, and for the schema's three reasons plus one that is this row's own. Inherited: (1) BY CONTRACT a dimension may only branch on a field the schema declares and `law_practice` declares none under PR-6; (2) BY THE SAFETY NEIGHBOUR this material co-activates `legal`, and no deep template unlocks from safety activation; (3) BY DISCLOSURE, since the natural dimensions here are a client and a matter and both publish the existence and subject of a representation. THIS ROW'S OWN ADDITION, and it is the paragraph that differs from the schema anchor's held-as-prose recommendation: the axis this situation most obviously offers is the ADDRESSEE, and it must be refused harder than the client axis. A client-named branch discloses that a named person is in a matter; an ADDRESSEE-named branch discloses a named bank, auditor or regulator AND the transaction they are party to, to a reader who is not the client and never consented - `The default posture must therefore be local-first and data-minimizing.` The second addition is the RELIANCE LEVEL, which looks harmlessly non-identifying and is worse than it looks: a folder literally named for a graded legal confidence sorts a corpus by how weak its positions are, and it would be read by every later process. Function-under-matter still governs if PR-6 ever lifts: an opinion's bring-down or its reliance extension is unintelligible without the opinion it maintains, which is the design's own child-needs-parent argument. NOT TIME-FIRST: this world has at least four unrelated dates on one page - the date the opinion speaks as of, the date of the instrument opined on, the delivery date and the filesystem date - and nothing here is capture-based, so a time-first order would scatter one lineage across calendar folders while claiming an exception this evidence does not support.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Legal opinion - Hartley Facility Agreement - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an addressee block reading to the Agent and the Lenders named in Schedule 1, with the firm's letterhead above it",
+        "a DOCUMENTS EXAMINED list, an ASSUMPTIONS section stating facts taken as true and not verified, and a QUALIFICATIONS section",
+        "a scope-of-law paragraph expressing no opinion on the laws of any other jurisdiction",
+        "an operative paragraph opening we are of the opinion that, followed by numbered conclusions",
+        "a closing paragraph restricting the benefit of the opinion to the named addressees",
+        "the body refers to our client separately from the addressees; the signature is in the firm's name, not an individual's"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the agreement is enforceable, valid, binding or current. The document states a professional position subject to assumptions it declines to verify; the product records that such a statement exists and decides no legal effect whatsoever",
+        "that the addressee is the client. THE FIXTURE EXISTS FOR THIS: the addressees are lenders and the client is the borrower, which is why this row's third role has no canonical key and why `client` must not be used to hold it",
+        "any law_practice fact - the schema declares none, and `addressee` is a proposal awaiting R1c",
+        "a folder path, and specifically no branch named for the addressees, which would enumerate a syndicate and the deal it funded"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Tax opinion - Project Nash reorganisation - should level.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled STATEMENT OF FACTS section marked as supplied by the taxpayer and not independently verified",
+        "a labelled slot stating the level of the opinion as should rather than will",
+        "an ANALYSIS section citing authorities, then CONCLUSIONS, then LIMITATIONS ON USE",
+        "a practitioner-disclosure footer and a date the opinion speaks as of",
+        "addressed to the company by name, copied to its finance director"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the tax position is correct, will be sustained, or makes any filing safe. A stated reliance level is the document's own self-assessment and is never the product's",
+        "a tax_year or fiscal_period fact. An opinion's date, the reorganisation's date and any period in the facts section are three different things, and neither key exists on this schema",
+        "that `finance.tax-filings` owns it. A return is a form issued by a taxing authority with schedules; this is a letter with assumptions. The reciprocal boundary holds: finance owns the filed return, this row owns the opinion supporting the position taken in it",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Response to auditors request for information - Hartley Group - FY2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a named audit firm, referencing a request made by the client to the practice",
+        "an enumeration of matters to which the practice has devoted substantive attention, each with a short description and a stated status",
+        "an express limitation on the scope of the response and on what silence about a matter means",
+        "a copy line to the client's finance function and a signature in the firm's name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any assessment of exposure, likelihood, quantum or outcome for any enumerated matter, or that the enumeration is complete",
+        "that the file is low-sensitivity because financial statements are eventually published. THIS LETTER IS THE PRE-PUBLICATION FORM OF THAT DISCLOSURE and enumerates unannounced disputes; public availability of a later document is never evidence about this one",
+        "that it is a finance record INSTEAD of this row's. IT IS BOTH, and this is the row's coactivation fixture: it is audit evidence on `finance`'s own evidence and an addressed reliance-bearing statement on this row's - `A file may validly belong to more than one accepted group`",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Advice on merits and quantum - Hartley v Nash - counsel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a front sheet naming counsel and chambers, and separately the instructing solicitors and their matter reference",
+        "an opening paragraph reading I am asked to advise on, followed by the questions restated",
+        "numbered paragraphs separating the questions from the conclusions, and a prospects paragraph grading the case",
+        "no assumptions section and no scope-of-law disclaimer; the reliance is implicit in the instructing relationship"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any prospect, merit assessment or quantum figure is correct, current, accepted or acted on",
+        "that the schema anchor's COUNSEL-INSTRUCTION signal settles the template. The anchor's signal is the INSTRUCTIONS front sheet and its bundle index; where instructions and advice are bound into one PDF the bytes are a candidate for `law_practice.matter-correspondence` and this row at once, and R1c should record the seam rather than let both rows claim it silently",
+        "an authored_by fact turned into a dimension - `It should avoid using authorship or creator identity as a destination dimension`",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reliance letter - Hartley Facility opinion - additional lender.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a one-page letter whose own text identifies an earlier opinion by its date and its original addressees",
+        "a paragraph extending the benefit of that opinion to one newly named institution as if it had been an addressee on the original date",
+        "an express statement that the earlier opinion continues to speak as of its original date and is not updated",
+        "the same firm signature block as the original"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the earlier opinion is current, correct or unqualified. This letter's whole content is about ANOTHER document's continuing effect, and the product records the reference without evaluating either",
+        "that the cross-reference licenses copying the earlier opinion's addressees, client or conclusions onto this file. The reference supports a lineage candidate and copies nothing",
+        "a date fact for the earlier opinion taken from this letter's own creation date - the two dates are deliberately different and that difference is the letter's point",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Legal opinion - conflict of interest - Hartley board.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to the board of a client company, with a named company secretary as recipient",
+        "an issue section, an analysis of the directors' duties in question, and a recommendations section",
+        "a matter reference in the header belonging to the holder's firm",
+        "no conflict-search table, no hit or no-hit column, no clearance decision slot and no approver"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "`law_practice.conflicts-check`. THE LANDED NEIGHBOUR HANDED THIS FIXTURE TO THIS ROW IN ITS OWN WORDS - it names this file, calls it `the single easiest mistake to make on vocabulary alone`, and routes it here. The discriminator is the SUBJECT: a conflicts screen is about whether the PRACTICE may act and carries a search table plus a decision slot; this is about the CLIENT'S own legal position and carries an addressee plus an analysis. The boundary is authored reciprocally and neither row may take the other's shape",
+        "that a director, officer or company has a conflict, a breach or an exposure",
+        "any law_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Supreme Court Opinion - Example Holdings v Example Agency.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption naming two parties, a docket identifier and a decision date",
+        "a bench or panel listing, a syllabus, a majority opinion and a dissent",
+        "operative disposition language affirming or reversing",
+        "no addressee block, no assumptions section, no qualifications section, no reliance clause and no author firm",
+        "the filename and the running headers use the word opinion throughout"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. IT IS THE COLLISION FIXTURE AND THE WORD MATCH IS TOTAL: a court's opinion and a lawyer's opinion share the noun completely, and the judicial one is published, mass-downloaded and present in vast numbers in exactly the corpora where this row would fire. What discriminates is the ADDRESSEE-AND-RELIANCE PAIR, which this document does not have and structurally cannot have - a judgment is addressed to the world and no one is invited to rely on it in the sense an opinion letter means",
+        "`law_practice` activation at all from a caption. A caption is `legal`'s signal and is satisfied identically by a public filing anyone downloaded",
+        "that a downloaded copy is an authority relied on by a matter. That requires an exact reference from the matter side; absent it the copy is reading material",
+        "a party fact, a year fact from the docket digits, or a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Hartley Group - Tax Structuring Report - Nash Advisory LLP.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a PREPARED FOR block naming the client and a PREPARED BY block naming an advisory firm",
+        "a SCOPE OF WORK section, a METHODOLOGY section, FINDINGS and RECOMMENDATIONS",
+        "a closing paragraph stating the report has been prepared for the addressee and that no responsibility is accepted to any third party",
+        "an engagement reference and a deliverable milestone number in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row, from the addressee block plus the use-limitation clause. THE SECOND COLLISION FIXTURE, and the harder of the two: it carries one full half of this row's headline signal, because EVERY professional deliverable limits third-party responsibility. The discriminator is the other half - this document has a scope of work and a methodology describing work PERFORMED, where an opinion has assumptions describing facts NOT verified and qualifications describing law NOT covered. Findings-from-work versus conclusions-on-assumptions is the seam",
+        "`law_practice` at all. Prepared-for and prepared-by roles with milestones and acceptance are `career.consulting-client-engagement`'s, which the landed `legal.practice-matter-file` row already stated from its side, and this row states the same seam on the same fixture",
+        "that the subject matter being tax makes it legal advice. Practice area is a value, not a structure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PRECEDENT - Legal opinion (firm standard) - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an opinion-shaped document with a full assumptions, qualifications and scope-of-law skeleton",
+        "the addressee block contains bracketed placeholders where names belong; the date line is blank",
+        "footnoted drafting notes and optional-clause alternatives run through the body",
+        "a firm template reference and a version marker; no matter reference and no client anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row. The addressee slot is EMPTY BY DESIGN across the whole document, so the addressee-and-reliance pair - the row's entire precondition - cannot be satisfied. The schema anchor reserves blank-slot instruments to `law_practice.precedent-bank` and the landed `law_practice.conflicts-check` row already authored the same collision from its side on its own precedent",
+        "an addressee fact from a bracketed placeholder, or a client fact from the firm template reference",
+        "sensitivity_status as protected material - there is no client, no addressee and no third party in the file at all, which is why its residual is Reading Inbox",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "RE Can we terminate under clause 14 - advice.eml",
+      "source_type": "email",
+      "observations": [
+        "a client contact asks a question in the quoted thread; the practitioner answers in the body in running prose",
+        "the answer states a position and a caveat in a sentence, with no headings anywhere",
+        "the subject line carries no matter reference; the signature block carries a firm name and a regulated-profession footer",
+        "no addressee block beyond the mail header, no assumptions section, no reliance clause"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Advice in the sense a person means it, but not in the sense this row detects: the artefact has none of the three structures, and its evidence is a mail header plus prose. It is `law_practice.matter-correspondence`'s member, and this row's boundary is stated so that row is not stripped of its most common file",
+        "a matter fact from the thread, or membership in an opinion lineage from topical similarity to a real opinion about the same clause",
+        "that the word advice in the subject line supplies anything - a document-type word beside a firm name is two struck tokens",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.11.02 - opinion conclusion.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in the filename pattern and the image dimensions",
+        "OCR recovers one paragraph reading we are of the opinion that the Facility Agreement constitutes valid and binding obligations",
+        "no addressee block, no assumptions, no qualifications and no date are visible in the capture",
+        "no surrounding document is present in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the captured sentence is the opinion. THIS FIXTURE CARRIES THIS ROW'S DISTINCT HANDLING RULE: an operative conclusion severed from the assumptions and qualifications that bound it MISSTATES the position it appears to state, so a detached conclusion is never this row's evidence, is never stored as a conclusion fact, and is never summarised into a dossier as one",
+        "an opinion, a client, an addressee or a matter from the OCR text",
+        "that missing metadata is proof of anything; screen origin here rests on positive evidence, not on absence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Ellis and Co - Opinion on my redundancy claim.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a law-firm letterhead, a matter reference allocated by that firm and a responsible-solicitor block",
+        "an addressee block naming the HOLDER personally, an issue section, an analysis and a prospects paragraph",
+        "a reliance line restricting the advice to the addressee",
+        "no time record, no intake screen, no work product produced by the holder anywhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THE UNDER-FIRING FIXTURE: every structural signal is present - addressee, reliance, analysis, prospects - and the holder is the ADVISEE, not the adviser. `legal.personal-legal-matters` owns it, and the discriminating evidence is which side of the letterhead the holder is on plus the total absence of practitioner-side apparatus",
+        "that a matter reference is practitioner-side evidence; it is allocated by SOME firm and cannot say whose",
+        "any law_practice fact, and no addressee value - the roles here are reversed",
+        "a folder path, and specifically nothing recording the existence or subject of the holder's own claim"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Closing opinions bundle - Project Nash.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest is readable without extraction and lists member paths under one transaction reference",
+        "member names indicate opinion documents authored by three different firms, including a foreign-law opinion",
+        "an index member lists each opinion by author firm and by the question it addresses",
+        "no member is unpacked and the archive is not expanded to the filesystem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any fact on any member from a directory name. Member paths are observations about the archive and become facts on nothing inside it",
+        "that co-membership in the bundle establishes a shared client, addressee or conclusion. The anchor is the explicit transaction reference the manifest and the index both carry, not the fact of co-arrival",
+        "an addressee for any member without opening it, and the row does not require opening it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    "law_practice.legal-research",
+    "law_practice.precedent-bank",
+    "law_practice.orders-and-judgments",
+    "law_practice.matter-correspondence",
+    "law_practice.conflicts-check",
+    "career.consulting-client-engagement",
+    "legal.personal-legal-matters"
+  ],
+  "also_holds_with": [
+    "finance"
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Reading Inbox",
+    "Review Later",
+    "Temporary Screenshots",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "An opinion states a legal position on a named party's affairs and does so in a document engineered to be handed to an outsider, which makes its exposure profile different from the rest of the family rather than merely severe. Three specific reasons. First, the ADDRESSEE LIST is itself the disclosure: naming an agent bank, a syndicate, an audit firm or a purchaser's counsel discloses that a transaction exists, who is in it, and often that it has not been announced - and those parties are third parties to a third party, with no relationship to the holder at all, which is `law_practice`'s stricter-than-`legal` claim in its sharpest form. Second, the CONTENT is a graded weakness: a reliance level, a qualifications section and a prospects paragraph enumerate exactly where a named party's position is vulnerable, and an auditor-response letter enumerates unannounced disputes before they reach a published account. Third, and unique to this row, THE CONCLUSION IS UNSAFE TO EXCERPT: assumptions and qualifications are load-bearing, so a compact dossier or a summary that carries the operative sentence without them does not merely leak, it misstates - so this row's redaction rule is that a conclusion travels with its bounds or it does not travel. No handling class is assigned; P7 owns that vocabulary, and the product decides no question of privilege, waiver, disclosure right or legal effect.",
+  "open_question": "Where advice and instructions are bound into one PDF, the schema anchor's COUNSEL-INSTRUCTION signal and this row's advice structure both fire on the same bytes; R1c should record which template holds the combined artefact rather than leaving two rows to claim it. Separately, `addressee` is proposed with its own decline recommendation attached - see proposed_fields - and NJ-OA-1 through NJ-OA-4 in the memo."
+}

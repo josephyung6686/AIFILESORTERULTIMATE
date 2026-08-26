@@ -1,0 +1,521 @@
+{
+  "id": "government.emergency-management",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Emergency management and civil protection",
+  "one_line": "J-DEPTH placeholder template on the fieldless government schema for the coordinating side of preparing for, running, and reviewing a civil-protection activation: multi-agency risk registers, hazard plans with separately-scoped annexes, exercise packets, live command forms and situation reports, welfare and shelter rosters, and after-action improvement plans. It is not activated by the word emergency, an agency letterhead, a hazard scoring grid, an incident-commander title, or a preparedness leaflet a member of the public received. It differs from the government default on all three legs: its grouping anchor is a named activation bounded by operational periods rather than a docketed proceeding, its recognition turns on command-and-coordination structure rather than public-body issuing role, and its privacy rule is inverted at the annex — a deliberately publishable plan body sits in the same family as a named-person vulnerable-persons or shelter roster, and the body's publicity must never lower the annex's posture. It declares no field rows under PR-6, so activation unlocks only recognition, grouping, safety posture, and residual routing.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema, not licences to write facts. No signal below may produce an incident, agency, location, casualty, hazard, or activation-level fact. Each accepted signal must evidence a COORDINATING posture over a population, geography, or multi-agency arrangement — not merely the presence of emergency vocabulary.",
+      "a numbered incident-command form (an ICS/IMS-series identifier such as 201 Incident Briefing, 202 Incident Objectives, 204 Assignment List, 205 Communications Plan, 209 Incident Status Summary, or 214 Activity Log) carrying an incident name AND an operational period with an explicit start and end clock time, in a document whose prepared-by slot names a command or coordination-centre position rather than a person's job title alone",
+      "a sequentially numbered situation report whose header carries an event name, a report number, an as-at timestamp and a stated next-report time, over sections for current situation, population or infrastructure impact, actions taken, and outstanding requests for assistance",
+      "an activation or stand-down record naming an activation level or an activated coordination facility (emergency operations centre, emergency control centre, strategic coordinating group, incident room) together with a reporting time and a staffed-position roster",
+      "a multi-agency hazard plan whose body carries a named hazard scope, an explicit activation trigger, a role-by-agency responsibility matrix, and annexes lettered or numbered separately from the body with their own distribution statement",
+      "an exercise packet linked by one exercise name across a situation manual or scenario narrative, a controller and evaluator handbook, a timed inject list with a delivering controller and an expected participant action, and an evaluation form scored against named capabilities",
+      "an after-action report structured as objective, observation, analysis, recommendation, with a corrective-action table carrying an owner and a due date, referencing a named incident or exercise",
+      "a community, territorial, or jurisdictional risk register whose rows are hazards scored for a POPULATION or GEOGRAPHY over a stated planning horizon, each with a named lead agency, rather than exposures scored for one organisation with an internal treatment owner",
+      "an evacuation, shelter, reception-centre, or welfare roster whose rows are persons with an origin address and an assistance, accessibility, medical-dependency, or dependant-count column, held by a coordinating body rather than by a clinician or an employer",
+      "a resource request, mutual-aid request, or mission-tasking record naming a requesting jurisdiction, a supporting jurisdiction or agency, a requested capability, and a mission or tasking reference"
+    ],
+    "needs_llm": [
+      "deciding whether a plan-shaped document protects a POPULATION or GEOGRAPHY (this row) or the continuity of ONE ORGANISATION's own operations and services (business_operations.risk-register), when both documents carry triggers, roles, call trees and recovery steps",
+      "deciding whether the word incident denotes a civil-protection activation or a technical service outage, when the operations document deliberately borrows incident-command vocabulary (incident commander, operational period, situation report, post-incident review)",
+      "separating a publishable plan body from an annex whose named-person or site-vulnerability content must not inherit the body's publicity",
+      "deciding whether a non-government holder (a hospital, utility, port, school district, faith group, or relief charity) is filing as a NAMED PARTICIPANT in a multi-agency arrangement or as its own internal continuity file, when the same packet contains both",
+      "reading a duress-named burst file (`sitrep7.docx`, `log.txt`, a status-board photo) against an already accepted activation group without inventing an incident, time, casualty, or agency fact for it",
+      "deciding whether a hazard-response document held by a health authority is coordination of a civil-protection activation or routine public-health programme administration"
+    ],
+    "never_alone": [
+      "the words emergency, crisis, disaster, response, incident, resilience, or preparedness in a filename, heading, or parent folder name; the same token appears on `Emergency Contacts.xlsx`, an emergency-department discharge summary, and a software `Incident 4471` postmortem",
+      "an `emergency contact` or `in case of emergency` labelled slot on a form; that is a FIELD on a school, employment, membership, insurance, or travel document, not a civil-protection record",
+      "an emergency-management agency, fire or ambulance service, civil-protection ministry, resilience forum, or relief charity name, logo, seal, letterhead, footer, or metadata author alone; the body may be issuer, participant, funder, employer, training provider, or the sender of a public leaflet",
+      "an incident-commander, duty-officer, or on-call role title alone, and a severity, priority, or alert level alone; software operations, hospital triage, security operations, and this row all use the same words",
+      "a likelihood-by-impact scoring grid or heat map alone; the identical grid is drawn for corporate risk registers, project prioritisation, supplier ratings, and skills matrices",
+      "the words plan, drill, exercise, or muster alone; a fire drill notice or evacuation diagram for ONE premises is a workplace-safety duty owned by the responsible person for that building",
+      "a received public preparedness leaflet, alert message, evacuation notice, or road-closure bulletin held by a member of the public; the schema's owner rule applies here — publication by an authority is not authority-side custody",
+      "a burst of files created inside one hour or one download; “A session should never be treated as proof of topic”",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a whiteboard, status-board, or map photograph lacking capture metadata; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+      "a blank command form, plan template, or exercise workbook with every slot empty; it fires every structural signal and must never produce an incident, agency, or person fact"
+    ]
+  },
+  "work_types": [
+    "hazard identification, community or territorial risk assessment, risk register maintenance, and capability or preparedness self-assessment",
+    "emergency, contingency, evacuation, mass-care, or recovery plan authoring, annex maintenance, versioning, and controlled distribution",
+    "exercise design and conduct — scenario narrative, controller and evaluator handbook, timed inject list, player handout, and evaluation form",
+    "activation and stand-down records, coordination-centre staffing rosters, and duty and on-call schedules",
+    "live command documentation — incident briefing, objectives, assignment, communications plan, status summary, and position activity log",
+    "situation reporting, common operating picture updates, mapping products, and public warning and information messages",
+    "resource, mutual-aid, and mission-tasking requests, and their acknowledgement, allocation, and demobilisation records",
+    "welfare, shelter, reception-centre, evacuee registration, family reunification, and individual-assistance records",
+    "damage and needs assessment, recovery project worksheets, and recovery programme monitoring",
+    "debriefing, after-action reporting, improvement planning, and corrective-action tracking",
+    "training records, competency logs, and multi-agency arrangement or memorandum documentation"
+  ],
+  "grouping_reasons": [
+    "one named ACTIVATION, linked by an exact incident name or number together with operational-period boundaries, across command forms, position logs, situation reports, resource requests, mapping products, and captured media",
+    "one EXERCISE cycle, linked by an exact exercise name across design, conduct, and evaluation artifacts, kept separate from the real activations whose scenario it borrowed",
+    "one PLAN family — body, lettered annexes, version history, and distribution record — held together even though the annexes carry a different access boundary from the body",
+    "one risk-assessment or preparedness-review cycle for one jurisdiction, linked by the stated planning horizon and issuing arrangement",
+    "burst files created under operational tempo join an accepted activation group WITHOUT acquiring incident, agency, location, time, casualty, or activation-level facts; membership is a relationship, not a fact copy",
+    "a person-level welfare, shelter, or vulnerable-persons roster stays inside a protected group, is never cross-joined between activations by person name, and is never summarised into a group description",
+    "duplicate and version families remain universal relationships; repeated plan, annex, form, or sitrep versions do not acquire new facts from neighbourhood context",
+    "no group is a valid outcome for a standalone received alert, leaflet, evacuation notice, or public bulletin; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema with no field rows, and a template cannot branch on undeclared fields. The recommended order remains prose until canonical adjudication, and it departs from the schema default in one specific place. The schema default reads: authority-side function or bounded proceeding/case/programme first, then an exact reference or cycle, then work type. This row's first level is the same in kind but different in nature — a named ACTIVATION or a standing PLAN or EXERCISE, not a docketed proceeding, because an activation has no docket and is bounded by declaration and stand-down rather than by a case reference. Its second level is an OPERATIONAL PERIOD, which is a clock slice, where the schema default puts an exact reference or cycle; `ICS-209 ... OP 6` and `SitRep 007` are unintelligible outside the period they report on, exactly as “Homework 3” is unintelligible without its course. Work type stays last, as in the default. `time_first` remains false at row level despite that second-level departure, because the preparedness half of this row (plans, annexes, risk registers, exercise libraries) is long-lived and function-primary, and because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Named persons in welfare and vulnerable-persons material must never become an organizing dimension, and a branch label naming a live incident is itself a disclosure. Any later order stays editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".mp3",
+      ".mp4",
+      ".zip",
+      ".kmz"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Community Risk Register 2026 - Thames Valley Local Resilience Forum.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "repeated hazard rows (fluvial flooding, pandemic influenza, industrial accident, loss of electricity) scored on likelihood and impact over a stated planning horizon",
+        "each row carries a named LEAD AGENCY column rather than an internal treatment owner",
+        "issuing block names a multi-agency resilience forum, with a statement that the register is published"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an organisation fact for any agency named in the lead-agency column",
+        "that publication makes a co-located annex or distribution list low sensitivity",
+        "a hazard fact, a likelihood value, or a risk level as a product fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Multi-Agency Flood Plan v4.2 - Annex C - Vulnerable Persons Register.docx",
+      "source_type": "text_document",
+      "observations": [
+        "plan body carries a hazard scope, an activation trigger, a role-by-agency responsibility matrix, and lettered annexes with their own distribution statements",
+        "Annex C rows are named residents with street address, mobility need, power-dependent medical equipment, and a next-of-kin contact",
+        "body carries a public-publication footer; the annex carries a restricted-distribution footer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the annex inherits the body's publishable posture because they share a version number",
+        "a person, address, health, or dependency fact",
+        "a branch label naming the annex's content"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ICS-209 Incident Status Summary - Ridgeline Fire - OP 6.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered command-form identifier in the header, with incident name and incident number slots",
+        "operational period slot carrying an explicit start and end date-and-clock time",
+        "committed-resources and impacted-structures tables; prepared-by slot names a command position",
+        "no docket, case, or application reference anywhere on the form"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an incident, location, casualty, or resource fact",
+        "that the operational period is a calendar year folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ICS-214 Activity Log - EOC Logistics Section - 2026-07-14 1900-0700.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one sheet per position with chronological timestamped entry rows and a signature block",
+        "header repeats the same incident name and operational period as the status summary",
+        "entries mix routine logistics notes with named individuals requesting assistance"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a person fact from a log entry naming a member of the public",
+        "that a log row is a decision, an approval, or a legal record of action"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SitRep 007 - Storm Bronagh - 2026-11-03 0600.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sequential report number, event name, as-at timestamp, and a stated next-report time in the header",
+        "sections for current situation, population and infrastructure impact, actions taken, and outstanding requests for assistance",
+        "supersedes-and-is-superseded-by relationship to sitreps 006 and 008"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an impact, casualty, or infrastructure-status fact",
+        "that the report number is a version of a document family rather than a point in a clock series"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "sitrep7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "duress-named file saved during an activation; filename carries no event name, no date, and no agency",
+        "body structure matches the sitrep sections but the header slots were left unfilled",
+        "sits in the same directory burst as the accepted activation members"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an incident name, event, agency, or timestamp copied from the accepted group",
+        "that filename adjacency in one save burst proves membership; “A session should never be treated as proof of topic”"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "EOC Activation Notice - Level 2 Partial Activation - report 1400.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a duty-officer or coordination-centre account; recipients are a staffed-position distribution list",
+        "body names an activation level, an activated facility, a reporting time, and the positions to be filled",
+        "thread later carries the corresponding stand-down message"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an agency or person fact from the distribution list",
+        "an activation-level fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Exercise ORION - Master Scenario Events List.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "timed inject rows with a delivering controller, a target player position, an expected action, and the capability the inject evaluates",
+        "scenario times are exercise-relative and deliberately do not correspond to real dates",
+        "exercise name repeats across a situation manual, a controller and evaluator handbook, and an evaluation form in the same folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an exercise scenario describes a real event, or that its injects are real impacts",
+        "that exercise artifacts may be grouped with the real activation whose scenario they borrowed"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "After Action Report and Improvement Plan - Exercise ORION.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "objective, observation, analysis, recommendation structure against named capabilities",
+        "corrective-action table with an owner, a due date, and a status column",
+        "references the exercise name and the participating agencies"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a performance, compliance, or capability finding as a product fact",
+        "an owner fact for a named corrective-action owner"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Shelter Registration - Northgate High School - 2026-11-04.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per evacuee household with name, origin address, household and dependant counts, accessibility and medical-need columns, and a pet column",
+        "header names a reception centre and a coordinating body rather than a clinician or an employer",
+        "no clinical encounter, diagnosis, or treatment structure"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a person, address, household, or health fact",
+        "that rows may be joined by name to another activation's roster or to any other domain's person records"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Damage Assessment - Project Worksheet PW-0142 - Bridge Street culvert.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "damage description, scope of work, and cost lines against a numbered recovery project worksheet",
+        "carries both the declared-event reference and a recovery grant programme reference",
+        "signature slots for an applicant representative and a programme reviewer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a cost, eligibility, or award fact",
+        "that the grant reference converts the activation family into a grant file, or the reverse"
+      ],
+      "also_schema": "government.grant-programme-administration",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "whiteboard 0430.jpg",
+      "source_type": "image",
+      "observations": [
+        "phone photograph of a coordination-centre status board; OCR yields resource tallies and handwritten position names",
+        "capture metadata may be absent because the photo was re-saved from a messaging app",
+        "no event name legible in the frame"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an incident fact from OCR of a status board",
+        "screenshot origin from missing metadata; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Incident 4471 - Sev1 postmortem - checkout API.md",
+      "source_type": "text_document",
+      "observations": [
+        "carries incident number, severity level, an INCIDENT COMMANDER role, a timestamped timeline, and a post-incident review heading",
+        "impacted entity is a named service with an error rate, a rollback, and a customer-facing status page",
+        "action items are assigned to engineers with ticket references"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that shared incident-command vocabulary activates this row",
+        "an activation, agency, or population-impact fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fire Risk Assessment - 14 Mill Street - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one premises, one responsible person, ignition sources, escape routes, alarm and extinguisher schedules, and a drill record",
+        "duty runs from an occupier or employer to the people in that building",
+        "no multi-agency responsibility matrix and no population or geography scope"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that hazard, plan, drill, and evacuation vocabulary activates this row",
+        "a premises or responsible-person fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Emergency Contacts.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "name, relationship, and phone columns collected on a school, employment, membership, or travel form",
+        "the token `emergency` appears only as a field label",
+        "no event, activation, agency, plan, or coordinating structure anywhere in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an `emergency contact` field label is civil-protection evidence",
+        "a person or relationship fact for this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Prepare Your Household - Emergency Kit Checklist.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "public preparedness leaflet issued by a civil-protection agency, downloaded by a member of the public",
+        "agency logo, seal, and publication footer present; no holder-side workflow of any kind",
+        "content is advice addressed to the reader"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an agency logo or seal activates this row or the government schema",
+        "that receipt of an authority-issued document is authority-side custody"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "EOC drive backup 2026-11.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists plan versions, command forms, a welfare roster, and mapping products in one container",
+        "internal access boundaries differ between members and are not stated in the manifest",
+        "container may be partly encrypted"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a readable manifest licenses unpacking to strengthen recognition",
+        "that the container inherits one uniform sensitivity from its most public member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "RECIPROCAL — that row authored this boundary one-way and named the fixture `a resilience forum plan naming a company as a participant`; this is the return leg, naming the same fixture. Its wording: `a statutory emergency duty, a public-body issuing authority and a plan addressed to the public` supports this row; `a private organisation's continuity plan for its own operations` supports that one. I adopt it with one refinement, because a statutory duty is not always legible in the bytes: the decisive evidence is the PROTECTED SUBJECT. A plan whose scope is a population or geography, with a role-by-agency responsibility matrix and a lead agency per hazard row, supports this row; a plan whose scope is one organisation's own services, with recovery time objectives, critical-activity analysis, and internal treatment owners, supports that row. `Community Risk Register 2026` versus a corporate risk register is the contested fixture in both directions. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "The sharpest lexical collision this row has. Software and service operations deliberately borrowed incident-command vocabulary: incident commander, operational period, situation report, post-incident review, severity level, on-call rota. The discriminating evidence is the IMPACTED ENTITY: a named service with an error rate, a rollback, a status page and engineer-assigned action items supports that row; a population, geography, or multi-agency arrangement with responders, shelters, casualties and mutual-aid requests supports this row. `Incident 4471 - Sev1 postmortem - checkout API.md` is the fixture on both sides. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "Fire risk assessments, evacuation diagrams, muster-point notices, first-aider lists and drill records are filed by both. The discriminating evidence is the SCOPE OF DUTY: one premises with a responsible person or employer owing a duty to the people in that building supports that row; a jurisdiction or multi-agency arrangement owing a duty to a population supports this row. `Fire Risk Assessment - 14 Mill Street - 2026.pdf` is the fixture on both sides. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-health-administration",
+      "signal": "An outbreak response is genuinely both worlds and the same authority holds both. The discriminating evidence is the OPERATING MODE: a standing surveillance, immunisation, screening, or health-protection programme with a reporting cycle supports that row; a declared activation with an activation level, operational periods, a coordination centre and situation reports supports this row. A mass-vaccination clinic plan written as a programme document is that row; the same clinic run under an activation with ICS-form documentation is this row. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.municipal-administration",
+      "signal": "A council's emergency plan is adopted through the council's own governance and appears inside agenda packs and committee reports. The discriminating evidence is the DOCUMENT'S WORKING CONTENT: a numbered committee paper with agenda pagination and a resolution supports that row even when its subject is the emergency plan; the plan itself, its annexes, and its activation records support this row. `Emergency Plan adoption - Cabinet paper 12 - September.pdf` versus `Multi-Agency Flood Plan v4.2` is the fixture pair. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The generic authority-side sibling would absorb everything here on the strength of a public-body issuing block. The discriminating evidence is the GROUPING ANCHOR: a bounded proceeding, case, request, or programme with an exact reference supports that row; a named activation bounded by declaration and stand-down and subdivided into operational periods, or a standing plan or exercise family, supports this row. An activation has no docket, which is precisely why the schema default's second dimension does not fit it. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.social-services-casework",
+      "signal": "Evacuee welfare and individual-assistance records look like casework and contain the same person-level data. The discriminating evidence is the UNIT AND ITS DURATION: an enduring case opened for one person or household with a case reference and a caseworker supports that row; a roster of persons registered against ONE activation at ONE reception centre, closed at stand-down, supports this row. `Shelter Registration - Northgate High School - 2026-11-04.csv` is the fixture on both sides. Both sides are protected, so neither may pull the other's material into a less protected group. Authored ONE-WAY here; R1c owes the reciprocal, and CONNECTION's stricter-side-wins principle should govern the merge. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.hse-incident",
+      "signal": "A site incident report and an activation record share the words incident, log, investigation and corrective action. The discriminating evidence is the REALISED-HARM UNIT: one injury or release at one facility with an injured party, a root-cause investigation and a regulator notification supports that row; a coordination record over multiple responding agencies supports this row. A major industrial accident triggers both, and then each side keeps its own artifacts rather than absorbing the other's. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "A pure word collision that a filename-first classifier will get wrong. `Emergency Department discharge summary` and `emergency admission letter` carry this row's strongest lexical token and none of its structure. The discriminating evidence is the ENCOUNTER: a patient, a clinician, a diagnosis, and a treatment record supports that row; a coordination record with no clinical encounter supports this row. Both sides are protected. Authored ONE-WAY here; R1c owes the reciprocal, stated from the protected side first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "Inherited from the schema anchor's family-level collision and narrowed here. Emergency powers instruments, public inquiry submissions after a disaster, and civil claims arising from an incident carry this row's event name throughout. The discriminating evidence is the FORUM: a proceeding, representation, or instrument with a legal forum and a party structure supports Legal; a coordination artifact produced to run or review the response supports this row. An inquiry's evidence bundle may quote the activation logs verbatim without converting the logs into legal work product. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "A recovery project worksheet legally carries both situations at once: it is a member of the activation's recovery family AND a record in the funder's grant programme. `Damage Assessment - Project Worksheet PW-0142` carries the declared-event reference and the grant programme reference in the same header. This is coactivation, not a contest — neither side may erase the other's anchor, and neither reference may be copied onto sparse members of the other family. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit",
+      "signal": "A relief or volunteer organisation activated into a multi-agency arrangement produces one artifact that is simultaneously its own organisational record and a member of the coordinated response: a shelter activation log, a volunteer deployment roster, a donated-goods manifest. The same bytes hold both schemas. It becomes a contest only when the artifact is a fundraising appeal or a donor report, which is that side alone. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a welfare, shelter, evacuee, vulnerable-persons, family-reunification, casualty, or site-vulnerability record, or a plan annex carrying any of these, lacks a safe accepted group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone plan, published risk register, after-action report, exercise artifact, notice, or certificate has durable value but no accepted activation, plan, or exercise group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a command form, situation report, activation notice, or duress-named burst file is structurally recognisable but its activation, holder role, or coordinating posture cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a preparedness leaflet, alert bulletin, guidance note, doctrine document, lessons-learned publication, or published inquiry report is held for reading rather than as coordination work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a coordination-system export, mapping package, radio or call recording, or drive backup cannot yield evidence beyond metadata, or mixes access boundaries the manifest does not state",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "when": "a status-board, map, damage, or scene photograph carries no legible activation evidence and no accepted neighbouring group",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inverted at the annex, which is the reason this row's privacy rule is not the schema default's. A large part of this world is deliberately public — an evacuation plan works only if people read it — while the family it belongs to holds material at the acute end of the scale: named-person vulnerable-persons registers with medical dependencies, shelter and evacuee rosters with origin addresses and dependant counts, casualty and family-reunification lists, and site-vulnerability or critical-infrastructure annexes that enumerate single points of failure. The controlling rule this row adds is that a publishable parent must never lower the posture of a co-versioned annex, and that a live activation's name is itself disclosive when used as a branch label. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” Person-level welfare material must not be cross-joined by name between activations or into any neighbouring domain's person records.",
+  "open_question": "NEEDS-JOSEPH: (1) Non-government holders. Hospitals, utilities, ports, school districts and relief charities file genuine multi-agency response records under command-structure vocabulary, but this row sits on a schema whose gate is an evidenced public body acting in an authority-side role. Decide whether participation in an evidenced multi-agency arrangement is itself sufficient to activate the government schema for a private holder, or whether those files must route to business_operations / nonprofit with only a coactivation edge. (2) The annex posture. The catalogue can record `potentially_sensitive` for a file but has no way to say that one member of a version family must not inherit its parent's publicity; decide whether that is P7's, a group-level rule, or prose here. (3) Exercise versus real. Exercise artifacts deliberately imitate real activation artifacts down to the form numbers; decide whether an exercise marker is a grouping barrier the catalogue must enforce, or a user-review prompt. (4) Fields stay unproposed here on purpose: the government anchor's own open question directs that any lifting of PR-6 be adjudicated centrally rather than in children, so the activation anchor and operational period this row needs are argued in the memo and not minted."
+}

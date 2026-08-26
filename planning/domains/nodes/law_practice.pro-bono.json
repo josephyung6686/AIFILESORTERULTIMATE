@@ -1,0 +1,530 @@
+{
+  "id": "law_practice.pro-bono",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Third-party-funded representation (legal aid, grant-funded and pro bono)",
+  "one_line": "ACCEPTED NARROWLY, and most of the roster's hint is refused inside it. 'Free' is not a structure and 'pro bono' is a value in the funding-basis slot the `law_practice` schema already carries in its `work_types` enum; a row whose whole content is an absent fee would be a row defined by the ABSENCE of something and would be refused on the same reasoning that refused `law_practice.engagement-terms`. What survives, and the only thing this row holds, is a THIRD ROLE: a FUNDER who is neither the practitioner nor the client, is not a party to the matter, and controls what work may be done. The schema's default is a MATTER-ANCHORED TWO-ROLE structure (an exact matter reference repeated across artefacts plus one artefact whose labelled slots separate a practitioner or firm role from a client role). This row requires that PLUS an artefact whose own labelled slots carry the funder as a role - an ELIGIBILITY DETERMINATION about the client's means with an outcome and a contribution figure, an ISSUED AUTHORITY carrying an authority-allocated reference distinct from the firm's own matter reference together with a scope or cost limitation, a CLAIM whose payer is the authority and whose rates are prescribed rather than agreed, or the GATEWAY EVIDENCE filed to unlock the funding. It is NOT activated by the words pro bono, legal aid, free, waived or no charge, by a funder's or clinic's name, by a zero or blank rate column, by a bar-reporting citation, or by a folder called Pro Bono. Its privacy default departs from the schema's along one specific axis that no sibling shares: these artefacts make a THIRD PARTY'S POVERTY - and sometimes their status as an abuse survivor, an asylum claimant, or a child-protection subject - a filed fact in a filesystem that person never chose, so the funding basis may never become a folder level and the determination outcome may never enter a group label or a summary. Declares no field rows and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "THE THREE-ROLE PRECONDITION, AND IT IS THE WHOLE ROW. The `law_practice` schema's default already demands two legs: an exact matter, file or engagement reference repeated across two or more artefacts, and at least one artefact whose own labelled slots separate a PRACTITIONER OR FIRM role from a CLIENT role. This row inherits both unchanged and adds a third, which is what makes it a template rather than a value: at least one artefact whose own labelled slots carry a FUNDER OR DETERMINING BODY as a role that is neither the practitioner nor the client and is not a party to the matter. The funder must be present as a STRUCTURE - a determination it made, a reference it allocated, a limitation it imposed, or a claim addressed to it - never as a name. The schema's deletion test applies unchanged and is the guard: strike every entity name and every document-type word, and what must survive here is a determination outcome, a contribution or nil-contribution figure, an authority-allocated reference distinct from the firm's own matter reference, a scope or cost limitation, or a prescribed-rate assessment column. If striking the names leaves only the phrase 'pro bono' and a blank fee, nothing fires and the material is the schema default's.",
+      "AN ELIGIBILITY-DETERMINATION structure, and it is this row's cleanest signal because it exists nowhere else in the family: a form whose own labelled slots pair a CLIENT'S FINANCIAL DECLARATION (income, disposable income, capital, savings, dependants, or a passporting-benefit slot) with a DETERMINATION OUTCOME (granted, granted subject to contribution, refused, above the limit) and a CONTRIBUTION or NIL-CONTRIBUTION figure, plus a determining-officer or delegated-caseworker slot and a date. Real instances of this shape include the England and Wales criminal legal aid application and its separate financial statement, the civil legal aid application and means assessment, a Legal Aid Ontario certificate application, and a United States Legal Services Corporation grantee's income-and-assets eligibility screen. Read through 00's direct-fact path, \"a labeled form field\", and its table path for the declaration schedules. The critical negative: this is a means assessment about SOMEONE ELSE, and it has an OUTCOME slot. A source-of-funds or anti-money-laundering pack collected about the same person has bank statements and no determination, no outcome and no contribution - that is `law_practice.client-intake`'s on its own evidence.",
+      "AN ISSUED-AUTHORITY structure: an instrument that grants the practitioner permission to do work at a third party's expense, carrying (i) a reference allocated by the AUTHORITY that is demonstrably not the firm's own matter reference, (ii) a SCOPE LIMITATION or a COST LIMITATION, and (iii) an issuing body and effective date, often with an amendment or extension history. Legal aid certificates, representation orders, prior-authority approvals to instruct an expert at a stated rate, and grant-funded case authorisations all have this shape. This is the only artefact in the whole `law_practice` family in which a NON-PARTY controls what work may be done, and that is the structural fact the row stands on. It is not a tribunal document: it has no caption and no bound party pair, which is precisely why `legal`'s instrument-and-proceeding signals do not fire on it and why it is available to this schema at all.",
+      "A THIRD-PARTY-PAYER CLAIM structure: a claim or bill whose column set or labelled slots make the PAYEE the practice and the PAYER the funding authority, whose rates are PRESCRIBED or SCHEME-SET rather than agreed with the client, and which carries an assessment, reduction, or nil-assessment outcome and the authority-allocated reference. Read through 00's spreadsheet path for the column-set evidence. The discriminator against `law_practice.time-and-billing` is exact and reciprocal: that row's signal is a matter-reference column beside timekeeper, narrative, duration and rate; the invoice it belongs to has an issuer-and-billed-to pair, and where the billed-to is the client the artefact is that row's and finance's. Here the billed-to is a body that is not a party, and there is an assessment outcome the practice did not set.",
+      "A GATEWAY-EVIDENCE structure, and it is the most sensitive artefact this row will ever see: a third-party attestation filed WITH the funding application in order to unlock the funding, whose labelled slots pair an issuer in a professional or official capacity (a health professional, a refuge or support organisation, a social work or child-protection function, a police or court function) with an explicit reference to the funding scheme's criterion or evidence-requirement rather than to the merits of the case. The England and Wales civil scheme's domestic-abuse and child-abuse evidence requirements are the canonical instance. This structure co-activates `medical` and `identity` on their own evidence, and this row concedes to them: the letter is theirs, the FILING of it against a criterion is what this row recognises.",
+      "AN AUTHORITY-CORRESPONDENCE structure: a message or notice whose sender or recipient slot is a funding scheme's case system, carrying the authority-allocated reference, an event (application received, certificate amended, scope extended, funding withdrawn, claim assessed) and a scheme-criterion citation. This is an ordinary email or portal notice shape, so it never fires alone - the authority reference must already be anchored by one of the structures above."
+    ],
+    "needs_llm": [
+      "The offered-versus-granted distinction, which is the row's most frequent hard case. A costs estimate that LISTS funding options - private retainer, legal aid, conditional fee, insurance, union funding - contains the words but no determination, no allocated reference and no limitation. Deciding that a document offers rather than grants requires reading, and where it is unresolved the answer is Review Later, not this row.",
+      "Whose means are being assessed. An income, capital and dependants declaration paired with an eligibility outcome has the same structure whether the subject is a firm's client, the holder's own household applying for student aid, or a benefits claimant. The role of the assessing party and whose file it sits in is the discriminator and it is usually prose.",
+      "Whether an hours or matter-count table is matter-anchored or organisational. A table with one row per matter, an authority reference and a fee-earner is this row's; a table counting volunteer hours by attorney across a firm for annual reporting is an organisational report and belongs to `business_operations`.",
+      "Unlabelled advice-session and clinic notes. A free-text note of a one-hour session at a duty scheme or a clinic may be the only artefact of an entire episode, with no matter reference, no authority reference and no determination. The LLM may propose the note for local review; it may not manufacture a funding fact from it.",
+      "Free prose that describes the arrangement - 'we are acting without charge', 'the Agency has granted a certificate limited to counsel's opinion' - where the structural slots are absent. Prose may support a candidate; it cannot substitute for the determination, reference or limitation."
+    ],
+    "never_alone": [
+      "The words pro bono, legal aid, free, no charge, waived, gratis, low bono, reduced fee, or their equivalents in a filename, a heading, a folder name or free text. This is the token the whole row must resist: it is a value in the funding-basis slot, and the `law_practice` schema already carries 'engagement terms, retainer, scope and funding-basis record' in its `work_types` enum.",
+      "A FUNDER, SCHEME, CLINIC OR CLEARINGHOUSE NAME - a legal aid agency, a legal services corporation, a provincial legal aid body, a law-school clinic, a bar pro bono programme, a public defender office. These are organisation names and the schema's deletion test strikes them; 00's own template validation independently forbids using \"an author or organization merely as a collector\".",
+      "A ZERO, BLANK, NIL OR STRUCK-THROUGH RATE OR FEE COLUMN, or an invoice total of nothing. This is the absence of evidence and is the exact error 00 rules out elsewhere when it refuses missing metadata as proof; a fee-free timesheet is `law_practice.time-and-billing`'s table with an empty cell, not this row's artefact.",
+      "A CITATION TO A PROFESSIONAL-RESPONSIBILITY OR BAR-REPORTING RULE about voluntary service, or a jurisdiction's annual pro bono reporting requirement. A rule reference is a document-type word wearing a number.",
+      "AN AUTHORITY-SHAPED REFERENCE TOKEN ON ITS OWN - a certificate-number-shaped or case-reference-shaped string. The schema already strikes a bare identifier; here it is struck again because a scheme reference resembles a matter reference, a court case number and an internal file number, and the discriminating fact is that it was allocated by a body that is not a party.",
+      "A FIRM'S PRO BONO POLICY, COMMITTEE PAPER, PLEDGE OR ANNUAL REPORT. These are the practice describing itself, not an artefact of a funded representation; the firm running itself as a business is `business_operations`' and `hr`'s.",
+      "A DIRECTORY OR PATH SEGMENT named for the scheme or for pro bono. A path is never a fact, and here a path that asserted it would itself be the disclosure this row exists to prevent."
+    ]
+  },
+  "proposed_context_terms": [
+    "means assessment",
+    "disposable income",
+    "capital limit",
+    "contribution",
+    "nil contribution",
+    "passporting benefit",
+    "merits test",
+    "certificate number",
+    "scope limitation",
+    "cost limitation",
+    "prior authority",
+    "prescribed rate",
+    "assessed",
+    "statutory charge",
+    "funding withdrawn",
+    "duty scheme"
+  ],
+  "work_types": [
+    "means and merits eligibility assessment and supporting financial declaration",
+    "funding application to a scheme, clinic or grant programme",
+    "gateway or evidence-requirement document filed to unlock funding",
+    "issued funding authority - certificate, representation order or case authorisation - and its amendments",
+    "scope or cost limitation, extension request and refusal record",
+    "prior-authority request and approval for counsel, experts or disbursements",
+    "claim for costs to the funder, assessment outcome and reduction or appeal record",
+    "statutory charge, recoupment and contribution-collection record",
+    "referral record from a clearinghouse, clinic, duty scheme or panel",
+    "limited-scope or unbundled assistance record",
+    "duty-scheme, advice-session and clinic attendance record",
+    "supervision and volunteer-authorisation record for a supervised or student adviser",
+    "funder reporting return, case-service report and matter-start schedule",
+    "funding withdrawal, discharge and transfer-of-funding record"
+  ],
+  "grouping_reasons": [
+    "An exact AUTHORITY-ALLOCATED reference - a certificate, representation order, application or scheme case reference - repeated across two or more artefacts, where at least one of those artefacts is the instrument that ALLOCATED it. A reference that appears only on downstream documents has no anchor: 00 states the rule directly, that the system \"should not form a supported group when there is no valid anchor\".",
+    "An exact matter or file reference already anchored by the `law_practice` schema's own default, joined to a funding artefact that carries BOTH that reference and the authority-allocated one. The two-reference join is the safe form because it is the only one that proves the funding artefact belongs to this matter rather than to a namesake.",
+    "An amendment chain on one issued authority - original, extension, scope variation, discharge - linked by the same authority reference and an explicit supersession or amendment number. Version order is an observation on the artefacts; it never becomes a currency or validity fact.",
+    "A claim and its assessment outcome linked by the same claim or authority reference. Membership does not decide whether the claim was correct, whether the reduction was justified, or whether an appeal remains open."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT AND, MORE IMPORTANTLY, EMPTY BY A PROHIBITION THIS ROW ADDS THAT THE SCHEMA DOES NOT STATE. By contract first: a dimension may only branch on a field the same schema declares, and `law_practice` declares none under PR-6, so no branch is available. The schema's prose recommendation - the client only where the corpus genuinely spans more than one and the user has explicitly approved it, then the matter, then the document function, then the period last - is inherited unchanged, and nothing in this row reorders it; the function level is where a funding artefact sits, beside pleadings, correspondence and billing. THE DEPARTURE IS A SUBTRACTION, and it is this row's third distinguishing leg. THE FUNDING BASIS MAY NEVER BECOME A FOLDER LEVEL. A branch named for a scheme, or named Pro Bono, or named Legal Aid, publishes a means-test outcome about a person who is not the user: it says this client was assessed and found poor enough. The schema already forbids a named third party as a level because \"a path writes their identity into the filesystem where every later process reads it\"; this row extends the same reasoning from the third party's NAME to an ATTRIBUTE of them, which is a rule the schema does not contain and which every future sibling in this family must answer. 00 supplies the underlying posture - \"The default posture must therefore be local-first and data-minimizing.\" - and the display consequence in its own words for the neighbouring domain: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" Here even the summary is unsafe if it is counted by funding basis. A SECOND SUBTRACTION follows from 00's template validation, which rejects a template that would \"create meaningless one-child levels\": in a practice whose entire caseload is publicly funded the funding level is universal and empty of information, and in a mixed practice it is a disclosure - so it is ineligible in both directions and there is no corpus in which it is correct. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Application date, grant date, event date, claim date and assessment date all differ here, and nothing in this world is capture-based.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Legal aid application and financial statement - Okonjo - CRM14 CRM15.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots read APPLICANT, PROCEEDINGS, SOLICITOR AND FIRM ACCOUNT NUMBER, PASSPORTING BENEFIT, INCOME, CAPITAL, DEPENDANTS, DECLARATION",
+        "a separate schedule tabulates monthly income against outgoings and produces a disposable-income figure",
+        "a determination block at the end carries an outcome, a contribution figure and a caseworker identifier and date",
+        "no tribunal caption, no bound party pair, no execution or notarial block anywhere on the document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the applicant is eligible, ineligible, indigent or entitled - the outcome slot is an observation about what a body decided, not a status this product may assert",
+        "that the declared figures are true, current or complete",
+        "any law_practice field value; the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate - 01 2026 0114472 - LIMITED TO counsel's opinion.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority-allocated reference in a distinct format from the firm's own matter reference, both appearing on the page",
+        "labelled slots read SCOPE OF CERTIFICATE, LIMITATION, COSTS LIMITATION, EFFECTIVE FROM, ISSUED BY",
+        "the limitation slot restricts the work to obtaining an opinion and names a monetary cap",
+        "no caption, no parties block, no signature block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the certificate is currently in force, that the cap has or has not been reached, or that any work done was within scope",
+        "that the authority reference is the matter reference"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Amendment 3 - scope extended to issue proceedings - 01 2026 0114472.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "same authority reference as the certificate, an amendment number, an amendment date and a revised limitation and cap",
+        "a superseded-limitation line quoting the previous wording"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is the latest amendment or that no later one exists",
+        "that the extension authorises any particular step already taken"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Prior authority request - Dr Alvarez psychiatric report - rate above scheme.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to the funding body, carrying the authority reference, a proposed expert, a proposed hourly rate and an estimate of hours",
+        "a justification section arguing why the scheme rate is insufficient",
+        "an approval stamp added later with an approved figure that is lower than the requested one"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the expert was instructed, that the report exists, or that the approved figure was paid",
+        "any clinical fact about the subject of the proposed report"
+      ],
+      "also_schema": "law_practice.expert-materials",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Claim for costs - CIV CLAIM1 - assessed with reductions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "payee is the practice, payer slot names the funding body, and there is no billed-to client anywhere on the form",
+        "rate columns are headed with scheme-set rates rather than agreed rates",
+        "an assessment column carries claimed, allowed and reduced figures with reduction reason codes"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the reductions were correct, that an appeal was or was not made, or that any sum was received",
+        "that the client owes or has been charged anything"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Statutory charge notice - Okonjo - recovery from settlement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "explains that the funder will recoup its costs from property or money recovered, with the authority reference and a figure",
+        "a client acknowledgement line with a signature space"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the charge applies, that it was satisfied, or what the client will actually receive",
+        "that a settlement occurred"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Evidence requirement - refuge letter - domestic abuse gateway.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer writes in an organisational support capacity and cites the funding scheme's evidence criterion by paragraph",
+        "a date-range slot for the period of support",
+        "the letter is about a person's circumstances, not about the merits of any claim"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that abuse occurred, that the criterion is satisfied, or that funding follows",
+        "that the letter may be quoted, excerpted or summarised into any remote prompt"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Controlled work matter starts and outcomes - Q3 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers pair one authority reference and one internal matter reference per row with a category-of-law code, a start date, an outcome code and a fee-earner",
+        "a scheme contract or schedule number appears in the sheet header",
+        "no client names in the exported sheet, only references"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the outcome codes describe legal results this product may restate",
+        "that a row without an allocating instrument in the corpus anchors a group"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Application received - reference 01 2026 0114472 - further information required.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a scheme case-management system address, recipient is the practice's account",
+        "subject and body repeat the authority reference and name an event and an information request",
+        "an attachment link is present"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that funding was granted, refused or is pending",
+        "that the link may be followed automatically"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Duty scheme rota and clinic sessions - September.ics",
+      "source_type": "calendar",
+      "observations": [
+        "recurring events with a scheme or clinic organiser, a location and a session slot",
+        "no client identity in the event body and no authority reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any funded representation exists - a rota is availability, not a matter",
+        "that attendees are clients"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Clinic advice note - session 14 - no file opened.docx",
+      "source_type": "text_document",
+      "observations": [
+        "free prose recording a one-hour session, an issue, advice given and a referral suggestion",
+        "a first name only, no matter reference, no authority reference, no determination",
+        "a supervisor initial in the margin"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a client relationship or a funded matter exists",
+        "a client identity from a first name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-09-02 at 11.20.31 - funding portal certificate screen.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in filename pattern and image dimensions",
+        "OCR surfaces an authority reference, a scope limitation line and a status word"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the displayed status is current",
+        "that an OCR-read reference anchors a group without a corroborating artefact"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Costs estimate and funding options - 41127-0006.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns compare a private hourly retainer, a conditional fee, insurance-backed funding and legal aid side by side with estimated totals",
+        "the legal aid column is populated with a scheme rate and a note reading 'subject to means and merits'",
+        "no determination, no outcome, no contribution figure and no authority-allocated reference anywhere in the workbook"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this matter is publicly funded - the workbook OFFERS options and grants none",
+        "that the word legal aid in a column header is a funding fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Conditional Fee Agreement - no win no fee - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a bound party pair - the practice and the client - and an execution block with two signatures and a date",
+        "a success-fee percentage and a definition of a win",
+        "the payer is the client out of any recovery; no third body appears anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that free-at-the-point-of-use means third-party funding",
+        "that an executed retainer is this row's rather than the safety neighbour's"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pro Bono Committee - annual hours by attorney - FY2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per attorney with an hours total, a target and a variance, aggregated for a firm-wide report",
+        "no matter references, no client references, no authority references",
+        "a narrative tab drafts the paragraph for a firm annual report"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any funded representation is evidenced - this is the firm describing itself",
+        "that a professional-responsibility target is a fact about a matter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Source of Funds - Vance - statements Jan to Jun 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "six months of bank statements about a person who is not the holder, collected by the practice",
+        "a covering checklist headed source of funds with certification ticks",
+        "no eligibility criterion, no determination outcome, no contribution figure"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that financial statements about a client held by a practice are a means assessment",
+        "any account, balance or institution fact as a law_practice fact"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "LSC grantee report - CSR case service data - 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing aggregate case-count extracts, a compliance narrative and a grant financial schedule",
+        "the recipient is a grant programme and the subject is an organisation's performance against grant terms",
+        "individual matter references do not appear at the top level of the manifest"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that grant reporting is representation evidence",
+        "that the archive should be unpacked to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "legal-aid-file-archive-0114472.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "password protected; the manifest cannot be read",
+        "the filename contains a scheme-shaped reference and a scheme word"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a client, a funding grant, an eligibility outcome or a sensitivity result from a filename",
+        "that a reference-shaped token in a filename anchors a group"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.client-intake",
+      "signal": "THE PRIMARY COLLISION AND THE ONE THE ROW LIVES OR DIES ON, because both sides hold detailed financial documents about a person who is not the holder, collected by a practice. THE SHARED FIXTURE IS THAT ROW'S OWN: `Source of Funds - Vance - statements Jan to Jun 2026.pdf`. THIS ROW DOES NOT TAKE IT. The discriminator is the PURPOSE STRUCTURE, not the financial content. `law_practice.client-intake` collects means to prove the money is CLEAN - its slots are certification, verification, beneficial ownership, a per-document attestation, and its episode ends in a disposition about whether to act. This row's means artefact proves the client is POOR ENOUGH - its slots are a threshold, a determination OUTCOME and a CONTRIBUTION figure, and it is addressed to a body outside the practice. Reciprocally: an eligibility form with an outcome and a contribution is NOT intake evidence even though it precedes the work and even though it is a form about a prospective client, and `law_practice.client-intake` should not claim it; conversely a certified passport copy and six months of statements with no criterion and no outcome are that row's and this one should not claim them merely because the matter is publicly funded. Where a single pack contains both, both activate and neither copies the other's facts. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.time-and-billing",
+      "signal": "The money collision, and it is genuinely confusable because both artefacts are rate-by-duration tables carrying a matter reference. THE SHARED FIXTURE IS `Claim for costs - CIV CLAIM1 - assessed with reductions.pdf`. The discriminator is the PAYER ROLE and the RATE PROVENANCE: an issuer-and-billed-to invoice whose billed-to is the client, at rates the practice and client agreed, is `law_practice.time-and-billing`'s; a claim whose payer is a body that is not a party, at rates the scheme set, carrying an assessment outcome the practice did not control, is this row's. Reciprocally: a fee-free timesheet - a matter-reference column with a blank or zero rate - stays with `law_practice.time-and-billing` and does NOT come here, because a blank cell is an absence and this row refuses absence as evidence; and a scheme claim does not become that row's merely because it tabulates hours. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "The safety collision the whole `law_practice` family concedes, restated for this row's own fixtures. THE SHARED FIXTURE IS `Conditional Fee Agreement - no win no fee - executed.pdf`, which is this row's most seductive false friend: it is free at the point of use, it is the answer to 'how is this being paid for', and it is NOT this row's, because there is no third role - the payer is the client out of a recovery - and because it has a bound party pair and an execution block, which is `legal`'s executed-instrument signal, and `legal` is one of 00's four safety domains: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" Reciprocally: a legal aid certificate is NOT `legal`'s, because it has no caption, no bound party pair and no execution block; it is an administrative grant of permission and `legal`'s signals do not fire on it at all. Provenance: inference for the seam; design for the safety ordering.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.student-financial-aid",
+      "signal": "The structural twin, and the sharpest test of whether this row is really about means or really about roles. That row's core artefact is a household means assessment - income, assets, dependants, a threshold, an award outcome and an expected contribution - which is slot-for-slot the shape of a legal aid means assessment. The discriminator is WHOSE household and IN WHOSE FILE: `finance.student-financial-aid` assesses the HOLDER or the holder's dependant and the file is the holder's own; this row's assessment is about a CLIENT, is held by a practitioner, and sits beside an authority-issued permission to do legal work. Reciprocally: a legal aid means form must never be routed to student financial aid on the strength of its income and capital slots, and a student aid determination must never be routed here on the strength of the word contribution. If the holder is themselves a legally aided client, the artefact is `legal.personal-legal-matters`' and this row does not fire, because the practitioner role is absent. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "The other side of the same transaction, and the reason this row concedes its reporting leg. THE SHARED FIXTURE IS `LSC grantee report - CSR case service data - 2026.zip`. That row holds the AUTHORITY'S side - programme design, grantee selection, monitoring, the funder's own case file about its recipients. This row holds only the RECIPIENT PRACTITIONER'S side, and only where the artefact is matter-anchored. Reciprocally: an organisation's return to its funder about its own grant performance is grant administration seen from the recipient end and belongs with `government.grant-programme-administration` or `business_operations`, not here, because its subject is an organisation and not a representation; and a certificate issued for one named client's matter is not grant administration merely because a public body issued it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.organisational-records",
+      "signal": "The self-description collision. THE SHARED FIXTURE IS `Pro Bono Committee - annual hours by attorney - FY2026.xlsx`. A firm's pro bono policy, committee papers, pledge, target, hours league table and annual-report narrative are the practice describing ITSELF and belong to `business_operations` and `hr`; this row refuses them outright, because their rows are attorneys rather than matters and their deletion test leaves nothing but an organisation name and a document-type word. Reciprocally: a controlled-work matter-start schedule whose rows are matters with authority references is NOT an organisational record even though it is filed for a contract, and `business_operations.organisational-records` should not claim it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.immigration-casework",
+      "signal": "The overlap that will recur most often in practice, because the funded caseload and the immigration caseload are heavily the same files. The discriminator is which structure carries the artefact: an asylum or protection claim's substantive record - the statement, the country evidence, the decision, the appeal - is that row's on its own evidence, whether or not it is funded; only the eligibility determination, the issued authority, the claim to the funder and the gateway filing are this row's. Reciprocally: this row must not absorb a whole immigration file because a certificate exists in it, and that row must not absorb a certificate because the matter is an immigration matter. Both may activate on one corpus on disjoint evidence. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "law_practice",
+      "why": "The parent-schema co-activation, and it is the normal case rather than the exception: this row's three-role structure is strictly additive on top of the schema's two-role default, so a funded matter activates both and the schema's own default holds everything that is not a funding artefact. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "why": "Eligibility and gateway evidence routinely arrives as another person's identity documents, benefit award letters and proofs of address. Those are `identity`'s on `identity`'s own evidence and remain protected there; this row recognises only the FILING of them against a scheme criterion. `identity` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "why": "The gateway-evidence structure frequently carries a health professional's letter about a third party, and a prior-authority request frequently proposes a psychiatric or medical report. The clinical content is `medical`'s and stays there; this row holds the authorisation and the criterion reference only. `medical` is a safety domain and runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "A claim to a funder, its assessment and the receipt of scheme payments are simultaneously this row's authority-payer structure and `finance`'s issuer-and-amount evidence, on disjoint slots. `finance` is a safety domain and runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first and it takes the majority of this row's isolated material, because the characteristic stray file here is a financial or personal document about a named third party who is poor, or fleeing, or a child. 00 names both the residual and this material together - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" - and the corpus sentence confirms that all of it lands in one place: the product processes material that \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's defining failure, which is frequent: a real professional artefact whose FUNDING SIDE is unresolved - a costs estimate that lists options, a scheme email with no anchoring instrument, a rota, an hours table that might be organisational or might be matter-anchored. Deferring is correct and cheap here, and it is strictly better than guessing a funding fact, because the wrong guess writes a means-test conclusion about a third party.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected scheme archives, matter-system exports and unreadable portal downloads. The filename may not manufacture a client, a grant, an outcome or a sensitivity result, however scheme-shaped its reference token looks.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a funding portal where OCR does not establish an anchored authority reference. Screen origin must be proved by positive evidence; absent metadata is never the proof.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "career.consulting-client-engagement",
+      "why": "The `law_practice` schema's borrowed role pair is inherited unchanged, and this row records what it adds for R1c: a THIRD role that neither key can express. The funder is not the practice and not the client - it pays, limits scope, assesses the bill and can recoup from the client's recovery - so a two-key split cannot represent this world even if D1 lifts. This row mints nothing; it flags that a funder or payer role key would be needed before any of this could become a fact, and that even then it must be ineligible as a destination. Provenance: inference; the underlying role-separation rule is design.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, inherited from the `law_practice` schema and then extended along one axis that no sibling shares. The schema's ground is that the exposed party is a THIRD PARTY who never chose this filesystem and cannot consent. THIS ROW ADDS THE ATTRIBUTE PROBLEM: its characteristic artefacts do not merely name that third party, they record a MEANS-TEST OUTCOME about them - a disposable-income figure, a passporting benefit, a capital total, a contribution they could not afford - and, through the gateway structure, sometimes their status as an abuse survivor, an asylum claimant, or the subject of a child-protection concern. 00's corpus sentence lists exactly these categories as the highly personal material the product must expect: \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence\". Three consequences bind this row and none of them is a handling class, which is P7's to assign. FIRST, the funding basis is ineligible as a folder level in every corpus, because the branch label is itself the disclosure. SECOND, a determination outcome, a contribution figure or a gateway criterion may never enter a group label, a proposal explanation or a summary - 00's own display example is the model, that \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be\", and here even a count bucketed by funding basis fails that test. THIRD, recognition should run locally from the minimum necessary slot labels and never place a declaration schedule, a gateway letter or a statement bundle into a remote prompt, under \"The default posture must therefore be local-first and data-minimizing.\" The product must not conclude eligibility, entitlement, indigence, abuse, immigration status, scope compliance, or whether any funding is current.",
+  "open_question": "Four, and the first is the row's own existence. (1) NJ-PB-1, THE EXISTENCE QUESTION, answered here as a narrow YES and recorded so R1c can reverse it cheaply: this row stands ONLY on the three-role structure - a funder who is not a party, evidenced by an eligibility determination, an issued authority with a limitation, a prescribed-rate claim to that funder, or a gateway filing - and it concedes everything else. It concedes the word pro bono and the fee-free retainer to the `law_practice` schema default (the `engagement-terms` row was already refused for being that schema's own precondition, and 'free' is one value in the same funding-basis slot); the executed conditional fee agreement to `legal`; the fee-free timesheet to `law_practice.time-and-billing`; the firm's pro bono policy, committee papers and hours league table to `business_operations` and `hr`; the grant return to `government.grant-programme-administration`; the clean-money means pack to `law_practice.client-intake`; and the holder's own aided matter to `legal.personal-legal-matters`. If R1c judges that a funder is a payer VALUE on an engagement rather than a role in a structure, the correct outcome is REFUSAL and the coverage routes to those neighbours plus Protected Records and Review Later. This row would rather be refused than kept as a scheme label. (2) NJ-PB-2, THE THIRD-ROLE KEY: the canonical role pair `our_firm` and `client` cannot express a payer who is neither, and `role_split` therefore records a gap rather than a split. If D1 lifts, R1c must decide whether a funder or payer key exists at all and must, on this row's argument, seed it destination-ineligible. This row mints nothing. (3) NJ-PB-3, THE PROHIBITION'S SCOPE: this row asserts that an ATTRIBUTE of a third party - here their assessed means - is as unsafe in a path as their NAME, extending a rule the `law_practice` schema states only for names. That is a general principle with consequences well beyond this family (a diagnosis, an immigration status, a benefit, a protected characteristic), and it should either be ratified product-wide or narrowed to this row. The alternatives are: ratify it as a general destination rule; keep it local to this row as a template-level privacy rule; or reject it and rely on the existing named-third-party rule alone, which would leave a Legal Aid branch permissible. (4) NJ-PB-4, THE REPORTING SEAM: the matter-start schedule and the case-service report sit exactly on the line between a matter-anchored artefact and an organisational return, and the two shade into each other as aggregation increases. This row draws the line at whether the ROWS ARE MATTERS or the rows are attorneys, periods or programmes, and asks R1c to confirm it reciprocally with `business_operations.organisational-records` and `government.grant-programme-administration` rather than leaving both sides to claim the same workbook."
+}

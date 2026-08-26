@@ -1,0 +1,552 @@
+{
+  "id": "creative.printmaking-editions",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Editions and impression registers (one matrix, many numbered objects)",
+  "one_line": "One MATRIX - a plate, block, stone, screen, mould or binding pattern - and the CLOSED, ENUMERATED SET of physical objects pulled from it, held as a register rather than as a work in revision: an impression list whose row unit is one individual object with its own number, paper, condition, owner and location; the proofs that stand outside the numbered run (bon a tirer, artist's proof, printer's proof, hors commerce) as COEQUAL SIBLINGS of it rather than as superseded drafts; the state proofs that record the matrix changing; and the cancellation document whose entire meaning is that no further object can ever be made. The files are documentation and register, never the object. It is NOT a version family (creative.revision-round), NOT a commercial print run of interchangeable copies (creative.print-production), NOT a show's checklist of other people's works (creative.exhibition), NOT a portfolio page (career.portfolio-work-samples) and NOT capture metadata on a flat shot (photos). NARROWED FROM THE ROSTER HINT: the row survives on the edition-enumeration structure only; unenumerated physical craft with no register is routed out, not absorbed (see open_question 1). Placeholder row on a field-less schema (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6): it declares NO field rows and therefore recommends NO serialisable folder dimensions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The creative schema declares no field rows, so nothing here writes a domain fact. Detection exists so this material is recognised as an edition register, held under the sensitivity posture stated below, and offered as one closed set rather than scattered by format or collapsed into a version family. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "an EDITION-ENUMERATION structure, and this is the discriminator the whole row rests on: fraction-shaped tokens occurring across a run of same-stem siblings or down a labelled column, where the DENOMINATOR IS CONSTANT and the NUMERATOR ENUMERATES A CLOSED SET (1/30, 2/30 ... 30/30). This is structurally the OPPOSITE of the creative schema's default REVISION-ROUND signal. A version family (_v1, _v2, _v3) is a sequence of attempts in which the last supersedes the rest; an enumerated edition is a set of coequal siblings that all exist simultaneously as separate physical objects, none of which supersedes any other. The default template's signal would read thirty impressions as one version family and propose keeping the latest, which is the wrong answer about real objects that are in thirty different rooms. The multiplicity IS the signal; a single sheet marked 12/30 is nothing on its own.",
+      "a DISPOSITION-PER-COPY structure: a table whose ROW UNIT IS ONE PHYSICAL OBJECT rather than one work - impression number, date pulled, paper or body, condition, where it is now, who holds it, at what price - under a heading naming a SINGLE work. No other creative template has a per-copy unit at all; everywhere else in this schema the unit is the work, the round, or the delivery set. A film has one master, a campaign has one delivery set, an edition has thirty individually addressable objects, and the register is the only file that knows which is which. Marked inference: 00 requires structured extraction from spreadsheets but does not name this table shape.",
+      "a MATRIX-STATE structure: state designations (state I / state II, 1st state, trial proof, working proof) across scans of the same image showing incremental change, occurring beside a MATRIX NOUN (plate, block, stone, screen, matrix, copper, zinc, lino, mould, warp). States are a documented history of the TOOL, not drafts of a file; the earlier state is not obsolete, it is a separately collectible object.",
+      "a CANCELLATION structure: a terminal document - a photograph of a defaced, scored or struck matrix, or a proof pulled from it after defacement - carrying cancellation vocabulary. It is the only document in the creative schema whose entire meaning is that the work can never be produced again, and it is what makes the enumerated set closed rather than open.",
+      "a COLOPHON or CERTIFICATE structure: a short document with labelled slots reading title, year, technique, sheet and image dimensions, edition size, impression number, paper, signature, printer and publisher. This is the purpose-coherence shape for this world - the analogue of the brief in the schema default - and it is what makes a folder of scans, a spreadsheet and a shipping note into one edition.",
+      "a MARGIN-ANNOTATION structure in a documentation image: a pencil fraction at lower left, a title at centre, a signature and year at lower right, and an embossed chop or blindstamp, all in the blank margin OUTSIDE the printed image area. The spatial arrangement is the evidence; the same four items scattered anywhere else are not.",
+      "an INDEXED-BUT-UNREADABLE state is ORDINARY here, not exceptional: high-resolution documentation masters, layered scan composites and workshop archive packages routinely exceed what an approved extractor reads. \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\" - and a file in that state is still evidence of an edition when it sits inside an enumeration or register structure."
+    ],
+    "needs_llm": [
+      "EDITION or PRODUCTION RUN - the load-bearing judgement and not a lexical one. A closed edition of thirty individually numbered, individually designated objects and a commercial run of five hundred interchangeable posters use the same nouns (print, run, proof, press, paper, quantity) and often the same workshop. The discriminating structure is whether the copies are ADDRESSABLE INDIVIDUALLY (numbered, each with its own disposition) or FUNGIBLE (a quantity in an order line beside a unit price). Only a reader can tell.",
+      "whether a fraction-shaped token is an impression number, a date fragment, a page marker, an aspect ratio, a score or a scale.",
+      "whether a document called a proof is a printmaking proof standing outside a numbered run, a prepress contract proof approving a commercial job (creative.print-production), or a design revision shown to a client (creative.revision-round).",
+      "whether an artisan's process log - a firing schedule, a dye lot sheet, a binding structure note - attaches to an ENUMERATED edition or is a standing studio record with no closed set behind it. This is exactly where this row narrows itself, and the answer is usually the second.",
+      "whether a documentation image documents the corpus owner's OWN object or someone else's, which decides between this row and Reference Clips and cannot be read off the pixels.",
+      "whether a numbered set is a physical edition at all or a digital issuance that borrowed the vocabulary - a token drop, a numbered digital download, a serialised software licence."
+    ],
+    "never_alone": [
+      "A FRACTION-SHAPED TOKEN ALONE. This is the row's sharpest false positive and it trips a real fixture in the list below: the poster order confirmation carries '3/4' as a date fragment and '500' as a quantity. A fraction activates nothing without a CONSTANT DENOMINATOR ACROSS A RUN plus edition vocabulary in the same neighbourhood.",
+      "THE WORD 'EDITION' ALONE. It is a book printing ('2nd edition'), a software packaging tier ('Community Edition'), a newspaper run and, in the screenshot fixture below, marketing copy on a social post. It is a word this world shares with three unrelated ones.",
+      "THE PROOF ABBREVIATIONS ALONE - AP, PP, HC, EV, BAT. AP is Accounts Payable and Advanced Placement; PP is per-page and pages; HC is hardcover and headcount; BAT is a word in English. None of them may fire without a matrix noun or an enumeration beside it.",
+      "A TECHNIQUE OR MATERIAL WORD ALONE - etching, aquatint, screenprint, letterpress, linocut, stoneware, indigo, coptic. These are VALUES, not nodes and not activations, and they appear in exhibition checklists, shop listings, supplier invoices and saved inspiration far more often than in a register. This is also the reason this row is not a medium row.",
+      "A PHOTOGRAPH OF A PHYSICAL OBJECT ALONE. Documentation is a way of photographing anything. Without a register, a colophon or an enumeration around it, a flat shot is One-Off Images or, if it is someone else's object, Reference Clips.",
+      "THE ABSENCE OF A WORKING FILE IS NOT EVIDENCE OF A PHYSICAL PRACTICE. This is stated as a rule because the roster hint's own phrasing ('the files are only ever documentation of it') invites exactly this inference, and a row that activates on a missing digital original would fire on every scan, every download and every folder of photographs in the corpus. Absence is never the signal here; enumeration is.",
+      "AN ORGANISATION NAME ALONE - a print workshop, an atelier, a gallery, a paper mill, a foundry. Never-alone evidence by 00's own rule and never an activation.",
+      "A BARE FOUR-DIGIT NUMBER. In this world it is a year in a title, a paper weight in gsm, an edition size, a firing temperature or a catalogue number, and it distinguishes none of them.",
+      "AN EXTENSION ALONE. .tif and .pdf carry the whole documentation side of this row and also carry every scan, statement and manual in the corpus.",
+      "A SIGNATURE VISIBLE IN AN IMAGE. It is a pencil autograph in a margin, not an identity document and not an executed instrument; it must not pull the file toward identity or legal on its own.",
+      "A QUANTITY BESIDE A UNIT PRICE. That is a purchase, and its home is Receipts and Confirmations or creative.print-production, never an edition size."
+    ]
+  },
+  "proposed_context_terms": [
+    "impression",
+    "edition of",
+    "bon a tirer",
+    "artist's proof",
+    "printer's proof",
+    "hors commerce",
+    "state proof",
+    "trial proof",
+    "cancellation proof",
+    "matrix",
+    "chop mark",
+    "blindstamp",
+    "deckle",
+    "colophon",
+    "signed and numbered",
+    "kiln log",
+    "dye lot"
+  ],
+  "work_types": [
+    "edition record or impression register",
+    "certificate of authenticity",
+    "colophon",
+    "bon a tirer proof",
+    "artist's proof",
+    "printer's proof",
+    "hors commerce impression",
+    "state proof",
+    "trial proof",
+    "cancellation proof",
+    "matrix or plate record",
+    "documentation photograph of a physical work",
+    "consignment or placement record",
+    "condition note",
+    "paper or materials record",
+    "process or firing log",
+    "glaze or dye recipe",
+    "binding or construction record",
+    "signing and numbering sheet",
+    "shipping and crating record"
+  ],
+  "grouping_reasons": [
+    "one matrix and every impression pulled from it, including the proofs that stand outside the numbered run",
+    "one edition read as a set of COEQUAL SIBLINGS rather than a version family - the specific grouping mistake this row exists to prevent",
+    "one impression's own paper trail: certificate, invoice, condition note, shipping record, and where it is now",
+    "one work's documentation set across crops, details, verso and margin close-ups",
+    "one press day, firing, dye lot or binding session and everything made in it",
+    "one collaboration between a maker and an atelier or publisher across several editions",
+    "an existing curated folder the maker already made and named"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT, and this row says so plainly because the dimensions leg of the node test is therefore UNAVAILABLE to it - it survives on detection signals and privacy rules instead (see the memo). A dimension may only branch on a field the same entry's schema declares, and the creative placeholder schema declares none. RECOMMENDED IF FIELDS EVER LAND, and stated so R1c can adopt it: `project` (the work, which is the matrix and its edition together) then `artifact_type`, with NO `stage` level - and that omission is the one arguable difference from the creative default order (`client` where genuinely multi-client, then `project`, then `stage`, then `artifact_type`). The default's `stage` describes a work moving through revisions toward something delivered. An edition does not move through stages; it passes through ONE-WAY TERMINAL EVENTS - the matrix is worked, one proof is approved, the run is pulled, the matrix is cancelled - after which nothing further can be produced. A `stage` level here would open branches that are empty for the whole life of the material and then permanently empty afterwards. `client` is dropped for the reason the default itself gives: most of this material is self-initiated and has no commissioning counterparty, so the level would be the collector level 00's own validator rejects. Parent-context test satisfied: \"a parent dimension should provide the context required to understand the child\" - `12/30` is meaningless without the work, exactly as Homework 3 is meaningless without the course. Not time-first; this material is not capture-based and may not claim the photos exception. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "design_creative",
+      "archive",
+      "filesystem",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".numbers",
+      ".pdf",
+      ".docx",
+      ".tif",
+      ".tiff",
+      ".jpg",
+      ".png",
+      ".psd",
+      ".ai",
+      ".svg",
+      ".dng",
+      ".xmp",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Edition record - Tidal Flat (2026) - 30 + 6AP.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads No. / Date pulled / Paper / Condition / Location / Held by / Price / Notes",
+        "the No. column runs 1/30 through 30/30, then six further rows reading AP 1/6 through AP 6/6 and one reading BAT",
+        "a Location column holds studio, one gallery name repeated six times, and eleven cells reading 'private'",
+        "a Held by column carries eleven personal names and two postal towns",
+        "a header cell above the table names one work and one technique"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that 30/30 is a version number, a revision or a superseding draft - the thirty rows are coequal objects and collapsing them into a version family is the specific error this row exists to prevent",
+        "that a personal name in the Held by column is a client - a person who bought an impression is not a commissioning counterparty, and no canonical key holds a collector role",
+        "a price or an edition size as a domain fact; no canonical key holds either and none is proposed here",
+        "that the AP rows are drafts of the numbered rows"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BAT - Tidal Flat - bon a tirer - signed 2026-03-14.jpg",
+      "source_type": "image",
+      "observations": [
+        "a flat scan of one sheet; the printed image occupies the centre and the outer margin is blank paper",
+        "pencil annotation in the lower left margin reads 'bon a tirer', with a signature and a date at lower right",
+        "no fraction anywhere on the sheet",
+        "an embossed mark sits below the image at lower right, unlegible in reflected light"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the absence of a fraction makes this an unnumbered one-off - a bon a tirer stands OUTSIDE the numbered run by definition and is the reference every numbered impression is matched against",
+        "that the signature is an identity document or an executed instrument",
+        "that this is the final export or deliverable of a job"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Tidal Flat - states I-IV - proof scans.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "four pages, each a scan of a similar image with visible differences in the darkest areas",
+        "OCR recovers pencil annotations reading 'state I', 'state II - aquatint added', 'state III', 'state IV - reduced sky'",
+        "a page-one heading names one work and the word 'copper'",
+        "no fraction and no edition size anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that state IV supersedes states I to III - each state is a separately existing set of objects and the earlier ones are not obsolete",
+        "an edition size from four pages",
+        "that this is a revision round shown to a client"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Plate cancellation - Tidal Flat - 2026-04-02.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a copper plate with two deep diagonal scores across the worked area",
+        "a second sheet is visible beside it, printed from the scored plate, showing the same diagonals as white lines",
+        "the filename carries a cancellation word and an ISO date",
+        "no signature, no fraction, no title block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a damaged-looking object means a damaged file or a discardable one - this is the terminal document of the edition and the anti-forgery instrument of every impression already sold",
+        "an edition size or an impression number",
+        "that this is a photograph of studio equipment"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Certificate of Authenticity - Tidal Flat - 12 of 30.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots read Title / Year / Technique / Sheet size / Image size / Paper / Edition / Impression / Printer / Publisher",
+        "the Impression slot reads '12 of 30' and the Edition slot reads '30 signed and numbered, 6 artist's proofs'",
+        "a closing paragraph states that the plate has been cancelled and the date of cancellation",
+        "two signature blocks at the foot, one naming a studio and one naming a workshop"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a signed statement of fact is an executed legal instrument - it is a provenance document, and the legal reading belongs to the consignment agreement, not to this",
+        "that the workshop named in the second signature block is the author of the file or the corpus owner",
+        "an owner or a sale from a document that names neither"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Consignment - Harlow Editions - Spring 2026 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered clauses, a defined-terms block, a parties block and an execution block with two signatures and a date",
+        "a schedule at the rear lists six rows reading 13/30 through 18/30 with retail prices and a commission percentage",
+        "clause headings name title, risk, insurance during possession, and return"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the gallery is a client in the commissioning sense - it is holding objects on consignment, which is a placement, not a commission",
+        "a commission percentage or a retail price as a domain fact",
+        "that the legal reading suppresses the edition reading, or the reverse"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tidal Flat - documentation - flat shot - colour checker.tif",
+      "source_type": "image",
+      "observations": [
+        "EXIF carries a professional camera make and model, a DateTimeOriginal and a lens focal length",
+        "a colour target and a scale strip sit at the edge of frame beside a sheet lit evenly and shot square-on",
+        "three sibling files share the stem with suffixes reading detail, verso and margin",
+        "no GPS"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "camera_information",
+        "capture_year",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a professional camera makes this a photo event - the capture reading and the edition reading are disjoint evidence and neither may drop the other",
+        "an impression number from a documentation file that carries none",
+        "that this is a portfolio page merely because it is a finished-looking image of a finished object"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Print Run Order Confirmation - 500 A2 posters - Ashgrove Press.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a vendor letterhead, an order number, a delivery address and a payment total",
+        "an order line reads quantity 500, A2, 170gsm silk, 4/4, with a unit price and a line total",
+        "a proof-approval line reads 'proof approved 3/4' and a dispatch date follows",
+        "no numbering, no signature block, no impression column, no cancellation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an edition size from the quantity 500 - a quantity beside a unit price is a purchase of interchangeable copies, and this row must not fire on it",
+        "an impression number from '3/4', which is a date fragment here",
+        "that the word 'proof' is a printmaking proof - it is a prepress approval and belongs to creative.print-production"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Riso zine - ink layers - v3 FINAL.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "layers named fluoro pink, teal, black and registration marks",
+        "linked assets resolve to four scans in a sibling folder",
+        "same-stem siblings read v1, v2, v3 FINAL and v3 FINAL export.pdf",
+        "no enumeration, no register, no matrix noun"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a physical printing technique in a layer name activates this row - technique is a value, and the structures present here (linked assets, layers, a version family) are the creative default's signals",
+        "an edition from a zine that names no numbered set"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kiln log 2026-02 - cone 6 oxidation - mug batch.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read Date / Firing / Cone / Atmosphere / Shelf / Piece / Glaze / Result",
+        "rows list twenty-four pieces described by form and glaze, none carrying a number, a title or a designation",
+        "a glaze recipe with material names and parts sits on a second sheet",
+        "no edition size, no proof designation, no certificate anywhere in the folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that twenty-four pieces are an edition - they are a batch of interchangeable objects with no closed enumerated set and no individually addressable copies, and this is precisely where this row NARROWS rather than absorbs",
+        "an artifact_type of edition record from a process log",
+        "that a physical craft practice is by itself evidence for this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-14 at 11.02.31.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers 'Limited edition of 30 - now available' above a price and a shop button",
+        "a social-platform chrome band, an avatar and a comment count are visible",
+        "no EXIF beyond a screen dimension",
+        "the account name is not the corpus owner's"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the words 'edition of 30' activate this row - the sentence is marketing copy about someone else's object and there is no register, no matrix and no enumeration behind it",
+        "that missing EXIF proves anything",
+        "an impression number, a technique or a maker"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "studio-archive-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "the member list, read without unpacking, holds twelve .tif scans whose stems end 01of30 through 12of30, one .xlsx, one .pdf whose name contains a certificate word, and a folder of .dng files",
+        "no manifest and no readme",
+        "one member is password-protected and its content cannot be read"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not read - the enumeration is visible in the member NAMES and that is the evidence, not the contents",
+        "that the protected member is a credential",
+        "that the .dng folder is a photo event"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_2287.jpg",
+      "source_type": "image",
+      "observations": [
+        "a phone photograph of sheets hanging on a drying rack, taken at an angle in a room",
+        "no EXIF beyond a capture time; no GPS",
+        "it sits in a folder beside the flat-shot documentation set and the edition record",
+        "nothing legible in the frame - no margin, no annotation, no chop"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an impression number, a work title or a technique copied from the neighbouring register - a sparse file joins the neighbourhood without receiving its facts",
+        "that the absence of EXIF is proof of a screenshot",
+        "that proximity to an edition record makes this file part of the edition"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain_id": "creative.print-production",
+      "why": "THE PRIMARY COLLISION AND THE ROW'S OWN COLLISION FIXTURE: Print Run Order Confirmation - 500 A2 posters - Ashgrove Press.pdf, plus every folder in which a workshop, a press, paper stock, ink and the word 'proof' all appear. Both rows live in a print shop. The discriminator is FUNGIBILITY: print-production owns runs of interchangeable copies specified by a quantity, a stock and a colour spec, approved by a prepress proof and closed by a delivery; this row owns a CLOSED ENUMERATED SET whose members are individually numbered, individually designated and individually tracked, approved by a bon a tirer and closed by a CANCELLATION. RECIPROCAL: this row must not claim a job merely because a physical printing technique is named, and print-production must not claim an edition merely because a press pulled it. Where a folder has a quantity and no enumeration, print-production; where it has an enumeration and no order line, this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "creative.exhibition",
+      "why": "SAME FIXTURE BOTH SIDES, and this edge is RECIPROCATED from creative.exhibition, which already argues it in the same terms: a checklist row reading 'Untitled, 2025, screenprint, edition 12/40'. That row owns the checklist - many works by many hands assembled for one show, with lenders, insurance values and a hang. This row owns the impression register - one matrix, all its impressions, its proofs, its chop and its numbering scheme. RECIPROCAL, restated from this side exactly as exhibition states it: this row must not claim a checklist merely because a row carries an edition fraction, and exhibition must not claim an edition register merely because one impression was hung. The tell is the ROW UNIT: many works and one venue is exhibition, one work and many objects is this.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "creative.revision-round",
+      "why": "The purest structural collision in the family, and the reason this row survives the node test at all. Both sides present a run of same-stem siblings carrying a numeric token. A revision family is ORDERED AND SUPERSEDING - v3 replaces v2, and the correct treatment is to keep the family together and surface the latest. An edition is ENUMERATED AND COEQUAL - 12/30 does not replace 11/30, and both objects exist in different rooms. The discriminator is the constant denominator plus the presence of designations that stand outside the sequence (BAT, AP, PP). RECIPROCAL: revision-round must not read an impression list as a version family and propose a latest, and this row must not read _v1.._v3 as an edition of three.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "career.portfolio-work-samples",
+      "why": "SAME FIXTURE BOTH SIDES: Tidal Flat - documentation - flat shot - colour checker.tif, which is simultaneously the documentation of an editioned object and page four of an artist's portfolio. The discriminating evidence is what the file is FOR. Self-presentation evidence - a curated ordered set of finished images with no register, no proofs and no per-copy disposition, sitting beside a CV or an artist statement - is career. Register evidence - a documentation set keyed to an enumerated edition, inside a folder holding an impression list and a certificate - is this row. Where a lone flat shot has neither: \"Correct abstention is a successful outcome because the product's goal is reliable organization, not maximum file movement.\" RECIPROCAL: career must not claim a documentation set because its images are impressive, and this row must never claim a CV or a portfolio PDF whose 'editions' lines are the strongest false positive it will ever see.",
+      "provenance": "design"
+    },
+    {
+      "domain_id": "photos.camera-events",
+      "why": "SAME FIXTURE BOTH SIDES: the four flat-shot documentation files and IMG_2287.jpg, which carry the same EXIF make, model and DateTimeOriginal that any dated gathering carries. That evidence alone would propose a capture-year home for an object that has no capture date of its own - the print was pulled in March and photographed in June, and the photograph's date is not the work's. The discriminator is the structure around the captures: a square-on flat shot with a colour target and a scale strip, in a set of one object at several crops, beside a register. RECIPROCAL: photos must not lose a studio snapshot to this row because sheets are depicted, and this row must not claim a capture event. IMG_2287.jpg is the fixture where the correct outcome is that neither reading is asserted.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "code.software-project",
+      "why": "The real and non-obvious case: a plotter, generative or parametric edition, where a repository with a manifest, a lockfile and a source layout GENERATES the images that become a numbered physical set. A .git marker and a manifest would fire the code schema over material whose unit is an authored physical object, and the enumeration would be invisible inside an output directory. The discriminator is which structure explains the FOLDER: a manifest and source layout is code, and its internal layout is preserved rather than re-filed; an impression register with per-copy disposition is this row, and it usually sits OUTSIDE the repository root. RECIPROCAL: code must not claim an edition register because a script produced the images, and this row must not propose re-filing anything inside a preserved repository root.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "finance.small-business-bookkeeping",
+      "why": "The edition record and the sales ledger overlap on their most valuable columns - who has it, what they paid, when. A bookkeeping row's unit is a TRANSACTION with a counterparty, a date and an amount, aggregating toward a period. This row's unit is an OBJECT with a number and a location, aggregating toward a closed set, and its price column is incidental to that. RECIPROCAL: bookkeeping must not claim the impression register because it carries prices, and this row must not claim an invoice, a sales report or a period summary merely because it lists works. Where the same spreadsheet genuinely does both, the row unit decides, and the honest answer is often two groups over one file.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for the standalone durable artefact of this world - a lone certificate, a single consignment note, a kiln log with no edition behind it, an edition record for a work nothing else in the corpus mentions. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" 00 names certificates first, which is exactly this row's most common orphan.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for the normal case here: a scan, a state proof or an annotated sheet that is plainly part of some maker's practice while the work, the matrix and the set remain unresolved - which is usual, because margin annotations are pencil, filenames are camera stems, and nothing declares an edition until a register exists. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A lone documentation photograph, a cancellation shot or a single flat scan with no register, no set and no family around it. \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The transactional edge of a studio - a paper order, a press invoice, a shipping confirmation, and the poster order that is this row's collision fixture. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Where this row's commonest false positive belongs: saved images of OTHER people's editioned objects, auction listings, technique references, paper and glaze notes collected as inspiration. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\" The clause 'does not belong to a current project' is the exact test for whether a documentation image is the maker's own object or someone else's.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "For the collector-identifying half of a register when it is isolated from any edition - a placement list that is only names, towns and prices. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Marked inference because 00's list does not name owner registers; the mechanism it describes is what this row invokes.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exceptional here: password-protected archive members, oversize documentation masters and workshop packages no approved extractor reads. studio-archive-2026.zip routes here for its protected member while its readable member names still carry the enumeration.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "our_firm",
+      "other_domain": "creative.print-production",
+      "why": "The atelier that editions a work and the studio whose work it is are the same entity TYPE - a maker's organisation - in two roles, and this world puts BOTH NAMES IN THE SAME COLOPHON BLOCK on the same certificate. The roles invert with the corpus owner: when the corpus belongs to the workshop, the artist is the counterparty and the workshop is its own firm; when the corpus belongs to the artist, the workshop is the counterparty. A single-key model would silently reverse the meaning of an edition register on a change of owner. 00 requires exactly this modelling - \"The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.\" Neither key is declared by this placeholder schema; the split is recorded so that whichever pass declares them cannot collapse them. `our_firm` stays destination-ineligible for the authorship reason.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherits the creative schema's posture and DIFFERS FROM IT IN KIND on two points, which is the leg of the node test this row actually wins on. (1) THE PROTECTION DOES NOT LAPSE ON RELEASE. The creative default protects a work UNTIL publication - a campaign before launch, a cut before release, an identity before reveal - and the embargo expires when the work is shown. An impression register is the opposite: the edition is published, hung and sold, and the register becomes MORE sensitive afterwards, not less, because it names who owns each object and where each one physically is. This is a permanent posture on material whose parent schema assumes a temporary one, and a template that inherited the default unchanged would release the register at the moment it most needs holding. (2) THE REGISTER IS THE AUTHENTICITY INSTRUMENT. Edition size, proof count and the cancellation record are what make the objects scarce and what a forgery would have to contradict; disclosing or corrupting them damages every impression already sold and every person holding one, which is a harm to third parties who never touched this corpus. Against both: \"Privacy policy must be enforced before content reaches any model or external connector.\" And the local-only boundary is the operative mechanism - \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\" Third-party identity is present for the ordinary reason too: the Held by column carries private individuals' names and towns. This row does NOT carry is_safety_domain - that flag stays with 00's four - and it assigns no handling class, which is P7's vocabulary.",
+  "open_question": "Three. (1) THE ROW'S NAME IS WIDER THAN THE ROW, and this is a recommendation to R1c rather than a resolved question. The roster names it 'Printmaking, editions and physical craft' and hints at 'prints, ceramics, textiles, bindings'. The research finds ONE defensible node inside that: the CLOSED ENUMERATED SET and its register. The rest of 'physical craft' - the kiln log, the dye lot sheet, the one-off bound book - has no enumeration, no per-copy disposition, no proofs and no cancellation, and its only distinguishing evidence would be the ABSENCE of a digital original, which is never-alone evidence and cannot activate anything. Alternatives: (a) RENAME to editions and impression registers and route unenumerated craft to creative.self-initiated-work and Independent Records - what this node recommends and what its file list and never_alone rules already enforce; (b) KEEP the wide name and accept that half its coverage never activates, which is the 574's failure written into a launch row; (c) SPLIT into an editions row and a studio-practice row, which needs a real filesystem to justify and would be a second row defined by absence. Recommended: (a). NOT ACTED ON - the roster is not this agent's to edit. (2) NO CANONICAL KEY HOLDS AN IMPRESSION NUMBER, AND NONE IS PROPOSED. It is the single most distinctive string this world has, it is the row's whole detection signal, and it is deliberately NOT a field: minting a key on a field-less schema at the exact point of maximum temptation is the 574's mistake, and even if minted it must never be a folder level, since a directory per impression would scatter one edition across thirty branches. The same refusal covers edition size, price, paper and technique. Recorded for R1c as this row's one genuinely field-shaped hole, alongside the creative schema's own rights-and-licence hole which it resembles. (3) NO CANONICAL KEY HOLDS A COLLECTOR OR OWNER ROLE, and the role_split above therefore covers the maker side only. The Held by column names people who hold objects and who are neither clients, nor authors, nor the corpus owner. The alternatives are to leave it unmodelled (current, and the reason the register's names stay in must_not_conclude), to overload `client` with a purchaser meaning it was not defined to carry, or to mint an owner key on the shared vocabulary - a decision about the product's field table that one template row must not make."
+}

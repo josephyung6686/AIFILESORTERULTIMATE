@@ -1,0 +1,522 @@
+{
+  "id": "law_practice.conveyancing",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Property conveyancing (practitioner side)",
+  "one_line": "J-DEPTH placeholder template on `law_practice` for the apparatus by which a practitioner transfers or charges an interest in LAND for a client - the register and plan extract, the search pack returned by third-party providers, the numbered pre-contract enquiry form, the report on title to the buyer, the requisitions, the certificate of title given to a lender, the completion statement with its apportionment to a completion date, the transfer-tax return, and the registration application and its title-information return. Its distinct default is a REGISTERED-PARCEL ANCHOR: an opaque registry title or parcel reference repeated across artefacts issued by DIFFERENT third-party bodies, together with an apportionment or registration structure. It is NOT activated by the word conveyancing, by a property address, by a law-firm name, by the presence of a deed, or by a practice-area label. It deliberately does not hold the EXECUTED transfer, deed, charge or contract (those are `legal`'s on `legal`'s own execution-block evidence and `legal`'s safety protection runs first), the holder's own move (`construction_property.sale-purchase`), the lender's offer to the borrower (`finance.loans-mortgage`), or a corporate deal that happens to own buildings (`law_practice.transactional-deal`). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "title_reference",
+      "type": "string",
+      "why_no_existing_key": "The organising anchor of this world is a registered land parcel, and no canonical key names one. `location` is the Photos capture-place key and would import a geographic reading of what is actually an opaque registry identifier; `institution` and `record_type` are Finance-scoped; `project` and `artifact_type` are Research and Code; `client` and `our_firm` are the engagement-role pair and name people, not land. The argument for adjudicating this key is a PRIVACY argument rather than a filing convenience: a title number such as `HD123456` is pseudonymous - it discloses that some registered parcel is being transacted but not which dwelling or whose - whereas the natural alternative anchor, the property address, writes a person's home into the filesystem path where every later process reads it. If R1c wants any destination-eligible anchor in this family at all, this is the least disclosive one available. Requested destination-eligible; requested search-visible only under the same user approval the schema demands for a client or matter level. Provenance: proposal.",
+      "reliability_ceiling": "validated",
+      "rule_family": "registry-identifier pattern plus registry-document context (an official-copy heading, a register-entry structure, or a registration application form number); the pattern alone is a bare alphanumeric token and 00 forbids a bare token as sole proof",
+      "destination_eligible": true,
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "THE PARCEL-ANCHOR PRECONDITION, and it is what makes this row differ from its schema's default rather than repeat it. The `law_practice` default requires BOTH an exact matter reference repeated across artefacts AND one artefact whose own labelled slots separate a practitioner or firm role from a client role. That default UNDER-fires on this world's characteristic files, because a local-authority search return, a drainage-and-water return, an environmental report and an official copy of a register carry NO matter reference and NO client-role slot on their face - they are keyed to a parcel and addressed to whoever ordered them. This row therefore accepts a substituted first leg: an exact REGISTERED-PARCEL OR TITLE REFERENCE repeated across two or more artefacts ISSUED BY DIFFERENT BODIES (a registry, a local authority, a water undertaker, a search provider, a lender), with the role leg satisfied anywhere in the corpus rather than on the file itself. The deletion test still governs: delete every entity name, every address and every document-type word, and if no register-entry, search-return, apportionment or registration structure survives, nothing fires.",
+      "AN OFFICIAL REGISTER EXTRACT structure: a registry-issued document whose body is a set of numbered ENTRIES against one parcel identifier, sectioned into a property description part, a proprietorship part naming the registered owner and often a price-paid entry, and a charges part listing subsisting charges, restrictions and covenants; usually accompanied by a plan sheet with a coloured extent and a scale. There is no bound party pair and no execution block anywhere on it, which is precisely why `legal`'s instrument signal does not fire and this row's does. Read through 00's direct-fact path for a labelled slot and its table path: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their\".",
+      "A SEARCH-PACK structure: two or more independently-issued RESPONSES keyed to the same property address or parcel, each carrying an ordering reference, a search provider or authority name, a response date, and an answer set against a fixed question schedule - the local land charges register result, the standard local-authority enquiries return, the drainage and water report, the environmental or contaminated-land screen, the mining or coal report where relevant. The discriminating evidence is the PACK: one return alone is a single administrative letter and can be anybody's; two returns from DIFFERENT issuers against one parcel is a transaction being investigated.",
+      "A PRE-CONTRACT ENQUIRY structure: a numbered QUESTION-AND-ANSWER form completed by a seller or a seller's practitioner - the property information form, the fittings and contents schedule, the leasehold information form, the commercial property standard enquiries - and its replies. Numbered questions with free-text or tick-box answers, a signature block for the seller as INFORMANT rather than as a covenanting party, and no counterparty execution block. Structurally the negation of `legal`'s signal.",
+      "AN APPORTIONMENT-TO-A-DATE structure, and it is this row's single cleanest deterministic signal because nothing else in the roster has it: a statement whose line items are split at a named COMPLETION or CLOSING DATE - price, deposit already held, mortgage advance, transfer tax, registration fee, professional charges, and ground rent, service charge or council-tax items PRO-RATED across that date - resolving to a balance due from or to the client. A generic invoice has an issuer and a billed-to and no date-split; this has a date-split and a balance to complete on.",
+      "A REGISTRATION-APPLICATION structure: a registry application form bearing a form number, a fee, an applicant, a list of accompanying documents and the parcel identifier it applies to, and its return artefact - the updated register, the title information document, the certificate confirming the tax return was filed. A submission made ON A CLIENT'S BEHALF to a registry, which is the schema work type this row instantiates against land.",
+      "A CERTIFICATE-TO-LENDER structure: a standard-form certificate addressed to a mortgage lender, given by the practitioner, confirming title on the lender's own published terms, with a report reference, a borrower slot, a security-property slot and a requested advance date. It is the one artefact here where the practitioner acts for TWO clients at once, and its addressee-is-a-lender slot is what tells it from a report addressed to the buyer.",
+      "A COMPLETION or CLOSING AGENDA: a checklist of documents to be exchanged and steps to be taken in order on a named date, with a column for who provides each item and a signature or undertaking column. Accepted here only when its items reference a parcel, a registry application or an apportionment; the same shape over share transfers and board minutes is `law_practice.transactional-deal`'s."
+    ],
+    "needs_llm": [
+      "WHOSE SIDE, which is the hardest reading in this row and the one that decides between someone else's transaction and the holder's own home. Byte-identical search returns, register extracts and completion statements exist on both sides of the practitioner/principal fork. The discriminator is apparatus, not content: a matter or file reference, a client ledger, a firm letterhead addressed TO a named client, a fee narrative. If the corpus shows the holder as the ADDRESSEE of everything and produces none of it, this row must not fire.",
+      "ACTING FOR THE BUYER, THE SELLER, THE LENDER OR THE LANDLORD, which changes what the same document means. A report on title flows to a buyer; replies to enquiries flow from a seller; a certificate of title flows to a lender; a licence to assign flows from a landlord. The role is usually stated in an addressee line or a heading and should be read literally or abstained on - never inferred from which documents are present.",
+      "REGISTERED TITLE VERSUS AN UNREGISTERED CHAIN. Where no register exists the anchor is an abstract or epitome of title - a numbered schedule of historic deeds with dates and parties - and the parcel leg must be satisfied by that schedule instead. This is a genuine structural variant, not a jurisdiction to be guessed at.",
+      "THE ENQUIRY-PACK VERSUS THE DILIGENCE-REPORT READING on the same words. A report on title over ONE parcel addressed to an individual purchaser is this row; a report on title over a PORTFOLIO addressed to a corporate acquirer as a chapter of a diligence exercise is `law_practice.due-diligence`'s. Same phrase, different world.",
+      "THE ARRIVED-COPY PROBLEM. A planning permission, a building-regulation completion certificate, an energy certificate, a guarantee and a gas-safety record all arrive INSIDE an enquiry pack as copies. They keep their own homes and their own schemas; they do not become this row's evidence, and their presence in a folder does not make the folder a conveyance."
+    ],
+    "never_alone": [
+      "THE PROPERTY ADDRESS. The single most tempting false signal in this row and the one a naive detector will fire on constantly: an address appears on a utility bill, an insurance schedule, a tenancy agreement, a builder's quote, a survey, an estate-agent brochure, a delivery note and a council-tax demand. It proves a place is being discussed and nothing else. A parcel or title reference plus a second-issuer artefact is required before the address means a transaction.",
+      "A BARE REGISTRY-SHAPED TOKEN. A title-number-shaped or parcel-number-shaped string is a bare alphanumeric identifier, and 00 forbids a bare number as sole proof. It needs registry-document context - an official-copy heading, a register-entry structure, a registration form number - and even then it does not tell the practitioner side from the owner side.",
+      "THE WORD CONVEYANCING, and every sibling in its family - completion, exchange, searches, freehold, leasehold, title, deed, chain, redemption, apportionment. A practice-area label, a service name on a firm's website, a quote for conveyancing fees, and a published guide to conveyancing all carry the whole vocabulary and none of the structure. Context terms are not evidence.",
+      "A LAW-FIRM NAME OR A CONVEYANCER'S LETTERHEAD, inherited unchanged from the schema: a role name cannot carry a schema, and the same firm appears in a corpus as the holder's own firm, as the other side, and as a firm the holder is a client of.",
+      "THE PRESENCE OF A DEED OR A SIGNATURE BLOCK. It points the other way: an executed transfer, charge, deed or contract with a bound party pair and an execution block is `legal`'s on `legal`'s own evidence, and `legal` is a safety domain whose protection runs first.",
+      "AN EXTENSION OR A FILE FORMAT. A `.pdf` register extract, a `.xlsx` completion statement and a `.zip` deed packet are the same shapes as everything else in the corpus; 00 forbids extension-alone reasoning.",
+      "A DOWNLOAD SESSION. Search results, a register copy, a lender's offer and an agent's brochure routinely arrive in one browser session about one house. Co-download is not a group anchor, and 00 is explicit that a supported group needs a valid anchor.",
+      "A FOLDER PATH NAMED FOR A HOUSE. `~/Documents/14 Oakfield Road/` is a user's own filing habit, not evidence, and treating it as evidence would let this row activate on the holder's own move - the exact under-firing failure the role fork exists to prevent."
+    ]
+  },
+  "work_types": [
+    "instruction, quotation and client care letter for a transaction",
+    "identity, source-of-funds and gifted-deposit verification record",
+    "official copy of register, title plan and title-deed abstract or epitome",
+    "local authority, drainage and water, environmental, mining and chancel search return",
+    "pre-contract enquiry form, fittings and contents schedule and replies",
+    "leasehold information pack, management company pack and landlord consent",
+    "draft contract, transfer and charge under negotiation, with redlines",
+    "report on title to buyer, seller or landlord",
+    "certificate of title and lender-instruction compliance record",
+    "mortgage-lender instruction, offer copy and redemption figure",
+    "exchange record, deposit receipt and contract-completion undertaking",
+    "requisitions on title and replies",
+    "completion statement, apportionment schedule and client ledger",
+    "transfer-tax or stamp-duty return and its filing certificate",
+    "registration application, requisition from the registry and title information return",
+    "practitioner-to-practitioner undertaking, including discharge undertakings",
+    "notice of transfer or charge to a landlord, management company or freeholder",
+    "post-completion checklist, file closure and deeds or papers transfer record"
+  ],
+  "grouping_reasons": [
+    "ONE TRANSACTION OVER ONE PARCEL, from instruction to registration: the quote, the register extract, the search pack, the enquiries and replies, the draft contract, the report on title, the requisitions, the completion statement, the tax return and the registration return. Content-incoherent and purpose-coherent, which is 00's own licence for the group - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no address, price, owner or lender fact onto any member.",
+    "ONE SEARCH PACK inside that transaction, joined by one ordering reference and one parcel - several independently-issued returns that arrive together and mean nothing apart. This is the one grouping in this row that is genuinely NOT joined by a matter reference, and it is why the parcel leg had to be introduced.",
+    "A LINKED SALE AND PURCHASE, which is this row's structural oddity and the reason it cannot borrow the schema's one-matter grouping unchanged: a client selling one parcel and buying another has TWO matter references, TWO parcels and ONE completion date, and the dependency is real - the sale funds the purchase and the completion statements cross-reference. Joined only by an explicit cross-reference between the two files, never by a shared client name.",
+    "ONE DOCUMENT ACROSS DRAFT, REDLINE, ENGROSSED, EXECUTED, DATED, SUBMITTED and REGISTERED states - the universal version_family fact, supported by hashes or explicit revision markers, never by a `-final` suffix. This row has a longer such chain than any other sibling and the later states leave the row: once executed, the artefact is `legal`'s.",
+    "ONE PARCEL ACROSS TIME, which must be offered as a candidate and never asserted: the same dwelling may be transacted by the same firm twice a decade apart, for different clients. The parcel joins them; the client does not, and no client, price or owner fact may cross between them. A shared parcel is a retrieval convenience, not a supported group.",
+    "NOT grouping reasons, stated so a detector does not reach for them: a shared property address; a shared postcode or street; a shared lender; a shared estate agent; a shared completion date across unrelated matters; a download session; a folder named for a house; and \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, for the schema's three reasons unchanged - no declared field to branch on under PR-6, no deep template unlocking from a safety co-activation, and the disclosure cost of the natural labels - but this row's PROSE RECOMMENDATION DIFFERS FROM ITS SCHEMA'S DEFAULT ON THE FIRST TWO LEVELS, and that difference is the substance of its node test. The schema's default is CLIENT, then MATTER, then DOCUMENT FUNCTION, then period, with the client level seeded ineligible. Here the intelligible parent is neither the client nor the matter: it is the PARCEL. A search return, a register extract and an apportionment schedule are unintelligible under a client name and perfectly intelligible under the land they concern, and 00's own parent rule is the argument - \"A work type such as Homework 3 is meaningful only after the course is known\" - because replies to enquiries, a requisition and a discharge undertaking are meaningless without the parcel they are about. The linked-sale-and-purchase case proves the point from the other side: one client, one completion date, TWO parcels, and a client-first order would fuse two transactions that must not merge. THE RECOMMENDATION HELD AS PROSE: the parcel where a pseudonymous title or parcel reference is available and the user has approved any property-level branch at all, then the transaction (sale, purchase, remortgage, lease grant), then the document function, then the period last. THREE RULES BIND IT. First, and this is the rule this row adds to the family: a PROPERTY ADDRESS MUST NEVER BE A FOLDER LEVEL, even though it is the most natural label in this world, because it writes where a named person lives into a path that every later process reads - a sharper version of the schema's naming rule, since a witness name discloses involvement while a dwelling address discloses physical location. The title reference is offered as the pseudonymous substitute for exactly this reason. Second, a COUNTERPARTY, a chain member, a gifted-deposit donor or a tenant may never be a level; they are third parties to a third party. Third, NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A completion date is the most seductive time-first candidate in the roster - it is a single sharp date the whole file converges on - and it must still be refused, because search date, enquiry date, exchange date, completion date, filing date and registration date all differ and a year-first tree would scatter one transaction across two calendar years whenever it completes near a year end. Nothing here is capture-based, so `time_first: true` would be claiming the photos exception without the photos evidence. And whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".ics",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Official Copy of Register of Title - HD123456.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registry-issued heading and an edition date",
+        "numbered entries under a property part, a proprietorship part with a registered proprietor and a price-paid entry, and a charges part listing a subsisting charge and restrictive covenants",
+        "a parcel identifier repeated in the page furniture",
+        "no execution block, no counterparty signature, no tribunal caption anywhere on the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the registered proprietor is the holder or the holder's client",
+        "that the title is good, marketable, unencumbered or currently accurate",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Local Authority Search LLC1 and CON29 - 14 Oakfield Road.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an issuing local authority or search provider name, an ordering reference and a response date",
+        "answers returned against a fixed numbered enquiry schedule",
+        "the same property address as the register extract and the drainage report in the same folder",
+        "addressed to a firm rather than to a named individual"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a disclosed planning or highways entry affects value, saleability or the client's decision",
+        "that the ordering firm is the holder"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Property Information Form TA6 - completed by seller.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered questions with tick-box and free-text answers about boundaries, disputes, alterations, guarantees, services and occupiers",
+        "a seller signature block described as confirming the accuracy of answers, not as executing an instrument",
+        "no counterparty block and no witness attestation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a disclosed dispute, alteration or defect is true, material or actionable",
+        "that the signature makes this a contract"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Completion Statement and apportionments - Oakfield purchase.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column set pairing a matter or file reference with description, debit, credit and balance",
+        "rows for price, deposit held, mortgage advance, transfer tax, registration fee and professional charges",
+        "ground rent and service charge rows explicitly pro-rated across a named completion date",
+        "a balance-due-to-complete row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the figures are final, correct, paid or reconciled",
+        "a finance record_type or institution fact from the mortgage-advance row alone"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate of Title to lender - report ref 88214.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressee slot naming a mortgage lender rather than the buying client",
+        "standard-form wording adopted by reference to a lender's published handbook",
+        "borrower slot, security-property slot, requested advance amount and requested completion date",
+        "given and signed by the practitioner firm, not by the parties to a transfer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that title is in fact good or that the advance was released",
+        "that the practitioner acts only for the buyer"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "AP1 application to register and title information document.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a registry application form bearing a form number, a fee, an applicant and a schedule of accompanying documents",
+        "the parcel identifier the application applies to",
+        "a later registry return confirming the register has been altered",
+        "no bound party pair anywhere on the application itself"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that registration completed, that priority was preserved, or that any deadline was met",
+        "that the applicant is the holder"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Exchange today - 14 Oakfield Road - our ref CONV-2291.eml",
+      "source_type": "email",
+      "observations": [
+        "explicit sender and recipient practitioner roles on opposite sides of a transaction",
+        "an exact matter reference in the subject line and an exact parcel reference in the body",
+        "a formula of words undertaking to hold a deposit and to send a signed contract",
+        "a concrete named attachment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that exchange occurred, that a binding contract exists, or that an undertaking is enforceable",
+        "a client fact from a signature block"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Draft TR1 transfer - v4 marked up.docx",
+      "source_type": "text_document",
+      "observations": [
+        "registry transfer form layout with panel numbers",
+        "tracked changes and comment threads between two firms",
+        "parcel identifier and consideration panels populated",
+        "execution panels present but BLANK - no signature, no witness, no date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the transfer is agreed, executed or effective",
+        "that `legal` should activate - the empty execution panel is the negation of its signal"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Source of funds - gifted deposit - donor bank statements.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest listing a signed gift declaration, a donor identity document and three months of donor bank statements",
+        "the donor is a named person who is not the client and not a party to the transaction",
+        "an ordering matter reference in the manifest header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that funds are legitimate, that verification passed, or any anti-money-laundering outcome",
+        "that the donor is the client or has any interest in the parcel"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - registry portal application submitted.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in filename shape and pixel dimensions",
+        "OCR reveals a submission confirmation panel and an application reference",
+        "no matter reference and no client name visible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a parcel or client fact exists because a portal was open",
+        "that missing EXIF proves screen origin"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Completion Statement - 14 Oakfield Road - please check.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the SAME apportionment structure and the same figures as the practitioner-side workbook",
+        "addressed TO a named individual at a home address",
+        "arrived as an attachment; nothing in the corpus was produced by a firm",
+        "no matter reference, no client ledger, no fee narrative"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row activates - the holder is the addressee, not the producer",
+        "a client fact from the addressee line"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Report on Title - Project Harbour property portfolio.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the collision fixture: identical phrase, register extracts quoted, title numbers listed",
+        "addressed to a corporate acquirer under a deal codename, not to an individual purchaser",
+        "a schedule of MANY parcels with a materiality threshold and a red-flag summary",
+        "cross-references to a disclosure letter and a conditions-precedent checklist"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row activates because title numbers appear",
+        "that a portfolio schedule is a search pack"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Conveyancing - a practical guide - 4th edition.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carries every context term this row lists - searches, enquiries, requisitions, apportionment, completion, registration - and specimen forms as illustrations",
+        "a publisher, an ISBN, a table of contents and chapter numbering",
+        "no parcel, no client, no matter reference, no ordering reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that vocabulary density is evidence of a transaction",
+        "that specimen forms are this holder's forms"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Deeds packet - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive; member list unreadable",
+        "filename asserts deeds and nothing verifies it"
+      ],
+      "facts_legal": [
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a parcel, client, matter or sensitivity result from the filename",
+        "that it should be force-opened to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "THE SCHEMA-LEVEL COLLISION INHERITED AND SHARPENED. `legal` is a safety schema activating on an executed-instrument structure - a bound party pair plus an execution or notarial block. Every artefact in a conveyance that reaches that state is `legal`'s ON `legal`'S OWN EVIDENCE and this row does not displace it: the executed contract, the dated transfer, the charge, the deed of covenant, the statutory declaration. What this row is for is the artefact class on which `legal`'s signal DOES NOT FIRE AT ALL, and in this world that class is unusually large and unusually structural: a register extract has no parties bound to each other; a search return is an answer schedule; an enquiry form has an informant rather than a covenantor; a completion statement is an apportionment; a registration application is a submission. THE SAME FIXTURE ON BOTH SIDES: `Draft TR1 transfer - v4 marked up.docx` with BLANK execution panels is this row's; the same document dated and signed is `legal`'s, and the version_family fact is what carries continuity across the seam without either row claiming the other's state. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.sale-purchase",
+      "signal": "THE ROLE FORK, and the most consequential collision this row has, because the failure mode is UNDER-firing on someone else's transaction or OVER-firing on the holder's own home. That row is the PRINCIPAL side: the holder buying or selling their own property, holding the copies that were sent to them. The evidence overlaps almost totally - the same register extract, the same search pack, the same enquiry replies, the same completion statement. THE SAME FIXTURE ON BOTH SIDES: `Completion Statement - 14 Oakfield Road - please check.pdf`. On this row it is one line in a client ledger under a matter reference, produced by the holder's firm; on `construction_property.sale-purchase` it is an incoming attachment addressed to the holder with no matter apparatus around it. The discriminator is the practitioner apparatus - matter or file reference, client ledger, fee narrative, firm-as-producer - never the document type and never the address. If the apparatus is absent, this row must abstain, because activating it would treat the holder's own move as a client file and would license a property-named tree over their own home. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.transactional-deal",
+      "signal": "THE SIBLING SEAM, and it is the one this row's node test had to survive. Both are transactions run by a practitioner to a completion or closing date, both have an agenda, a diligence step, drafts, undertakings and a closing set. THE SAME FIXTURE ON BOTH SIDES: `Report on Title - Project Harbour property portfolio.pdf`, this row's declared collision fixture. Discriminating evidence, stated in both directions: this row requires the REGISTERED-PARCEL ANCHOR - one parcel, third-party returns keyed to it, an apportionment split at a completion date, and a registry application; `law_practice.transactional-deal` requires the CORPORATE-DEAL ANCHOR - a deal codename or entity pair, a share or asset transfer, a conditions-precedent checklist, a disclosure letter and board approvals, with any property schedule appearing as a diligence CHAPTER over many parcels rather than as the subject. A corporate acquisition that includes freehold sites is a deal that owns land, not a conveyance; a residential purchase by a company is a conveyance with a corporate buyer. R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.estates-administration",
+      "signal": "SAME STRUCTURE, DIFFERENT CAUSE. An estate that owns land produces byte-identical evidence to a conveyance: a register extract, a search pack, a transfer form, a registration application, a completion statement. THE SAME FIXTURE ON BOTH SIDES: `AP1 application to register and title information document.pdf`, which appears in this row supporting a sale and in `law_practice.estates-administration` supporting an assent from personal representatives to a beneficiary. Discriminating evidence: a grant of representation, an estate account, a schedule of assets and liabilities, and an inheritance-tax return support the estates row; a sale contract, a buyer's practitioner on the other side, a deposit and a chain support this one. Where a personal representative SELLS, both are correct and the seam is a co-activation for R1c rather than a mutex - recorded here as the collision because the evidence genuinely competes. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "THE MONEY SEAM, and it runs through one folder in both directions. That row owns the borrower-facing lending record: the offer, the illustration, the annual statement, the redemption figure, the direct-debit mandate - issuer-and-borrower structure, no parcel apparatus. This row owns the practitioner-facing security work: the lender's instructions to the firm, the certificate of title given to the lender, the discharge undertaking, and the advance line inside an apportionment. THE SAME FIXTURE ON BOTH SIDES: a redemption statement from an existing lender - it is `finance.loans-mortgage`'s as the holder's own borrowing record, and this row's when it is a line item a practitioner is redeeming on completion under a matter reference. `finance` is a safety schema and its protective ordering runs first wherever both read. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "THE ADJACENT-PROFESSIONAL SEAM, argued because the neighbouring landed row already argued it against this id from its side: `construction_property.site-survey` records that a title plan is a legal boundary record and routes it here. The reciprocal, owed from this side: a TITLE PLAN is this row's - registry-issued, an extent shown by colour, authority by registration, no datum and no accuracy statement; a MEASURED SURVEY or a valuation report is not this row's at any point, even when it arrives inside a transaction folder, because its authority is measurement or opinion and its addressee is a lender or a buyer as a professional deliverable. THE SAME FIXTURE ON BOTH SIDES: a plan sheet of one parcel - registry furniture and an entry reference makes it this row's; a datum, levels, a scale bar and a surveyor's accuracy statement makes it the neighbour's. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "government",
+      "why": "This row's most routine co-activation and the one that distinguishes it from every other `law_practice` sibling: a conveyance is largely a correspondence with PUBLIC BODIES. A local land charges result, a standard local-authority enquiries return, a registry application and its return, and a transfer-tax filing certificate are authority-side artefacts with authority-side structure; the ordering, the reporting and the apportionment around them are this row's. Disjoint evidence, one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "why": "Identity and source-of-funds verification is a mandatory part of taking property instructions, so this corpus routinely contains other people's passports, proofs of address and bank statements - and, uniquely in this family, the statements of a GIFTED-DEPOSIT DONOR who is not the client and not a party to anything. The identity documents are `identity`'s and remain protected on its evidence; the verification record listing them is this row's. `identity` is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "A client ledger, a completion statement and a fee note carry both readings on disjoint evidence - the apportionment-to-a-completion-date structure for this row, the issuer-and-billed-to or institution-and-account structure for `finance`. 00 licenses the multi-membership directly: \"A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.\" `finance` is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The principal fallback, and the correct default for the characteristic isolated file here, which is a document naming where a specific person lives and how much they borrowed. A stray register extract, a completion statement, a certificate of title, a donor's bank statement: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" and 00 licenses surfacing without a group - \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's defining failure, which is the side question: a real transaction document whose producer and addressee do not resolve to the practitioner or the principal side. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone administrative return with a durable purpose and no group and no person exposed - a single search response, a registry fee confirmation, a filed-return certificate. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world are common and low-value: a search fee receipt, a registry fee confirmation, a courier confirmation for deeds, a bank transfer confirmation. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This row's tempting false files are overwhelmingly reading material, because the vocabulary is published everywhere: practice guides, protocol texts, lender handbook extracts, tax guidance notes, specimen form collections. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected deeds packets, split case-management exports and proprietary registry data files are ordinary here and must not be forced open. \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The inactive fallback for a positively evidenced capture of a registry or search portal whose OCR does not establish a parcel or a matter. Account names, references and links stay redacted.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "construction_property.sale-purchase",
+      "why": "The schema's role pair, pointed at the neighbour that holds the OTHER role in this row's specific fork. Both keys are already canonical, so this is borrowed rather than minted, under 00's general rule that the system must separate roles that happen to contain the same entity type. What this row adds is that the split here is not a filing convenience: it decides whether a completion statement is a client file or the holder's own house, and the two readings are byte-identical. Both keys are requested destination-INELIGIBLE for this row - a client level is a disclosure, and neither key can represent the chain counterparty, the lender, the landlord or the deposit donor, who are the parties this world actually exposes. Provenance: inference; the underlying role-separation rule is design.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and this row's privacy argument DIFFERS FROM ITS SCHEMA'S DEFAULT rather than repeating it, which is the third leg of its node test. The schema's argument is that the exposed party is a third party - a witness, a deponent, an accused, a child - who never chose this filesystem and cannot consent. That is true here too, but the exposure has a different shape and a sharper edge. FIRST, LOCATION. This is the only `law_practice` row whose central identifier is a PHYSICAL ADDRESS, and a dwelling address is not merely identifying, it is locating: a folder or a filename disclosing that a named person is moving to a named house is a personal-safety exposure, not only a confidentiality one, and it is durable in a way a matter reference is not. That is why this row forbids an address dimension outright and offers a pseudonymous title reference as the substitute. SECOND, THE MONEY IS UNUSUALLY COMPLETE. A single completion statement discloses a purchase price, a deposit, a mortgage advance, an outstanding redemption figure and a balance - a fuller picture of one household's finances than most `finance` artefacts, and 00's corpus sentence covers exactly this material: a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\", with \"The default posture must therefore be local-first and data-minimizing.\" THIRD, THE NON-CLIENT PARTIES. Source-of-funds verification pulls in a GIFTED-DEPOSIT DONOR - a parent, usually - whose identity document and bank statements sit in a practitioner's folder although they are not the client, not a party to the transfer and have no relationship with the holder. Occupier consents, tenants named in an enquiry reply, and chain members named in a completion chain are in the same position. FOURTH, EXISTENCE IS DISCLOSIVE, and here it discloses a life event: the presence of a redemption figure beside a sale file implies a move, a separation, a probate or a repossession before any content is read. THREE CONSEQUENCES. (a) No legal status is ever inferred - not good title, not priority, not the effectiveness of a transfer, not whether a search is still current, not whether a deadline was met, not whether an undertaking binds; the literal label is preserved as an observation. (b) Anti-money-laundering material is detected in order to PROTECT it, never to reach a verification outcome, and no compliance wording on a form becomes this product's classification. (c) Cross-parcel bridging by address, postcode, lender or agent is suppressed as a privacy barrier and not only as an accuracy rule. This row does not carry `is_safety_domain` and should not - 00's four are named and closed - but `legal` and `finance` co-activate on much of this material and their protective ordering usually runs anyway. USUALLY IS NOT ALWAYS, and the exceptions are precisely this row's own characteristic files: a search pack, an enquiry form, an apportionment schedule and a registration application fire neither. That residue is the open question. The handling class is P7's and is not set here.",
+  "open_question": "NJ-LPC-1: a search pack, a pre-contract enquiry form, an apportionment schedule and a registration application are this row's characteristic files and fire NEITHER `legal` nor `finance`, so the safety-domain protective ordering that usually rescues this material does not run on exactly the files that carry a dwelling address, a purchase price and a non-client donor's bank statements. Alternatives for R1c and P7: (a) leave the residue to `potentially_sensitive` and Protected Records routing, accepting that protection is a residual rather than an ordering guarantee; (b) let a template request that P7 handling run ahead of any model path for third-party personal material, which is a mechanism this catalogue does not currently have and which `construction_property.agency-listing` raised independently as NJ-CP-AL-1; (c) extend 00's four safety domains, which this row does not propose and believes should not be decided at row level. NJ-LPC-2: whether `title_reference` is adjudicated as a canonical key, and if so whether a pseudonymous parcel identifier may be destination-eligible where a property address may never be - the whole disclosure argument of this row turns on that distinction. NJ-LPC-3: where a personal representative sells estate land, this row and `law_practice.estates-administration` are both correct on the same bytes; R1c must decide whether that seam is a mutex or a co-activation, and both rows name the registration application as the competing fixture."
+}

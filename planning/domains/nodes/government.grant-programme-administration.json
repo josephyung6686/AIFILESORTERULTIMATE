@@ -1,0 +1,435 @@
+{
+  "id": "government.grant-programme-administration",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Grant programme administration (funder side)",
+  "one_line": "The awarding body's own working corpus for one grant programme: the published call, the applications received from unrelated third parties, the assessment written about those applicants, the award instrument that gives money for the recipient's own purposes, and the claims and monitoring returns that flow back. It is not activated by the word grant, by a funder or agency name, or by holding a grant document; it requires the holder in the deciding-and-paying role over a bounded programme cycle. It declares no government field rows and no folder dimensions under PR-6, so activation unlocks only recognition, an applicant-protective privacy posture, universal facts, and grouping.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "programme",
+      "type": "string",
+      "why_no_existing_key_works": "No canonical key names a bounded funding round run by an authority. `project` is the holder's own scoped work on the Research and Code schemas and would misread an applicant's project as the holder's. `purpose` is scoped to College Applications. `institution` names an organisation, not a cycle, and the funder here is the holder rather than a counterparty. `event` is capture-based. `record_type` is Finance-scoped. Without one such anchor no dimension can exist, because 00 requires that 'a parent dimension should provide the context required to understand the child' and an application reference such as CRF3-0147 is unintelligible without its programme.",
+      "adjudication_note": "R1c should adjudicate this together with the open question already raised on research.grants-funding about declaring a funder-carrying key, so that one decision covers both sides of the same money rather than minting two variants.",
+      "destination_eligible_if_granted": true,
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema. None of them licenses a government fact. Every accepted signal must place the HOLDER on the awarding side of the money — receiving applications and deciding them — not on the receiving side of a grant.",
+      "a call, notice of funding opportunity, or prospectus carrying an issuing-authority block plus labelled eligibility, eligible-expenditure, assessment-criteria and closing-date sections, where what the issuer offers is funding for the applicant's own purposes rather than payment for goods or services delivered to the issuer",
+      "several inbound documents authored by DIFFERENT third-party organisations, each carrying a reference token that shares one programme prefix, held on the same disk as the call that issued that prefix; the many-to-one inbound fan-in is the decisive shape and does not occur on the applicant side",
+      "an assessment artifact that scores or ranks named third parties — a scoresheet whose rows are application references and whose columns are criteria and named assessors, a moderation record, or a panel recommendation; the holder is writing evaluations ABOUT non-holders",
+      "an assessor or panel-member conflict-of-interest or eligibility declaration that names applicant organisations, signed by someone other than the applicant",
+      "an award or rejection instrument issued BY the holder, containing conditions of funding, eligible expenditure headings, a payment schedule and a recovery or clawback clause, and containing no acceptance-of-deliverables or supply clause",
+      "inbound claim, drawdown, or monitoring returns keyed to a live award reference and held alongside the award decision that created that reference, where the money flows outward from the holder and the reporting flows inward",
+      "a grants-system or portal export whose manifest member families are calls, received applications, attachments, assessments, award decisions and claims, read as a manifest without extraction: 'Compressed archives should yield their manifests without extraction'"
+    ],
+    "needs_llm": [
+      "deciding whether an executed instrument is a grant or a procurement contract when both name money, milestones and reporting; the discriminator is whether value flows back to the issuer as accepted deliverables (procurement) or whether the money funds the recipient's own stated purposes under conditions with recovery on breach (grant)",
+      "deciding holder role from prose letterhead and salutation when a document is a bare letter about funding and could have been written by the funder or received by the grantee",
+      "deciding whether an awarding body is an evidenced public authority or a private foundation, trust, or corporate giving programme running an identical-looking call",
+      "deciding whether a spend report on this disk is the funder's file copy of a grantee return or the holder's own report to a funder above it, when the same organisation both receives and re-grants money"
+    ],
+    "never_alone": [
+      "the word grant, grants, grantee, or grantor alone; it is a homograph across grant of probate, grant of planning permission, a grant deed, a land grant, and a place named Grants, and it is also the ordinary verb",
+      "a funder, agency, foundation, council, or ministry name alone; it may be issuer, counterparty, referee, cited authority, or the holder's own funder — the anchor schema already forbids an entity name as activation",
+      "an application-shaped document alone; a completed application has the same structure whether the holder wrote it or received it, and only the holder's deciding role separates the two",
+      "a monitoring, claim, or spend report alone; the identical bytes exist on the grantee's disk and on the funder's, and neither copy declares which one it is",
+      "a bare reference token such as CRF3-0147 with no issuing-authority block or call to bind it; the anchor schema already forbids a bare 4-digit number and a reference token is the same failure with more characters",
+      "award, scoring, evaluation, panel, moderation, criteria, or shortlist vocabulary alone; public procurement uses every one of those words for a different transaction",
+      "a parent folder named Grants, Funding, Awards, Applications, or Programme alone",
+      "a file extension or source_type alone; the design says to 'treat the file extension as a routing signal rather than an assumption about meaning'",
+      "a shared download session that pulled several funders' guidance in one sitting; 'A session should never be treated as proof of topic'",
+      "missing EXIF or dense OCR as proof that an image is a grants-portal screen capture; 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'"
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of funding opportunity",
+    "call for applications",
+    "eligible expenditure",
+    "conditions of funding",
+    "assessment criteria",
+    "moderation panel",
+    "award letter",
+    "grant agreement",
+    "drawdown",
+    "clawback",
+    "monitoring report",
+    "unsuccessful applicant"
+  ],
+  "work_types": [
+    "call, prospectus, guidance notes, or eligibility criteria",
+    "received application, annex, or supporting attachment",
+    "eligibility check or completeness triage record",
+    "assessment scoresheet, moderation record, or panel recommendation",
+    "assessor conflict-of-interest or declaration record",
+    "award decision, award letter, or rejection notice",
+    "grant agreement, variation, or conditions schedule",
+    "payment claim, drawdown, or disbursement record",
+    "monitoring, output, or beneficiary return",
+    "closure, final report, evaluation, or recovery record",
+    "published award register or transparency return"
+  ],
+  "grouping_reasons": [
+    "one programme cycle, linking the call to every application received under its reference prefix, the assessment written about those applications, and the resulting decisions",
+    "one application-to-award thread, linked by an exact application or award reference carried on the application, the scoresheet row, the award letter, the agreement, and each claim",
+    "one assessment round, linking scoresheets, moderation records, declarations, and the panel meeting record without copying an applicant fact onto an assessor's file",
+    "one bounded portal export, read from its manifest, whose members stay together and stay shallow because their internal access boundaries are unknown",
+    "sparse members such as a bare annex or an unnamed scan may join a candidate group for review without acquiring an applicant, award, decision, or amount fact"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema fieldless and a template cannot branch on undeclared fields, so an empty order is the only compliant recommendation. The world's structure stays prose: programme and cycle first, then the application or award reference, then work type, because 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders' and because an application reference is meaningless without the programme that issued it. Applicant and assessor names must never become branch labels — a visible folder named for an organisation discloses that it applied, and for most of the corpus that it failed. Any later order stays editable: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "archive",
+      "image",
+      "ocr",
+      "filesystem",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".png",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Community Resilience Fund - Round 3 - Call for Applications v2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing-authority block names the holder body as the body offering the funding",
+        "labelled sections for eligibility, eligible expenditure, assessment criteria, and closing date",
+        "a programme reference prefix appears in the running header and in the application-form annex",
+        "no supply, deliverable, or acceptance clause anywhere in the document"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "duplicate_family"],
+      "must_not_conclude": [
+        "any government field, because the schema declares none",
+        "that the round is open, closed, funded, or lawful",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CRF3-0147 - Application - Northside Community Trust.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "reference token shares the prefix carried by the call held on the same disk",
+        "applicant organisation block names a body that is not the holder",
+        "labelled requested-amount, project-description, and declaration sections with a third-party signature",
+        "several sibling files carry the same prefix with different applicant organisations"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status", "duplicate_family"],
+      "must_not_conclude": [
+        "that the applicant organisation is the holder, which would activate nonprofit instead",
+        "that the application was successful, eligible, or complete",
+        "an applicant identity, amount, or score as a stored fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CRF3 - Assessment Panel Scoresheet - moderated.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are application reference tokens sharing one programme prefix",
+        "columns are named assessors, per-criterion scores, a moderated score, and a recommendation",
+        "a second sheet lists declarations received"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status", "version_family"],
+      "must_not_conclude": [
+        "that a recommendation is a decision",
+        "an assessor's identity or an applicant's rank as a stored fact",
+        "that an identically shaped tender evaluation sheet belongs here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CRF3 - Assessor Conflict of Interest Declaration - M Okafor.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "signatory is a panel member, not an applicant",
+        "labelled declaration slots name applicant organisations and stated relationships",
+        "programme reference in the header"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a conflict exists, was material, or was managed",
+        "that the named applicants are connected to the assessor",
+        "a people fact from either side of the declaration"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grant Award Letter - CRF3-0147 - Northside Community Trust - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issued by the holder body to a third party",
+        "labelled conditions of funding, eligible expenditure headings, payment schedule, and a recovery clause",
+        "no acceptance, deliverable, or supply-of-services clause"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the award is valid, paid, current, or complied with",
+        "that an award letter received by the holder would also sit here",
+        "a folder path naming the recipient"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CRF3-0147 - Grant Agreement - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two signature blocks, one of them the holder authority",
+        "clauses covering purpose of the grant, conditions, reporting obligations, variation, and repayment",
+        "an annexed budget by eligible expenditure heading"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status", "version_family"],
+      "must_not_conclude": [
+        "legal effect, enforceability, breach, or termination",
+        "that a two-party signed money instrument is automatically a procurement contract",
+        "a jurisdiction fact"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CRF3 - Payment Claim and Monitoring Report - Q2 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets labelled by eligible expenditure heading with claimed against budgeted columns",
+        "an outputs sheet counting beneficiaries served",
+        "an award reference matching an award decision held on the same disk"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status", "duplicate_family"],
+      "must_not_conclude": [
+        "that the claim was approved, paid, or eligible",
+        "that the holder is the reporting party, which would put the identical file on nonprofit.grant-reporting",
+        "an amount as a government fact"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE CRF3-0147 - clarification request to applicant.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a programme-office address, recipient is the applicant organisation",
+        "subject carries an exact application reference",
+        "body asks for a missing annex and names a response date"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "an eligibility or completeness outcome",
+        "contact data as folder-proposal material",
+        "that the applicant replied or complied"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CRF3 - Panel Meeting and Decision Board.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is the programme office, attendees are panel members",
+        "event title carries the programme reference",
+        "recurrence across the assessment window"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "that a decision was taken at the event",
+        "attendee names as people facts",
+        "a deadline as an obligation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CRF3 - Grants Portal Export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists member families for calls, received applications, attachments, assessments, decisions, and claims",
+        "member paths repeat one programme prefix",
+        "read from the manifest without unpacking"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any member's applicant, score, or decision from a member filename",
+        "that unpacking is authorised to improve classification",
+        "a folder path per member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Grant Report - Q2 - Northside Community Trust.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the reporting organisation is the holder and addresses the funder in the second person",
+        "narrative sections describe what the holder's own project achieved with the money",
+        "the funder appears as an addressee block, not as an issuing block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": [
+        "that funder-programme vocabulary places this on the funder side",
+        "any government fact; the holder here is a grantee",
+        "an award decision"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tender CRF-SVC-11 - Evaluation Panel Scoresheet.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "structurally identical to the grant scoresheet: bid references as rows, criteria and assessors as columns",
+        "a linked specification names deliverables, service levels, and acceptance",
+        "the winning instrument in the same folder is a contract for supply, not a conditions-of-funding letter"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "grant-programme activation from scoring, panel, or award vocabulary",
+        "that a competitive process implies grantmaking",
+        "an amount or supplier fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grant of Probate - estate of A Whitfield.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the word Grant is a legal-instrument noun, not a funding transfer",
+        "issuing court registry block, deceased and executor names",
+        "no call, application round, criteria, or expenditure heading"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation from the token Grant",
+        "that a court registry is a funding authority",
+        "an estate fact on this schema"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grants Programme Budget FY26 v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are planning scenarios and headline allocations, not applications",
+        "no application reference, applicant, assessor, or award reference anywhere",
+        "version suffix and a planning-round cadence"
+      ],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": [
+        "programme-administration activation from the word Grants in a planning workbook",
+        "that an allocation is an award",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.public-procurement",
+      "signal": "The same call, received-submission, evaluation, panel, award, and contract-management bytes occur on both sides, and the shared fixture is an evaluation scoresheet whose rows are submission references and whose columns are criteria and named assessors. The discriminator is the transaction, not the process: this row requires an instrument that gives money for the recipient's own purposes under conditions of funding with recovery on breach; procurement requires the authority buying goods or services for itself, with a specification, deliverables, and acceptance. Where only the scoresheet survives and no instrument is present, neither row activates.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.grant-reporting",
+      "signal": "The same monitoring and claim bytes exist on both disks, and the shared fixture is a quarterly claim and monitoring workbook keyed to one award reference. The discriminator is which side of the money the holder sits on: this row requires the holder to have issued the call and the award and to be receiving the return, evidenced by an issuing-authority block and the inbound fan-in; nonprofit.grant-reporting requires the holder to be the funded body reporting outward, evidenced by the funder appearing as addressee and the project being the holder's own. Neither side may activate from grant vocabulary alone.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.fundraising-donor",
+      "signal": "A private foundation, corporate giving programme, or community trust runs a call, receives applications, scores them, and issues award letters with identical structure; the shared fixture is the call for applications. The discriminator is independently evidenced public-authority status for the awarding body. Where the awarding body is a private funder, the grantmaking corpus stays private-association material and this row must not activate merely because the workflow looks governmental.",
+      "design_cite": null
+    },
+    {
+      "domain": "research.grants-funding",
+      "signal": "Award notices, budget justifications, periods of performance, and reporting schedules appear in both, and the shared fixture is a notice of award. The discriminator is authorship and direction: this row holds the notice the authority issued to many recipients alongside the applications it received; research.grants-funding holds the single notice a principal investigator received for one project, whose organizing anchor is that project rather than a programme cycle. A funder name is decisive for neither.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "An executed grant agreement, a variation, or a recovery notice is legitimately both a programme-administration member and a legal instrument. Coactivation is permitted; neither schema erases the other, and Legal must not be used to conclude enforceability or breach.",
+      "design_cite": null
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a received application, an assessment or moderation record, an assessor declaration, an applicant communication, or an unsuccessful bid has no accepted programme group; disclosure that a named organisation applied, and usually that it failed, is the harm being avoided",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a published call, award notice, transparency return, or programme guidance document has durable standalone value but no evidenced funder-side workflow on this disk",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a readable funding-shaped artifact leaves the holder role unresolved — a bare letter about money, a planning workbook using the word Grants, or a calendar item with no bound reference",
+      "design_cite": null
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a grants-system export, database dump, or password-protected portal archive cannot be read; its filename must not manufacture a programme, applicant, or decision",
+      "design_cite": null
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "another funder's guidance, a published evaluation study, or a policy paper about grantmaking was downloaded for reference with no accepted programme association",
+      "design_cite": null
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This corpus is mostly third-party material held about people and organisations who are not the holder, and most of it records failure. Received applications carry organisational and personal detail, financial position, and sometimes beneficiary data; assessments and moderation records carry scores and reasons about named applicants; declarations name relationships between assessors and applicants. Two separate firewalls apply and neither is the default posture: applicant material must not disclose assessor identity, and assessor material must not disclose applicant standing. Publicity is split within one programme — an award may be published in a transparency register while the application behind it, and every unsuccessful application beside it, is not; published award data must never lower the sensitivity of its neighbours in the same group. The design requires that privacy policy be enforced before content reaches any model or external connector, so recognition and grouping here should work from the minimum necessary excerpt or manifest, and applicant or assessor names must not appear in branch labels or group summaries.",
+  "open_question": "Two unresolved items, both for R1c and Joseph. First, whether a `programme` key (or a reuse of an existing organisation key carrying the funder role) may be declared on the government schema; without it this row can recommend no dimension at all even though the world has an obvious programme-then-reference-then-work-type structure, and research.grants-funding has already raised an overlapping question from the recipient side that should be decided once rather than twice. Second, whether a re-granting body — an authority that receives money from above and awards it below — activates this row, nonprofit.grant-reporting, or both for the same programme folder; the alternatives are coactivation, a role-decided mutex, or leaving the whole re-granting corpus in Review Later until a user confirms the direction."
+}

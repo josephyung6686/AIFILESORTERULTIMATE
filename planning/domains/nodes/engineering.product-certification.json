@@ -1,0 +1,550 @@
+{
+  "id": "engineering.product-certification",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Product certification and conformity assessment",
+  "one_line": "Evidence that an identified product meets a rule its maker did not write - a named regulation, directive or published standard - together with the instrument that closes the assessment: a manufacturer's declaration of conformity, a third-party certificate or type approval, an authority determination, and the accredited test reports and clause checklists those instruments cite. The discriminating relation is product-to-external-rule-to-attesting-role-to-issued-instrument, which the engineering schema's default template cannot express because that default keys on the internal controlled definition (requirement identifier, design item, revision) and an external rule is precisely the criterion the organisation cannot revise. Certificates whose certified object is an organisation, an instrument, a consignment, a premises or a person are NOT this row. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps fields empty and the machine-readable dimension_order empty; one field is proposed for R1c.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_detection_signals": true,
+    "distinct_detection_signals_why": "The engineering schema's default template fires on the internal controlled definition: a drawing title block with an item and revision, a requirements table with stable requirement identifiers and a verification-method column, a BOM parent/child structure, an engineering change identifying an affected item and its current/replacement revision, an analysis comparing margins against named requirements, a verification matrix linking requirement identifiers to pass/fail evidence, and a technical data package manifest. Every one of those criteria is authored inside the organisation and can be revised by it. This row's criteria cannot be: the acceptance criterion is a clause of an external published rule with its own designation and its own owner, and the discriminating structure is the four-way relation of an identified product model or type, one or more external rule designations, a role claim (the manufacturer declaring under its own responsibility, or a body attesting on its own accreditation), and an issued instrument carrying its own identifier and validity. The engineering schema anchor's default template has no slot for that relation and no fixture containing it; its own example corpus is a brake-pedal requirements/drawing/BOM/change/verification/TDP set. The relation is also not merely an artifact-type value, because a single artifact type - a test report - lands on either side of the seam depending on whether its acceptance criteria are internal requirement identifiers or external standard clauses.",
+    "distinct_dimensions": true,
+    "distinct_dimensions_why": "The schema's researched default is project, then design_item, then lifecycle_stage, then engineering_artifact_type. This row drops two of those four and adds one the schema does not have. `project` is dropped: an issued instrument routinely outlives the project that produced it and is re-cited by later projects, so a project level scatters one product's conformity file across development undertakings that no longer exist. `lifecycle_stage` is dropped for the sharper reason that it opens a branch whose values would all be the same value - certification evidence is terminal by construction, produced at or after the point the definition is frozen - and a level whose facts cannot vary is a level the facts cannot fill. In their place the row recommends the external-rule level (`conformity_scheme`, proposed below), because one product passes through many schemes and one scheme covers many products, and neither containment direction is derivable from the other. The recommended conditional order is design_item, then conformity_scheme, then engineering_artifact_type. It is a recommendation: a single-product organisation, or a compliance function that works scheme-first across a catalogue, will invert the first two levels, and 00 lets the user reverse, remove, add or flatten.",
+    "distinct_privacy_rules": false,
+    "distinct_privacy_rules_why": "Stated honestly rather than claimed. The engineering schema is already potentially_sensitive for proprietary design definition, supplier data, safety analyses, export-controlled information, signatures and test evidence, and a technical construction file is more of exactly that, not a different rule. The one genuinely different-looking property - that an issued declaration or certificate is often intended to be handed to customers and authorities while the technical file behind it is the most protected material in the schema - is a difference in the maker's intent, not a rule this row may encode: handling classes are P7's and this row assigns none. The node is carried by the first two legs; CONNECTION.md's test is disjunctive and this row does not need the third.",
+    "not_a_work_type_value_why": "A work type answers what kind of document this is. This row's claim is a relation between a product and a rule external to the organisation, and it cuts ACROSS work types: a test report, a checklist, a declaration and a dossier are each on this side or the schema-default side depending on whose criteria they are written against, which no enumeration of document kinds can decide. The work types below are correspondingly listed as values of the schema's work_type enum, not as candidate nodes.",
+    "not_a_lifecycle_stage_why": "The strongest case against this row is that `certification` is simply a late value of the schema's proposed `lifecycle_stage`, alongside concept, preliminary design, detailed design and qualification. It is defeated by containment failing in both directions: a durable listing or type approval is re-issued, extended, surveilled and superseded on a clock that has nothing to do with the design's lifecycle state, and a design item can sit in detailed design while an earlier variant of the same product carries a live certificate. A stage is a position the whole definition occupies at one time; a scheme is a parallel obligation that persists across positions.",
+    "not_an_organisation_name_why": "The row is explicitly NOT defined by the certification body. A notified body, laboratory or regulator name is written into never_alone for exactly 00's stated reason about a university name, and no organisation key is proposed as a dimension. The relation, not the attestor's identity, is the evidence."
+  },
+  "fields": [],
+  "fields_note": "Empty by PR-6 and by _CONTRACT rule 12: a template references its schema's fields and never copies them. The engineering schema row itself declares none under PR-6 and carries design_item, lifecycle_stage, engineering_artifact_type and revision_or_baseline as proposals for R1c. Every `facts_legal` entry below is therefore conditional on that adjudication, plus this row's own single proposal, plus ALIGNMENT's universals (file type, creation date, language, duplicate family, version family, sensitivity status). This is stated rather than papered over.",
+  "proposed_fields": [
+    {
+      "key": "conformity_scheme",
+      "type": "string",
+      "example": "EU EMC Directive 2014/30/EU",
+      "why_no_existing_key": "No canonical key names the external rule a product is being assessed against. `subject` is the academic course key. `record_type` and `artifact_type` name what a document is, not what rule it is measured by - and the whole difficulty of this row is that one document type sits on both sides of the seam. The engineering schema's proposed `engineering_artifact_type` has the same defect. `institution` names an organisation and would put the attestor where the rule belongs, which is the exact role-ambiguity error 00 warns about. `project` names the undertaking. `stage` is a workflow position. The role needed here is the identity of a criterion owned outside the organisation, which is the one thing that separates this material from the schema's default.",
+      "value_note": "Under D4 the values come from regulators' and standards bodies' catalogues - a directive, a regulation, a harmonised or listed standard, a named national or sector scheme. The catalogue supplies values; it never supplies a node, which is precisely the finding engineering.automotive-program made when it refused and routed type approval here. This proposal does not embed any catalogue and R4 owns gazetteer contents.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE, at the second level after the product. It is not authorship and not an organisation collector; it is the obligation a body of evidence was assembled to discharge, and it is the level a person actually reaches for when asked to produce a file for one market or one standard. It is proposed second rather than first because 00's parent-makes-child-intelligible rule applies: a certificate number, a clause checklist and a test report are unintelligible without the product they cover.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled slot can be direct: a declaration's `Union harmonisation legislation` list, a certificate's `Directive/Regulation` or `Standard` field, a test report cover's `Test standard` field. Otherwise a rule-designation-shaped token must be confirmed by a conformity-role structure in the same file - a declarant statement with an identified product, an attestation block with a certificate identifier and scope, or a clause-by-clause status table. R2 owns the pattern family; this row writes no regex, no term list claimed complete, and no threshold.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "proposed_context_terms": [
+    "declaration of conformity",
+    "sole responsibility of the manufacturer",
+    "notified body",
+    "type examination",
+    "type approval",
+    "conformity assessment",
+    "harmonised standard",
+    "essential requirements",
+    "equipment under test",
+    "test standard",
+    "scope of certification",
+    "certificate of conformity",
+    "accreditation",
+    "surveillance audit",
+    "substantial equivalence"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only and lists none of these; nothing here is attributed to 00. Two are deliberately double-edged and are listed with their failure modes named in never_alone: `certificate of conformity` is also a shipment document travelling with goods, and `accreditation` is also what a management-system certificate and a calibration certificate carry.",
+  "work_types": [
+    "declaration of conformity",
+    "certificate of conformity",
+    "type-examination or type-test certificate",
+    "type approval",
+    "product listing or mark licence",
+    "conformity assessment report",
+    "accredited test report to a named external standard",
+    "clause-by-clause compliance checklist",
+    "technical file or technical construction file index",
+    "risk assessment performed to a named standard",
+    "regulatory submission dossier",
+    "authority determination or clearance letter",
+    "restricted-substance or material-content declaration",
+    "product-scheme surveillance or factory-inspection report",
+    "marking, label and required-documentation approval"
+  ],
+  "work_types_note": "Values of the engineering schema's work_type enum, never nodes - ALIGNMENT is explicit and engineering.automotive-program was refused for asking otherwise in miniature. Sector spellings of the same values (homologation dossier, listing report, notified-body certificate, premarket notification) are values of values and get no row.",
+  "grouping_reasons": [
+    "one product model's conformity evidence across several schemes, where the schemes share nothing except the product",
+    "one scheme's dossier for one product: application, accredited test reports, clause checklist, issued instrument, and later surveillance",
+    "an issued instrument and the test reports it names by report number, preserving the citation link rather than copying the instrument's scheme fact onto each report",
+    "a supplier's incoming declaration pack held against one product's bill of materials, which is a two-group question with engineering.material-specification on the same schema, not an also_holds edge",
+    "a sparse `scan0007.pdf` may join an accepted certification neighbourhood without acquiring design_item or conformity_scheme facts; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty in the machine-readable field because PR-6 leaves this schema with no legal destination-eligible key, and because the one level this row genuinely needs is a proposal awaiting R1c. The researched conditional order is design_item, then conformity_scheme, then engineering_artifact_type. `project` and `lifecycle_stage` are deliberately absent from the schema's default order for the reasons argued in node_test. time_first is false: 00 says that 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' A certificate's issue and expiry dates are strong, labelled and load-bearing for renewal, but they are search and reminder facts; a year-first tree would split one product's live certificate from the superseded one it replaced. Two optional branches were researched and are recommendations only: (a) invert to conformity_scheme, then design_item, for a single-product organisation or a compliance function that works scheme-first; (b) flatten to design_item, then engineering_artifact_type, where a corpus only ever touches one scheme, since a level with one value is not a level. The user may reverse, remove, add or flatten any of this.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip",
+      ".p7m"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "EU-DoC_XR-400_2026-03-11_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads EU Declaration of Conformity; a legal-person name and postal address appear in a declarant position",
+        "a product identification block gives a model/type designation and a batch or serial reference",
+        "a sentence states that the declaration is issued under the sole responsibility of the manufacturer",
+        "a labelled list of Union harmonisation legislation is followed by a second labelled list of harmonised standards with dated editions",
+        "a place, a date of issue, a signatory name and function, and a signature image close the page"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the standards listed are internal requirement identifiers; they are the external criteria and belong to conformity_scheme, not to the schema's requirements structure",
+        "that a notified body number printed beside one directive applies to every rule listed on the page",
+        "that the signatory's name is a destination; 00 forbids authorship or creator identity as a folder level",
+        "that the declarant organisation's name alone would have activated anything"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NB0123-EU-Type-Examination-Certificate_XR-400_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate identifier appears in its own labelled slot near the top",
+        "an attesting body identity carries a four-digit body number and an accreditation statement",
+        "a scope clause names a product model/type and its variants",
+        "a directive or regulation designation and an annexed list of standards applied appear as labelled fields",
+        "date of issue and date of expiry are both labelled; a page footer states the certificate remains valid subject to surveillance"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the attesting body is the design item's institution or its project",
+        "that the four-digit body number is a part number, a requirement identifier or a year",
+        "that an expiry date makes this a time-first corpus"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EMC_Test_Report_XR-400_EN55032_2026-02-18.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page carries a laboratory identity with an accreditation number and a report number",
+        "an equipment-under-test description names a model, a serial number and the configuration and cabling tested",
+        "the results section is organised by clause numbers of a named external standard with a per-clause verdict column",
+        "measurement tables carry limits taken from that standard rather than from a project requirements document",
+        "no internal requirement identifier column appears anywhere in the report"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the pass column alone identified this domain; a pass/fail table exists in production inspection, software testing and academic grading",
+        "that the laboratory is the manufacturer or the design authority",
+        "engineering.verification-validation, whose reports carry internal requirement identifiers as their acceptance criteria; the criterion owner is the discriminator, not the word test"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Compliance-Checklist_Cabin-Interiors_Rev-D.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "left column holds clause or paragraph references of a named external rule",
+        "adjacent columns hold a means-of-compliance note, a status value and a pointer to an evidence document held elsewhere",
+        "a header block names a product or installation and a revision letter",
+        "no column links to a stable internal requirement identifier"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "version_family",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that Rev-D in the filename is the controlled revision of the product; it is the revision of the checklist",
+        "this row, when the same sheet's status column is feeding an authority finding on an operating approval that must be maintained after issue - that is engineering.aerospace-airworthiness, which names these exact fixture bytes from its own side"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "e11r-2018-858-00234-03_Whole-Vehicle-Type-Approval_XJ.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an approval identifier is present in the filename and repeated in a labelled slot inside the document",
+        "an approving authority is named with the regulation series it acts under",
+        "a scope section identifies a vehicle type, variants and versions",
+        "an annex lists the separate approvals rolled up into the whole-vehicle approval"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a road-vehicle regulation catalogue creates a sector node; engineering.automotive-program refused for this reason and routed these exact fixture bytes here, and this example exists so that absorption is visible",
+        "that the conformity-of-production obligation attached to the approval is this row's; ongoing production conformity is manufacturing.quality-management-system evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RoHS-REACH-Declaration_PN-40012_supplier.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a supplier legal name declares status against two named regulations",
+        "a part number and description identify the declared item",
+        "an exemption reference and a substance-threshold statement appear as labelled rows",
+        "a signature block and a date close the page"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row's claim erases the material-content reading; engineering.material-specification holds the same bytes as material-content evidence and says so from its side. Same schema, so this is a two-group question in grouping_reasons, never an also_holds edge",
+        "that the supplier is the declarant of the finished product's own conformity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "K253117_Substantial-Equivalence-Determination.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority letterhead and a submission identifier that also appears in the filename",
+        "an indications-for-use statement and a device trade name",
+        "a determination paragraph referring to a named predicate device",
+        "a general-controls obligations section citing regulation parts by number"
+      ],
+      "facts_legal": [
+        "design_item",
+        "conformity_scheme",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "the medical schema; the roster's medical rows are a person's own health records, and a manufacturer's device submission is a product-to-rule relation, not anyone's health record",
+        "that the predicate device named in the letter is this corpus's design item"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ISO9001_Certificate_Acme-Ltd_2026-2029.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an accredited certification body, an accreditation mark and a certificate number",
+        "a management-system standard designation with its edition year",
+        "a scope statement naming activities and site addresses of a legal person",
+        "issue, revision and expiry dates and a surveillance clause",
+        "no product model, type designation, serial or batch effectivity appears anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "this row. This is the collision fixture: every surface signal matches - body, accreditation, certificate number, standard designation, validity dates - and the certified object is an organisation's management system, not a product placed on a market",
+        "design_item or conformity_scheme; neither fact exists in the file",
+        "that the organisation's name established anything, per 00: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration-Certificate_Fluke-87V_SN-30215442_2026-01-15.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a calibration laboratory with an accreditation number issues a numbered certificate",
+        "an instrument make, model and serial number identify the certified object",
+        "as-found and as-left measurement tables carry uncertainties and a traceability statement",
+        "a due-date field states when recalibration is required"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "this row; the certified object is a measuring instrument held as an asset, which is manufacturing.calibration-record",
+        "design_item from an instrument model number - a product model shape and an instrument model shape are indistinguishable at the token level, which is why a model token is never_alone here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Certificate-of-Origin_INV-88421.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a chamber-of-commerce stamp, a certificate serial and a consignor/consignee block",
+        "a goods description with quantities, marks and numbers, and a country of origin declaration",
+        "an invoice number and a transport reference tie the document to one shipment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "this row, despite the words certificate and conformity vocabulary; the attested fact is the origin of a consignment, which is logistics.customs-export",
+        "conformity_scheme from a country name or a trade-agreement reference"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Certification_Evidence_Pack_XR-400.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction, per 00: 'Compressed archives should yield their manifests without extraction' and 'the normal scan should never extract archive contents to the filesystem'",
+        "member names include a declaration pdf, two accredited test reports, a clause checklist xlsx, a risk assessment and a user-manual pdf",
+        "the outer archive name repeats a product model token that also appears in three member names"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "conformity_scheme, which is not legible from member filenames alone and must come from a member's labelled slot",
+        "that the archive is a released technical data package under the schema's default template; a TDP manifest joins drawings, lists and specifications to a controlled baseline, and this manifest joins external-rule evidence to a marketed model"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "scan0007.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a flatbed scan with no embedded text layer; OCR recovers a stamp, an illegible signature and a partial date",
+        "the file sits in a download neighbourhood beside two accepted certificate files",
+        "no model designation, no rule designation and no body identity survive OCR"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item or conformity_scheme copied from the neighbours; this is the HW 3.pdf case, and the graph assembles context without propagating labels",
+        "a purpose from the neighbourhood, per 00: 'A session should never be treated as proof of topic'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.verification-validation",
+      "why": "The sharpest seam on the row, because the same artifact type sits on both sides. Direction one: verification-validation takes a test report whose acceptance criteria are the organisation's own stable requirement identifiers, traced through a verification matrix to a design item. Direction two: this row takes a test report whose acceptance criteria are clauses of an externally published rule designation, with an equipment-under-test description and an attesting laboratory identity in place of a requirement column. Same fixture bytes: EMC_Test_Report_XR-400_EN55032_2026-02-18.pdf is this row's; the identical layout with a SYS-REQ column and no external standard designation is verification-validation's. Where a report genuinely carries both columns, it is a two-group question on one schema, not a co-activation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "why": "A standard designation is the strongest token in both worlds and points opposite ways. Direction one: standards-library takes the file that IS the rule - clause structure, a normative-references section, a scope-and-definitions front matter, and the standards body's own copyright and licensing notice, naming no product and no declarant. Direction two: this row takes the file that measures a named product against that rule. Same fixture bytes: EN-62368-1_2014.pdf is standards-library's even when it lives inside a certification folder, and citing it in a declaration's applied-standards list does not convert the standard into conformity evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "why": "Reciprocating the boundary that row already stated from its side, on the same fixture. Direction one: airworthiness takes the file when the approval is an operating approval that must be maintained after issue, evidenced by an effectivity or serial-range clause, a continuing-compliance obligation or a directive trail. Direction two: this row takes it when the instrument is a point-in-time conformity statement that ends at issue, even where periodic surveillance of the certificate exists, because surveillance re-tests the product against the same rule rather than obliging an operator to maintain individual articles. Same fixture bytes: Compliance-Checklist_Cabin-Interiors_Rev-D.xlsx, named identically on both sides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.embedded-firmware",
+      "why": "Reciprocating that row's stated boundary. Direction one: embedded-firmware takes the released image and its configuration index even when a certification programme is what produced that document type. Direction two: this row takes the granted certificate and its application file even when they name a firmware version as part of the certified configuration. Same fixture bytes: SW-PN-40012-003_Software-Configuration-Index.pdf is embedded-firmware's; the radio or functional-safety certificate that cites it is this row's. A version reference crossing the seam moves nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.automotive-program",
+      "why": "That row refused and explicitly recommended this row carry a type-approval example so the coverage is visibly absorbed; the example is now file_examples[4]. Direction one: this row owns the relation of an approved product to a named regulation, an approving body and an approval identifier, whatever the regulation catalogue. Direction two: the refused row would have claimed the same bytes under the word homologation, which is that relation with road-vehicle regulations as its values, and under D4 a regulator's catalogue supplies values, never a node. Same fixture bytes: e11r-2018-858-00234-03_Whole-Vehicle-Type-Approval_XJ.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.material-specification",
+      "why": "That row already claims the shared bytes from its side as a co-holding. Direction one: material-specification takes a restricted-substance declaration as material-content evidence about an item's composition. Direction two: this row takes the same declaration as regulatory-conformance evidence against a named regulation. Same fixture bytes: RoHS-REACH-Declaration_PN-40012_supplier.pdf. Because both rows sit on the engineering schema, the correct expression is two accepted groups over one file, and neither side may convert the other's evidence into its own facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "why": "The collision that produces the most convincing false positive. Direction one: QMS takes a certificate whose certified object is an organisation's management system, evidenced by a scope statement naming activities and sites of a legal person and by the absence of any product model, type or effectivity. Direction two: this row takes a certificate whose scope clause identifies a product model or type. Same fixture bytes: ISO9001_Certificate_Acme-Ltd_2026-2029.pdf is QMS's, and it is this row's collision fixture precisely because body, accreditation, certificate number, standard designation and validity dates all match. Conformity-of-production and factory-inspection obligations attached to a product approval are also QMS's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "why": "Direction one: calibration-record takes an accredited certificate whose object is a measuring instrument held as an asset, evidenced by make/model/serial with as-found and as-left measurement tables, uncertainties, a traceability statement and a recalibration due date. Direction two: this row takes an accredited certificate whose object is a product being placed on a market. Same fixture bytes: Calibration-Certificate_Fluke-87V_SN-30215442_2026-01-15.pdf, which is calibration-record's. An instrument model token and a product model token are indistinguishable in isolation, which is why the certified-object structure decides and the token never does.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "why": "Direction one: supplier-qualification takes evidence that a supplier and its process are approved to deliver - part-submission packets, approval status, audit findings against a customer's own requirements. Direction two: this row takes evidence that a product meets an external rule, whoever manufactures it. Same fixture bytes: a supplier's incoming declaration pack is supplier-qualification's when it is filed as qualification status for that supplier, and is this row's when it is filed as a component of the finished product's own conformity file. The word certificate decides nothing; the certified object and the filing purpose do.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "why": "Direction one: compliance-certificate takes an issued certificate whose certified object is a premises or an installation at an address - the address is the identifying fact and the certificate travels with the property. Direction two: this row takes an issued certificate whose certified object is a product model that can be manufactured repeatedly. Same fixture bytes: an energy-performance or gas-safety certificate naming a street address is compliance-certificate's; the type certificate for the appliance model installed there is this row's. A single installed unit's commissioning certificate is engineering.commissioning-handover's, not either.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.customs-export",
+      "why": "Direction one: customs-export takes a document attesting a fact about one consignment - origin, preference, phytosanitary or inspection status - evidenced by a consignor/consignee block, goods quantities and marks, and an invoice or transport reference. Direction two: this row takes a document attesting a fact about a product type. Same fixture bytes: Certificate-of-Origin_INV-88421.pdf is customs-export's, and the phrase certificate of conformity appears in both worlds with entirely different referents, which is why it is written into never_alone here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "why": "Direction one: compliance-audit takes an assessment of the organisation's conduct against a policy, a legal obligation or a control framework, with findings against functions and owners. Direction two: this row takes an assessment of a product against a technical rule, with findings against clauses and a product scope. Same fixture bytes: an audit report headed compliance is business_operations' when its findings table lists departments and control references, and this row's only when its findings table lists clauses of a named product rule and identifies the product under assessment.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by oversight. _CONTRACT rule 14 restricts also_holds_with to schema rows, and the engineering schema row already declares co-holding with manufacturing, code, research, business_operations and construction_property. Every genuine multi-membership this row met is either same-schema - engineering.material-specification on the restricted-substance declaration, engineering.verification-validation on a dual-criteria test report - which makes it a two-group question recorded in grouping_reasons, or is already carried by the schema row's own edges. Adding a template-level co-activation here would silently widen the schema's edge set, which is the seam where that widening happens unnoticed.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The primary and most-used route, and 00 names this row's central artifact in the residual's own definition. A single certificate, declaration or attestation that is readable and durable but that cannot be attached to an identified product or an accepted certification neighbourhood belongs here rather than activating from the word certificate.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the genuinely undecided middle: a test report, checklist or evidence archive that is clearly technical but whose criterion owner - external rule, internal requirement, production inspection, or research protocol - cannot be established from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Technical construction files are routinely shipped as password-protected or signed containers, and a submission portal export may be an unreadable proprietary bundle. These retain metadata and are represented rather than moved, and their filenames must not be mined for purpose - 00: 'the system should not infer a purpose from their filename alone'.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Consignment-level attestations and scheme fee or registration confirmations that arrive alongside real certification evidence are transactional documents about one shipment or one payment, not evidence about a product type.",
+      "provenance": "design",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is the attesting body against the declaring manufacturer - two organisations in different roles, often both on the same page. There is no canonical key for either role in this schema, and minting an organisation key to solve one template's problem is exactly the move that produced thousands of private field names in the overnight pass. The role distinction is instead carried where it is safe: in the deterministic signals, which describe the declarant structure and the attestation structure separately, and in never_alone, which refuses either organisation's name as proof. Recorded as NJ-CERT-2 rather than resolved.",
+  "recognition": {
+    "deterministic": [
+      "a declarant structure: a legal-person name and address in a declarant role, an identified product model or type, an explicit statement that the declaration is made under the declarant's own responsibility, and a labelled list of external rule designations closed by a signature block - the relation among the labelled slots is the signal, never the phrase declaration of conformity on its own",
+      "an attestation structure: an attesting body identity, a certificate identifier in its own slot, a scope clause naming a product model or type, one or more external rule designations, and issue/validity dates. The certified object named in the scope clause must be a product; an organisation, an instrument, a consignment, a premises or a person in that slot routes elsewhere",
+      "a test-report cover structure whose acceptance criteria are clause references of an externally published rule designation, carrying an equipment- or article-under-test description and a laboratory accreditation identity, and carrying no internal requirement-identifier column",
+      "a clause-status table whose left column holds references into a named external rule and whose right columns hold per-clause status plus a pointer to evidence held elsewhere; an internal requirements table carries stable requirement identifiers and allocation instead",
+      "a regulatory submission structure: a submission or dossier identifier issued by an authority, a product or device description, and an authority determination referring to the same identifier",
+      "a content or restricted-substance declaration naming a specific regulation and an identified part or product with a declared status and any exemption references",
+      "an archive manifest exposing several of the above under one product model without extraction, per 00: 'Compressed archives should yield their manifests without extraction'",
+      "parent-folder context naming a scheme or a market may raise plausibility only after one conformity structure is present in a file; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether an issued certificate's certified object is a product placed on a market, an organisation's management system, a measuring instrument, a consignment, a premises, or a person's competence",
+      "whether a test report's acceptance criteria are an external rule's clauses or the project's own requirements, when the trace is prose rather than a labelled column",
+      "whether a clause checklist is closing a conformity assessment that ends at issue or feeding a continuing operating approval",
+      "whether the phrase certificate of conformity denotes a product-regulatory instrument or a document travelling with a shipment or a production lot",
+      "whether a declaration is the maker's own conformity claim for the finished product or a supplier's incoming declaration held as material-content evidence",
+      "whether a marketing model designation and an internal item number in the same file refer to the same design item"
+    ],
+    "never_alone": [
+      "the words certificate, certification, conformity, compliance, approval, declaration, standard, accredited or attestation alone; each is common in management-system, calibration, customs, property, training and HR material",
+      "a certification body, notified body, testing laboratory, chamber of commerce or regulator name alone. 00: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.' A body name is weaker still: it appears as issuer, as subcontracted test house, as a competitor's certifier, or as a cited reference",
+      "a rule or standard designation alone. The file may BE the standard, may merely cite it in a normative-references list, may be a purchase line for a copy of it, or may be a training slide about it",
+      "a certificate number, a submission number or a four-digit body number alone; a bare number is a bare number and 00 already refuses bare identifiers as proof",
+      "a pass, fail or compliant column alone; production inspection, software test suites, academic grading and calibration all contain one",
+      "a conformity marking glyph, an accreditation logo or a stamp visible in an image alone; marking artwork appears on packaging files, marketing renders and competitor teardowns",
+      "a model or type designation alone; a product model token, an instrument model token and a stock code are indistinguishable in isolation, which is what makes the calibration certificate a live false positive",
+      "an extension or source_type alone. 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning', and .pdf is the modal extension of every neighbour named here",
+      "a bounded download session in which several certificate-looking PDFs were saved together. 00: 'A session should never be treated as proof of topic'",
+      "an unreadable or password-protected container whose filename contains a scheme word. 00: 'the system should not infer a purpose from their filename alone'",
+      "an expiry or renewal date alone; leases, insurance policies, passports, memberships and calibration records all carry one"
+    ]
+  },
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherited from the engineering schema and not widened. A conformity file bundles the technical construction file - effectively the full controlled definition - with accredited laboratory data, safety and risk analyses, signatures of named authorised persons, and material composition detail that suppliers treat as confidential. Failed or withdrawn assessment evidence is commercially damaging in a way passed evidence is not. This assigns no handling class; P7 owns those, and 00's binding rule remains that privacy policy is enforced before any model or connector receives content.",
+  "open_question": "NEEDS-JOSEPH NJ-CERT-1: does `conformity_scheme` become a canonical key, or does R1c widen `record_type` or the schema's proposed `engineering_artifact_type` to carry the external rule as well as the document kind? Widening either collapses the row's only real dimension, because the whole finding is that one document kind lands on both sides of the seam depending on whose criteria it cites. NJ-CERT-2: the attesting body and the declaring manufacturer are two organisations in different roles on one page, with no canonical key for either and no role_split possible; leave as recognition-only structure (recommended here), reuse canonical `institution` cross-schema for the attestor, or mint an attestor key. NJ-CERT-3: certification identifies a marketing model or type designation placed on a market, while the schema's proposed `design_item` identifies an internal configuration item; when a corpus carries both, is that one design_item fact, two, or a role_split that cannot be written until keys exist. NJ-CERT-4: a certificate's issue and expiry dates drive renewal behaviour that no other engineering row has; this row keeps time_first false and treats them as search and reminder facts, but if the product ever surfaces expiry-driven views, confirm that this stays a fact and never becomes a dimension."
+}

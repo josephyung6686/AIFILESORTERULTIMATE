@@ -1,0 +1,443 @@
+{
+  "id": "government.defence-veterans",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Defence and veterans' affairs administration",
+  "one_line": "J-DEPTH placeholder template on the fieldless government schema for the authority-side custody of a person's military service and of the entitlement chain decided by reference to it: personnel and separation records held by the issuing service or records office, and claim, board, appeal, and veteran-programme files whose eligibility reasoning cites a service period, service event, or character-of-service determination. It is not activated by a defence or veterans agency name, a rank, a unit, a classification banner, military-history content, defence-industry work, or a veteran's own copy of a discharge certificate or award letter. It differs from the government default in two of the three node-test legs: a service-identity slot family plus a service-connection link that no other government sibling's recognition requires, and a stricter privacy rule under which classification markings, unit, posting, and deployment data are literal observations only and are suppressed from cross-file semantic joining because aggregation is itself the exposure. It declares no fields and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on an already plausible government schema, not licences to write facts. The schema declares no field rows. Every accepted signal must evidence authority-side personnel or entitlement CUSTODY. A defence ministry, armed service, or veterans agency named anywhere in the bytes satisfies nothing on its own.",
+      "a service-identity slot family appearing as LABELLED slots and repeated across two or more personnel-lifecycle artifacts (enlistment or commissioning record, assignment or posting order, evaluation or appraisal report, qualification or training record, decoration citation, administrative or disciplinary action, separation record), together with an issuing personnel office, adjutant, or records-custodian block: personnel or service identifier, rank or rate, branch and component, unit or establishment, dates of service, type or character of service",
+      "a separation or discharge determination issued by the authority, carrying a type-of-separation or character-of-service slot, a narrative reason slot, and a certifying-officer block, held with the issuing or custodial office as shown by a file-reference, register-entry, or certified-copy stamp; the recipient's own certificate does not satisfy the custody precondition",
+      "an entitlement casefile whose exact claim or file reference repeats across intake form, evidence-development correspondence, examination or assessment report, decision with reasons, and notification, AND whose decision reasoning cites a service period, service event, or character-of-service determination as the eligibility premise (the service-connection link)",
+      "an appeal or review layer on the same claim or file reference: statement of the case, review or board decision, remand or referral instruction, tribunal record, each with an adjudicating-office or board block",
+      "a fitness-for-duty, medical-board, or disability-assessment proceeding tied to a personnel identifier and a board case reference, with a convening-authority or board-president block and findings and recommendation sections",
+      "a security vetting or clearance-adjudication file with labelled subject, investigation or case reference, adjudicative determination, and issuing security office; a blank or subject-completed questionnaire form alone does not qualify",
+      "veterans-programme administration held by the administering office, with programme and period slots and operational structures such as caseload or adjudication workload, entitlement payment runs, education, housing, vocational or rehabilitation benefit administration, or memorial, burial, and next-of-kin entitlement administration",
+      "operational personnel administration held by a unit or personnel branch: deployment or rotation manifest, muster or strength return, casualty or next-of-kin notification register, mobilisation or call-up record, each carrying a unit-administration or personnel-branch block; an operation or exercise name alone never fires",
+      "a military-records custody workflow: a service-records request or retrieval reference with a custodian office block, a search or holdings record, and a certification or reproduction record for the copies released",
+      "an authority email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment, or event slots tie it to an already evidenced claim, board, personnel, records-request, or programme reference; an official service or agency mail domain alone never fires"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes may sit with the issuing personnel office, the adjudicating veterans agency, the serving member, the discharged veteran, a surviving family member, an accredited service-organisation representative, a lawyer, a journalist, a historian, or a researcher; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating an armed service or veterans agency from a defence contractor, a state-owned defence manufacturer, a veterans' charity or membership post, a cadet, reserve or veterans' association, a militaria dealer, a wargaming or re-enactment group, and a military-themed publisher",
+      "reading an unlabelled narrative whose function is expressed only in prose: a commander's or supervisor's statement, a buddy or lay statement offered as service-connection evidence, a personal-history narrative, a board rationale, an inspector's account, or a citation draft",
+      "deciding whether a mixed veteran packet is an agency-side casefile or the veteran's own assembled evidence bundle built from copies of the same forms",
+      "distinguishing operative administration from military history, doctrine, lessons-learned studies, exercise and training scenarios, fiction, memoir, and declassified archive releases that reproduce genuine forms verbatim",
+      "deciding whether a medical document inside a service or claim file is a fitness or disability determination administered by the authority or a personal health record that keeps its own schema; the same bytes can be both and neither reading may erase the other",
+      "interpreting non-English or multi-service personnel and entitlement vocabulary whose rank, component, and separation terms are not covered by deterministic structure rules",
+      "abstaining whenever the evidence cannot cite an authority-side custody role; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "an armed service, defence ministry, veterans agency, regiment, battalion, base, or veterans' hospital name alone; the body may be issuer, employer, counterparty, subject, cited authority, research venue, or care provider",
+      "a rank, rate, service-number-shaped token, unit designation, campaign or operation name, or military date-time-group alone; a novel, a memoir, a unit-history page, a wargame scenario, and a re-enactment roster all carry these",
+      "a classification banner, protective marking, caveat, distribution statement, or handling instruction alone; a contractor deck, a training exercise, a declassified archive scan, a film prop, and a template can each carry one, and such a marking is a literal observation that never becomes a handling class here",
+      "a discharge certificate, separation document, medal or award citation, veteran identity card, benefit award or entitlement letter, or pension statement held by the recipient; the person's own credential belongs with identity or personal records, not with authority-side administration",
+      "a defence contractor's proposal, drawing, test report, security plan, or invoice; supplier-side custody remains the company's operating record even when the customer is a defence ministry",
+      "a war photograph, unit reunion picture, campaign map, medal display, memorial image, or graduation portrait; these are photographs of a military subject, not administration of a service record",
+      "a military employer name, rank, or service period appearing on a resume, payslip, employment contract, security-questionnaire draft, or calendar; military service as an employment history is the person's career record",
+      "a veterans' charity, post, association, or advocacy body's newsletter, membership roll, event flyer, or donor record; a veteran-serving organisation is not a public authority",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Military, Service, Veterans, VA, Defence, Deployment, or Discharge alone",
+      "a shared download session or browser batch of service forms; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is a benefits-portal screenshot; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "enlistment, commissioning, re-engagement, or transfer-of-component record",
+    "assignment, posting, or duty-station order and its amendments",
+    "performance evaluation, appraisal, or fitness report",
+    "training, course, qualification, and competency record",
+    "decoration, award, commendation, or citation record",
+    "administrative, disciplinary, or non-judicial action record",
+    "security vetting questionnaire, investigation, and clearance adjudication",
+    "medical board, fitness-for-duty, or disability-evaluation proceeding",
+    "deployment, rotation, muster, strength-return, and mobilisation administration",
+    "casualty, missing-person, and next-of-kin notification record",
+    "separation, discharge, retirement, and character-of-service determination",
+    "veteran benefit claim intake and evidence development",
+    "entitlement rating, award, or refusal decision with reasons",
+    "appeal, review, board, or tribunal record on an entitlement decision",
+    "compensation, pension, and entitlement payment administration",
+    "education, housing, vocational-rehabilitation, and transition benefit administration",
+    "veteran healthcare enrolment and eligibility determination",
+    "memorial, burial, headstone, and survivor-entitlement administration",
+    "service-records request, search, certification, and release workflow",
+    "defence civilian and reserve-obligation personnel administration"
+  ],
+  "grouping_reasons": [
+    "one evidenced service history for one member, linked by an exact personnel or service identifier plus issuing-office custody; the group is processed locally and protected, and is never joined to another person's file by name, rank, unit, or posting similarity",
+    "one entitlement casefile, linked by an exact claim or file reference across intake, evidence, examination, decision, notification, appeal, and payment members",
+    "the service-connection link may make a personnel or separation record a member of an entitlement casefile group without copying any personnel observation onto the claim member, or any adjudication observation back onto the personnel member",
+    "one board, review, or tribunal proceeding, linked by an exact board or docket reference; a sparse annex or exhibit joins by reference and acquires no facts",
+    "one veterans-programme administration cycle, linked by an exact programme and period anchor across call, intake, assessment, payment, and reporting members",
+    "one records-request workflow, linked by an exact request reference across the request, search record, holdings result, certification, and release members",
+    "deployment, rotation, and unit-administration members group only by an exact operation or rotation reference; cross-file semantic joining on unit, posting, base, or location is suppressed because the aggregation of postings is itself the exposure, not any single member",
+    "duplicate and version families remain universal relationships; repeated orders, evaluation drafts, form revisions, and decision versions do not acquire new facts from neighbourhood context",
+    "no group is a valid outcome for a standalone certificate, notice, award letter, or confirmation; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema fieldless and a template cannot branch on fields that do not exist. This leg of the node test does NOT differ from the government default, and the row is accepted on the other two legs. The recommendation stays prose until canonical adjudication: the bounded proceeding or casefile (one service history, one claim reference, one board, one programme cycle) would come first, then the workflow stage, then work type; the serving member or veteran must never become the organizing dimension, because a branch named for a person discloses the file's existence. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The context rule applies with unusual force here: “a parent dimension should provide the context required to understand the child” — a rating decision is unintelligible without the claim it decides. Any later order stays editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Service Record Brief - SMITH JORDAN A - personnel file copy 2026-05.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for personnel identifier, rank, branch, component, dates of service, and assignment history",
+        "unit and posting rows repeat across pages in a fixed table",
+        "footer carries an issuing personnel-office block and a file-reference stamp"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["any government field, because the schema declares none", "that the service history is complete, current, or verified", "rank, unit, or posting as a stored fact or a folder level", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Assignment Order 26-0412 - permanent change of station.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "order number in header, effective and reporting date slots",
+        "named member with personnel identifier, losing and gaining unit blocks",
+        "authenticating adjutant block at foot"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a residence or location fact", "that the move occurred", "that the order is current or superseded"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Evaluation Report - SMITH JORDAN A - period ending 2025-11-30.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "rating period slots, rater and senior-rater blocks, numbered performance boxes",
+        "free-text narrative comment sections",
+        "personnel identifier repeats in header and signature panel"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a performance judgement", "a promotion outcome", "that the holder is the rated person"],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate of Release or Discharge - SMITH JORDAN A - certified copy for file 12-345-678.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered form blocks for dates of service, component, separation authority, narrative reason, and character of service",
+        "a certification-of-true-copy stamp naming a custodian office",
+        "an entitlement file reference handwritten and repeated in a routing block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that any benefit eligibility follows", "that the character-of-service determination is final or unamended", "an identity fact for the corpus holder", "a folder path"],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Disability Compensation Claim - received 2026-03-04 - file 12-345-678.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "agency intake stamp with received date and file reference",
+        "labelled claimant, service, and claimed-condition sections",
+        "representative-appointment box completed"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the claim is valid, granted, or pending", "a medical diagnosis", "claimant identity as a destination dimension"],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Rating Decision - file 12-345-678 - 2026-06-19.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "file reference in header and decision block",
+        "sections for evidence considered, decision, and reasons and bases",
+        "the reasons cite a named service period and an in-service event as the eligibility premise",
+        "adjudicating-office and authorized-officer block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the decision is correct, final, or currently effective", "a disability or medical fact", "an entitlement amount as a stored fact", "any government field"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Statement of the Case - appeal - file 12-345-678.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "same file reference as the decision it reviews",
+        "sections listing evidence, applicable provisions, and reasons for the continued denial",
+        "appeal-instruction block and adjudicating-office signature"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a legal outcome or appeal prospect", "that a deadline is running or missed", "that the reviewer's summary of evidence is complete"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Medical Board Proceedings - fitness for duty - MEB-2026-118.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "board case reference and convening-authority block",
+        "labelled history, findings, recommendation, and member-acknowledgement sections",
+        "clinical narrative and personnel identifier appear together"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a diagnosis, prognosis, or fitness conclusion", "that medical evidence inside an administrative file stops being a health record", "a folder path"],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Clearance Adjudication Summary - investigation 2026-4471.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled subject block, investigation case reference, and adjudicative determination slot",
+        "issuing security-office block",
+        "a protective marking banner appears on every page"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a handling class from the banner, which is a literal observation only", "that a clearance is held, current, or revoked", "any adverse-information finding"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Claims Adjudication Workload - Regional Office - 2026 Q2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "administering-office header and reporting-period slot",
+        "sheets for received, pending, decided, and appealed volumes by benefit programme",
+        "one sheet lists individual file references with adjudicator initials"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a performance or backlog judgement", "that aggregate sheets make the file low sensitivity when a per-case sheet is present", "adjudicator identity as a dimension"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deployment Manifest - Operation TRIDENT - rotation 4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "unit-administration block and rotation reference",
+        "columns for personnel identifier, rank, sub-unit, movement date, and destination location",
+        "a next-of-kin contact column is populated"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a location or travel fact for any named person", "an operational conclusion", "that the operation name alone activated this row", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE file 12-345-678 - further service records requested.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is an adjudication team mailbox, recipient is a records custodian mailbox",
+        "subject carries the exact file reference already evidenced in the casefile",
+        "body names the specific personnel documents sought and an internal due marker"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the records exist or were produced", "a deadline fact", "claimant contact details as stored facts"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Records Request 2026-08812 - search record and certification.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "records-custodian office block and request reference",
+        "search-location and holdings-result rows",
+        "a certification-of-reproduction statement for the copies released"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the holdings result is exhaustive", "that release was lawful or authorized", "requester identity as a folder level"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Defence Estate Fuel Supply - Tender Evaluation 2026-14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "buyer-side authority block naming a defence procurement organisation",
+        "sheets for received bids, declared interests, scoring, and award recommendation",
+        "no personnel identifier, service period, or entitlement reference anywhere in the workbook"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the defence portfolio makes this a service or entitlement record", "contract validity", "supplier as a stored fact"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Operation TRIDENT - Lessons Learned Case Study.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "study-institute cover, author byline, abstract, and bibliography",
+        "operation name, unit designations, ranks, and a reproduced order appear as illustrations",
+        "no personnel identifier slot, no custody block, no case or claim reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that reproduced military furniture is authority-side custody", "a service history for anyone named", "a defence administration group membership"],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-08-12 at 09.14.22 - claim status page.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: exact display resolution, PNG format, and screen-capture software metadata",
+        "OCR reveals a benefits-portal status line and a partial file reference",
+        "no custody block and no adjudicating-office structure"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a claim status fact", "that a partial reference in OCR proves casefile membership", "authority-side custody from a claimant-facing portal view"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Service_Records_Archive - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest is unreadable because entries are encrypted",
+        "filename words are the only signal available",
+        "no readable member, custody block, or reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["a service history, a personnel identifier, or a casefile from the filename", "that it should be unpacked to improve recognition", "a sensitivity result beyond the recorded posture"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.social-services-casework",
+      "signal": "Intake form, evidence development, assessment, decision with reasons, appeal, and payment members have the same shape in both worlds. The discriminator is the eligibility premise, not the agency name: this row requires a decision whose reasoning cites a service period, service event, or character-of-service determination and a personnel identifier; social-services casework decides on means, household, residency, or a disability with no service premise. Same competing fixture: `Rating Decision - file 12-345-678 - 2026-06-19.pdf` against an identically laid out general disability allowance decision.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.constituent-casework",
+      "signal": "The same claim reference appears in an elected office's file when a veteran asks a representative to chase a stuck claim. This row requires adjudicating or personnel custody; constituent casework is an elected office's enquiry-and-response correspondence file about someone else's decision. Same competing fixture: `RE file 12-345-678 - further service records requested.eml` from an adjudication mailbox to a records custodian (this row) against the same reference in an enquiry-on-behalf-of-a-constituent thread (theirs).",
+      "design_cite": null
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "Enlistment contract, posting orders, appraisals, training records, and separation papers are the state's version of an employment file, and the bytes can be identical. The discriminator is holder role: career holds the individual's own working copy of their service history; this row requires an issuing personnel office, custodian stamp, or file reference showing authority-side custody, plus the entitlement chain no civilian employment record has. Same competing fixture: `Evaluation Report - SMITH JORDAN A - period ending 2025-11-30.pdf`.",
+      "design_cite": null
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A discharge certificate, separation document, or veteran identity card is an identity credential in the person's own hands and an administrative record in the authority's file. Identity owns the recipient copy; this row requires a certification stamp, custodian office, or entitlement file routing. Same competing fixture: `Certificate of Release or Discharge - SMITH JORDAN A - certified copy for file 12-345-678.pdf` against the veteran's own unstamped scan of the same form.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-procurement",
+      "signal": "Defence buying is procurement, and the defence portfolio name is not a discriminator. Buyer-side notice, specification, bid receipt, evaluation, approval, and award structures belong to public procurement even when the buyer is a defence organisation; this row needs a service-identity slot family or an entitlement casefile that a tender workbook does not contain. Same competing fixture: `Defence Estate Fuel Supply - Tender Evaluation 2026-14.xlsx`.",
+      "design_cite": null
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "A medical board, disability examination, or veteran-healthcare eligibility record is simultaneously an administrative proceeding and a health record. This row claims only the board or entitlement proceeding structure; the clinical content keeps its own schema and must not be absorbed or erased. Same competing fixture: `Medical Board Proceedings - fitness for duty - MEB-2026-118.pdf`.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "A veterans' service organisation, post, or association holds membership rolls, event material, advocacy files, and — as an accredited representative — copies of the very claim documents this row recognizes. A veteran-serving body is not a public authority; the discriminator is adjudicating or personnel custody versus member-representation custody. Same competing fixture: `Disability Compensation Claim - received 2026-03-04 - file 12-345-678.pdf` bearing an agency intake stamp (this row) against the representative's retained copy with a service-organisation file cover (theirs).",
+      "design_cite": null
+    },
+    {
+      "domain": "legal",
+      "signal": "Entitlement appeals, boards, and tribunals produce decisions, statements of case, and hearing records that read as legal material, and a practitioner or accredited agent may hold the whole casefile. This row requires the deciding or administering authority's custody; Legal covers the claimant's own legal record, the practitioner's matter file, and public decisions read as reference. Same competing fixture: `Statement of the Case - appeal - file 12-345-678.pdf`.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations",
+      "signal": "A defence contractor holds personnel security files, clearance correspondence, deployment rosters for its own staff, and programme reporting that mimics authority-side furniture including protective markings. Supplier-side custody stays the company's operating record; this row requires an armed service, defence ministry, or veterans agency as the holder. Same competing fixture: `Clearance Adjudication Summary - investigation 2026-4471.pdf` issued by a government security office (this row) against a contractor's internal clearance-tracking file carrying the same banner (theirs).",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "recognized personnel, separation, board, vetting, entitlement, casualty, or deployment material has no accepted authority-side group; this is the principal fallback for this row and applies to every named-person fixture above",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone certificate, award citation, entitlement notice, or confirmation has durable value but no custody evidence and no accepted neighbouring group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a readable service-shaped artifact is understood in outline but its holder role is unresolved between the issuing office, the member, a representative, a contractor, and a researcher",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "military history, doctrine, lessons-learned studies, published defence reports, and veteran-policy articles have no accepted casefile, personnel, or research association",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an encrypted service-records archive, damaged scan, or unreadable personnel-system export cannot be inspected and its filename must not manufacture a service history",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row is protected by default and its posture is stricter than the government default in one specific way. A service file is a composite custody: personnel history, disciplinary action, medical and fitness determinations, security-vetting adjudication, casualty and next-of-kin data, and entitlement decisions about the same person can sit in one folder, so a single member packet may carry medical, identity, and legal evidence that must retain its own schema rather than be absorbed. Unit, posting, base, rotation, and deployment values are additionally suppressed from cross-file semantic joining because the aggregation of postings is itself the exposure even where each member looks innocuous. Protective markings, caveats, and distribution statements are recorded as literal observations and never become a handling class — that vocabulary is P7's. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Published defence reports and public citations can be low-risk bytes, but their presence cannot lower the posture of a mixed personnel or entitlement packet.",
+  "open_question": "NEEDS-JOSEPH: this row is deliberately narrowed to authority-side custody of the service record and the entitlement chain decided by reference to it, because every other reading of a defence and veterans portfolio duplicates an existing sibling (buying is government.public-procurement, defence policy is government.policy-development, veteran healthcare operations are government.public-health-administration, archived service records are government.archives-recordkeeping, contractor work is business_operations). Confirm that narrowing, or rule that the row should carry the whole portfolio and accept the duplication. Second: if PR-6 is lifted, decide centrally whether a service-connection relationship between a personnel record and an entitlement decision may be represented at all, and whether any personnel or claim reference may ever be destination-eligible given that a branch label naming a person or a claim discloses the file's existence."
+}

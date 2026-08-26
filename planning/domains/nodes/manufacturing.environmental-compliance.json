@@ -1,0 +1,565 @@
+{
+  "id": "manufacturing.environmental-compliance",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Environmental permits and monitoring",
+  "one_line": "The operator's own file for one environmental authorisation: the permit or licence instrument and its numbered conditions, the release points it names, and the periodic evidence that the permitted limits were kept — monitoring returns, accredited sample and stack-test results, continuous-monitoring exports, waste consignment and duty-of-care registers, exceedance self-notifications, and variation or surrender correspondence. Its anchor is an authorisation held by the site and a regulated release point, not a product lot, not a machine, and not a worker-safety event. Placeholder template on the fieldless manufacturing schema; researched to J-DEPTH.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "authorisation",
+      "type": "string",
+      "example": "EPR-AB1234",
+      "why_no_existing_key": "No canonical key names the external instrument that grants permission and carries numbered conditions. `institution` names a financial issuer, `project` is bounded work, `record_type` describes the document rather than the permission it evidences, and the manufacturing schema's proposed `site` cannot stand in because one site may hold several authorisations (an air permit, a discharge consent, a waste licence) with different conditions, different release points and different reporting calendars, while a single installation permit may cover more than one building. This key should hold a labelled Permit, Licence, Consent, Authorisation or Registration number, never a regulator's name.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE because the permit is the stable subject that makes every return, certificate and notice beneath it intelligible; a return filed for the wrong permit is not merely misfiled, it is unreadable. The template validator should flatten this level when a corpus holds exactly one authorisation.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A permit-shaped token may be confirmed only when it sits in a labelled Permit/Licence/Consent/Authorisation slot and co-occurs with a numbered-condition structure or an issuing-authority block. R6 owns that rule family; this row writes no pattern and no threshold. Bare from free text it stays possible, because permit-shaped tokens also appear in supplier paperwork about someone else's permit.",
+      "adjudicate": "R1c",
+      "note_for_r1c": "Permits, licences and consents also anchor government.permit-licensing, construction_property.building-control and logistics.driver-compliance. R1c should prefer one global `authorisation` key over per-schema synonyms."
+    },
+    {
+      "key": "emission_point",
+      "type": "string",
+      "example": "Outfall 001",
+      "why_no_existing_key": "No canonical key names the permit-defined place where a release to air, water or land is made and measured. `location` is the Photos capture-location role — a photograph of Outfall 001 may be captured from the opposite bank — and the manufacturing schema's proposed `asset` is the maintained equipment item: several assets commonly vent through one stack, an outfall has no maintenance history and no asset tag, and a groundwater borehole is a monitoring location that produces no output at all. The emission point exists because a permit condition names it.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE beneath the authorisation, because monitoring evidence is naturally per-release-point and a mixed folder of stack and outfall results cannot be compared against the right limit. Proposed FALSE-in-effect for single-point authorisations, where the validator should flatten it.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Confirmed only from a labelled Emission Point, Discharge Point, Outfall, Stack, Vent, Sample Point or Monitoring Location slot cross-checked against a release-point table in the permit or the return header. An identifier such as A2 or 001 alone is meaningless.",
+      "adjudicate": "R1c",
+      "note_for_r1c": "R1c may reasonably fold this into `asset` with a role qualifier instead. The memo argues against, but the alternative is real and is recorded as NJ-MEC-2."
+    },
+    {
+      "key": "reporting_period",
+      "type": "string",
+      "example": "Q2 2026",
+      "why_no_existing_key": "No canonical key names the interval an obligation covers. `term` is the Academic key for a teaching period, `tax_year` is a Finance fiscal period, `capture_year` is a Photos capture role, and `creation_date` is when the file was made — which for a monitoring return is routinely a different period from the one it reports. This key must carry the covered interval taken from a labelled Reporting Period, Monitoring Period, Return Period or Quarter slot, not the file date.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE as a leaf-adjacent level only. It is the one manufacturing situation where a period is genuinely a subject rather than a timestamp, because the obligation is defined by the interval. It is still NOT proposed as a first dimension.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct from a labelled period slot on a return or certificate; possible from a filename token such as Q2 2026, which is ambiguous with a financial quarter, a production quarter and a document version. It is never validated on its own.",
+      "adjudicate": "R1c",
+      "note_for_r1c": "If R1c prefers one global period key, this row will adopt it rather than retain a manufacturing-only synonym."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an authorisation instrument structure: an issuing-authority block, a named operator and installation, an effective or issue date, and a schedule of numbered conditions where individual conditions bind a substance, a limit value, a release point and a monitoring frequency; the numbered-condition-to-limit-to-point relation is the signal, not the word permit",
+      "a release-point table that names each discharge or emission point with the medium it releases to and the parameters monitored there",
+      "a periodic monitoring return whose header carries a labelled permit reference, a labelled reporting period and a release-point identifier, and whose rows pair a measured result with the permitted limit for that parameter and a compliance or exceedance flag",
+      "an accredited sampling or test report identifying a sample point rather than a product, with method reference, analyte, result, limit of detection, measurement uncertainty and an accreditation or certification identifier",
+      "a chain-of-custody form linking a sample identifier, sample point, collection date and time, preserving conditions, and successive signed transfers to a laboratory",
+      "a continuous-monitoring export whose columns carry an averaging period, a validity or data-availability flag, a calibration or drift status and a monitored parameter tied to one stack or outfall",
+      "a waste consignment, manifest or transfer structure carrying waste description codes, quantity, producer, registered carrier and consignee together with a duty-of-care declaration; the codes plus the three-party custody chain are the signal",
+      "a waste or release register whose rows aggregate consignments or releases across a stated period for one site, proving a maintained obligation rather than one transaction",
+      "an environmental aspects-and-impacts or compliance-obligations register that maps an activity to a receiving medium, an applicable obligation and a control, held for one identified site",
+      "an exceedance, breach or pollution-incident notification addressed to a named regulator, quoting a permit reference and a condition number, with a description of the release, the duration and the actions taken",
+      "a variation, transfer, surrender or renewal application citing an existing authorisation reference and the conditions it seeks to change",
+      "an email whose labelled subject carries an authorisation reference together with a return, exceedance, condition or inspection word, and whose attachments name monitoring, laboratory or waste records",
+      "an archive whose manifest links one authorisation reference across returns, laboratory certificates, calibration evidence and correspondence for a stated period; the manifest is read without unpacking the archive to disk"
+    ],
+    "needs_llm": [
+      "a laboratory certificate of analysis where it is not evident from the report whether the sample is a product specimen or an effluent grab sample, because both carry analyte, method, result and accreditation slots",
+      "a spreadsheet of measured values with no header block, which could be a monitoring return, a process-control log, an energy meter export or a laboratory worksheet",
+      "an integrated management system manual that interleaves quality, environmental and safety clauses under one clause numbering, where the environmental obligation may or may not be separable",
+      "a scanned and poorly OCR'd consignment note where the waste codes and carrier registration survive visually but the printed labels do not",
+      "a greenhouse-gas or energy dataset that may be an efficiency study, a statutory emissions report, or the shared source of both",
+      "a regulator letter that may be an inspection outcome, a routine acknowledgement, an information request or an enforcement step",
+      "a photograph of a discharge, a spill or a stack plume with no visible signage, point marking or document in frame",
+      "a multilingual permit or return whose condition and period labels are absent from the deterministic context catalogue"
+    ],
+    "never_alone": [
+      "the word environmental, environment, emissions, discharge, effluent, pollution, permit, licence, consent, monitoring, sustainability, waste or compliance alone",
+      "a regulator or agency name alone, and equally an accredited laboratory's name, a consultancy's name or a certification body's name; an organisation name is never-alone evidence and identifies the issuer or the tester, not the holder of the obligation",
+      "an authorisation-shaped, outfall-shaped, stack-shaped or consignment-shaped identifier outside a labelled role slot; a bare identifier is exactly the never-alone case that a supplier's permit copy would trip",
+      "a substance, pollutant or waste-code name alone; a safety data sheet, a purchase specification and a laboratory price list all contain them",
+      "a limit value, a measurement, a unit, a pass/fail word, a date or an approval signature alone",
+      "an ISO standard designation alone; a downloaded copy of a standard is a reference document, not evidence that the holder operates a system under it",
+      "a source_type or extension alone; spreadsheets, PDFs, scans, email, calendars and archives occur in every neighbouring row",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "a parent folder called Environment, Compliance, EHS, HSE, Permits or Sustainability alone",
+      "missing EXIF as proof that a discharge image is a screenshot rather than a field photograph",
+      "an invoice for waste collection, laboratory analysis or a stack test alone; the transaction proves a purchase, not a held authorisation or a monitoring obligation"
+    ]
+  },
+  "proposed_context_terms": [
+    "emission limit value",
+    "discharge consent",
+    "release point",
+    "receiving water",
+    "receiving medium",
+    "sample point",
+    "grab sample",
+    "composite sample",
+    "limit of detection",
+    "measurement uncertainty",
+    "isokinetic",
+    "averaging period",
+    "data availability",
+    "duty of care",
+    "waste transfer note",
+    "consignment note",
+    "waste code",
+    "registered carrier",
+    "consignee",
+    "aspects and impacts",
+    "compliance obligations register",
+    "condition number",
+    "exceedance",
+    "self-notification",
+    "abatement",
+    "variation application",
+    "surrender",
+    "operator competence"
+  ],
+  "work_types": [
+    "environmental permit, licence, consent, registration or exemption instrument",
+    "permit condition schedule, release-point table or improvement-condition programme",
+    "variation, transfer, surrender or renewal application and its determination",
+    "periodic monitoring return or discharge monitoring report",
+    "sampling plan, chain-of-custody form and laboratory certificate of analysis",
+    "stack emissions test or periodic source-test report",
+    "continuous emissions or effluent monitoring export and its validity and calibration evidence",
+    "groundwater, soil, noise, odour or dust monitoring result",
+    "waste consignment note, manifest, transfer note or annual waste return",
+    "pollutant release inventory or statutory emissions report and its verification opinion",
+    "environmental management system manual, aspects and impacts register or compliance obligations register",
+    "environmental internal audit, surveillance audit or regulator inspection report",
+    "exceedance, breach or pollution-incident notification and its follow-up",
+    "spill prevention, drainage, containment or emergency response plan for a site",
+    "regulator correspondence, information request, enforcement or advisory notice"
+  ],
+  "grouping_reasons": [
+    "one authorisation across its instrument, variations, condition programme, returns, monitoring evidence and correspondence",
+    "one release point across its permitted limits, sample and test results, continuous-monitoring exports and exceedances",
+    "one reporting period across the return, the certificates supporting it, the covering submission and the acknowledgement",
+    "one sample identifier across the chain-of-custody form, the laboratory certificate and the return row that cites it",
+    "one waste stream across consignment notes, carrier and consignee documentation and the period register that aggregates them",
+    "one exceedance across the detection record, the notification, the investigation and any resulting condition change",
+    "duplicate and version families remain universal facts; a permit reference is never propagated onto a sparse member merely because the member shares a folder or a download session with the packet"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract, because the manufacturing schema declares no canonical fields. The recommendation held as prose is authorisation, then emission point, then reporting period, then record type — with site above authorisation only in a genuinely multi-site corpus, and with the emission-point level flattened when the authorisation names a single release point. This deliberately differs from the schema default's two branch shapes (product then lot then record type; site then asset then record type): a permit outlives every lot, spans every asset, and a return filed under a product would never be found again. It is not time-first — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Reporting period appears low in the order rather than first, and it is the covered interval from a labelled slot, not the file's creation date. The user may reverse, remove or flatten this order after any fields are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "ocr",
+      "email",
+      "image",
+      "calendar",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": ["pdf", "xlsx", "csv", "docx", "eml", "jpg", "png", "ics", "xml", "zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "EPR-AB1234 - Quarterly Monitoring Return Q2 2026 - Outfall 001.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header block carries labelled Permit Reference, Reporting Period and Discharge Point slots",
+        "rows pair parameter, permitted limit, measured result, unit and a compliance flag",
+        "a Prepared By slot names an operator role and a covering submission tab records the date sent",
+        "no date-received or receiving-officer slot appears anywhere in the workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "authorisation (proposed)",
+        "emission_point (proposed)",
+        "reporting_period (proposed)",
+        "site (schema proposal, where labelled)"
+      ],
+      "must_not_conclude": [
+        "that the return was accepted, or that the regulator agreed with any flag",
+        "reporting_period from the filesystem creation date rather than the labelled slot",
+        "a folder path",
+        "that a flagged row proves a legal breach"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Environmental Permit EPR-AB1234 - variation notice - Schedule 3 conditions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing-authority block, named operator, named installation and an effective date",
+        "Schedule 3 numbered conditions, each binding a substance to a limit value, a release point and a monitoring frequency",
+        "a release-point table listing Outfall 001, Stack A2 and their receiving media",
+        "a variation preamble citing the conditions it replaces"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "authorisation (proposed)", "emission_point (proposed)", "site (schema proposal)"],
+      "must_not_conclude": [
+        "the issuing authority as the record-owning organisation",
+        "that the permit is currently in force, or that later variations have not superseded it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Stack test report - A2 boiler - 2026-05-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sampling location identified as a stack with duct dimensions and traverse points",
+        "reference method, isokinetic sampling rate, analyte results with measurement uncertainty",
+        "results compared against a stated emission limit value",
+        "testing-body accreditation identifier and a named test engineer"
+      ],
+      "facts_legal": ["file_type", "creation_date", "emission_point (proposed)", "authorisation (proposed, where the report cites a permit reference)"],
+      "must_not_conclude": [
+        "that the testing body or its accreditation number identifies the holder of the permit",
+        "asset from the word boiler alone, in the absence of an asset-register anchor",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "COA 26-11884 - Outfall 001 composite - 2026-06-30.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "laboratory letterhead, sample identifier, and a labelled Sample Point naming a discharge point",
+        "analyte rows with method reference, result, unit and limit of detection",
+        "sample type recorded as a 24-hour composite with a collection date and time",
+        "accreditation schedule reference and an authorising analyst signature"
+      ],
+      "facts_legal": ["file_type", "creation_date", "emission_point (proposed)", "reporting_period (proposed, only where a labelled period slot exists)"],
+      "must_not_conclude": [
+        "product or batch_lot: a sample point is not a product and a sample identifier is not a lot",
+        "that the laboratory is the site",
+        "compliance, because the certificate reports a result and not a limit comparison",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "COA - AX410 lot L240817-03 - finished goods.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "identical laboratory letterhead, analyte, method, result and accreditation structure to the effluent certificate",
+        "the labelled slot is Product and Batch, not Sample Point",
+        "results are compared to a product specification and a release disposition is stated"
+      ],
+      "facts_legal": ["file_type", "creation_date", "product (schema proposal)", "batch_lot (schema proposal)"],
+      "must_not_conclude": [
+        "this row: a certificate of analysis is not environmental evidence merely because it is a laboratory result",
+        "emission_point from a sample or specimen identifier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Chain of custody 26-11884.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR reads a pre-printed form with sample identifier, sample point, collection date and time and preservative columns",
+        "successive relinquished-by and received-by signature rows with times",
+        "an analysis-requested checklist and a turnaround field",
+        "several handwritten cells are only partly legible"
+      ],
+      "facts_legal": ["file_type", "language", "emission_point (proposed, only where the sample-point cell is legible)"],
+      "must_not_conclude": [
+        "a result: a custody form carries no measurement",
+        "emission_point from an illegible cell",
+        "the couriers or analysts named in the signature rows as folder dimensions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CEMS hourly export - stack A2 - 2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "hourly timestamped rows with monitored parameter columns",
+        "an averaging-period column, a validity flag column and a calibration or drift status column",
+        "a header row naming one stack",
+        "no permit reference appears in the file itself"
+      ],
+      "facts_legal": ["file_type", "creation_date", "emission_point (proposed)", "reporting_period (proposed, from the labelled month range only)"],
+      "must_not_conclude": [
+        "authorisation, which is absent from this export; the file may join a permit packet without acquiring the permit reference as a fact",
+        "compliance or exceedance from raw values without the applicable limit",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Consignment note ABC123-00042 - hazardous waste.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "waste description with classification codes, physical form and quantity",
+        "three named parties: producer, registered carrier with a registration number, and consignee with a permit reference",
+        "collection address, vehicle registration and successive signatures with dates",
+        "a duty-of-care declaration paragraph"
+      ],
+      "facts_legal": ["file_type", "creation_date", "site (schema proposal, from the producer address block)", "authorisation (proposed, only where the note cites the producer's own permit or registration)"],
+      "must_not_conclude": [
+        "that the consignee's permit reference is the holder's authorisation — it belongs to the receiving facility",
+        "logistics activation from vehicle and carrier slots alone in the absence of shipment or freight structure",
+        "a folder path"
+      ],
+      "also_schema": "logistics.customs-export",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Waste transfer register 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per consignment across the year with date, code, quantity, carrier and consignee",
+        "a site header and a totals block by waste code",
+        "a retention note referencing a duty-of-care obligation"
+      ],
+      "facts_legal": ["file_type", "site (schema proposal)", "reporting_period (proposed)"],
+      "must_not_conclude": [
+        "carrier or consignee organisations as folder dimensions",
+        "authorisation, unless a permit reference appears in a labelled slot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Aspects and impacts register - Plant 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows mapping an activity to an environmental aspect, a receiving medium and an impact",
+        "columns for the applicable obligation, the existing control and a responsible role",
+        "a site header naming one plant",
+        "no permit reference, no measurement and no release point"
+      ],
+      "facts_legal": ["file_type", "site (schema proposal)"],
+      "must_not_conclude": [
+        "authorisation or emission_point, neither of which appears",
+        "that the named responsible roles become folder dimensions",
+        "risk severity as a handling class",
+        "a folder path"
+      ],
+      "also_schema": "business_operations.risk-register",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE EPR-AB1234 exceedance - Outfall 001 - notification.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries a labelled permit reference, a release point and the word exceedance",
+        "body states the parameter, the measured value, the applicable condition number, the duration and the actions taken",
+        "recipient is a named regulator mailbox; sender is an operator role",
+        "one attachment named as a laboratory certificate"
+      ],
+      "facts_legal": ["file_type", "creation_date", "authorisation (proposed)", "emission_point (proposed)", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a breach occurred, that a penalty followed, or that the notification satisfied any duty",
+        "facts from the attachment without reading the attachment",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_9042.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph shows discoloured water at a concrete outfall structure",
+        "EXIF capture time and camera data present",
+        "no signage, point marking, permit reference or document visible in frame"
+      ],
+      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates"],
+      "must_not_conclude": [
+        "emission_point, authorisation or an exceedance from visual appearance",
+        "that missing GPS proves the image is a screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "2026 GHG inventory - Scope 1 and 2 - Plant 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "activity-data rows for fuel and purchased electricity with emission factors and a factor-source column",
+        "a labelled reporting year and an organisational-boundary note",
+        "a verification tab naming a verification body and an opinion date",
+        "the same meter readings also feed a consumption-and-savings tab"
+      ],
+      "facts_legal": ["file_type", "site (schema proposal)", "reporting_period (proposed)", "authorisation (proposed, only where a scheme registration or permit reference is labelled)"],
+      "must_not_conclude": [
+        "this row from energy meter data alone; the statutory-scheme frame is what activates it",
+        "that the verification opinion is unqualified",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing.energy-audit",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Permit renewal - pre-application meeting.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is an operator mailbox, attendees include a regulator mailbox",
+        "the description quotes an exact permit reference and the conditions under discussion",
+        "location is a site address"
+      ],
+      "facts_legal": ["file_type", "authorisation (proposed)"],
+      "must_not_conclude": [
+        "that a renewal was granted or that a deadline was met",
+        "attendee names as folder dimensions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EPR-AB1234 - annual return pack 2025.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists four quarterly returns, laboratory certificates, calibration evidence and a covering letter, all sharing one permit token",
+        "mixed PDF and CSV members",
+        "the archive itself carries no labelled slots"
+      ],
+      "facts_legal": ["file_type", "creation_date", "authorisation (proposed, possible from the manifest)", "reporting_period (proposed, possible from the manifest)"],
+      "must_not_conclude": [
+        "facts from unread members",
+        "that every member was submitted or accepted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Invoice 88421 - effluent sampling and analysis - Q2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "laboratory letterhead, invoice number, purchase-order reference, line items for sampling visits and analyses",
+        "net, tax and total blocks and payment terms",
+        "no sample point, no result, no permit reference and no limit"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "this row from the words effluent and analysis in a line item",
+        "emission_point or reporting_period from an invoice period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "The reciprocal same-bytes case, stated to match that row's own edge. The operator's compliance folder and the regulator's site file hold the identical permit copy, the identical monitoring return and the identical laboratory certificate. This row requires operator-side custody: a prepared-by or authorised-signatory operator role, a covering submission, or possession of the obligation rather than the determination of it. The government row requires authority-side custody: a date-received or return-register slot, an officer assessment, an issued instrument, or an authority case-system export. The competing fixture is the same one that row names, `EPR-AB1234 - Quarterly Monitoring Return Q2 2026 - Outfall 001.xlsx`: the copy with a covering submission and no receipt slot is this row's, the copy carrying a date-received and receiving-officer slot is the government row's, and when neither is present the file goes to Review Later rather than to a guess.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "A certificate of analysis is the shared shape: identical laboratory letterhead, analyte, method, result, limit of detection and accreditation slots. The discriminator is what was sampled. This row owns a certificate whose labelled slot is a sample point releasing to a receiving medium; the inspection row owns one whose labelled slot is a product and batch with a specification and a release disposition. The competing fixtures are `COA 26-11884 - Outfall 001 composite - 2026-06-30.pdf` against `COA - AX410 lot L240817-03 - finished goods.pdf`. Accreditation numbers, analyte names and pass words discriminate neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.hse-incident",
+      "signal": "Both hold site incident reports, notifications to an outside authority, containment narratives and closeout actions with identical structure. The discriminator is what was harmed. This row owns a release to air, water or land assessed against an authorisation or a receiving medium; the HSE row owns harm or potential harm to a person at work, assessed against occupational duties. The competing fixture is a spill: `RE EPR-AB1234 exceedance - Outfall 001 - notification.eml` describing a discharge to a watercourse is this row's, while the same spill written up as a chemical burn to an operator with an injury classification and a return-to-work note is the HSE row's. One event can generate both files; neither fact is copied onto the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.energy-audit",
+      "signal": "Meter readings, fuel consumption and emission factors appear on both sides, and the same workbook often serves both purposes. This row requires a statutory or scheme reporting frame — a registration or permit reference, an organisational boundary, a defined reporting period, an independent verification opinion. The energy row owns consumption profiling, efficiency measures, payback and savings. The competing fixture is `2026 GHG inventory - Scope 1 and 2 - Plant 2.xlsx`: its verification tab and reporting-year boundary support this row, while its consumption-and-savings tab supports the energy row, and the two coexist rather than compete when both structures are present.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.customs-export",
+      "signal": "A hazardous-waste consignment note carries a three-party custody chain, a registered carrier, a vehicle registration and successive signed transfers — the same skeleton as a controlled cross-border movement document. The discriminator is what the document is evidence of. This row owns the producer's duty-of-care record: waste classification codes, the producer's own site, and the register that aggregates consignments over a period. The logistics row owns the movement itself: carrier instructions, routing, border formalities and delivery proof. The competing fixture is `Consignment note ABC123-00042 - hazardous waste.pdf`, held by the producer as a retained obligation record here and held by the carrier as a movement record there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "An environmental management system audit report and a corporate compliance audit report share findings tables, nonconformity grades, auditor names, clause references and closeout dates. This row requires the audited obligation to be an environmental authorisation, a release, a receiving medium or a waste duty. The business-operations row owns audits of organisational controls generally, including audits of an integrated system where the environmental clauses are not separable. The competing fixture is an integrated-management-system surveillance report covering quality, environmental and safety clauses under one numbering: it activates this row only for the findings that cite an environmental obligation, and abstains rather than claiming the report as a whole.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing.quality-management-system",
+      "why": "An integrated management system manual can be one controlled document that is simultaneously the quality system's and the environmental system's governing text. Clause-level environmental obligations activate this row; the document-control, revision and training structure activates the quality-management row. Neither erases the other, and neither propagates its anchor onto the other's members.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.process-plant-design",
+      "why": "An abatement design basis — a scrubber sizing calculation, an effluent treatment plant P&ID — is engineering design evidence and, when it cites a permit condition and a limit value as its design duty, is also this row's evidence of how a condition is met. The design revision belongs to engineering; the condition reference belongs here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "why": "A verified statutory emissions report can be both a scheme return under an environmental authorisation and a component of an annual corporate filing. The scheme registration and verification opinion activate this row; the corporate filing structure activates the business-operations row.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone permit copy, certificate, test report or register with a durable purpose but no operator-side authorisation anchor is exactly \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A laboratory, waste-collection or stack-test invoice, and a bare portal submission acknowledgement, prove a transaction rather than a held obligation; 00's residual for \"isolated invoices, delivery confirmations, booking records\" is the correct home.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A monitoring return with neither an operator submission slot nor an authority receipt slot, and a partly illegible custody form, are files \"whose meaning is partly understood but whose final location requires a future decision\". Abstaining is required here rather than guessing between this row and the government row.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An encrypted return pack or an unreadable instrument-vendor export is represented without inferring an authorisation from its filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A field photograph of a discharge, plume or spill with no signage, marking or document in frame carries no authorisation or release-point evidence of its own.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "government.environmental-regulation",
+      "why": "Same entity, two custody roles. The permit instrument, the monitoring return and the laboratory certificate are one entity type held on both sides. This row holds the operator role and would carry the operator-side keys (`authorisation`, `emission_point`, `reporting_period`, plus the schema's `site`); the government row holds the authority role and carries its own case, receipt and officer keys. The split is resolved by custody evidence in the bytes, never by which folder the file sits in.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Exceedance records, self-notifications, incident narratives and internal audit findings are commercially damaging and can be legally consequential, while process data in a return can disclose throughput and recipe. At the same time much of this material sits on a public register, so the row must not treat public availability as proof that the local copy is low-sensitivity. Named samplers, drivers, analysts and responsible officers remain search and privacy observations, never destination dimensions. This row assigns no handling class; P7 owns that vocabulary and privacy policy must run before any model or connector.",
+  "open_question": "NJ-MEC-1: this row proposes `authorisation` while government.permit-licensing, construction_property.building-control and logistics.driver-compliance all file against permits and licences too; R1c should decide whether one global authorisation key is minted or whether each schema keeps a private one. NJ-MEC-2: is `emission_point` a distinct key, or is it `asset` with a role qualifier — the argument against folding is that several assets vent through one stack and an outfall has no maintenance history, but the counter-argument that a stack is a maintained item is real. NJ-MEC-3: greenhouse-gas and energy data feed both this row and manufacturing.energy-audit from the same bytes; R1c should decide whether the discriminator is the statutory-scheme frame proposed here or a reciprocal split written on the energy row. NJ-MEC-4: `record_type` reuse is already contested at the schema (NJ-MFG-1) and this row inherits that question rather than answering it. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}

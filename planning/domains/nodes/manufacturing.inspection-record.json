@@ -1,0 +1,491 @@
+{
+  "id": "manufacturing.inspection-record",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Inspection and measurement records",
+  "one_line": "The measured evidence that one identified physical article conformed: a table whose rows are characteristics, whose columns are a stated limit and an actual measured value, and whose verdict is per-characteristic rather than per-document. It is the one manufacturing situation whose organizing anchor is frequently NOT a lot the holder produced — a first-article report is anchored to a part revision and a purchase order, an incoming material test report to a supplier's heat, a CMM run to a serial number — so the schema default's product-then-lot parent chain cannot make it intelligible. It is not a statement of what the article must be (engineering.material-specification), not proof the measuring instrument itself conforms (manufacturing.calibration-record), not the case opened when a measurement fails (manufacturing.nonconformance-capa), and not proof the definition satisfies the requirement (engineering.verification-validation). PLACEHOLDER ROW (J-IND, written at J-DEPTH): PR-6 leaves fields empty; the recommended dimension inversion is recorded in prose for R1c rather than serialized.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "schema_default_template": "The manufacturing schema anchor recommends, in prose, `product` then `batch_lot` then `record_type` for production and quality records, with `site` optional above product only in a genuinely multi-site corpus. Its deterministic list already contains one signal that fires on this row's evidence: 'an in-process or final-inspection table with characteristic, specification/tolerance, measured result, pass/fail or disposition, instrument identifier and inspector/date slots'. Its work_types list already contains 'incoming, in-process or final inspection and test record' and 'certificate of analysis or conformity' as values of the proposed `record_type` key.",
+    "leg_1_detection_signals": "DIFFERENT, though narrowly. The schema default fires on the inspection table as one of twelve equal signals. This row privileges a stricter triple that none of the other eleven require: a per-row STATED LIMIT (nominal plus tolerance, an assay range, a min/max) beside a per-row ACTUAL MEASURED VALUE, plus a per-row verdict. A traveller, a shift log, a work order and an asset register all carry results; none carries a limit against which a result is scored. The second distinct signal is measurement provenance — a gauge, instrument or method identifier attached to the measuring act rather than to the article — which appears in this row's evidence and in calibration evidence and nowhere else in the schema. The third is characteristic accountability: a left-hand column of balloon numbers or characteristic identifiers traced back to a drawing revision, which is what makes this row coactivate with engineering rather than merely collide with it.",
+    "leg_2_recommended_dimensions": "DIFFERENT, and this is the decisive leg. `00`: 'The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.' The schema default's parent chain is product then batch_lot, where batch_lot is defined by the anchor as 'a production quantity made under substantially shared conditions' — a quantity the holder made. A large share of real inspection evidence has no such quantity. FAI-Report_AS9102_BPA-210-001_SN0004.pdf is anchored to a part number, a design revision and a serialized unit; Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf is anchored to a supplier's heat on an incoming consignment; CMM_BPA-210-001_SN0004_2026-05-12.csv is anchored to one serial. Filing these under a produced lot would either invent a lot fact or strand the file. This row therefore recommends an inspected-article anchor that may be a serialized unit, a received consignment identity, or a produced lot, in that order of specificity, above record function — an inversion of the default, not a leaf beneath it.",
+    "leg_3_privacy_rules": "NOT MATERIALLY DIFFERENT, and this row does not claim otherwise. Measured values expose tolerances, yields, capability and reject rates, and incoming records name suppliers beside their failure counts; inspection sheets name the inspector. All of that is already the schema anchor's `potentially_sensitive` posture and its rule that person names stay search or privacy observations rather than destination dimensions. The row inherits it unchanged and adds one operational caution only: a measured value must never be summarized or aggregated into a remote prompt to decide activation, because a capability distribution leaks more than the file's identity does.",
+    "verdict": "ACCEPT on legs 1 and 2. The row is not saved by leg 3 and does not pretend to be."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "proposed_context_terms": [
+    "characteristic",
+    "nominal",
+    "tolerance",
+    "upper specification limit",
+    "lower specification limit",
+    "as measured",
+    "actual",
+    "deviation",
+    "out of tolerance",
+    "balloon",
+    "bubble number",
+    "characteristic accountability",
+    "first article",
+    "incoming inspection",
+    "in-process inspection",
+    "final inspection",
+    "sampling plan",
+    "AQL",
+    "accept",
+    "reject",
+    "gauge",
+    "instrument used",
+    "test method",
+    "witness",
+    "inspector",
+    "certificate of analysis",
+    "certificate of conformity",
+    "heat number",
+    "mill certificate"
+  ],
+  "recognition": {
+    "deterministic": [
+      "a table whose row set is characteristics or tested properties and whose columns include a stated limit (nominal plus tolerance, min/max, or an assay range) beside an actual measured value, with a per-row accept/reject or in-tolerance verdict; the limit-and-actual pair is the signal, and a results column alone is not",
+      "a first-article structure with characteristic accountability: a left-hand column of balloon or characteristic numbers keyed to a named drawing and revision, an actual value per balloon, and a part-number-plus-serial or part-number-plus-purchase-order header",
+      "a coordinate-measuring or gauge output with nominal, actual and deviation triples repeated per feature, a machine or program identifier, and a run timestamp, whether emitted as delimited text or as a formatted report",
+      "a material or chemical test report with a heat, cast, coil or batch identifier, a composition or mechanical-property table scored against a named material designation, an issuing laboratory or mill, and a conformity statement covering one consignment",
+      "a certificate of analysis with an assay or property table, per-row specification ranges, per-row results and a release or conformity line tied to a named batch",
+      "an incoming or receiving inspection log whose repeated rows carry supplier, part, purchase-order or receipt reference, quantity received, quantity inspected, quantity rejected and a disposition per receipt line",
+      "an inspection or test record naming the measuring instrument, gauge or method used for the measurement, distinct from the article being measured; when the same document instead reports as-found and as-left values FOR that instrument it is calibration evidence, not this row",
+      "a sampling record stating the sampling plan, lot or consignment size, sample size, observed defects and the accept/reject decision derived from them",
+      "an email whose subject or body carries an exact serial, heat, consignment or inspection-report identifier and whose attachments are measurement tables rather than narrative",
+      "an archive whose manifest binds one serial, heat or consignment identifier across a report, a raw measurement export and inspection photographs; the manifest is read without unpacking members to disk"
+    ],
+    "needs_llm": [
+      "a scanned or photographed handwritten dimensional check sheet where the column relationships survive visually but the limit and actual headers do not survive OCR",
+      "a free-prose test summary that reports values in sentences with no table, where limits may be implicit in a cited standard rather than printed",
+      "a supplier-issued certificate that may be incoming-inspection evidence the holder accepted, procurement paperwork filed unread, or supplier-relationship evidence, depending on whether any receipt or acceptance act is visible",
+      "a spreadsheet of measured values with no product, serial, heat or consignment label anywhere in the workbook, where the anchor may exist only in a sibling file",
+      "a statistical control chart or capability study whose subject is a process characteristic across many lots rather than one inspected article",
+      "a photograph of a weld, surface or defect where scale and condition are visible but no article identity is in the image's own evidence",
+      "a multilingual controlled inspection form whose slot labels are absent from the deterministic context terms"
+    ],
+    "never_alone": [
+      "the words inspection, test, measurement, QC, quality, tolerance, accept, reject, pass, fail, certificate or report alone",
+      "a numeric result column alone: every operational schema records numbers, and a number without a stated limit beside it is not conformance evidence",
+      "a part number, product name, material grade, supplier name, laboratory name or mill name alone; a supplier-issued letterhead identifies the issuer, not the holder's inspection act",
+      "a serial-shaped, heat-shaped or lot-shaped token outside a labelled article-identity slot; a bare token, including a bare four-digit number, is never an anchor",
+      "a signature, stamp, approval box or accreditation logo alone; a calibration certificate, a customs declaration and a design review sign-off all carry these",
+      "a cited standard or test-method designation alone; a specification that NAMES a method has no measured value and belongs to engineering.material-specification",
+      "a source_type or extension alone; delimited text, spreadsheets, PDFs, scans, email and archives occur in every neighbouring schema",
+      "a parent folder called QC, Quality, Inspection, Reports or Incoming alone",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that an inspection image is a screenshot rather than a shop-floor photograph",
+      "an as-found value alone: as-found WITH as-left and a due date is calibration evidence about the instrument, not conformance evidence about an article"
+    ]
+  },
+  "work_types": [
+    "first-article inspection report",
+    "in-process dimensional or visual inspection record",
+    "final inspection and test record",
+    "incoming or receiving inspection record",
+    "coordinate-measuring or gauge measurement output",
+    "material test report or mill certificate",
+    "certificate of analysis",
+    "certificate of conformity issued against measured results",
+    "functional, performance or leak test result",
+    "non-destructive examination report",
+    "visual inspection record with photographic evidence",
+    "sampling inspection record against a stated plan",
+    "source or witness inspection record",
+    "inspection photograph set for one identified article"
+  ],
+  "grouping_reasons": [
+    "one serialized unit across its first-article report, coordinate-measurement export, functional test result and inspection photographs",
+    "one received consignment across its material test report, incoming inspection log row and any rejection disposition",
+    "one produced lot across in-process checks, final inspection and the release certificate that cites their results",
+    "one part number and drawing revision across the first-article reports of successive units, where the characteristic set is the shared thing rather than the article",
+    "a report and its raw instrument export, bound by an exact run or report identifier rather than by adjacency or timestamp proximity",
+    "duplicate and version families remain universal facts; membership never copies an article, heat, lot or characteristic fact onto a sparse member"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the manufacturing schema declares no canonical fields under PR-6. The recommendation held as prose inverts the schema default: the first branch should be the INSPECTED ARTICLE at the most specific identity the file itself carries — a serialized unit, else a received consignment identity such as a heat or cast, else a produced lot — with product above it only when a corpus spans several products, and record function as the leaf. `00`: \"The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.\" A first-article report for SN0004 is unintelligible under a produced-lot branch it has no membership in, and filing it there would require inventing the lot fact. Where a corpus is genuinely characteristic-driven rather than article-driven — successive first articles of one part revision — part-and-revision above article is the better parent, and the template validator should offer that inversion rather than freeze one order. Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Inspection evidence is the clearest case of that hazard, because a unit's incoming, in-process and final records are deliberately spread across months.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "image", "ocr", "email", "archive", "code_structured", "opaque_binary"],
+    "extensions": ["pdf", "xlsx", "csv", "txt", "docx", "jpg", "png", "eml", "zip", "xml"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "FAI-Report_AS9102_BPA-210-001_SN0004.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header slots for part number, part revision, serial number and purchase-order reference",
+        "characteristic accountability table: balloon number, drawing zone, requirement, actual measured value, inspector",
+        "a form set numbered in parts, with a signed conformity page",
+        "no produced-lot slot anywhere on the form"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "product (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": [
+        "a batch_lot fact: the form has none, and the purchase-order number is not a lot",
+        "that the design revision named here is current",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "LOT-24-081_Final-Inspection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for characteristic, lower limit, upper limit, measured value and disposition",
+        "labelled lot and product headers, a cited drawing revision, an instrument column",
+        "several rows disposition REJECT among mostly ACCEPT rows"
+      ],
+      "facts_legal": ["file_type", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": [
+        "that the lot as a whole passed or failed; the verdict here is per characteristic",
+        "a quality_event: a REJECT row is a measurement, not an opened case",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "mill letterhead and an inspection-certificate type designation",
+        "heat number, cast number and bar dimensions in labelled slots",
+        "chemical composition and mechanical property tables with specified ranges beside actual values",
+        "a purchaser and order reference naming the holder"
+      ],
+      "facts_legal": ["file_type", "creation_date", "record_type (reuse proposed)"],
+      "must_not_conclude": [
+        "that the issuing mill is the holder's site",
+        "a produced batch_lot from a supplier heat number",
+        "supplier approval status from a conforming certificate",
+        "a folder path"
+      ],
+      "also_schema": "logistics",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CMM_BPA-210-001_SN0004_2026-05-12.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated feature rows with nominal, actual, upper deviation, lower deviation and out-of-tolerance flag",
+        "a header block naming the measurement program and machine",
+        "part and serial identifiers in the filename and repeated in the header block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "product (proposed)", "asset (proposed, for the measuring machine)"],
+      "must_not_conclude": [
+        "that the measuring machine is the article being controlled",
+        "a design revision from the program name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Incoming inspection log 2026-08.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated receipt rows: date, supplier, part, purchase-order or goods-receipt reference, quantity received, quantity inspected, quantity rejected, disposition",
+        "a sampling-plan column naming a plan and sample size",
+        "no single article identity; each row is a different consignment"
+      ],
+      "facts_legal": ["file_type", "creation_date", "site (proposed, where a receiving location is labelled)", "record_type (reuse proposed)"],
+      "must_not_conclude": [
+        "a single product or batch_lot fact for the whole workbook",
+        "that a named supplier is qualified or disqualified",
+        "a folder path"
+      ],
+      "also_schema": "logistics",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "COA_Batch-2408-17.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "assay, appearance and moisture rows with specification ranges beside results",
+        "a batch identifier, a manufacture date and a retest date",
+        "an authorized signature and a conformity statement"
+      ],
+      "facts_legal": ["file_type", "batch_lot (proposed)", "product (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": [
+        "that the batch was released; a conformity statement is not a release decision record",
+        "that the retest date is a document expiry",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Inspection sheet scan 0007.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a ruled grid with three numeric columns and a right-hand column of single characters",
+        "handwritten header partially legible; a date and initials survive",
+        "column headers do not survive OCR"
+      ],
+      "facts_legal": ["file_type", "language"],
+      "must_not_conclude": [
+        "which numeric column is the limit and which is the actual",
+        "an article identity from the initials or the sheet number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_9042.jpg",
+      "source_type": "image",
+      "observations": [
+        "a weld bead photographed beside a steel rule for scale",
+        "EXIF capture time and camera model present",
+        "no visible part marking, traveller, serial tag or label in frame"
+      ],
+      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates"],
+      "must_not_conclude": [
+        "product, serial, heat or lot from visual appearance",
+        "that the weld was accepted or rejected",
+        "that absent GPS makes this a screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Inspection package SN0004.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a first-article report, a coordinate-measurement export, a material test report and four photographs",
+        "one serial identifier repeats across manifest entries",
+        "the archive itself carries no labelled slots"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "facts drawn from members that were not read",
+        "that every member concerns the same serial merely because the manifest name does",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table of applied values, indicated values and permitted errors that looks exactly like a conformance table",
+        "as-found and as-left result pairs",
+        "an instrument serial, a calibration date and a due date",
+        "an accreditation reference and a conformity statement"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "that this row activates: the measured article IS the measuring instrument",
+        "an inspected product or lot from the instrument serial",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gage R&R Study - CMM-02 - operators A B C.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated measurements of the same parts by several operators",
+        "columns for part, operator, trial and measured value",
+        "variance components and a repeatability percentage, with no specification limits at all"
+      ],
+      "facts_legal": ["file_type", "asset (proposed, for the gauge under study)"],
+      "must_not_conclude": [
+        "that the parts measured here were inspected for conformance",
+        "an article-conformance verdict; the study scores the measurement system",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NCR-2026-041 cracked housing.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled nonconformance identifier, affected product and lot",
+        "requirement-versus-observed-condition statement",
+        "containment, disposition, approval and closure slots"
+      ],
+      "facts_legal": ["file_type", "quality_event (proposed)", "batch_lot (proposed)", "product (proposed)"],
+      "must_not_conclude": [
+        "that this row activates: the observed condition is narrated, not measured against a stated limit per characteristic",
+        "root cause from the title",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "MS-4120 Rev D - passivation of austenitic stainless steel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a document identifier and issue revision",
+        "shall-statements with required property ranges",
+        "a verification-method column naming test standards",
+        "no heat, lot, serial or measured value anywhere"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "that this row activates: naming a test method is not performing one",
+        "an inspected article from the material grade",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Packing list L240817-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "ship-to and carrier blocks, tracking reference",
+        "line items with the same lot token that appears on the final inspection sheet",
+        "quantities shipped, no limits and no measured values"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "that this row activates from a shared lot token",
+        "that the lot passed inspection because it shipped",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "SPC Xbar-R chart - Line 2 - dimension A - 2026-Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "subgroup rows across many production days and several lots",
+        "control limits computed from the data, alongside specification limits",
+        "capability indices summarized per characteristic",
+        "no single inspected article"
+      ],
+      "facts_legal": ["file_type", "site (proposed, where the line is labelled)", "product (proposed)"],
+      "must_not_conclude": [
+        "an article, serial or consignment anchor; the subject is a process characteristic over time",
+        "that a control limit is a specification limit",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "The sharpest collision, and the neighbour has already stated it: both sides carry a serialized article, a conformity table, an accept/reject column and a signed inspector. Direction one — this row: the left-hand column is drawing characteristics and nominal dimensions, and the object is whether the PROCESS reproduced the definition on this unit. Direction two — verification-validation: the left-hand column is requirement identifiers, and the object is whether the DEFINITION satisfies what was asked. Shared fixture bytes, resolved identically on both sides: FAI-Report_AS9102_BPA-210-001_SN0004.pdf is this row's on both sides, and LOT-24-081_Final-Inspection.xlsx stays this row's even though it cites a drawing revision. Reciprocally, a requirement-verification matrix stays with verification-validation even when one of its methods is 'inspection' and a measured value appears in its evidence column.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "signal": "Structurally near-identical documents: issuer, certificate number, a table of values against permitted errors, a conformity statement, a signature. The discriminator is which object the measurement is ABOUT. Direction one — this row: the measured object is a produced or received article, and the instrument appears only as provenance of the measuring act. Direction two — calibration-record: the measured object is the instrument itself, marked by as-found and as-left pairs and a next-due date, which no article inspection carries. Shared fixture bytes: Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf is calibration-record's on both sides, and Gage R&R Study - CMM-02 - operators A B C.xlsx is calibration-record's too because its variance is attributed to the measurement system, not to the parts. Reciprocally, CMM_BPA-210-001_SN0004_2026-05-12.csv is this row's on both sides and does not move because it names the machine that produced it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "A failed measurement and an opened case describe the same physical problem and often name the same lot. Direction one — this row: a per-characteristic REJECT verdict inside a limit-and-actual table stays here; the record is still a measurement, and the failure is one of its rows. Direction two — nonconformance-capa: an event identifier plus containment, disposition, approval and closure structure activates there, whether or not it quotes a number. Shared fixture bytes: LOT-24-081_Final-Inspection.xlsx is this row's on both sides despite its REJECT rows, and NCR-2026-041 cracked housing.pdf is nonconformance-capa's on both sides despite describing a physical defect. The hazard both ways is propagation: the NCR's event identifier must not be written onto the inspection sheet, and the inspection sheet's measured values must not be restated as findings of the case.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "A traveller or batch production record contains inspection sign-off rows, so the same production event is documented twice. Direction one — this row: the separately identified datasheet carrying limits, actuals and per-characteristic verdicts, which has its own identity and its own retention. Direction two — production-record: the execution document whose rows are operations completed in sequence, where an inspection row records that a check HAPPENED rather than what it measured. Shared fixture bytes: BPR_AX410_L240817-03.pdf, the schema anchor's own traveller fixture, is production-record's on both sides even though it has a quality-release sign-off; Final inspection AX410 lot L240817-03.csv, also the anchor's, is this row's on both sides. Reciprocally, a traveller does not become an inspection record because an operation row says 'inspect', and an inspection sheet does not become a traveller because it lists operations in the characteristic order they were checked.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "signal": "The procedure and the evidence produced under it share vocabulary, form numbers and often a template header. Direction one — this row: a populated instance with an article identity and actual values. Direction two — quality-management-system: the controlled procedure, sampling plan, inspection instruction or blank form with a document number and issue revision and no article and no values. Shared fixture bytes: a blank 'QF-071 Final Inspection Record Rev 3' with the same grid as LOT-24-081_Final-Inspection.xlsx is quality-management-system's on both sides; the populated LOT-24-081 sheet is this row's. Reciprocally, an inspection instruction that quotes an example measurement does not become an inspection record, and an inspection record does not become QMS evidence because it prints a form number in its footer.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.material-specification",
+      "signal": "Reciprocal with the wording already landed on the neighbour. Both sides use the same property names, the same material grade and the same referenced test standards. Direction one — this row: measured results for one identified consignment, marked by a heat, cast, lot or serial number. Direction two — material-specification: normative criteria and named methods with no consignment identity at all. Shared fixture bytes, resolved identically on both sides: Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf is this row's, and the material designation it cites does not pull it to the specification row; MS-4120 Rev D - passivation of austenitic stainless steel.pdf is material-specification's and does not become an inspection record because it names a test method.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "why": "A supplier-issued material test report or certificate of analysis is measurement evidence about a consignment here and relationship evidence about a supplier there, on disjoint slots in the same bytes: the composition and property tables activate this row, the issuer identity plus any approval scope or scorecard context activates supplier-qualification. Neither may write the other's fact — a conforming certificate does not make a supplier approved, and an approved supplier does not make an unread certificate an accepted inspection.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "why": "A first-article report is simultaneously production-conformance evidence and a characteristic-by-characteristic record against one named drawing revision; the balloon column is engineering's anchor and the actual-value column is this row's. Coactivation is on disjoint evidence and must not transfer a design-revision currency judgement onto the inspection, nor an article identity onto the drawing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "why": "An inspection photograph carries genuine capture evidence — capture time, camera information — and can activate Photos independently while being a member of an inspection packet. Membership never converts capture facts into article facts, and a photo with no visible marking contributes no article identity to the packet it joins.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone certificate, test report or inspection sheet with durable purpose but no resolvable article, consignment or lot anchor remains an independent record rather than being filed under an invented anchor.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A packing list, delivery note or goods-receipt acknowledgement that shares a lot token with inspection evidence but proves only a transaction belongs in the receipt residual.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor check sheet, a bare table of numbers with no limits, or a capability study whose subject is a process rather than an article should abstain rather than manufacture an article fact.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "An inspection-looking photograph with no article identity in its own evidence is an image, not measurement evidence; it may still join a packet without receiving the packet's facts.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A proprietary gauge or measuring-machine binary export, or a protected inspection archive, is represented without forcing inspection or inferring purpose from its filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "logistics.shipment",
+      "entity": "a lot, heat, cast or consignment identifier travelling on incoming or outgoing material",
+      "this_side": "the acceptance role: the consignment as the subject of a measurement scored against a stated limit, keyed to characteristics and results",
+      "other_side": "the custody role: the same consignment as a unit that moved, keyed to carrier, ship-to, tracking, quantity and receipt event",
+      "why": "The identifier is identical bytes in both roles, which is precisely `00`'s never-alone hazard applied to a lot token. Material Test Report - Heat 4471822 is the fixture where the split is visible: its composition table is acceptance evidence here, while the goods-receipt line that records heat 4471822 arriving is custody evidence there. Packing list L240817-03.pdf is the mirror fixture, custody on both sides.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Measured values expose tolerances, process capability, yields and reject rates that are commercially confidential; incoming records name suppliers beside their failure counts; inspection sheets name individual inspectors and operators. The row assigns no handling class. Person names remain search or privacy observations rather than destination dimensions, and measured values must not be summarized or aggregated into a remote prompt in order to decide activation, because a capability distribution discloses more than the file's identity does.",
+  "open_question": "NEEDS-JOSEPH NJ-INSP-1: the schema anchor's proposed `batch_lot` is defined as a quantity the holder produced, but this row's most common anchors are a serialized unit and a supplier's heat on an incoming consignment. Alternatives for R1c: (a) widen `batch_lot` to any traced material quantity and carry the produced-versus-received distinction as the logistics role_split already written here; (b) mint a separate article-identity key alongside it. This row mints nothing and recommends (a). NJ-INSP-2: does a statistical process-control chart or capability study belong to this row, to `manufacturing.production-record` as line evidence, or to `manufacturing.quality-management-system` as a control activity? Its subject is a characteristic over time with no inspected article, so it currently falls to Review Later rather than being claimed. NJ-INSP-3: when a supplier-issued certificate arrives with a purchase order and is never acted on, is it incoming-inspection evidence or procurement paperwork? The discriminating act — acceptance — may leave no file, so the alternatives are to require a receipt or acceptance reference before activation, or to accept the certificate and mark the acceptance unknown."
+}

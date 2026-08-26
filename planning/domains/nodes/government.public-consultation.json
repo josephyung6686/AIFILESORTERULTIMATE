@@ -1,0 +1,564 @@
+{
+  "id": "government.public-consultation",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Public consultation exercises",
+  "one_line": "J-DEPTH placeholder template for the corpus a public authority accumulates when it publishes an invitation to comment and then holds what came back: a numbered question set with a stated closing date, a response form carrying the respondent's own publication preference, many content-incoherent submissions from unrelated third parties keyed only to one consultation reference, a near-identical campaign cluster written by different authors, the response-analysis report that answers those question numbers, and the published outcome. It is NOT activated by the word consultation, by a public body's name, by a downloaded consultation document, by any survey or feedback shape, or by a comment period being a stage of some other proceeding. Its distinct default is the many-to-one received corpus plus a privacy rule no sibling has: publication permission on each member is declared by a third party who is not the corpus holder, and members may carry different permissions inside one packet. Under PR-6 the government schema declares no field rows, so activation unlocks only recognition, safety posture, universal facts, and grouping discipline.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template signals on a fieldless schema. Nothing here licences a consultation, question, respondent, closing-date, or publication-preference fact. Every accepted signal must show BOTH the invite-and-receive apparatus AND that the corpus holder is the inviting authority or the office analysing what it received — not a respondent, a campaigner, a reader, a journalist, or a supplier of survey software.",
+      "an invitation document carrying a consecutively numbered question set addressed to an undetermined public audience, a stated closing date for responses, an explicit how-to-respond channel, and a consultation reference or short title that recurs on other files in the corpus; the question numbers are the load-bearing structure, not the topic",
+      "a response form whose answer slots are numbered to match that question set AND which carries a respondent-declared publication-permission block (publish with my name / publish anonymously / do not publish) beside a respondent-identity block; the permission block is the single sharpest discriminator on the node because no internal survey, board paper, or feedback sheet asks the person answering to license disclosure of their own answer",
+      "a received-submissions set that is content-incoherent but purpose-coherent — letters, forms, spreadsheets, scans of handwriting, emails, and slide decks from unrelated authors — where the only shared anchor is one consultation reference, one call, or one closing date, and the members share no topic, no author, and no format; “The documents are content-incoherent but purpose-coherent.”",
+      "a tabular response export whose columns ARE the consultation's own question numbers and whose rows are distinct respondents, with a respondent-type or region column and a publication-preference column; the many-to-one shape (one instrument, many independent authors, one row each) is the structure, not the spreadsheet-ness",
+      "a near-identical-text cluster across members attributed to DIFFERENT named respondents — a campaign or template response. On this node the universal duplicate-family relation is evidence of coordinated submission, not evidence of a redundant copy, and members must not be collapsed as duplicates of each other",
+      "an analysis or 'summary of responses' document whose sections are keyed back to the same question numbers and which reports respondent categories and themes rather than making a decision, held alongside the responses it analyses",
+      "a published outcome or 'response to the consultation' that answers each question in the set, states what changed as a result, and names the consultation reference — accepted only when the corpus also holds the call or the received material; standing alone it is a publication, not a workflow",
+      "an archive whose manifest, read without unpacking, shows many mixed-format members plus a response index and a preferences or permissions note; “the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes sit with the inviting authority, a respondent organisation, a campaign that coordinated the responses, a consultancy engaged to analyse them, a supervising department, a journalist, or a citizen reader; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a public consultation from a body that borrows its furniture: a company's customer-satisfaction or user-research survey, a membership association's ballot on rule changes, a standards body's public review of a draft standard, an employer's staff engagement exercise, a landlord's tenant survey, and a university's course-feedback round all publish a question set and collect free-text answers",
+      "separating THIS row's discretionary invitation-and-outcome exercise from a comment period that is a legally structured stage of a neighbouring proceeding — a rulemaking docket, a planning application's neighbour representations, a committee call for written evidence — where the shared identifier belongs to that proceeding rather than to a consultation of its own",
+      "judging whether a near-identical text cluster is a campaign of independent submissions or an ordinary duplicate family, which changes both the grouping outcome and whether the members may be summarised together",
+      "judging whether an analysis document reports what respondents said or decides what the authority will do; the second is the neighbouring policy or rulemaking world even when it cites the same reference"
+    ],
+    "never_alone": [
+      "the word consultation, consult, comment, feedback, submission, respondent, survey, engagement, or 'have your say' in a filename, heading, or folder name; every one of these also names a company's user-research round, a market-research panel, a charity's member survey, a standards public review, and a school's parent questionnaire",
+      "the name of a government department, agency, council, ministry, or regulator, or its seal, letterhead, crest, or PDF producer string; the body may be the inviting authority, the subject of someone else's consultation, a respondent to another body's consultation, a cited authority, or merely the publisher of a document someone downloaded",
+      "the name of a responding organisation, association, firm, or campaign group on a submission's letterhead; an organisation name is never-alone evidence and here it identifies the party that is NOT the corpus holder",
+      "a personal name, address, or email in a respondent-identity block; it names a member of the public and can never be a reason to activate, a grouping key, or a folder level",
+      "a downloaded consultation document, discussion paper, green paper, white paper, call for evidence, or published summary of responses held for reading; publication by an authority is not the authority's custody of an exercise",
+      "a numbered question set alone; numbered questions occur in exam papers, application forms, audit questionnaires, due-diligence packs, RFP clarification sheets, and onboarding surveys",
+      "a stated closing or deadline date alone; a deadline occurs on a tender, a grant call, a job posting, a court filing, an application, and an invoice",
+      "a tabular file whose rows are people and whose columns are questions; that is the shape of every survey tool's export in every industry, and without the published call or the publication-permission structure it is not this row's evidence",
+      "free-text opinion prose about a public proposal; a letter to a newspaper, a blog post, a petition, a member briefing, and a lobbying note all read this way",
+      "a near-identical text family alone; without different named authors it is an ordinary duplicate or version family and must be treated as the universal relation it is",
+      "an extension or SOURCE_TYPE — a .pdf, .docx, .csv, .zip, or .eml never makes this template plausible by itself, and file-kind evidence is constitutionally never-alone",
+      "a bounded download session that happens to contain several consultation PDFs; “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "PROPOSED, not design. `00` states the pattern-plus-context shape for course codes only and lists none of these. Candidates for R6, each of which must co-occur with a second signal: 'closing date for responses', 'how to respond', 'summary of responses', 'we welcome views', 'respondent type', 'publish my response', 'consultation reference'."
+  ],
+  "work_types": [
+    "consultation or engagement document containing the published question set and closing date",
+    "response form or online-form export supplied for respondents to complete",
+    "received individual response from a member of the public, an organisation, or another public body",
+    "received-response corpus, index, or tabular export covering many respondents",
+    "campaign or template-text response cluster attributed to different submitters",
+    "response analysis, coding frame, or summary-of-responses report",
+    "published outcome, government response, or decision statement closing the exercise",
+    "consultation impact, equality, or accessibility assessment produced alongside the exercise",
+    "publication and redaction record covering which responses may be disclosed and in what form",
+    "engagement logistics record — public meeting notes, roadshow material, stakeholder correspondence, accessibility arrangements"
+  ],
+  "grouping_reasons": [
+    "one consultation exercise, anchored by a recurring consultation reference or exact short title that appears on the call, the form, the received material, the analysis, and the outcome; the anchor must be an identifier, never the topic and never the authority's name",
+    "one received-submissions packet whose members are content-incoherent but purpose-coherent, joined only by the call they answer; “A content-similarity system will tend to split them; a human may intentionally keep them together because they were submitted as one application package.”",
+    "one campaign cluster inside a received corpus, grouped because the members share text while carrying different authors — recorded as a coordinated-submission relationship, never collapsed into a single duplicate",
+    "one question-set lineage linking the call's numbered questions to the analysis sections and the outcome's answers, without copying a call fact onto a sparse member that only mentions the topic",
+    "one protected respondent set, grouped only inside a locally processed group with an exact consultation anchor, with no cross-exercise joining of the same person's submissions",
+    "duplicate and version families remain universal relationships; successive drafts of a consultation document or an analysis report acquire no new government facts from neighbourhood context",
+    "no group is a valid outcome for a lone downloaded consultation paper or a lone published summary of responses; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "PR-6 leaves the government schema fieldless, so no destination-eligible field exists and the only contract-compliant recommendation is an empty order — the same empty order the schema default carries. This template's difference is therefore carried by detection signals and privacy rules, which CONNECTION.md lists as template properties alongside dimension order: “detection signals, recommended `dimension_order`, optional branch patterns, privacy rules, validation constraints”. If fields are ratified later, the first dimension must be the consultation reference and the second the document function (call / received / analysis / outcome), because a numbered response form or an analysis section keyed to Q7 is unintelligible without the exercise it answers. Time is not first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Two levels are refused outright rather than deferred. Respondent identity must never become a dimension — it is authorship, it names a member of the public, and it would publish those names as directory entries. Consultation STAGE (open / closed / analysed / responded) must never become a dimension either: it is an ordering on material that already belongs to one exercise, and folding it into the tree would scatter one consultation across open and closed branches. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".mp3",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Consultation on the draft Housing Standards Code - consultation document.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "front matter naming an issuing department, a consultation reference token, and a stated closing date for responses",
+        "a 'How to respond' section naming an online form, an email address, and a postal address",
+        "consecutively numbered consultation questions Q1 to Q14 set out through the body",
+        "a section stating how responses will be published and how personal data will be handled"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a consultation, question, closing-date, or authority field on a fieldless schema",
+        "that the corpus holder is the inviting authority, when the same PDF is downloaded by every respondent, campaigner, journalist and reader",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Draft Housing Standards Code - consultation response form.docx",
+      "source_type": "text_document",
+      "observations": [
+        "answer boxes numbered to match Q1 to Q14 in the consultation document already in the corpus",
+        "a respondent block requesting name, organisation, respondent type and email",
+        "a publication-permission block offering publish with my name / publish anonymously / do not publish my response",
+        "the same consultation reference token as the consultation document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a blank form contains a respondent; an unfilled template carries no personal data and no submission",
+        "a publication-permission or respondent field on a fieldless schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "HSC-0417 response - Northfield Tenants Association.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a third-party letterhead and a signature block naming an individual and a role",
+        "prose answers introduced by the same Q numbers as the published question set",
+        "the consultation reference recurring in the subject line",
+        "a completed publication-permission line reading publish with my name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the letterhead organisation is the corpus holder; an organisation name is never-alone evidence and here it names the party that is not the holder",
+        "that the declared permission makes the file public, or lowers the posture of the packet it sits in",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HSC-0417 responses export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking shows many members with mixed extensions: .pdf, .docx, .eml, .jpg scans of handwritten letters, and one .xlsx",
+        "member filenames are respondent-shaped strings sharing one reference prefix and nothing else",
+        "a member named for a response index and a member named for publication preferences",
+        "no shared topic, author, or format across members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any per-member fact obtained by extracting the archive; “the normal scan should never extract archive contents to the filesystem”",
+        "that a mixed member list means the packet is incoherent; it is content-incoherent and purpose-coherent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HSC-0417 responses.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers are the consultation's own question numbers, with free-text answer columns beneath",
+        "one row per distinct respondent, with respondent-type, region and publication-preference columns",
+        "the publication-preference column carries different values on different rows",
+        "no company, customer, order or account column anywhere in the sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a rows-are-people, columns-are-questions sheet is by itself this template's evidence; that is the export shape of every survey tool in every industry",
+        "any respondent, region or preference field on a fieldless schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HSC-0417 - campaign text cluster - identical submissions.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a body of text repeated verbatim across many members of the received corpus",
+        "each occurrence carries a different named submitter and a different submission timestamp",
+        "an accompanying note naming the organisation that circulated the template text",
+        "the universal duplicate-family relation links the members while author differs on every one"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the members are redundant copies to be collapsed; identical text with different authors is a coordinated submission, not a duplicate",
+        "that the circulating organisation authored the submissions or is the corpus holder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HSC-0417 - summary of responses - final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sections keyed one-to-one to the published question numbers",
+        "a respondent-breakdown section reporting categories of respondent rather than named individuals",
+        "quoted excerpts attributed to respondent type rather than to a person",
+        "an explicit statement that the document reports views and does not itself decide"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a document reporting views is a decision; a document that decides belongs to the policy or rulemaking neighbour even citing this reference",
+        "that anonymised quotation makes the underlying corpus disclosable",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Government response to the Housing Standards Code consultation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "answers each published question in turn and states what will change as a result",
+        "names the consultation reference and the closing date that has passed",
+        "carries an official publication imprint and a print run identifier",
+        "no respondent identities beyond named organisations that consented to publication"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from this file alone; a published outcome held with nothing else is a publication someone downloaded",
+        "that its public status lowers the posture of a corpus that also holds received responses",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Written evidence HSB0037 - anonymised at submitter request.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an inquiry-series reference of the form used for numbered written evidence rather than a consultation reference",
+        "a cover note recording that the submitter asked for anonymity",
+        "prose answering a published set of terms of reference",
+        "a footer indicating publication as an appendix to a committee report"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an anonymity request alone routes the file here; the inquiry-series numbering and the reporting-body custody route it to the legislative sibling",
+        "that either side may relax protection because the other might hold it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Re Housing Standards consultation - late response.eml",
+      "source_type": "email",
+      "observations": [
+        "From header carries a personal address at a consumer mail provider",
+        "subject line repeats the consultation short title and the reference token",
+        "body is unstructured prose that does not follow the question numbering",
+        "an attachment named for a scanned letter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a respondent identity fact from a mail header on a fieldless schema",
+        "that unstructured prose about a public proposal is a submission; a letter, a blog post and a lobbying note all read this way",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-02 at 11.04.13.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of a browser page reading 'Thank you - your response has been received' with a reference-shaped token",
+        "no EXIF capture metadata",
+        "no question numbers, no respondent block, no publication-permission text",
+        "sits in a directory beside two consultation PDFs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a consultation reference fact copied from the neighbouring PDFs; the graph may retrieve the neighbourhood without the schema activating from this file",
+        "screenshot status from the absence of EXIF, which the design forbids as sole proof",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Customer satisfaction survey results Q1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are individual respondents, columns are numbered survey questions with free-text comment columns",
+        "a satisfaction-score column and a customer-account column",
+        "a panel-provider or survey-tool export banner in the first sheet",
+        "no published call, no closing date, no publication-permission column, no consultation reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template, on the strength of a many-to-one question-and-response shape alone",
+        "that free-text opinion columns are consultation responses; the respondents were recruited by the holder, not self-selected from a published invitation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Riverside Park redesign - have your say - comments.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry a comment, a postcode-shaped token, and a support or object value",
+        "a column naming a planning or scheme application reference rather than a consultation reference",
+        "no numbered question set anywhere in the file",
+        "a statutory-notice period rather than a stated consultation closing date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template from the phrase 'have your say', which is never-alone",
+        "that representations keyed to an application reference are a consultation of their own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Library strategy consultation - responses export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest shows mixed-format members sharing one consultation short title",
+        "a member named for service-point data and a member named for opening-hours schedules",
+        "a member named for a response index",
+        "no unpacking performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the service's operational contribution (service-point data, opening-hours schedules) is a received response; those members are the library sibling's evidence inside a packet this row anchors",
+        "any member fact obtained by extraction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.policy-development",
+      "signal": "Shared fixture: Consultation on the draft Housing Standards Code - consultation document.pdf. The policy sibling owns the proposal and the reasoning that produced it, and its own work-type enum already contains the value 'consultation' — which is exactly why this row must not claim the invitation document as its anchor. This row's evidence is the corpus that came BACK: many independent authors, one reference, per-member publication permissions. Where only the call and the options paper exist and nothing was received, policy-development holds both.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.regulatory-rulemaking",
+      "signal": "Shared fixture: a proposed instrument published for comment with a docket identifier AND a consultation reference. Rulemaking's comment file is a docketed step in a legally structured proceeding whose output is a made instrument plus a response-to-comments; this row's is a discretionary invitation whose output is a published summary and an outcome statement. When both identifiers are present the docket wins, because the docket binds the comment to the instrument. This is the least settled edge on the node and is carried as NJ-CONSULT-1 on both sides.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.legislative-record",
+      "signal": "Shared fixture: `Written evidence HSB0037 - anonymised at submitter request.pdf`, named identically by that row. A committee call for written evidence and an executive consultation both publish a question set and receive named submissions. The inquiry-series numbering and custody by a body that reports rather than decides route it to the legislative sibling; a consultation response with the same shape and an anonymity request routes here. Both sides hold it protected either way.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.planning-application",
+      "signal": "Shared fixture: Riverside Park redesign - have your say - comments.csv. Neighbour representations, objections and support comments are keyed to one application or scheme reference and are a statutory step inside that case; this row needs a published question set and a consultation of its own. A council running a policy-wide consultation about planning rules is this row; a council collecting comments on one application is the planning sibling.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.statistical-programme",
+      "signal": "Shared fixture: a numbered instrument plus a respondent-level tabular export. The statistical sibling collects to MEASURE, under a designed sample, a methodology note and disclosure control, and its respondents are selected; this row collects to CONSIDER VIEWS, from a self-selecting public, with per-respondent publication permission and no sampling frame. A consultation response spreadsheet is not microdata and must never be treated as a statistical release.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-records-foi",
+      "signal": "Shared fixture: a redaction schedule over a set of received responses. The FOI sibling owns disclosure worked as a REQUEST-driven case with a request reference, a search record and a refusal or review route; this row owns publication worked as the exercise's own promise, driven by permissions the respondents themselves declared. A request asking for unpublished consultation responses is the FOI sibling's case even though its subject matter is this row's corpus.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.advocacy-campaign",
+      "signal": "Shared fixture: HSC-0417 - campaign text cluster - identical submissions.docx. The campaign organisation holds the toolkit, the template text it circulated, and its own filed submission; the inviting authority holds the many received copies attributed to different submitters. Identical bytes, opposite roles. A campaign group's copy of the consultation document is never this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.user-research",
+      "signal": "Shared fixture: Customer satisfaction survey results Q1.xlsx. Both hold a numbered instrument and a rows-are-people export with free-text opinion. The discriminators are that this row's respondents self-select from a PUBLISHED invitation with a closing date, and that each declares whether their own answer may be published; a user-research or satisfaction study recruits its participants and treats confidentiality as the researcher's standing policy, not the participant's per-response election.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "Shared fixture: a consultation on rule changes circulated to members with a numbered question set and a closing date. A membership body consulting its own members is private-association material; this row requires an evidenced public authority consulting an undetermined public. Membership scoping (respondents drawn from a roll) is the discriminator, not the vocabulary.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.library-administration",
+      "signal": "Shared fixture: Library strategy consultation - responses export.zip, named identically by that row. The consultation identifier across content-incoherent members is this row's grouping evidence and anchors the packet; the service's own operational contribution to it — service-point data, opening-hours schedules — is the library sibling's, and this row never claims the service's operating records merely because they sit inside the packet.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: `also_holds_with` is a schema-row property, and the government schema row declares none. Every `file_examples.also_schema` on this node is therefore null. The genuinely dual-membership case here — a respondent organisation's own submission, which is simultaneously that organisation's operating record and (in the authority's copy) this row's evidence — is not co-activation at all: the two copies have different holders, so it is a role split expressed in `collides_with`.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a received response, a respondent-level export, a permissions or redaction record, or a mixed submissions archive carries third-party personal data and no safe accepted group exists",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a consultation document, discussion or green paper, summary of responses, or published outcome is held for reading rather than as an authority-side exercise",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone blank response form, acknowledgement, public notice of a consultation, or accessibility statement has durable value but no exercise corpus around it",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a question-set-and-responses shape is present but the holder role, the public-body status of the inviting body, or whether the invitation was public cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a submissions archive is password-protected, malformed, oversized, or otherwise yields nothing beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "when": "a capture of a response-submitted confirmation page or an online form has no durable record value",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the emptiness is the finding. The split this material most wants is INVITING AUTHORITY versus RESPONDENT over the same submission bytes, and secondarily ANALYSING OFFICE versus DECIDING OFFICE over the same reference. `role_split` requires different field keys to split against, and PR-6 leaves the government schema with none. Both splits are therefore written as reciprocal collisions and carried as NJ-CONSULT-2, rather than as an invented key.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This corpus is third-party personal data volunteered by members of the public to a body that is not them, and its defining privacy rule is unlike any sibling's: the permission to disclose each member is declared by the respondent, not by the corpus holder, and members inside one packet routinely carry different permissions — publish with name, publish anonymously, do not publish. A packet-level judgement is therefore never safe, and the published outcome's public status cannot lower the posture of the responses it summarises. Received material may also carry addresses, health or financial circumstances offered as evidence, complaints about named officials, commercially confidential objections, and anonymity requests. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+  "open_question": "NEEDS-JOSEPH. (NJ-CONSULT-1) Where a comment period is a legally structured stage of a neighbouring proceeding — a rulemaking docket, a planning application, a committee inquiry — does this row hold the received corpus, or does the proceeding's own row? This node's provisional answer is that the proceeding wins when its identifier binds the comment to an instrument or a case, and that this row owns only exercises with a consultation of their own; confirm or invert, reciprocally, on all four rows. (NJ-CONSULT-2) The inviting-authority / respondent role split and the analysing / deciding split are real and unexpressible while PR-6 holds. If fields are later adjudicated, decide centrally whether a consultation-exercise reference and a document-function concept may exist, whether either may be destination-eligible, and — the sharper question this row raises for the whole product — whether a respondent-declared disclosure permission is a fact at all or purely a privacy attribute that must never reach the tree. This row proposes no field and recommends it never be a folder level. (NJ-CONSULT-3) Whether a near-identical campaign cluster should suppress or amplify the universal duplicate-family relation: collapsing it loses independent submissions, keeping every member loses the fact that they are one coordinated act. This row keeps every member and records the coordination as a grouping reason; confirm."
+}

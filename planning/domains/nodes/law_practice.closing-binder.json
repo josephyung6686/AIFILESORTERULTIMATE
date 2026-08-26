@@ -1,0 +1,537 @@
+{
+  "id": "law_practice.closing-binder",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Signing, closing and completion",
+  "one_line": "The COMPLETION APPARATUS of a transaction and the compiled, enumerated record of what was signed and delivered at it: the completion agenda or closing checklist, the conditions-precedent satisfaction record, the counterpart signature pages held to undertaking and their release, the funds-flow or completion statement, the numbered closing-binder index and the bible archive built from it, and the post-completion filing and delivery record. It is NOT the executed instruments themselves - those are `legal`'s on `legal`'s own evidence (bound party pair plus execution block) and `legal` is a safety domain whose protection runs first - and it is NOT the negotiation that preceded the event (`law_practice.transactional-deal`, `law_practice.contract-negotiation`) or the diligence that fed it (`law_practice.due-diligence`). Its three differences from the `law_practice` default template are structural, not lexical: (1) its characteristic artefact is a DOCUMENT-STATUS MATRIX with a per-document responsibility and signatory column across N SIDES, so the schema default's two-role practitioner-and-client leg does not fire on it; (2) its grouping anchor is a SELF-DECLARING CLOSED MANIFEST - a contiguous tab index that names its own members - rather than an exact matter reference repeated across an open-ended workflow; (3) it is the one artefact in this family that is DELIVERED OUTWARD by design, so it is routinely held by people who were never the practitioner, and its discriminating exposures are reusable signature images and live bank details rather than the family's naming rule.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION. These are template-activation signals on a fieldless schema, not licences to write facts; `law_practice` declares no field rows. The schema's DEFAULT requires BOTH of (i) an exact matter reference repeated across two or more artefacts and (ii) one artefact whose labelled slots separate a practitioner-or-firm role from a client role. THIS TEMPLATE DIFFERS ON LEG (ii) AND THAT IS ITS FIRST REASON TO EXIST: a completion agenda separates N SIDES by responsibility, not a firm from its client, and a closing binder is delivered to every side, so the holder of these bytes is as often the client, the counterparty or the lender as the practitioner. Leg (i) is replaced by a COMPLETION-EVENT ANCHOR: one deal or transaction reference plus one operative completion or closing date shared by the whole set. The deletion test still binds: strike every organisation name, every person name and every document-type word including the words closing, completion, binder and bible, and if no status matrix, no enumerated index and no signature-block-without-a-body survives, nothing fires.",
+      "A COMPLETION-AGENDA or CLOSING-CHECKLIST structure, and it is this row's cleanest signal because neither `legal` nor the schema default can see it: a numbered table whose ROWS ARE DOCUMENTS TO BE DELIVERED and whose COLUMN SET pairs a document description with a RESPONSIBILITY column carrying party or firm abbreviations, a SIGNATORY or EXECUTING-PARTY column, a STATUS column drawn from a small closed vocabulary (agreed, in agreed form, to be executed, executed, delivered, released, outstanding), and usually a location or bundle-tab column. Read through 00's table and spreadsheet paths - 'Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells'. The discriminating column is RESPONSIBILITY-PLUS-STATUS: strip it and the same document is a deal task list, which is `law_practice.transactional-deal`'s.",
+      "A CONDITIONS-PRECEDENT SATISFACTION structure: one row per condition, each carrying a contract clause reference, the evidencing document, a satisfied-or-waived slot and a date, closed off by a completion-event line. The clause-reference column is what separates it from a generic project checklist - the rows point INTO an instrument the file itself is not.",
+      "DETACHED COUNTERPART SIGNATURE PAGES, the family's most structurally distinctive and most dangerous artefact: a document consisting of execution blocks - name, title, capacity, witness, date - WITH NO OPERATIVE BODY TEXT ABOVE THEM, frequently repeated per signatory, frequently as an image-only scan, and frequently accompanied by an undertaking line that the pages are held to another firm's order pending release. This is the inverse of `legal`'s executed-instrument signal, which needs a bound party pair AND an execution block: here the execution block is present and the instrument is absent. Detected in order to be protected, never in order to be moved: the pages carry reusable signature images of people who are not the holder.",
+      "A SIGNATURE-PAGE RELEASE or COMPLETION-CONFIRMATION message: mail between two or more firms carrying an exact deal reference, an explicit release, dating or exchange instruction, and a stated effective time. 00's email path yields 'sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive'. The message is evidence that a completion event occurred; it establishes no legal effect and no validity.",
+      "A FUNDS-FLOW or COMPLETION-STATEMENT structure: a payer-to-payee table whose columns pair source and destination account slots, amount, value date and a purpose narrative, totalling to a single completion figure. This co-activates `finance` on `finance`'s own issuer-and-account evidence; the DEAL REFERENCE plus the completion date is what also makes it this row's. It is the second of the two exposures this row exists to guard.",
+      "A CLOSING-BINDER INDEX structure: a contiguous numbered tab list, usually sectioned (corporate authorisations, transaction documents, ancillary documents, post-completion), one row per tab naming a document and often a date, produced as a single compiled artefact with PDF bookmarks or hyperlinks matching the numbering. The CONTIGUITY is the signal - tabs 1..n with no gaps, a section grammar, and a completion date on the cover. This is the row's grouping anchor and it is a MANIFEST, not a repeated reference.",
+      "A BIBLE ARCHIVE whose manifest mirrors an index: an archive whose member paths are themselves numbered in one contiguous sequence with executed-status markers in the member names. Read strictly through 00's archive rule - 'Archives should be inspected without being unpacked to disk.' - and through its manifest-as-evidence licence, since a ZIP 'may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'. Here the manifest is stronger evidence than the outer name for exactly that reason.",
+      "A POST-COMPLETION FILING or DELIVERY record: a registry, tax or authority submission receipt carrying a submission reference, a filed-form identifier and a submission timestamp, tied to the same completion date. The authority's own side is `government`'s; the practitioner-side record that the delivery obligation was discharged is this row's."
+    ],
+    "needs_llm": [
+      "WHICH SIDE THE HOLDER IS ON, and it is the interpretation this row turns on. Identical binder bytes sit in the practitioner's corpus, the client's, the counterparty's, the lender's and the broker's. Only the surrounding labelled roles decide, and where they are absent the model must return unknown and the file must go to Review Later rather than be assigned a side.",
+      "WHETHER A STATUS MATRIX IS A COMPLETION AGENDA OR A PROJECT PLAN. A responsibility-and-status table over deliverables is also the ordinary shape of `business_operations.project-delivery` and of a deal task list. The interpretive question is whether the rows are DOCUMENTS FOR EXECUTION with signatory slots, or workstreams with owners and due dates.",
+      "WHETHER AN ENUMERATED INDEX IS A CLOSING INDEX OR A DILIGENCE INDEX. A data-room index is also a sectioned, numbered table of documents. The interpretive discriminators are direction and tense: a diligence index describes documents DISCLOSED for inspection and carries access, request or Q-and-A columns; a closing index describes documents DELIVERED at an event and carries execution status. Where both readings survive, `law_practice.due-diligence` and this row are both candidates and neither writes a fact.",
+      "WHETHER SCANNED EXECUTION PAGES BELONG TO A COMPLETION SET AT ALL. OCR of a wet-ink page yields names and a date and nothing that binds it to an event. Membership needs the index or the agenda to claim it.",
+      "PURPOSE COHERENCE ACROSS A CONTENT-INCOHERENT SET, which is 00's own licence and the reason this row groups the way it does: a closing set contains board minutes, a share transfer form, a deed, a bank mandate, a solvency statement, an identity copy and a filing receipt. 'The documents are content-incoherent but purpose-coherent.' A content-similarity reading will split them; the completion event is what holds them."
+    ],
+    "never_alone": [
+      "THE WORDS. 'Closing', 'completion', 'signing', 'binder', 'bible', 'exchange' and 'settlement' are document-type and event words and are never sufficient, alone or stacked. `Closing Binder.pdf` with no index page inside it activates nothing; the tempting false file that this trips is `Closing the loop - Q3 marketing.pptx`, and also every deal-team file whose author habitually names drafts `... (closing version).docx`.",
+      "A LAW-FIRM NAME, A NOTARY NAME, A REGISTRY NAME OR A BANK NAME on the page - the whole family's never-alone rule, unchanged here and doubly needed because a closing binder names four to ten organisations on its cover by design. An organisation name is a collector, and 00 forbids the corresponding structural move: a template may not 'use an author or organization merely as a collector'.",
+      "A SIGNATURE IMAGE OR A DATED SIGNATURE BLOCK ALONE. A signed page is not a completion artefact; a signed page WITHOUT AN OPERATIVE BODY, or one an index or agenda claims, is. An executed instrument with its body intact is `legal`'s and this row does not take it.",
+      "A DATE SHARED ACROSS MANY FILES. Every completion set shares one operative date, which makes date co-occurrence tempting and worthless: a download session, a scan session and a month-end all produce the same shape. 00 is explicit that 'Date extraction should be deliberately narrow', and a shared date without an index, agenda or exact deal reference produces no membership.",
+      "A CONTIGUOUS NUMBER RANGE ALONE. Files named `01 ...` to `47 ...` in one folder are also a photo import, a scan batch, a lecture series and a chapter split. The numbering must be accompanied by an index that names the same members, or by section headings that are document functions rather than sequence.",
+      "AN EXTENSION OR CONTAINER SHAPE. A large bookmarked PDF and a numbered ZIP are the ordinary shape of a court bundle, a tender return, a planning submission and a thesis appendix. Container form is a SOURCE_TYPE, not this row.",
+      "A FOLDER PATH OR AN EXISTING FOLDER NAME. A user folder called `Completion` is a retrieval clue and a review aid; it does not create the event, the side or the membership."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "completion agenda or closing checklist",
+    "conditions-precedent satisfaction record",
+    "counterpart signature pages held to undertaking",
+    "signature-page release and completion confirmation",
+    "funds flow, completion statement or settlement statement",
+    "bring-down, solvency or officer certificate delivered at completion",
+    "closing-binder or completion-bible index",
+    "compiled closing binder or bible archive",
+    "post-completion filing, registration and delivery record",
+    "undertakings given and discharged at completion",
+    "escrow, exchange and release-of-deposit record",
+    "completion or exchange attendance note"
+  ],
+  "grouping_reasons": [
+    "ONE COMPLETION EVENT, and this is the row's distinct anchor: the agenda, the CP record, the signature pages, the release message, the funds flow, the index, the compiled archive and the post-completion filings, joined by one exact deal or transaction reference PLUS one operative completion date. This differs from the schema default's open-ended matter anchor in kind, not degree: the set is CLOSED at the event, and an artefact dated materially after it is a post-completion item to be reviewed, not a silent late member.",
+    "ONE INDEX AND ITS MEMBERS. Where a closing index or an archive manifest names its own members, membership is ASSERTED BY A DOCUMENT rather than inferred from a repeated string. This is the strongest membership evidence in the family and it still copies nothing: an indexed member does not acquire the deal, the parties, the date or the status as facts, and 00's fact model already allows the member to be 'included in an application package' - here, a completion package - while remaining whatever else it is.",
+    "ONE DOCUMENT ACROSS ITS FINAL VERSIONS - agreed form, execution version, executed counterpart, conformed copy, stamped or registered copy. The universal version_family reading, supported by hashes and explicit revision markers, never by an `-execution` or `-final` suffix.",
+    "ONE SIGNATURE-PAGE UNDERTAKING: the pages held, the covering message, the release message and the conformed copy, joined by an exact undertaking or deal reference. This sub-group is protected material even where the rest of the binder is routine.",
+    "NOT GROUPING REASONS, stated so this row does not quietly recreate the deal: a shared party name across two transactions; a shared law firm; a shared completion date; a shared registry; a download or scan session; a folder called Completion; and semantic similarity between two agendas, which are near-identical documents by drafting convention.",
+    "NO GROUP AT ALL is common and correct here, because the artefacts that most often arrive alone - a page of signatures, a funds flow, a conformed deed - are precisely the ones with a third party's data on them."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, for the schema's three reasons unchanged - no declared field to branch on under PR-6, safety co-activation with `legal` unlocking no deep template, and disclosure - and THEN DIFFERENT FROM THE SCHEMA'S PROSE RECOMMENDATION IN TWO SPECIFIC PLACES, which is this row's third node-test leg. The schema recommends, as prose: client (only where the corpus spans several AND the user approved it), then matter, then document function, then period last. THIS ROW'S PROSE RECOMMENDATION IS: the TRANSACTION, then the AGENDA OR TAB SEQUENCE THE PARTIES THEMSELVES AGREED, and NO PERIOD LEVEL AT ALL. Two departures, each argued. FIRST, FUNCTION IS REPLACED BY THE PARTIES' OWN SEQUENCE. A closing index is not a function taxonomy; it is a negotiated running order, and its section grammar (corporate authorisations, transaction documents, ancillary, post-completion) is already the intelligibility 00 asks a parent to supply - 'A work type such as Homework 3 is meaningful only after the course is known', and Tab 34 is meaningless without the completion it belongs to. Imposing a function taxonomy over a set that arrives with its own agreed order destroys the one thing every party to the deal can navigate. SECOND, THE PERIOD LEVEL COLLAPSES AND MUST BE DROPPED, WHICH THE SCHEMA DEFAULT DOES NOT SAY. Every artefact in a completion set shares one operative date by construction, so a period level here is exactly the fault 00 names for generated templates - it would 'create meaningless one-child levels'. Retaining it also actively harms, because the OTHER dates present (signature date, value date, registration date, scan date, filesystem date) mean different things and a period branch will silently pick the wrong one. NOT TIME-FIRST, and this row is the one most likely to be argued into it, because a completion IS an event with a date. The answer is 00's: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' A completion is a record event, not a capture event, and the photos exception is earned by capture, not by having a timestamp. THE CLIENT AND THIRD-PARTY RULES INHERIT UNCHANGED: no client, counterparty, guarantor, director, witness or individual signatory name may become a folder level without explicit user approval, and a named third party never may. One further rule this row adds for its own material: the signature-page and funds-flow members must not be split out into a separately named branch, because a branch called Signature Pages or Bank Details advertises the two most exploitable items in the corpus. And it stays a recommendation - 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Completion Agenda - Project Hartley - v14 (clean).docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered table whose rows are documents and whose columns are Document, Responsibility, Signatory, Status and Tab",
+        "Responsibility cells carry party or firm abbreviations for four different sides, not a firm-and-client pair",
+        "Status cells drawn from a closed vocabulary: in agreed form, to be executed at completion, executed, outstanding",
+        "a Conditions Precedent section above the document table with clause references",
+        "a completion date and a proposed completion time on the header; no party recital, no execution block, no tribunal caption anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and client, our_firm and subject_of_record remain proposals awaiting R1c",
+        "that this is `legal` material: `legal` needs a bound party pair with an execution block, or a tribunal caption, and this document has neither",
+        "that the Status column reports the real world - an executed cell is a drafting assertion, not proof that anything was signed",
+        "that the deal completed, or completed on the stated date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CP Checklist - Project Hartley - all satisfied 2026-06-29.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per condition with columns Clause, Condition, Evidencing document, Satisfied or waived, Date, Responsible",
+        "Clause cells reference numbered clauses of an agreement that is not this file",
+        "a final row asserting all conditions satisfied and a completion date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any condition is in fact satisfied, waived, valid or effective - the product decides no legal status",
+        "that the referenced agreement is present in this corpus",
+        "a deal or client fact from the sheet name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Signature pages - held to undertaking - Project Hartley.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "pages consisting only of execution blocks: signed by, name, title, capacity, in the presence of, witness name, address, occupation",
+        "no operative body text above any block; each page repeats the same block shape for a different individual",
+        "a covering line stating the pages are held to another firm's order pending release",
+        "several pages are image-only scans within the PDF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the underlying instrument is executed, delivered, valid or dated",
+        "that this is an executed instrument for `legal` - the instrument is absent by design; this is its photographic negative",
+        "any identity fact about the individual signatories or the witnesses, whose addresses and occupations appear here",
+        "that an undertaking word establishes privilege, confidentiality or any protection"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Project Hartley - signature pages RELEASED - completion effective 14.32.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipients are addresses at four different professional domains",
+        "subject and body carry one exact deal reference and an explicit instruction to date and release the counterparts",
+        "a stated effective time; attachment names matching agenda tab numbers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that release, dating or delivery occurred, or that completion is legally effective",
+        "which side the holder is on from the mail domains alone",
+        "any authority, consent or waiver by any sender"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Funds Flow Statement - Project Hartley - FINAL.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "payer-to-payee rows with columns for account name, sort code or routing detail, account reference, amount, value date and purpose narrative",
+        "a completion total and a same completion date as the agenda",
+        "a tab of retention and escrow amounts"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any payment was made, received or is due",
+        "that a public or routine surrounding binder lowers this file's posture - it carries live account details",
+        "a finance institution or account fact for this schema; finance owns those on finance's own evidence"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Closing Binder Index - Project Hartley - Completion 30 June 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover page naming four organisations and one completion date",
+        "a contiguous tab list, tabs 1 to 87, with no gaps",
+        "section headings: Corporate Authorisations, Transaction Documents, Ancillary Documents, Post-Completion",
+        "PDF bookmarks whose labels match the tab numbering"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the indexed documents are present in this corpus",
+        "that the organisations on the cover are the holder's client or the holder's firm - a cover names every side",
+        "a folder path, and specifically not a tab-numbered path as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Project Hartley - Closing Bible - Tabs 01-87.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists members numbered 01 to 87 in one contiguous sequence",
+        "member names carry execution markers: 01 SPA (executed).pdf, 12 Board Minutes (signed).pdf, 55 SH01 (filed).pdf",
+        "member folder names mirror the index section headings",
+        "inspected without extraction; some members are image-only"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member-level facts by unpacking - the archive is inspected, not extracted",
+        "that a member is executed because its filename says so",
+        "that the outer archive name creates the deal; the manifest is the evidence and the name is not"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Written Resolutions - Hartley Bidco - approving completion.docx",
+      "source_type": "text_document",
+      "observations": [
+        "company name, register-style director list, numbered resolutions authorising execution of named documents",
+        "signature lines per director with a date line",
+        "a tab number stamped in the footer matching the closing index"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the resolutions were passed, are valid, or bind anyone",
+        "that corporate-record structure makes this file this row's rather than the company's own governance record - it is both",
+        "a client fact from the company name"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Post-completion filings - SH01 and MR01 - submission receipts.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead, a submission reference, a filed-form identifier and a submission timestamp",
+        "a barcode region and an acknowledgement line",
+        "the same completion date appears as the effective date of the filed event"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the filing was accepted, is effective, or discharges any duty",
+        "that a public registry destination makes the local file low sensitivity",
+        "a government fact for this schema; the authority's own side is government's"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Scan_20260630_1601.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no filename evidence at all beyond a scanner default and a timestamp",
+        "OCR of skewed wet-ink pages returns names, the words signed as a deed, a witness block and a date",
+        "no deal reference, no tab number, no index page in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "membership of any completion set - a shared scan date and a shared name are exactly the evidence this row's never_alone rules reject",
+        "that OCR of an execution page makes this an executed instrument for `legal`",
+        "an individual's identity facts from an OCR region"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-06-30 at 14.31.55 - e-signature envelope completed.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: device screen dimensions plus a capture-tool naming convention, not merely absent EXIF",
+        "OCR reveals an e-signature platform certificate view with an envelope identifier, a signer list and completion timestamps"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that missing or stripped EXIF would have proved screen origin - it never does",
+        "that an envelope identifier is a deal reference",
+        "signer identity facts from an OCR region"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Completion Statement - 14 Mercer Row - buyer copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a payer-and-payee completion table indistinguishable in shape from the funds flow above",
+        "addressed to the holder by name as the buyer, with a balance-due-from-you line",
+        "a conveyancer's letterhead and a client account reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is active. THIS IS THE COLLISION FIXTURE. The structure is this row's, the ROLE is not: the holder is the client, not the practitioner and not the compiler. It belongs to the holder's own record - `legal.personal-legal-matters` for the transaction and `finance.loans-mortgage` for the money - and treating it as practitioner material would file the holder's own home purchase as somebody else's confidential matter",
+        "that a conveyancer's letterhead makes a file professional-side; an organisation name is a collector"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Data Room Index - Project Hartley - Phase 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sectioned, numbered table of documents that looks exactly like a closing index at a glance",
+        "columns are Folder, Document, Uploaded by, Access level and Q and A reference - no signatory column, no execution status, no tab",
+        "dated weeks before the completion date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that enumeration alone makes an index a closing index - direction and tense discriminate: disclosed for inspection versus delivered at an event",
+        "that the shared deal reference moves it into a completion set"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Precedent - Completion Agenda (firm standard, v6).docx",
+      "source_type": "text_document",
+      "observations": [
+        "the agenda column set is present and empty: bracketed placeholders where party abbreviations belong, blank status cells, drafting notes in comments",
+        "a firm template version marker in the footer; no deal reference and no date anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that this row is active - there is no completion event, no deal reference and no third party in the file at all",
+        "that it is protected material; it is the one class here with nobody in it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Hartley - completion documents - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive; manifest unreadable, member names unavailable",
+        "the only evidence is the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a completion event, a deal, a side, a sensitivity result or any membership from a filename",
+        "that it should be forced open to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.transactional-deal",
+      "signal": "THE EXISTENTIAL SIBLING COLLISION, and this row concedes everything before the event. That row owns the deal workspace: the term sheet, the successive drafts and redlines, the issues list, the negotiation correspondence and the deal task list. This row owns only artefacts keyed to the COMPLETION EVENT and bearing a per-document DELIVERY OR EXECUTION STATUS, plus the compiled enumerated record produced from it. The same fixture on both sides is `Completion Agenda - Project Hartley - v14 (clean).docx`: as a versioned working draft circulating during negotiation it is that row's, and as the executed running order with its Status column populated and a completion date it is this row's - and in practice the same document is both at different times, which is why neither row may claim it from a filename. Reciprocal: that row must state that a document-status matrix with signatory and delivery columns, and a contiguous closing index, leave its scope. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.conveyancing",
+      "signal": "The same seam in property rather than corporate form, and the sharper of the two because property completion has its own vocabulary that maps one-to-one onto this row's artefacts: the completion statement is a funds flow, the exchange is a signing event, the requisitions replies are a CP record, the post-completion registration is the filing record. This row does not take the property matter - the searches, the enquiries, the title investigation and the report on title are that row's. It takes only the completion apparatus and the completion pack. The same fixture on both sides is `Completion Statement - 14 Mercer Row - buyer copy.pdf`, and note where it actually lands: on the practitioner side it is contested between these two rows, and on the holder-as-buyer side it is neither row's at all. Reciprocal: that row must state that the exchange-and-completion apparatus is shared with this one and that title, searches and enquiries are not. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.settlement",
+      "signal": "Settlements execute and complete too, and produce this row's exact artefact shapes: counterpart signature pages, a payment schedule that is functionally a funds flow, an exchange-and-release message, a conformed executed deed. The discriminator is what the event terminates: a settlement closes a DISPUTE and its record sits inside a proceeding lineage, while this row's event closes a TRANSACTION and its record is a delivered enumerated set. The same fixture on both sides is `RE Project Hartley - signature pages RELEASED - completion effective 14.32.eml`: change the deal reference to a claim or action reference and the same bytes are that row's. Reciprocal: that row must state that transaction-completion agendas and closing indexes are not its evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "The schema-level collision inherited and NARROWED HERE TO ITS SHARPEST POINT, because this row is the one whose material is most often mistaken for `legal`'s. `legal` is a safety schema activating on an executed-instrument structure - a bound party pair plus an execution or notarial block - or a proceeding structure. EVERY EXECUTED MEMBER OF A CLOSING BINDER HAS THAT SHAPE AND IS `legal`'S ON `legal`'S OWN EVIDENCE; `legal` is one of 00's safety domains and its protection runs first. What this row keeps is precisely the apparatus on which `legal` cannot fire: an agenda with no parties bound, a CP table that only points at clauses, an index that only names documents, a funds flow that binds nobody, and - the decisive case - DETACHED SIGNATURE PAGES, which invert `legal`'s signal by carrying the execution block with the instrument removed. The same fixture on both sides is `Project Hartley - Closing Bible - Tabs 01-87.zip`: the manifest and the index are this row's, the members are `legal`'s, and the archive is not unpacked to settle the argument. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "The money side of a completion in the holder's own life. A mortgage or property closing package - closing disclosure, completion statement, mortgage deed, redemption statement - carries this row's funds-flow and delivered-set structure exactly, and yet belongs to the holder's own financial record whenever the holder is the borrower or buyer rather than the compiler. The same fixture on both sides is `Completion Statement - 14 Mercer Row - buyer copy.pdf`. The discriminator is the addressee-and-role structure, never the document shape: addressed to the holder as a party means that row plus `legal.personal-legal-matters`; compiled by the holder for a client means this one. Reciprocal: that row must state that a practitioner-compiled completion set for someone else's transaction is not its evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "That landed row's anchor is a live obligation and its notice calendar, and its characteristic artefact is a contract register - a portfolio table with status and date columns, which is the same TABLE SHAPE as a completion agenda. The discriminator is what the rows are about and what tense they are in: a register's rows are contracts IN FORCE being administered onward, an agenda's rows are documents TO BE DELIVERED AT ONE EVENT with signatory columns, after which the set closes. The same fixture on both sides is `CP Checklist - Project Hartley - all satisfied 2026-06-29.xlsx` once a corpus also contains a post-completion obligations tracker built from it - the checklist is this row's, the tracker it seeds is that row's. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "why": "The commonest co-activation here and the reason this row can be narrow without losing the corpus. One completion folder holds an agenda, a CP checklist, a funds flow and an index (this row, on the status-matrix and manifest structures) beside executed deeds, share transfers and a settlement agreement (`legal`, on the party-pair-plus-execution structure). Disjoint evidence, one purpose-coherent set - 'The documents are content-incoherent but purpose-coherent.' `legal` is a safety domain, so where they co-activate protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "The funds flow and the completion statement are both: `finance` on its own account-and-amount structure, this row on the deal reference plus completion date. `finance` is a safety schema and its protective ordering runs first. This row writes no financial fact. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "why": "Corporate authorisations - board minutes, written resolutions, register extracts - are a standard opening section of a closing binder AND the company's own governance record. The governance structure activates that row on its own evidence; the tab-stamped delivered copy is also a completion member. Membership copies no governance fact and no deal fact either way. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "why": "Post-completion registry, tax and authority filings sit in the binder's last section while the authority-side submission and receipt structures activate `government`. Neither reading erases the other, and a public registry destination does not lower the local file's posture. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "why": "Individual signatories, directors and guarantors supply identity verification into a completion set, and detached signature pages themselves carry names, addresses, occupations and reusable signature images. The identity material is `identity`'s and stays protected on its evidence; only the delivery record around it is this row's. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The default home for this row's two discriminating exposures when no completion set is accepted - a page of detached signatures, a funds flow with live account details, a conformed deed, an identity copy delivered at completion. 00 names the residual and this material together: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's most frequent honest failure: a real completion-shaped artefact whose SIDE is unresolved - practitioner, client, counterparty or lender - and for an enumerated index that could equally be a diligence index. 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Closing bibles arrive as password-protected, split or oversized archives as a matter of routine, and they are exactly the files that must not be forced open. 'Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated post-completion submission acknowledgement or stamp-duty receipt with no accepted completion set around it is a transactional confirmation and nothing more. 'Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone conformed or stamped copy with a durable purpose and no group - and no third party newly exposed by holding it - is honestly independent. 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The precedent completion agenda and the blank firm standard form have no deal, no event and no person in them, and route the same way the schema's precedent bank does. 'Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.'",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "legal.personal-legal-matters",
+      "why": "The split this row lives or dies on, and it is borrowed rather than minted: both keys are canonical and the `law_practice` schema already requested this pair for the same structural reason. What this row adds is that the split here is not a filing convenience but the ACTIVATION TEST, because a closing binder is delivered outward by design and therefore exists, byte-identical, in the compiler's corpus and in every recipient's. Holder as compiler for someone else's transaction is this row; holder as a party who received the pack is the neighbour's, and misreading the direction files the user's own house purchase as a stranger's confidential matter. Both keys are requested destination-INELIGIBLE for this row for the disclosure reason in the template note. Provenance: inference; the underlying role-separation rule is design.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, inherited from `law_practice` and then DIFFERENTIATED IN THREE WAYS THAT THE SCHEMA DEFAULT DOES NOT STATE - which is the privacy leg of this row's node test. FIRST, THIS ROW'S RULE IS A CONTENT RULE, NOT ONLY A NAMING RULE. The schema's hardest rule is that no client, matter or third-party name may become a folder level. This row adds that two MEMBER CLASSES are exposures in themselves regardless of naming: detached counterpart signature pages, which are reusable signature images plus the witnesses' names, addresses and occupations, and the funds flow or completion statement, which carries live account details and beneficiary names. Neither may be excerpted into a remote prompt, surfaced in a preview, or split into a separately labelled branch, because a branch named Signature Pages or Bank Details advertises the two most exploitable items in the corpus. SECOND, MIXED PUBLICITY MUST NOT AVERAGE OUT. A completion set deliberately mixes members destined to become public record - registry filings, stamped transfers - with members that never do. The public destination of one member lowers nothing about the local file, its neighbours, or the set. THIRD, THE HOLDER IS OFTEN NOT THE PROFESSIONAL, which reverses whose privacy is at stake: where the holder received the pack as a party, the sensitive material is largely the holder's own and the neighbour rows own it; where the holder compiled it, the exposed people - counterparties, directors, guarantors, individual signatories, witnesses - never chose this filesystem and cannot consent. In both directions the product infers no privilege, confidentiality, sealing, waiver or disclosure right, decides no validity or legal effect, and preserves any legend or undertaking wording as a literal observation only. Sensitivity in this phase is only `potentially_sensitive`; P7 owns handling classes.",
+  "open_question": "Four. (1) NJ-CB-1, THE FOLD QUESTION, and it is the charge this row had to defeat: is `closing-binder` a LIFECYCLE STAGE of `law_practice.transactional-deal` and `law_practice.conveyancing` rather than a node? Answered NO, on the ground that signing-and-completion recurs identically across at least five sibling workflows (transactional-deal, conveyancing, estates-administration, settlement, and financing work inside regulatory-submission) producing the SAME artefact set each time, and that its detection structure (document-status matrix with signatory and responsibility columns), its grouping anchor (self-declaring contiguous manifest) and its privacy rule (signature images and live bank details; mixed publicity) all differ from the schema default. If R1c judges instead that a completion agenda is a deal task list with extra columns, the correct outcome is REFUSAL and the coverage routes to `law_practice.transactional-deal`, `law_practice.conveyancing`, `legal` for the executed members, `finance` for the funds flow and Protected Records for the strays. This row would rather be folded than padded. (2) NJ-CB-2, THE DILIGENCE-INDEX SEAM: a data-room index and a closing index are the same enumerated shape, and this row proposes direction-and-tense (disclosed for inspection versus delivered at an event) as the discriminator. R1c should confirm that with `law_practice.due-diligence`'s author, or merge the two indexes into whichever row wins. (3) NJ-CB-3, THE HOLDER-DIRECTION PROBLEM, which no other row in this family has as acutely: the closing binder is the family's only artefact that is DELIVERED OUTWARD by design, so a corpus can contain one with no practitioner-side evidence at all. Alternatives: (a) this row activates on the completion-event anchor alone and accepts recipient-held packs, at the cost of overlapping `legal` and `legal.personal-legal-matters`; (b) this row requires practitioner-side evidence and cedes every recipient-held pack to those rows, at the cost of losing most real-world instances. This row takes (b) and routes the ambiguous case to Review Later, but the choice is Joseph's. (4) NJ-CB-4, THE MISSING DATE KEY: the one fact this row would genuinely want if PR-6 lifts is a COMPLETION OR OPERATIVE EVENT DATE distinct from creation, signature, value and filesystem dates. No canonical key was minted here and none is proposed, because minting a variant of an existing date key is precisely what the brief forbids; R1c should decide whether an existing canonical date key can carry it or whether the concept is a work_type detail."
+}

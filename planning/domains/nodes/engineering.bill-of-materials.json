@@ -1,0 +1,388 @@
+{
+  "id": "engineering.bill-of-materials",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Bills of materials (REFUSED — a value of the engineering schema's artifact-type dimension)",
+  "one_line": "A parent-child product-structure table with quantities is real material, but it is not a template row: `bill of materials` is item eight of engineering.json's own work_types[] enum, its only candidate detection signal is deterministic signal five on that same schema, its recommended dimensions are the schema's default with this row's own name as the leaf folder, and its privacy rule is byte-for-byte the schema's. The coverage is kept: it activates the engineering schema, the boundaries against manufacturing pick lists, spare-parts lists, SBOMs, drawing parts lists, change-order affected-item lists and costed rollups are recorded below for R1c, and the unrecognised residue routes to Independent Records and Review Later.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on all three legs, and fails four of the charge's independent disqualifiers besides. CONNECTION.md section 2 states the test: a template row exists only if its detection signals, recommended dimensions, or privacy rules differ from its schema's default template, and ALIGNMENT adds that a template repeating its schema's fields and dimension order is not a node but the schema's default template. (1) DETECTION SIGNALS — not merely similar, but the same bullet. This row's whole candidate discriminator is a parent-child product-structure table carrying quantities and drawing/revision references. `engineering.json` already declares exactly that as deterministic signal five: 'a BOM or product-structure table with a parent assembly identifier, child item/part identifiers, quantities and drawing/revision references, where the table is design-authoritative rather than a production pick list'. Its entire ambiguity surface is already declared too — needs_llm two ('whether a spreadsheet headed BOM is the authoritative design product structure, a manufacturing pick list, a procurement list, or a costing sheet') and never_alone six ('a table called BOM alone; procurement, costing, production and spare-parts records use the same label'). A template whose signal is one line of its own schema's default deterministic list has nothing of its own to fire on. (2) DIMENSIONS — identical, and identical for a structural reason rather than by coincidence. The schema's researched conditional order is project → design_item → lifecycle_stage → engineering_artifact_type, and `bill of materials` is item eight of that schema's work_types[], i.e. one VALUE of the final dimension. A row named after a value of its own schema's leaf dimension is that dimension's leaf folder wearing a roster id. 00 is explicit that this is what a value is: 'A fact is a statement such as subject = BUSIB 4300, term = Spring 2026, work type = syllabus, capture date = 2026-07-17, or purpose = university application.' and 'Academic files may use school, term, course, instructor, and work type.' — work type is the field, `syllabus` is the value; here engineering_artifact_type is the field and `bill of materials` is the value. 00's own tree-design warning names the defect this row would create: 'It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.' Under binding PR-6 the machine-readable order is [] on both this row and the schema regardless, so there is not even an expressible difference to argue. (3) PRIVACY — identical, and the vocabulary cannot express a difference. Both are `potentially_sensitive` for the same stated reason (proprietary design definition, supplier identities, export-controlled or critical-technology content); sensitivity here is only none|potentially_sensitive and handling classes are P7's, so a BOM's supplier and unit-cost columns are the same rule applied, not a different rule. FOUR FURTHER DISQUALIFIERS, EACH INDEPENDENTLY SUFFICIENT. (a) WORK-TYPE VALUE: the row's name appears verbatim in its own schema's work_types[]; the stamped prompt says work types are values and forbids a child node per work type. (b) DOCUMENT TYPE: 'bill of materials' is a document-type word, and 00's role-ambiguity reasoning against a bare organisation name reads across to type words — every one of procurement, costing, production, service and software uses this same label for a different object. (c) FILE FORMAT: the one place `bom` is a labelled, deterministic, machine-readable slot is a CycloneDX/SPDX software bill of materials, whose evidence is a format declaration in a repository — a format is not a node, and that material belongs to code.software-project. (d) DEFINED BY ABSENCE: the only clause that separates this row from manufacturing is 'design-authoritative rather than a production pick list' — a negation of a neighbour. A row whose identity is the BOM that is not a pick list is defined by subtraction, and subtraction is the schema's boundary work, already done on engineering.json's manufacturing collision. THE RESURRECTION ROUTE, CLOSED — recorded here so this row cannot be revived from the JSON alone. A resurrector will argue that a parent-child-with-quantity table is a RELATION BETWEEN TWO LABELLED ROLES, the move that legitimately saved a holder/subject row elsewhere, and therefore not never-alone evidence. Four answers, any one sufficient. First, the relation is not co-extensive with this row: a CAD assembly tree, a drawing's associated parts list and a change order's affected-items list all carry the identical parent-child-quantity relation, so the relation individuates the ENGINEERING SCHEMA against manufacturing — which the schema already does — and does not individuate this row against its own siblings. Second, both roles are the SAME entity type: parent assembly and child part are `design_item` at two depths of one tree. The closed vocabulary's instrument for one entity type in two roles is `role_split`, which must point at a NEIGHBOUR holding the other role, and there is no such neighbour because both roles are already inside engineering. Third, the two-role rows that survive elsewhere survive because the relation produces a DIFFERENT privacy rule; here privacy is unchanged, so the leg that carried them is missing. Fourth, the relation is already deterministic signal five on the parent schema — evidence the schema declares for itself cannot be a child row's distinguishing evidence. WHERE THE COVERAGE GOES: onto the engineering schema, which recognises this material today; the eight boundary fixtures below are recorded reciprocally for R1c; unrecognised residue falls through to Independent Records and Review Later.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None owned by this row. The only candidate — a parent/child product-structure table with a level or find-number column, quantity-per, part identifiers and drawing/revision references — is already deterministic signal five on engineering.json and fires the schema without this row existing. Restating it here would create two claimants on one evidence structure."
+    ],
+    "needs_llm": [
+      "The only genuine judgement in this material — whether a spreadsheet headed BOM is the authoritative design product structure, a manufacturing pick list, a procurement list, or a costing sheet — is already needs_llm two on engineering.json. It is a schema-level disambiguation between engineering and manufacturing/business_operations, not an intra-engineering template choice, so it cannot support a template row."
+    ],
+    "never_alone": [
+      "the token BOM, bom, parts list, part list, item list, structure or assembly list in a filename, sheet tab or JSON key. `bom.json` in a repository is a CycloneDX software inventory; `Spare Parts List.pdf` is a service document; `pick_list.csv` is a shop-floor issue record. The word is the least discriminating thing in this world",
+      "a part-number-shaped short identifier alone. It is equally a stock code, purchase-order line, asset tag, invoice reference, bin location or arbitrary number — engineering.json's never_alone four, true here of every row of every fixture below",
+      "a quantity column alone. Procurement, costing, kitting, spare-parts and inventory tables all carry one; quantity-per is a cell value, never a file fact",
+      "an indentation or level column alone. Org charts, WBS schedules, chart-of-accounts exports and folder listings all nest",
+      "a revision token such as RevC, Rev 3, _v7 or `final` alone — engineering.json's never_alone three; code, contracts, site drawings and manuscripts all revise",
+      "a supplier, manufacturer or client name in a source column alone. This is 00's role-ambiguity defect: the same organisation can appear as the maker, the reseller, the approver, the requester or a merely cited standards body",
+      "a .xlsx or .csv extension alone. 00 requires an extension to be a routing signal rather than an assumption about meaning",
+      "a bounded download session of exported tables alone; 00 says a session is never proof of topic",
+      "parent-folder context naming an item number. It may raise plausibility for the engineering schema only after a controlled-definition structure is present; it never fires anything by itself, and it must never write a design_item fact onto a sparse member"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "Recorded as a RECOMMENDATION to R1c, not claimed by this refused row: one parent item's product structure and the child part definitions, specifications and drawings it enumerates is a genuine group spine, and belongs as a grouping_reason on engineering.json beside the existing 'one identified design item's requirements, definition, analyses, changes and verification evidence across its lifecycle'. Grouping is not activation; a group does not require a roster node, and this is the honest vehicle for what the row was reaching for. This agent may not edit engineering.json and has not."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case by binding contract: engineering declares no field rows (J-IND / PR-6), so no destination-eligible key exists for any engineering template to order. The absence of a distinguishing order is itself leg two of the refusal. Conditionally on R1c admitting the schema's proposed keys, this material's order would be the schema's own project → design_item → lifecycle_stage → engineering_artifact_type, with this row's name appearing as a folder at the leaf — which is 00's warning about a level that 'repeats a concept already expressed in the parent'. 00 also reserves the choice to the user: 'the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "code_structured",
+      "design_creative",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".json",
+      ".xml",
+      ".asm",
+      ".step",
+      ".stp",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210_BOM_RevC.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet header names an assembly identifier and a revision letter in labelled cells",
+        "a level column running 0, 1, 1.1, 1.2 with find numbers",
+        "columns for part identifier, description, quantity per, unit of measure, make-or-buy and a drawing reference",
+        "no cost column, no lot or bin column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row — it is refused; the file activates the engineering schema on that schema's own deterministic signal five",
+        "any engineering domain fact — the schema declares no field rows under PR-6",
+        "a folder path",
+        "a manufacturing fact from the make-or-buy column; make-or-buy is a design intent, not an execution record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "bom.json",
+      "source_type": "code_structured",
+      "observations": [
+        "a labelled bomFormat member reading CycloneDX and a labelled specVersion member",
+        "a components array whose members carry package-URL coordinates, versions and licence identifiers",
+        "sits at a repository root beside a lockfile and a manifest",
+        "no drawing number, no revision block, no physical part identifier, no quantity-per"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row — THE COLLISION FIXTURE; the filename is literally the row's name and the file is not this row's evidence",
+        "an engineering design_item from the components array; a package coordinate names a software dependency, not a configuration item",
+        "that quantity is implied by a dependency count",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LOT-24-081_pick_list.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the same part-identifier, description and quantity columns as a BOM",
+        "additional labelled columns for lot, bin location, quantity issued and picker initials",
+        "no level or find-number column; the list is flat",
+        "cites Rev C in a reference cell"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row, or of engineering — the flat structure plus lot/bin/issued slots is an execution record; it belongs to manufacturing.production-planning",
+        "an engineering revision fact from the cited Rev C; citing a revision is not controlling one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Spare Parts List - Model 40 Compressor.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an exploded view with balloon callouts and a facing table of item numbers, part numbers, descriptions and quantities",
+        "a column headed recommended stock quantity and an order-code column",
+        "front matter addressed to a service technician",
+        "no revision block controlling a design, no approval slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the parent-child-quantity relation is present and is still not this row's evidence; the recommended-stock and order-code slots make it manufacturing.spare-parts",
+        "that an exploded view is an engineering drawing package",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Assembly Drawing A-2201 sheet 2 - parts list.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title block carrying drawing number A-2201, sheet 2 of 4, a revision letter and an approval signature slot",
+        "the parts list is drawn inside the sheet frame above the title block, with find numbers keyed to balloons on sheet 1",
+        "the same parent-child-quantity content a standalone BOM would carry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the discriminating evidence is the title block, not the table; this is engineering.drawing-package's fixture and the same bytes are named on that side",
+        "that a parts list drawn on a sheet is a separate artifact from the sheet",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ECO-1187_affected_items.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled from-revision and to-revision columns beside part identifiers and quantities",
+        "a disposition column with values such as use-as-is, rework, scrap",
+        "an approval block naming reviewers and a date",
+        "a parent assembly identifier in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the from/to revision pair and the disposition slot make the change the object; engineering.change-order names these same bytes",
+        "that the affected-items table is the product structure it modifies",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BPA-210.asm",
+      "source_type": "design_creative",
+      "observations": [
+        "a CAD assembly file whose internal component tree is the same parent-child structure a BOM tabulates",
+        "component instance counts stand in for quantity-per",
+        "sibling .prt files in the same directory are the children",
+        "opens only in the originating CAD application"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row — the product structure here is a model, not a list; engineering.cad-model names these same bytes",
+        "that a directory of sibling .prt files is a bill of materials",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Costed_BOM_Q3_margin.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "level, part identifier and quantity columns identical to the design BOM",
+        "added columns for unit cost, extended cost, overhead allocation and gross margin",
+        "a summary row rolling cost to a target price",
+        "no revision block, no approval slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row on the word BOM in the filename — the purpose evidence is a margin rollup and the material is business_operations.project-delivery",
+        "an engineering design_item from the part identifiers alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE: BOM sign-off for BPA-210 Rev C.eml",
+      "source_type": "email",
+      "observations": [
+        "a subject line carrying the row's name, an item identifier and a revision token",
+        "body prose approving a change with no table and no attachment",
+        "labelled From/To/Date header slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row from a subject line — the whole of the candidate evidence here is never-alone tokens: a type word, a part-number shape and a revision token",
+        "a design_item fact from the subject line without a controlled-definition structure in the body",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 11.02.14.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of an ERP product-structure screen showing an indented item list with quantities",
+        "the window header and the item identifier row are cropped out",
+        "no revision, no approval, no source application name legible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row, or of engineering — an indented list with quantities is not a controlled definition when the identifying header is absent",
+        "a design_item fact copied from the two BOM exports sitting beside it in the same folder; 00: 'Its output does not directly create a course fact on HW 3.pdf'",
+        "that the absence of EXIF proves anything about the capture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "bom_export.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a CSV, four PDF drawings, a readme and one .step file",
+        "member names carry an item identifier and a revision letter",
+        "the archive is read from its manifest without extracting members to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row — a mixed packet under an item identifier is engineering.json's archive-manifest signal, which routes to the schema, not to an artifact-type row",
+        "member-level facts from the manifest alone",
+        "that the archive name states the packet's purpose",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.production-planning",
+      "why": "Recorded reciprocally for R1c; these boundaries belong to the engineering schema, since this row is refused. Fixture bytes: LOT-24-081_pick_list.csv. Engineering side — a flat list with lot, bin and quantity-issued slots is an execution record and does not activate engineering even when it cites Rev C. Manufacturing side — a table with a level or find-number column, quantity-per and drawing references, carrying no lot, bin or issue slot, is the design definition and does not activate production planning even when it lists the same part numbers.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.spare-parts",
+      "why": "Fixture bytes: Spare Parts List - Model 40 Compressor.pdf. Engineering side — recommended-stock and order-code columns addressed to a service technician are a service artifact; the parent-child-quantity relation alone does not pull it back. Manufacturing side — a parts list carrying a controlling revision block and an approval slot for the item's definition is not a spare-parts list even though it enumerates orderable parts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "why": "Fixture bytes: bom.json (CycloneDX). Engineering side — a labelled bomFormat/specVersion declaration with package-URL component coordinates at a repository root is a software dependency inventory; the filename being the exact string `bom` is the sharpest never-alone case on this node. Code side — a physical product structure with drawing references and a revision block is not a repository artifact even when exported as JSON or XML. Where an SBOM is also a released component of a physical product baseline, that dual claim is engineering.json's existing schema-level also_holds_with with code, not this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "why": "Same-schema collision. Fixture bytes: Assembly Drawing A-2201 sheet 2 - parts list.pdf. This-row side — a parts list drawn inside a sheet frame above a title block is not a separable bill of materials; the title block is the discriminating evidence. Drawing-package side — a standalone spreadsheet with a level column and no title block, sheet number or approval slot is not a drawing package even though it references drawing numbers. Both rows describe values of one engineering_artifact_type field, which is the structural reason this row is refused.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "why": "Same-schema collision. Fixture bytes: ECO-1187_affected_items.xlsx. This-row side — labelled from-revision/to-revision columns with a disposition slot make the change the object of the file, not the structure. Change-order side — a product-structure table at a single stated revision with no from/to pair and no disposition is the definition being changed, not the change.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.cad-model",
+      "why": "Same-schema collision. Fixture bytes: BPA-210.asm. This-row side — an assembly file's internal component tree is a model, not a list, and instance counts are not a tabulated quantity-per. CAD-model side — a tabulated export of that same tree is a list and not a model; splitting one item's definition by export format is exactly the fragmentation both refusals avoid.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "why": "Fixture bytes: Costed_BOM_Q3_margin.xlsx. Engineering side — unit-cost, extended-cost and margin columns with no revision or approval slot make the purpose a financial rollup; the word BOM in the filename is never-alone. Business-operations side — the same rows without cost columns and with a controlling revision block are technical definition, not budget evidence.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone parts or materials list with durable usefulness but no evidenced controlling item, revision or accepted project — a printed exploded-view parts sheet kept for reference, a supplier's component listing — belongs here rather than activating anything from a type word.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The default route for this row's whole residue, and the honest one: an indented table with quantities whose object cannot be established from its own evidence — design definition, pick list, procurement list, costing sheet or software inventory — is precisely partly-understood material awaiting a decision. Eight of this node's eleven fixtures route here.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Proprietary CAD assembly containers and password-protected export packets retain basic metadata without a filename-only purpose inference.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Identical to engineering.json's, and that identity is leg three of the refusal. Product structures expose proprietary design definition, supplier identities, sourcing and cost, and can be export-controlled. Sensitivity here is only none|potentially_sensitive and handling classes are P7's, so no separation from the schema is even expressible. 00's binding rule is unchanged: privacy policy is enforced before any model or connector receives content.",
+  "open_question": "NEEDS-JOSEPH NJ-BOM-1: the engineering.* sub-roster is one node per work-type value — cad-model, drawing-package, electrical-schematic, pcb-layout, change-order, material-specification, risk-analysis-fmea, prototype-build, verification-validation and simulation-analysis are each verbatim members of engineering.json's work_types[], as bill-of-materials is. The argument refusing this row refuses them on the same grounds; R1c must decide en bloc rather than let the outcome depend on which agent drew which id. Alternatives: (a) refuse the value-named rows and keep only rows that are organizational SITUATIONS with different signals, dimensions or privacy (commissioning-handover, aerospace-airworthiness, standards-library are the plausible survivors); (b) keep them browse-only as the value list feeding engineering_artifact_type, which is a P6 values table and not a roster; (c) redefine each as a situation rather than an artifact type, which is real work this row cannot do for its siblings. NJ-BOM-2: where does a CycloneDX/SPDX SBOM activate? Recommended code.software-project on repository evidence, with engineering.embedded-firmware claiming it only when a released-baseline relation is independently evidenced; that dual case is already covered by engineering.json's schema-level also_holds_with with code. A reciprocal statement is owed on code.software-project, which this agent may not write. NJ-BOM-3: if the coverage should be preserved without a node, the honest vehicle is a new grouping_reason on engineering.json — one parent item's product structure and the child part definitions it enumerates. Recommended to R1c; engineering.json was not edited."
+}

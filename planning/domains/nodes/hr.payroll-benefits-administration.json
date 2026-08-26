@@ -1,0 +1,404 @@
+{
+  "id": "hr.payroll-benefits-administration",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Payroll and benefits administration (employer side)",
+  "one_line": "The recurring machinery by which an employer converts a workforce roster into money and obligations: the gross-to-net register for one pay run, the instruction that disburses it, the statutory return and remittance that follow it, the year-end statements issued in batch, and the provider-facing contribution and enrolment schedules that feed its deduction lines. It is not one person's payslip, not the ledger journal the run posts into, and not the forward-looking pay review that sets next period's numbers. PLACEHOLDER ROW (J-IND): it writes no field rows because the hr schema declares none under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them, and the hr schema declares no canonical field rows under PR-6. The legal set on any file this row recognizes is the hr schema row's proposals (`workforce_member`, `workforce_unit`, `people_cycle`, `personnel_case`) once R1c admits them, plus the universals. Nothing on this row depends on a key it invented.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. The period this world revolves around is already `people_cycle`, whose schema-row example is literally a March 2026 payroll run; minting a `pay_period` variant would be exactly the synonym-minting the dispatch forbids. The one string this material is saturated with and no hr key can hold is the EXTERNAL COUNTERPARTY on a remittance, a contribution schedule or a carrier invoice — a tax authority, a pension provider, an insurance carrier, a court. That is the finance schema's `institution` role, and a template may only branch on a field its own schema declares, so borrowing it here would widen the hr schema from a leaf. Recorded as NJ-HRPAY-2 instead of proposed.",
+  "recognition": {
+    "deterministic": [
+      "MULTI-WORKER GROSS-TO-NET STRUCTURE: a labelled per-person identity slot (employee ID or name) repeated across many rows, beside labelled earnings, deduction and employer-contribution slots and a separate net slot, together with a labelled pay period or run identifier and employer-side control totals. The joint structure is the signal. One person's earnings statement has the same columns and is not this row",
+      "EMPLOYER OBLIGATION STRUCTURE: a labelled employer reference (PAYE reference, EIN, employer scheme or account number) beside a labelled contribution or tax period and an amount payable to a named external authority. Employer reference plus period plus payable, jointly; an employer name on letterhead is never this signal",
+      "PROVIDER-FACING SCHEDULE: a labelled scheme, policy or plan reference beside per-member pensionable pay or plan tier, with employee contribution and employer contribution carried in SEPARATE labelled columns. The split of one amount into two payer roles is the discriminator, and it is what distinguishes an employer's schedule from an individual's benefits statement",
+      "DISBURSEMENT INSTRUCTION STRUCTURE: fixed-field or delimited records each pairing a payee name with a bank routing/sort and account slot and an amount, under a batch header carrying a count and a hash or control total. This signal activates the row's REFUSAL posture rather than its filing: it identifies a payment-credential file, not a record to place",
+      "THIRD-PARTY DEDUCTION INSTRUMENT: a labelled order or notice reference issued by a court, revenue agency or union naming one employee, a deduction rate or amount, and a creditor or recipient — held by the employer because it must be applied to a pay run",
+      "BATCH-ISSUED YEAR-END STATEMENT: a labelled tax year and employer reference with per-employee totals-to-date, present either as many people in one file or as a numbered series generated in one operation. Batch or series membership is what makes it employer-side; the same document alone is the individual's",
+      "RUN RECONCILIATION STRUCTURE: this-period totals set against prior-period totals with a labelled variance column and a labelled run identifier, or a signed or initialled approval slot naming the run. A budget variance report without a run identifier is not this"
+    ],
+    "needs_llm": [
+      "whether a sheet of names against amounts is a pay run or one of its many look-alikes: a commission or bonus schedule, a contractor payment list, an expense reimbursement batch, a grant stipend roster, a prize or honorarium list, or a donation acknowledgement run",
+      "whether a benefits document is the EMPLOYER'S administration of a plan or the individual's own policy, claim or statement. Ambiguity here resolves to protection and abstention, not to copying a plan or health fact into an employer record",
+      "whether a run is live payroll or a parallel-run, migration or year-end-rollover test extract from a payroll system. Test extracts carry real employees and real bank details and must inherit the live posture, not a lower one, whatever the filename says",
+      "whether an archive's members belong to one pay run when they split across register, ledger-journal, bank-file, statutory-filing and employee-statement roles that this row does not all own",
+      "whether the employer reading holds at all, or the corpus is a bookkeeper's or bureau's work for a CLIENT employer, where the same files are a professional engagement's deliverables rather than the custodian's own workforce record"
+    ],
+    "never_alone": [
+      "the words payroll, salary, wages, pay, gross, net, deduction, benefits, pension, retirement, insurance, or enrolment. They occur in policies, offer letters, sales collateral, software documentation, budget lines and cited material",
+      "an employer's name, letterhead, email domain or file custodian. Read 00's role-ambiguity reasoning across from institutions to employers: the same organisation name is issuer, payer, plan sponsor, counterparty, subject and merely-cited party in different files",
+      "a person's name beside a currency amount. Invoices, expense claims, commission sheets, contractor lists, honoraria, refunds and prize schedules all have exactly that shape and none of them is a pay run",
+      "an employee-shaped or personnel-shaped number alone; a bare tax year, month token, quarter or date range; a bare percentage or rate",
+      "a digit string that looks like an account, routing, sort, scheme or policy number. The same shape is an invoice number, a customer reference, a claim number and a purchase-order number",
+      "ONE earnings statement, year-end certificate, pension statement or benefits statement merely because an employer issued it. A single such document is the individual's own record and belongs to finance.payroll-received or career.employment-records unless batch, series or roster evidence puts it on the employer's side",
+      "a chart-of-accounts code beside a debit and credit pair. That is a ledger journal — the accounting consequence of a pay run, owned by finance.small-business-bookkeeping — and it is the tempting file this row must not take",
+      "market pay data, quartiles, ranges, grades or a proposed increase percentage. Those are hr.compensation-planning's forward-looking evidence; this row holds what was actually paid",
+      "source type or extension alone, including spreadsheet, csv, txt, xml, pdf, email, image, ocr, archive or opaque binary",
+      "membership in a folder or download session named Payroll, Pay, Wages, HR, Finance, Month-Year, or a period-shaped directory name. 00: \"A session should never be treated as proof of topic\"",
+      "absence of EXIF as proof that an image of a payroll portal, a register or a payslip is a screenshot"
+    ]
+  },
+  "proposed_context_terms": [
+    "pay run",
+    "pay period",
+    "gross to net",
+    "employer contribution",
+    "employee contribution",
+    "pensionable pay",
+    "statutory pay",
+    "year to date",
+    "employer reference",
+    "remittance advice",
+    "contribution schedule",
+    "open enrolment",
+    "plan year",
+    "attachment of earnings",
+    "garnishment",
+    "hash total",
+    "parallel run",
+    "payroll approval"
+  ],
+  "work_types": [
+    "periodic payroll register or gross-to-net run output",
+    "disbursement instruction file and its payment or rejection confirmation",
+    "statutory return, remittance advice, or payment-on-account record filed by the employer",
+    "year-end employee statement issued in batch or as a generated series",
+    "pension or retirement contribution schedule and provider reconciliation",
+    "benefits enrolment, election, life-event change, or continuation record",
+    "carrier, broker or scheme invoice and premium reconciliation",
+    "third-party deduction instrument: court order, agency notice, or union or charity deduction authority",
+    "pay-run reconciliation, variance check, or approval record",
+    "payroll system parallel run, migration extract, or year-end rollover record",
+    "statutory absence pay calculation: sick, parental, or holiday pay working"
+  ],
+  "grouping_reasons": [
+    "one pay run as a closed set: register, disbursement instruction, filing receipt, payslip batch, approval correspondence and reconciliation, which are content-incoherent and purpose-coherent in exactly 00's sense",
+    "one tax or contribution period across its return, remittance advice and payment confirmation, even when those three come from three different systems",
+    "one plan year across enrolment window, election export, carrier invoices, reconciliations and mid-year change notices",
+    "one provider or scheme across its periodic schedules, joined by the scheme reference rather than by any employee's identity",
+    "one deduction instrument and the runs it affected, held protected and joined without copying the named employee's identity onto the register",
+    "a sparse file in a run neighbourhood — an untitled variance workbook, an unnamed export — may join by accepted group membership WITHOUT receiving a period, unit or counterparty fact",
+    "one duplicate or version family through the universal duplicate_family and version_family facts, never through a payroll-only field",
+    "no group is valid when a lone names-and-amounts sheet carries no period, no employer reference and no counterparty evidence; protected residual placement is safer than inventing a pay run"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6: the hr schema declares no canonical field rows, so no key may become a folder level yet, and this row invents none. The recommendation held as prose for R1c, and the way it DIFFERS from the hr schema's default prose order, is the point. The schema's default leads with work type or named people programme, then workforce unit, then people cycle. This row inverts the middle: PEOPLE CYCLE (the pay run or contribution period) leads, then WORK TYPE within the run, and workforce unit is dropped from the standing levels entirely. The reason is evidential, not aesthetic. Payroll is the one hr situation that is periodic and closed — the same family of documents recurs on a fixed cadence and each occurrence must reconcile within itself — so the run is what makes a register, a bank file, a filing receipt and a reconciliation intelligible together, exactly as a course makes Homework 3 intelligible. Leading with work type instead scatters one run's closed set across five sibling folders and makes the reconciliation that is the whole point of the run impossible to see. Workforce unit is dropped because a run is organisation-wide by construction: a department column exists INSIDE the register and is a cut of it, not a parent of it, and promoting it would open a level most of this material cannot fill. Two optional branches: (a) an EXTERNAL COUNTERPARTY level above the cycle for the provider-facing and statutory subset, where the scheme, carrier or authority is the stable spine and the period is the leaf — this is the level the row cannot currently express and is NJ-HRPAY-2; (b) PLAN YEAR in place of pay run for the benefits half, whose cadence is annual and whose members do not reconcile against a pay period. This is NOT time-first: the pay run is a named process instance that happens to carry a date, not a capture time, and a bare month token is explicitly never-alone on this row.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "code_structured",
+      "opaque_binary",
+      "presentation"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".txt",
+      ".xml",
+      ".json",
+      ".eml",
+      ".msg",
+      ".png",
+      ".zip",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "March 2026 payroll register - FINAL.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row labels employee ID, employee name, department, gross pay, tax, pension, insurance, other deductions, employer contributions and net pay",
+        "one row per worker across many rows, closing on a control-total row that sums gross, deductions and net",
+        "a workbook-level label names the March 2026 pay run and a separate cell carries an employer reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any hr fact as canonical while the schema declares no field rows",
+        "that the department column is a parent dimension; it is a cut inside the run",
+        "that this is one employee's career record, a bank statement, or a ledger",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "BACS_20260327_batch.txt",
+      "source_type": "text_document",
+      "observations": [
+        "fixed-width records each pairing a payee name with a sort/routing slot, an account-number slot and an amount",
+        "a leading header record carries an originator account, a processing date and a record count; a trailing record carries a hash total",
+        "no earnings, deduction or period labels appear anywhere in the file"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this file should be filed at all; the correct outcome is protection in place",
+        "an employee fact from a payee name, or an institution fact from a routing code",
+        "that a plain-text extension makes it safe to send to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Form 941 Q1 2026 - filed copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled employer identification slot beside a labelled quarter and year",
+        "labelled totals for wages paid, tax withheld and employer share, and an amount payable to a named revenue authority",
+        "a stamped or appended acceptance reference from the filing channel"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the revenue authority is the organizing entity because its name is largest on the page",
+        "that this is the household's tax record; the filer is the employer",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pension contribution schedule 2026-03.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a scheme reference appears in a labelled header cell above the data",
+        "columns label member name, member reference, pensionable pay, employee contribution and employer contribution in SEPARATE slots",
+        "the file's totals reconcile to the pension deduction column of the same month's register but the register is not present"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the provider is a finance institution fact on an hr row; no hr key can hold the counterparty",
+        "that a member reference is an employee identity fact",
+        "that this is any individual's pension statement",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Open enrolment 2026 - elections export.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns label employee, plan, coverage tier, number of dependants, per-period employee cost, employer cost and effective date",
+        "a labelled plan year appears in the sheet name rather than in a data column",
+        "coverage tiers and dependant counts disclose household composition, and some plan names disclose the kind of cover elected"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "any health, family or dependant attribute as a schema fact",
+        "that removing employee names would make the file non-sensitive",
+        "that the plan year is a pay period; the benefits half runs on a different cadence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Attachment of earnings order - 004218.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court letterhead with a labelled order reference and a labelled case or claim number",
+        "names one employee, a creditor, a deduction rate or fixed amount, and a date from which the employer must apply it",
+        "addressed to the employer as the party obliged to act, not to the employee"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a court letterhead makes this the user's own legal matter",
+        "that the employee is a party to a matter the user is running",
+        "personnel_case or workforce_member while those keys remain proposals",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "P60 2025-26 - J Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled tax year, employer reference and per-employee totals-to-date for pay and tax",
+        "the file sits in a numbered series of like-named files generated in one operation, all sharing the same employer reference",
+        "no pay-period label; the document is annual"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "employer-side activation from the document alone; the SERIES is the evidence, and one copy of it is the individual's own record",
+        "that the tax year on the certificate is a pay run",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Payroll journal - March 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns label account code, account name, cost centre, debit and credit, with a balancing total",
+        "no employee identity slot appears anywhere; the rows are chart-of-accounts lines",
+        "the filename and the period match the same month's register exactly"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this is payroll evidence; it is the accounting consequence of a pay run",
+        "an employee or workforce fact from a cost-centre code",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Salary benchmarking 2026 - Customer Ops.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns label grade, market lower quartile, median, upper quartile, current midpoint and proposed increase percentage",
+        "individuals appear only as anonymised compa-ratio points, and no amount was ever paid",
+        "no pay period, no employer reference, no counterparty"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that pay-shaped columns make this a payroll record; nothing here was disbursed",
+        "a pay run from a calendar year in the filename",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "payroll_run_2026-03.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a register workbook, a ledger journal csv, a bank batch txt, a filing receipt pdf, a payslip batch pdf and an approval email, without unpacking",
+        "member names repeat the same period token",
+        "members belong to at least three different rows and one of them is a payment-credential file"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the archive may be unpacked into a model prompt because its manifest looks administrative",
+        "that every member is this row's evidence; the journal is finance's and the bank file is protected",
+        "a purpose from the archive filename alone",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-03-27 at 09.14.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a payroll portal's run-summary panel: a run identifier, a total gross figure, an employee count and a green submitted state",
+        "no EXIF capture block is present",
+        "the same numbers exist in the register workbook that sits beside it"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the missing EXIF proves this is a screenshot",
+        "that an OCR'd total is a stronger fact than the labelled slot in the register it duplicates",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "variance check.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "two unlabelled numeric columns and a difference column, no headers, no names",
+        "sits in the same directory as the March register and the reconciliation email",
+        "nothing inside the file names a period, an employer or a person"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "a pay run fact copied from the neighbouring register",
+        "that directory membership is evidence of purpose",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.payroll-received",
+      "signal": "Shared fixture: `P60 2025-26 - J Patel.pdf` and a single payslip PDF — byte-identical on both sides. THIS ROW MUST NOT TAKE a lone earnings statement, year-end certificate or benefits statement merely because an employer issued it; a single such document is the recipient's own money record. FINANCE.PAYROLL-RECEIVED MUST NOT TAKE a numbered series of the same certificate sharing one employer reference, a batch payslip PDF, or any register with more than one person's row. The discriminator is CARDINALITY AND CUSTODY OF THE RUN, not the document type: one person's copy is received, the batch that produced it is administered."
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Shared fixture: `Payroll journal - March 2026.csv`, and the same month's register when a bookkeeper holds both. THIS ROW MUST NOT TAKE a journal whose rows are chart-of-accounts codes with debits and credits and no employee slot — that is the accounting consequence of the run. BOOKKEEPING MUST NOT TAKE the register, the contribution schedule or the bank batch merely because they reconcile into its ledger. The discriminator is WHETHER THE ROWS ARE PEOPLE OR ACCOUNTS. Where the custodian is a bureau serving a client employer, both readings are live and the row defers: see NJ-HRPAY-3."
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "Shared fixture: `Form 941 Q1 2026 - filed copy.pdf` and the equivalent periodic employer return. THIS ROW MUST NOT TAKE the household's or sole trader's own annual return merely because it reports employment income. FINANCE.TAX-FILINGS MUST NOT TAKE a return whose filer slot is an employer reference and whose totals are wages paid to OTHER people for one contribution period. The discriminator is WHOSE LIABILITY THE FORM REPORTS: one's own income, or money withheld from a workforce."
+    },
+    {
+      "domain": "hr.compensation-planning",
+      "signal": "Shared fixture: `Salary benchmarking 2026 - Customer Ops.xlsx`, and the pay-review workbook whose approved figures become next period's register lines. THIS ROW MUST NOT TAKE market data, quartiles, grades, proposed increases or modelled costs — nothing there was disbursed. COMPENSATION-PLANNING MUST NOT TAKE the register, remittance or contribution schedule that records what was actually paid. The discriminator is PROSPECTIVE PROPOSAL VERSUS EXECUTED DISBURSEMENT, and the same numbers appear on both sides of it in the month the review lands."
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "Shared fixture: `P60 2025-26 - J Patel.pdf` again, and a benefits enrolment confirmation letter. THIS ROW MUST NOT TAKE an individual's accumulated evidence of their own employment history. CAREER.EMPLOYMENT-RECORDS MUST NOT TAKE an employer's batch, roster or obligation document merely because each member could in principle be copied to one individual. The discriminator is the same as against finance.payroll-received but on a different axis: career holds it as PROOF OF ONE'S OWN WORK HISTORY, this row holds it as OUTPUT OF A RUN."
+    },
+    {
+      "domain": "identity.credentials-passwords",
+      "signal": "Shared fixture: `BACS_20260327_batch.txt`. Both rows reach the same verdict by different routes and neither should file it. THIS ROW MUST NOT treat a disbursement instruction as a filable payroll record: it is a list of other people's bank credentials that happens to carry payroll's period. IDENTITY.CREDENTIALS-PASSWORDS MUST NOT claim the register, schedule or filing that surrounds it. Both sides route the batch file to Protected Records and neither expands the other's tree to hold it."
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "Reciprocating an edge authored at this row. Shared fixture: a LABOUR ALLOCATION SHEET of names against hours. CONSTRUCTION_PROPERTY.SITE-DIARY takes the site reading — hours booked against trades, cost codes and a site for one day's record. THIS ROW takes the pay reading only, and only when rates, deductions or a pay period are present. A table of names against hours with a site or cost-code column and no rates is the diary's, not this row's; the same table with rates, deductions and a run identifier is this row's. This row does not claim the site reading, and construction_property.timesheet — the refused row that named both of us — stays refused."
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: `also_holds_with` is declared at the schema row, and the hr schema already carries business_operations, finance, clinical_practice and legal. This row expresses lawful dual membership through `also_schema` on individual file examples, drawn only from that declared list — finance on the register, the return, the contribution schedule, the year-end certificate and the run archive; legal on the attachment-of-earnings order. A template must not widen its schema's edges from a leaf.",
+  "falls_through_to": [
+    {"template": "Protected Records", "when": "employee-identifying pay, bank, deduction-order, contribution or benefits-election material is present but employer-side run evidence is absent or uncertain. This is the default outcome for the disbursement instruction file even when the row DOES fire, because 00 names credentials and account statements as protected residual material"},
+    {"template": "Independent Records", "when": "a durable standalone employer filing, certificate, confirmation or invoice has no pay run, contribution period or plan year to join"},
+    {"template": "Unsupported or Encrypted", "when": "a password-protected payroll archive, an encrypted bureau transfer or an unreadable payroll-system export cannot be read. 00 is explicit that such files retain basic metadata and that a purpose must not be inferred from the filename alone, so a period token in the name does not place it in a run"}
+  ],
+  "role_split": [
+    {
+      "domain": "finance.payroll-received",
+      "this_role": "the employer that produced, approved, disbursed and reported the run",
+      "other_role": "the individual that received one statement out of it as their own money record"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "this_role": "the workforce-subject view of the run: people, periods, deductions and obligations",
+      "other_role": "the ledger-account view of the same run: codes, debits, credits and the accounts they post to"
+    },
+    {
+      "domain": "hr.compensation-planning",
+      "this_role": "what was actually paid in a closed, reconciled period",
+      "other_role": "what is proposed to be paid, modelled against market data before any disbursement exists"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row concentrates three protected payloads that the hr schema's default posture does not separately name. First, employee-identifying pay data — earnings, deductions, garnishments, statutory sick or parental pay — where the DEDUCTION LINES are more disclosing than the amounts, because a court-order deduction reveals debt or family proceedings and a statutory-pay line reveals illness or a birth. Second, third-party FINANCIAL CREDENTIALS held about other people: a disbursement instruction is a list of employees' bank account and routing details, which 00's Protected Records description covers directly when it names \"account statements\" and \"credentials\" as sensitive isolated material that \"must not cause filenames or content to be exposed in model prompts\". Third, GOVERNMENT IDENTIFIERS about other people on the statutory filings and year-end statements. Consequently: no member of this world goes to a cloud model by default; benefits elections stay protected regardless of aggregation because dependant counts and plan tiers re-identify in small populations; and a parallel-run or migration extract inherits the live posture rather than a test posture. This value invents no handling class and no threshold.",
+  "open_question": "NJ-HRPAY-1: does BENEFITS ADMINISTRATION belong on this row at all? It shares payroll's counterparty structure and joins it through deduction lines, which is a real evidential join, but its cadence is a PLAN YEAR rather than a pay period, its documents are issued by carriers rather than by the employer, and its enrolment data carries household and health-adjacent attributes that pay data does not. The alternatives are (a) keep them together as the row's name assumes, with plan year as an optional branch — what this row recommends; (b) split a benefits row, at the cost of two rows sharing one detection signal set; (c) route benefits enrolment to Protected Records and keep only carrier invoices here. Not this row's decision. NJ-HRPAY-2: the EXTERNAL COUNTERPARTY on a remittance, contribution schedule or carrier invoice has no key. It is the finance schema's `institution` role, a template may only branch on a field its own schema declares, and minting an hr synonym would create exactly the private-field-name sprawl the overnight pass produced. Options: promote a shared counterparty key, license cross-schema reference for co-activated files, or accept that the provider-facing subset cannot open its natural first level. This row proposed nothing and encoded the gap as optional branch (a). NJ-HRPAY-3: the BUREAU CASE. When a bookkeeper or payroll bureau holds registers, bank files and filings for a CLIENT employer, the same bytes are simultaneously this row's employer-side record and finance.small-business-bookkeeping's engagement deliverable, and the custodian is neither the employer nor the employee. The collision above defers rather than deciding; R1c should say whether custody or subject governs. NJ-HRPAY-4: this row's leg-2 claim (pay run leads, workforce unit dropped) is prose measured against the hr anchor's prose, because PR-6 leaves both dimension orders empty. If R1c rules that an unrealizable dimension difference cannot count, this row still stands on legs 1 and 3, but every hr sibling relying chiefly on leg 2 should be re-examined together rather than one at a time."
+}

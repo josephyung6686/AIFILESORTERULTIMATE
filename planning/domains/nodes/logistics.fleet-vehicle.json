@@ -1,0 +1,567 @@
+{
+  "id": "logistics.fleet-vehicle",
+  "kind": "template",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Fleet vehicle roadworthiness file",
+  "one_line": "The organizational situation of ONE IDENTIFIED VEHICLE HELD UNDER A CONTINUING OPERATOR DUTY: the evidential core is not a van, a registration plate, a garage bill or a make and model, but a duty artefact keyed on one asset identifier — a periodic inspection at a stated interval, a driver-reported defect closed by a named rectification signoff, a statutory test result with defect and advisory items, or an operator licence naming an authorised vehicle margin and an operating centre. Those artefacts recur on a schedule for as long as the operator runs the asset, which is what makes the vehicle a standing subject rather than a purchase. PLACEHOLDER ROW (J-IND): researched to J-DEPTH, writes NO field rows because the logistics schema declares none under PR-6, and proposes no new key.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_detection_signals": true,
+    "distinct_detection_signals_why": "The logistics schema's DEFAULT TEMPLATE fires on a consignment structure — two named parties in different roles over one described quantity of goods, a place of taking over, a place of delivery, and an acknowledgement slot. This row's activating structure shares none of those four elements. It has no consignor and no consignee, no quantity of goods, no place pair, and no handover acknowledgement. It has exactly one party (the operator, who is the filer), one asset identifier, and a recurrence obligation: an inspection interval, a defect-to-rectification loop with two signatures at two dates, a statutory test outcome, or a licensed vehicle margin. A file cannot satisfy both structures by accident, which is the strongest form of a distinct signal: the sets are disjoint rather than merely differently weighted.",
+    "distinct_dimension_order": true,
+    "distinct_dimension_order_why": "The schema default is carrier or trading counterparty, then custody subject, then document function, then time as a leaf. This row DELETES the first level and argues it must never be built. A fleet vehicle's file is written by five unrelated organizations — a licensing authority, a testing station, an insurer, a leasing company and several garages — none of which is a counterparty to a movement, so a counterparty level scatters one asset across five branches for no retrieval gain. The default's second level is also a different kind of object here: a consignment is transient and dies on delivery, whereas the asset persists and accumulates, which makes time-as-leaf load-bearing rather than incidental (the same inspection recurs, so the pair of function and date is the only thing that separates two otherwise identical sheets). Recommended order in prose: asset, then document function, then time as a leaf.",
+    "distinct_privacy_rules": true,
+    "distinct_privacy_rules_why": "The family principle inherited from the schema is THE CONSIGNEE IS A PARTY, NEVER A FOLDER — a rule built to protect a delivery recipient's home address. This row has no consignee at all, so it neither uses nor is protected by that rule, and it needs a different one. Its exposure is that the record's SUBJECT is a machine while its incidental content is a named worker: the driver who signed a walkaround sheet, the technician who signed the rectification, a fuel-card row that is a timestamped location, a telematics event with coordinates and a driver identifier. The rule this row adds is therefore the inverse of the schema's: the asset MAY be a folder, and the person named on the asset's record MUST NOT be — and a defect or telematics record must never be aggregated into a performance dossier on the person it happens to name, which is a different row's protected subject.",
+    "verdict": "accept"
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a periodic-inspection structure: one asset identifier, an odometer or hours reading, a stated inspection interval or next-inspection-due slot, a numbered pre-printed check list whose items carry an inspect/defect/rectified disposition, brake or emission performance figures, and a signed roadworthiness or fit-for-service declaration by a named inspector. The recurrence slot is the discriminator — a one-off condition report has the check list but not the interval",
+      "a defect-to-rectification loop: one asset identifier, a defect described by the person who found it with a date and signature, and a SECOND dated signature block recording what was done about it. Two signatures at two dates against one asset is the fingerprint; a single-signature checklist is a form, not a closed loop",
+      "a statutory test or certification result keyed on the asset: a test or certificate number, a pass/fail or refusal outcome, an expiry or next-due date, and an itemised defect and advisory list distinguished by severity. The issuing station or authority is an observation, never the organizing fact",
+      "an operator or fleet authorisation structure: a licence or authorisation number held by the filing organization, an authorised number of vehicles and trailers, a named responsible person (transport manager, fleet or maintenance controller), a declared operating centre, and undertakings about inspection frequency and driver defect reporting. This is the duty anchor that separates the whole row from personal vehicle paperwork",
+      "a fleet-population table whose ROWS ARE ASSETS: one row per registration or fleet number with make, model, gross weight or capacity class, in-service date, inspection interval, next test due, and an availability or off-road status. A table whose rows are consignments, jobs, purchases or people is not this structure however many vehicle columns it carries",
+      "a vehicle-unit tachograph or event-recorder download: a binary or structured export whose header names the VEHICLE unit and whose records are that vehicle's activity across all drivers who used it in the period. The companion driver-card download has the same extension and the opposite subject and is not this row's",
+      "a telematics or fuel-card export keyed on the asset: repeated rows carrying one registration or fleet identifier plus a timestamp, an odometer, a quantity of fuel or energy, a site, and optionally coordinates or an event class. Its asset column is what makes it this row's; its money column is what makes it also somebody else's",
+      "an off-road, downtime or availability record: one asset, a date reported off-road, a reason tied to a defect or an inspection outcome, and a date returned to service. The pairing of a stop and a start against one asset is the structure",
+      "an acquisition, hand-over or end-of-life record for one asset that carries a duty transfer rather than a price: a plating or weight certificate, a fleet-number allocation, a de-fleet or certificate-of-destruction record, or a return-condition report against a stated standard",
+      "an archive whose manifest links one asset identifier across a registration document, a test certificate, a run of inspection sheets, defect reports and service records. `00`: “Archives should be inspected without being unpacked to disk.”"
+    ],
+    "needs_llm": [
+      "an unlabelled spreadsheet whose columns are a registration-shaped token, a date and a number — which may be an inspection planner, a service-cost ledger, a fuel report, a hire schedule, an insurance vehicle schedule or a sales stock list",
+      "a scanned and hand-annotated walkaround sheet where the only thing separating a routine nil-defect check from a safety record is a handwritten line in a margin",
+      "a garage document that may be a quotation, an estimate, an invoice or a completed safety-inspection report on the same letterhead, where the disposition column and the presence or absence of an amount due decide it",
+      "an email whose subject carries a registration-shaped token, where the body decides between a booking for a test, a parking penalty, an insurance renewal and a defect escalation",
+      "a photograph of a vehicle or a component where OCR may or may not recover a plate, a fleet number or a defect tag, and where the presence of a defect is a human judgement",
+      "a lease or hire document for a vehicle the filer operates but does not own, where the same bytes support a financing reading, a hire reading and a duty reading"
+    ],
+    "never_alone": [
+      "a registration-plate-shaped or fleet-number-shaped token alone. It is reassignable, jurisdiction-specific, and collides in shape with order references, product codes and abbreviations; it appears unchanged on a parking penalty, an insurance advertisement, a sales listing, an auction lot and a photograph of somebody else's van",
+      "a vehicle-identification-shaped or serial-shaped string alone. Read across from `00`'s rule that “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the reasoning there is role ambiguity, and an asset identifier is at least as ambiguous: the same string appears as a subject, a stock item, a cited example and a manufacturer's record",
+      "a make, model, body type or capacity class alone. Brochures, manuals, reviews, listings and photographs carry all of them without being a record of anything the filer operates",
+      "a garage, dealer, leasing company, testing station or licensing authority name alone. Each is an issuer, a supplier, a payee or a subject depending on the file, and the same organization appears in all four roles across one corpus",
+      "the words fleet, vehicle, service, inspection, defect, MOT, test, mileage or maintenance alone, in a filename or a heading. Every one of them has a common non-fleet meaning and every one of them appears on the collision fixture below",
+      "an amount due, a payment term or a tax treatment. Their PRESENCE is evidence AGAINST this row rather than for it: a priced document is a purchase of work on the asset, not the duty record the asset generates",
+      "a folder named Fleet, Vans or Vehicles, and a shared download session. Neither is evidence about any file inside it",
+      "a driver's name. It is never sufficient to activate this row and never sufficient to build a level of it"
+    ]
+  },
+  "proposed_context_terms": [
+    "inspection interval",
+    "next inspection due",
+    "roadworthiness",
+    "fit for service",
+    "walkaround check",
+    "driver defect report",
+    "rectification",
+    "off road",
+    "operating centre",
+    "authorised vehicles",
+    "plated weight",
+    "odometer reading",
+    "advisory item"
+  ],
+  "work_types": [
+    "registration, title or keeper document for an operated asset",
+    "operator or fleet authorisation, variation and undertaking record",
+    "plating, weight, capacity or specification certificate",
+    "statutory test or roadworthiness certificate with defect and advisory items",
+    "periodic maintenance or safety inspection sheet",
+    "driver daily walkaround check and defect report",
+    "defect rectification and return-to-service signoff",
+    "off-road, downtime and availability record",
+    "service, repair and tyre history for one asset",
+    "recall or manufacturer service-action record",
+    "fuel, energy and mileage record for one asset",
+    "telematics, event-recorder and vehicle-unit download",
+    "fleet insurance schedule and vehicle-level cover evidence",
+    "damage, accident and third-party incident record for one asset",
+    "acquisition, hand-over, de-fleet and end-of-life record"
+  ],
+  "grouping_reasons": [
+    "an exact asset identifier — registration, fleet number or vehicle-identification string — repeated across a registration document, a test certificate, inspection sheets, defect reports and service records, where at least one member independently carries a duty artefact",
+    "a defect reference closed by a rectification record naming the same defect and the same asset",
+    "an inspection sequence: repeated sheets against one asset at a declared interval, which group as a series without any one sheet inheriting another's odometer, inspector or outcome",
+    "an archive or export manifest that already binds the members, inspected without unpacking",
+    "an operator-licence undertaking that names an operating centre and an inspection frequency the sheets in the group actually follow — this is what makes a group a fleet file rather than a pile of vehicle paperwork"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: a dimension may only branch on a field the same schema declares, and `logistics` declares none under PR-6. The recommendation is held as prose and DIFFERS FROM THE SCHEMA DEFAULT BY DELETION: asset, then document function, then time as a leaf — with NO carrier or counterparty level, which the schema default places first. The deletion is the argument, not a shortening of it: a fleet asset's file is authored by a licensing authority, a testing station, an insurer, a lessor and several garages, none of them a counterparty to a movement, so a counterparty level scatters one asset across five branches and answers no question the operator asks. Function before time because `00`: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” — a vehicle's test certificate, its inspection sheets and its defect reports interleave across every year it is in service, and a year-first tree separates the defect from the rectification that closed it. Time survives as a leaf, and does so more strongly than in the schema default, because the same inspection recurs and the date is the only thing distinguishing two otherwise identical sheets. NO LEVEL MAY BE BUILT FROM A PERSON: not the driver who signed the check, not the technician who signed the rectification, not the transport manager named on the licence. A destination named for the asset is acceptable here — unlike the consignee, an operated vehicle is the filer's own subject — but a display alias is preferable to a full vehicle-identification string, and a multi-vehicle corpus must stay grouped and flat rather than borrow another schema's key to look complete.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      "pdf",
+      "xlsx",
+      "csv",
+      "docx",
+      "jpg",
+      "png",
+      "heic",
+      "eml",
+      "json",
+      "xml",
+      "zip",
+      "ddd"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PMI - YJ19 KXR - 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading names a periodic maintenance or safety inspection and states an inspection interval in weeks",
+        "labelled registration, fleet number and odometer slots",
+        "numbered pre-printed check items each carrying an inspect / defect / rectified disposition",
+        "brake performance figures and a signed roadworthiness declaration by a named inspector",
+        "a next-inspection-due date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the inspector or the garage is the organizing fact",
+        "a driver fact from the vehicle",
+        "a compliance verdict, a due-date computation or a statutory interval the file does not state",
+        "a consignment, a delivery or any custody fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Walkaround defect report - YJ19 KXR - 2026-03-02.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph or scan of a pre-printed daily check sheet; OCR recovers the layout",
+        "registration and a date at the head",
+        "one check item marked defective with a handwritten description",
+        "driver name and signature block",
+        "a second block: rectified by, date, signature"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a fact about the named driver, or a driver level in any tree",
+        "that a nil-defect sheet and a defect sheet are the same record",
+        "that the rectification signature proves the defect was actually fixed"
+      ],
+      "also_schema": "logistics.driver-compliance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Operator licence OB1234567 - variation granted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "licence or authorisation number held by the filing organization",
+        "authorised number of vehicles and trailers",
+        "named transport or fleet manager",
+        "declared operating centre address",
+        "undertakings referencing inspection frequency and driver defect reporting"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the named manager is a person dimension",
+        "that the operating centre address may be used as a destination level",
+        "that the authorised margin is a count of vehicles actually held"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual test certificate - YJ19 KXR - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "test or certificate number and an issuing station",
+        "pass, fail or refusal outcome",
+        "expiry or next-test-due date",
+        "itemised defect and advisory list separated by severity"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "institution-first placement from the testing station",
+        "a renewal obligation or a legal consequence of an expiry date",
+        "that an advisory item is a defect"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fleet list - inspection due 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per registration or fleet number",
+        "columns for make, model, gross weight class, in-service date, inspection interval, next test due",
+        "an availability or off-road status column",
+        "no priced line items and no quantity of goods"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a single-asset group from a multi-asset table",
+        "an inspection outcome for any row from the due date in it",
+        "that a driver-assignment column licenses a person level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tachograph download - vehicle unit - YJ19 KXR - 2026-03-31.ddd",
+      "source_type": "opaque_binary",
+      "observations": [
+        "binary export whose header names a VEHICLE unit and the asset it is fitted to",
+        "activity records across the period covering every driver who used the vehicle",
+        "download timestamp and downloading-company identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a driver-card download with the same extension is this row's",
+        "an infringement, an hours breach or any compliance verdict",
+        "a person's activity profile assembled from the vehicle's records"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fuel card transactions - March 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry a registration column, a timestamp, a site, a quantity of fuel, an odometer reading and an amount",
+        "a masked card-number tail",
+        "a driver or card-holder column in some exports"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a fuel-efficiency or misuse finding about a person",
+        "that the site column is a location fact about anything but the transaction",
+        "that the amount column makes this a purchase record instead of an asset record — it is legitimately both"
+      ],
+      "also_schema": "finance.small-business-bookkeeping",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Telematics export - 2026-03 - harsh braking events.json",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled keys for asset identifier, event class, timestamp, speed and coordinates",
+        "a driver identifier key on some records",
+        "an ordered event series per asset"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a driving-behaviour judgement about any named person",
+        "a route, a delivery or a customer address from the coordinates",
+        "that a structured format is more reliable than the labels it carries"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "VOR log 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows pair one asset with a date off road and a date returned to service",
+        "a reason column referencing a defect or an inspection outcome",
+        "a downtime column derived from the two dates"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a cost or a liability from downtime",
+        "that an open row means the asset is unroadworthy today"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Vehicle file - YJ19 KXR.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a registration document, a test certificate, a run of dated inspection sheets, defect reports and service invoices",
+        "every member name carries the same registration token",
+        "no member is extracted to inspect the manifest"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "facts for members that were never read",
+        "that the invoice members become asset records by membership, or that the inspection members become purchases"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Service invoice 88213 - Marsh Motors - YJ19 KXR.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "garage letterhead, invoice number and invoice date",
+        "labelled vehicle block and an odometer reading",
+        "itemised parts and labour lines with unit prices",
+        "subtotal, tax treatment, amount due and payment terms",
+        "a bill-to organization"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a vehicle block plus an odometer makes this a duty record",
+        "an inspection, a roadworthiness declaration or a rectification from itemised work",
+        "an asset group from this file alone"
+      ],
+      "also_schema": "finance.small-business-bookkeeping",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "V5C - YJ19 KXR.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority-issued registration document with a document reference",
+        "labelled vehicle-identification, registration, make, model and body-type slots",
+        "a registered keeper name and address block",
+        "date of first registration and a taxation or class field"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a keeper is an operator, or that an operator is an owner",
+        "this row over `finance.vehicle-records` without an independent duty artefact in the corpus",
+        "an identity fact about the keeper"
+      ],
+      "also_schema": "finance.vehicle-records",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fleet insurance schedule 2026-27 - 14 vehicles.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "named-insured organization, policy number and policy period",
+        "coverage and deductible table",
+        "a schedule listing several labelled vehicle identifiers and descriptions"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a single-asset group when several assets are scheduled",
+        "that a vehicle schedule alone chooses this row over `finance.insurance-corporate` or `finance.vehicle-records`",
+        "cover, validity or a claim outcome"
+      ],
+      "also_schema": "finance.insurance-corporate",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_2201.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a damaged nearside panel",
+        "no legible plate, fleet number or defect tag in frame",
+        "EXIF capture time present; location metadata may or may not be present"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an asset identity from a vehicle appearing in the frame",
+        "a defect record, a damage claim or an incident",
+        "that missing EXIF proves anything about the origin of the image"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Hire agreement - 3T excavator - H-88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "hire contract number, asset description and an on-hire date",
+        "a continuing daily or weekly charge",
+        "damage and off-hire terms",
+        "a delivery-to site address"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an operator duty from a hire contract",
+        "this row from the presence of an asset identifier and an inspection clause"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "PCN 2026 - YJ19 KXR - Dartford.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "penalty or charge notice addressed to the registered keeper",
+        "registration, a contravention date and place",
+        "an amount payable and a discount deadline",
+        "a payment reference and an appeal route"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a keeper-addressed penalty is a roadworthiness record",
+        "a driver from a keeper",
+        "an admission, a liability or an appeal outcome"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "one identified vehicle across acquisition, registration, insurance, servicing, inspection and disposal",
+      "why": "The sharpest neighbour in the roster and the one this row must defeat to exist, because its landed one_line covers almost exactly this row's hint. Shared fixture bytes, carried on both sides: `V5C - YJ19 KXR.pdf` against that row's `Certificate of Title - 2021 Corolla.pdf`, and the fleet insurance schedule, which that row already carries as `Commercial Auto Policy Fleet Schedule.pdf`. DIRECTION ONE — that row keeps the file: an owned or operated vehicle whose records are ownership, financing, cover and service history, with no continuing duty artefact anywhere in the corpus. Its own template is explicitly scoped inside an accepted ONE-vehicle group and it warns against concluding a one-vehicle group when several vehicle values are listed, which is precisely where it stops. DIRECTION TWO — this row takes the file: a duty artefact exists independently in the corpus — an operator authorisation, a stated inspection interval, a defect-to-rectification loop, or a fleet-population table whose rows are assets. THE DISCRIMINATOR IS THE DUTY, NOT THE COUNT: a sole trader with one van under an operator authorisation is this row's; a household with three cars is that row's. Where no duty artefact survives, that row keeps the file, which is also the conservative default.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.driver-compliance",
+      "signal": "a compliance record naming one person and one vehicle in the same bytes",
+      "why": "Shared fixture bytes: a tachograph download, where the file extension, the period and the operator are identical and only the SUBJECT differs. DIRECTION ONE — this row takes the VEHICLE-unit download, whose records are that asset's activity across every driver who used it. DIRECTION TWO — that row takes the DRIVER-CARD download, whose records are one person's activity across every vehicle they drove, along with entitlement, medical fitness and periodic training. Neither may be reconstructed into the other: aggregating vehicle-unit records into a per-person profile is the exact harm this row's privacy rule forbids. The walkaround sheet is deliberately NOT resolved by this collision and is recorded under `also_holds_with` instead, because it is honestly both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "a standing table of owned assets with identifiers, statuses and maintenance intervals",
+      "why": "Shared fixture bytes: `Fleet list - inspection due 2026.xlsx` here against an asset register there — both are one-row-per-asset tables with identifiers, in-service dates and intervals. DIRECTION ONE — that row keeps it when the rows are fixed or site-bound equipment carried for capital, criticality and maintenance-planning reasons, with a location or cost-centre column and no road-use obligation. DIRECTION TWO — this row keeps it when the rows are road-going assets carrying registration-shaped identifiers, plated weights, statutory test dates and inspection intervals, because those columns exist only because of an external roadworthiness duty. A forklift row sits on that side; a van row sits on this side; a register holding both is a genuine mixed table and should group without either row copying the other's facts onto its rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "scheduled and corrective maintenance against one identified asset",
+      "why": "Shared fixture bytes: a periodic inspection sheet against a preventive-maintenance work order — both carry an asset, an interval, a task list and a completion signature. DIRECTION ONE — that row keeps the file when the work is dispatched by a maintenance system: a work-order number, a planner, a labour and parts booking, a plant or line location, and a closure code. DIRECTION TWO — this row keeps the file when the artefact's purpose is EXTERNAL evidence of roadworthiness: a numbered statutory check list with an inspect/defect/rectified disposition, brake performance figures, and a signed declaration that the asset is fit for the road. The declaration is the discriminator, because a work order proves work was done and an inspection sheet asserts a condition.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.plant-hire",
+      "signal": "a machine the filer operates but does not own",
+      "why": "Shared fixture bytes: `Hire agreement - 3T excavator - H-88213.pdf`, carried on both sides, and the same problem arises for a contract-hire van. DIRECTION ONE — that row keeps it on its own stated core, an on-hire record paired with an operative off-hire instruction against the same asset and contract, starting and stopping a continuing charge. DIRECTION TWO — this row keeps only the duty artefacts generated WHILE the asset is operated: its inspection sheets, its driver defect reports, its test certificate. A long-term hired van therefore splits honestly — the hire and off-hire documents are that row's, the inspection run is this row's — and neither should absorb the other merely because the same asset identifier appears on both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "signal": "one identified vehicle across its working life",
+      "why": "That row landed first, wrote this seam against this id in advance, and its ruling is CONFIRMED here from this side with independent reasoning rather than merely accepted. It named the shared bytes in both directions: `N214FR_Hull-Insurance-Certificate-2026.pdf` is this row's on both sides, and `AD-Compliance-Record_N214FR_2026.xlsx` is that row's on both sides, which this row must not claim merely because it is indexed by the same registration mark. The independent reason this row agrees: that row's artefacts prove continued conformity to an APPROVED TYPE DESIGN — the referent is a design authority's document, and the asset identifier is only an index into it. This row's artefacts prove a CONDITION ON A DATE, and the referent is the asset itself. A directive-compliance record survives a change of operator; an inspection sheet does not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "a commercial policy whose schedule lists vehicles",
+      "why": "Shared fixture bytes: `Fleet insurance schedule 2026-27 - 14 vehicles.pdf`. DIRECTION ONE — that row keeps it when the organizing evidence is the policy: named insured, policy number, period, coverage limits, deductibles and premium, with the vehicle schedule as one appendix among several. DIRECTION TWO — this row keeps a vehicle-level cover artefact issued for one asset and used as operating evidence. A whole-fleet schedule is genuinely that row's primary reading, and this row should retrieve it rather than own it; the fixture is carried here so that it is refused explicitly rather than absorbed quietly.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "logistics.driver-compliance",
+      "why": "A daily walkaround sheet is honestly both: the vehicle's defect record and the driver's discharge of a personal check duty, in one set of bytes, with no discriminator available. Following the schema's own precedent for the shared delivery note, the shared case is left shared rather than resolved. `00`: “One file may hold facts from more than one domain without losing information.” Neither reading may copy the other's facts onto the file — a driver name never becomes an asset fact, and an asset defect never becomes a fact about the driver.",
+      "provenance": "design"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "why": "A fuel-card export and a service invoice are simultaneously the asset's operating history and the business's expense ledger, on disjoint slots: the registration and odometer columns on this side, the amount, tax treatment and payee on that side. Each schema activates from its own slots.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "why": "An operator authorisation, a variation decision and a statutory test result are simultaneously this row's duty artefacts and a public authority's record of a decision about a named holder, on disjoint evidence — the asset and interval on one side, the authority, the applicant and the decision on the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "why": "A damage, defect or odometer photograph is a capture with EXIF and, if a plate or defect tag is legible, an asset record. The capture facts belong to Photos whether or not this row activates; this row must not claim the image on a vehicle merely appearing in the frame.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The principal fallthrough: a single test certificate, inspection sheet, plating certificate or fleet table with a durable purpose but no accepted asset group and no duty artefact elsewhere in the corpus. `00` places “standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group” here, which describes this residue exactly.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The fallthrough that keeps this row honest against an ordinary person's corpus: a garage invoice, a fuel receipt, a parking or toll penalty, an MOT booking confirmation and a hire charge prove a transaction, not a duty. `Service invoice 88213 - Marsh Motors - YJ19 KXR.pdf` and `PCN 2026 - YJ19 KXR - Dartford.pdf` both route here rather than manufacture a fleet out of somebody's car ownership.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Any surviving artefact naming a third-party worker or carrying movement data — a signed walkaround sheet, a telematics or fuel export with a driver column, a vehicle-unit download, an operator authorisation naming a manager and an operating centre address. `00`: “Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A vehicle, damage, odometer or defect photograph with no legible identifier and no accepted group is an image. Inventing an asset from a van in the frame is the failure this residual exists to prevent.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A tachograph or event-recorder binary with no available reader, a proprietary fleet-system export and a password-protected vehicle pack are represented without forced inspection, and `00` is explicit that “the system should not infer a purpose from their filename alone.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "same_entity_type": "vehicle",
+      "this_domain_field": "the asset as a subject of a continuing operator duty (schema-level `asset` proposal; no key minted here)",
+      "neighbour": "finance.vehicle-records",
+      "neighbour_field": "the same vehicle as owned or financed property with a purchase, a lender, a policy and a service history",
+      "why": "`00`: “The system must separate roles that happen to contain the same entity type.” This row confirms the split the `logistics` schema row already wrote for this pair and adds the operative rule: where the duty evidence is absent the finance row keeps the file, and the split is decided by the duty artefact rather than by the number of vehicles.",
+      "provenance": "design"
+    },
+    {
+      "same_entity_type": "person",
+      "this_domain_field": "no key — a driver, inspector or manager named on an asset record is incidental content and is never a fact, a group anchor or a dimension here",
+      "neighbour": "logistics.driver-compliance",
+      "neighbour_field": "the same person as the record's subject, with entitlement, medical fitness, training and hours",
+      "why": "The asymmetry is the point and it is a privacy rule, not a taxonomy: this row must be able to hold records that name people without ever making a person its organizing object, because assembling a person's dossier out of the vehicles they touched is exactly the harm the neighbour's protections exist to control.",
+      "provenance": "inference"
+    },
+    {
+      "same_entity_type": "organization",
+      "this_domain_field": "no key — a garage, testing station, lessor or licensing authority is an observation on this row's records",
+      "neighbour": "business_operations.vendor-management",
+      "neighbour_field": "the same organization as a standing supplier relationship with contracts, reviews and spend",
+      "why": "One asset's file is authored by five unrelated organizations in four different roles, which is why this row deletes the schema default's counterparty level rather than reusing it. The vendor relationship with the maintenance provider is a real object and belongs to the neighbour, not to any vehicle's file.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Not inherited as a caution but restated as a rule that differs from the schema's. The family principle this row inherits protects the CONSIGNEE, and this row has no consignee; its own exposure runs the other way. The subject of every record here is a machine, but the incidental content is repeatedly a named third-party worker: the driver who signed a walkaround check, the technician who signed a rectification, a transport manager named on an authorisation, a fuel-card row that is a timestamped location, a telematics event with coordinates. A registration or vehicle-identification string is itself a linkable key to movement, enforcement and ownership records held elsewhere, and a keeper block on a registration document carries a name and a home address. THE RULE THIS ROW ADDS: the asset may be a destination level — unlike the consignee, an operated vehicle is the filer's own subject — but no person named on an asset's record may become a fact, a group anchor or a folder, and no per-asset record may be aggregated into a per-person profile. Full identification strings and operating-centre addresses stay local evidence rather than folder labels, and a display alias is preferred over a raw identifier.",
+  "open_question": "NEEDS-JOSEPH NJ-FV-1: TWO COMPETING PROPOSED KEYS NOW EXIST FOR THE SAME OBJECT — the `logistics` schema row proposes `asset` for a fleet unit, and the landed `finance.vehicle-records` proposes `vehicle`. This row mints neither and proposes no third. R1c must pick one, and the choice is not cosmetic: `asset` generalises to plant, containers and equipment and would let a mixed register share a key, while `vehicle` is narrow and would leave a forklift and a van in different keys inside one table. NJ-FV-2: is the DUTY test the right seam against `finance.vehicle-records`? This row argues duty rather than count, and the falsifier is stated in the memo — if R1c judges the duty artefact to be a `work_type` value rather than an activation condition, this row collapses into that one and its coverage routes to it plus Independent Records and Receipts and Confirmations. NJ-FV-3: may an ASSET be a destination dimension when `00` keeps person-collections out of folders, and if so must the label be an alias? This row asserts yes-with-alias and flags that it is asserting, not citing. It also touches the schema's own NJ-LOG-4 from the opposite side: this row's answer for people is a flat never. NJ-FV-4: the walkaround sheet is left in `also_holds_with` with `logistics.driver-compliance` while the tachograph download is a collision with the same neighbour. That is deliberate and follows the schema row's own precedent for the shared delivery note, but R1c should confirm that a collision and a coactivation to one neighbour on different fixtures is legal under CONNECTION.md rather than a contradiction."
+}

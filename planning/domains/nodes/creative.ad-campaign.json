@@ -1,0 +1,479 @@
+{
+  "id": "creative.ad-campaign",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Advertising campaign",
+  "one_line": "One advertising IDEA multiplied out: a single concept expanded across a closed grid of placements whose specifications come from someone else's published spec sheet, across markets and languages, across a scheduled FLIGHT WINDOW that starts and ends, bought against a media plan and gated by usage rights that expire. The organizing anchor is the MATRIX and the WINDOW - one concept becoming hundreds of files that are not versions of each other but cells of a grid, and a body of work with a public start date and a public end date. That is what separates it from a brand identity system (perpetual, no grid, no dates), from a delivery handoff (one transmission, not a standing structure), from a revision round (one date inside it), and from a product launch (one irreversible instant, gated on readiness rather than on media bought). Placeholder row (J-IND, written to J-DEPTH): it writes NO field rows, because the creative schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), and therefore recommends its dimension order as prose rather than as an array.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty by contract, not by judgement. _CONTRACT rule 12 forbids a template copying its schema's list, and the creative schema anchor declares no field rows at all (D1 as narrowed, rules 10 and 15, CONNECTION PR-6). The legal fact set on any file this row recognises is therefore the universals only, plus whatever the creative schema's own parked proposals (project, stage, client, artifact_type) become if R1c promotes them. This row minted nothing to compensate - see proposed_fields.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Two keys were genuinely tempting and both were refused. (1) A PLACEMENT key - the ad-unit slot a file is cut for (a banner size, an aspect ratio, a spot duration). It is the single most characteristic string in this world and it is still not this row's to mint: a template row may not widen its own schema's vocabulary, and the creative schema anchor has already parked its own field question upstream. Minting it here would also immediately raise whether a folder may be named for a pixel dimension, which is a product-wide decision. (2) A MARKET or locale key - same objection, plus it collides head-on with whatever key creative.translation-project would want for the same token. Both are recorded as NJ-ADCAMP-1 rather than proposed, so R1c adjudicates one key for the family instead of two variants minted by two template rows.",
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below, inherited verbatim in force from the creative schema anchor: each is a DETECTION signal and never an extraction licence. This row declares no field rows, so nothing here writes a domain fact. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "a SPEC-MATRIX structure - the defining shape of this row and the one no creative sibling has. A single stem recurs across a run of sibling files, and what varies between them is not a version token but a CELL COORDINATE drawn from a closed, externally-published grid: ad-unit pixel pairs (300x250, 728x90, 160x600, 1080x1350), aspect ratios (1x1, 4x5, 9x16, 16x9), or spot durations (6s, 15s, 30s, 60s). The discriminating fact is that the vocabulary is not the maker's own: the same handful of dimension pairs recurs across corpora belonging to unrelated makers and unrelated brands, because a media owner published them. A @1x/@2x/@3x set is not this - that is an asset-density export and belongs to the handoff and product-design siblings.",
+      "a MEDIA-PLAN structure: a spreadsheet or table whose columns are a channel or publisher name, a placement, a START date and an END date in the same row, and a bought quantity or cost. The four-way co-occurrence of channel + placement + a date RANGE + a bought quantity is what makes it a buying document rather than a schedule, a budget or a project plan. Any three of the four alone is a business_operations or finance artifact.",
+      "a FLIGHT-WINDOW structure: a pair of dates presented as an in-market period - live/end, start/finish, on-air/off-air, in-market from X to Y - attached to named creative rather than to a task or a person. This is the temporal signature of the whole row: the work has a scheduled public life and then stops. A single deadline date is not a window and belongs to the brief and handoff siblings.",
+      "a VARIANT-AXIS structure crossing the matrix: the same stem carrying a locale or market token (EN-GB, de_DE, MX, APAC) beside a size or duration token, so that the file's identity is a coordinate pair rather than a name. One axis alone is weak; the crossing of two independent axes over one stem is strong and is the mechanical form of the roster hint's one-concept-becomes-hundreds-of-files claim (the hint, not 00).",
+      "a BROADCAST or PLATFORM DELIVERY-STATE vocabulary in the filename or a companion sheet - textless / TXTLESS, clean, master, ONLINE, slate, bars-and-tone, safe-area, an approval or clock number - beside a duration token. This is an authored-for-airing state, and it exists nowhere in the maker's own working practice; it exists because a broadcaster or platform demanded it.",
+      "a USAGE-TERM structure: a signed one-page or few-page grant naming a person, a track or an image, and bounding it by TERM, TERRITORY and MEDIA together. The three-way bound is the ad-specific shape - a general model release grants use, an advertising usage grant grants use until a date, inside a region, on named channels, which is the gate that determines whether the campaign may keep running.",
+      "an IN-SITU PROOF structure: a screenshot or photograph whose subject is the maker's own artwork appearing inside someone else's page, feed, poster site or spread, usually with a date. In every other creative sibling a screenshot of the work is incidental; here it is a delivered artifact class of its own (the tearsheet), because proof that the ad ran is the thing the counterparty is owed.",
+      "a CONCEPT-versus-EXECUTION split visible in the folder vocabulary: a small set of named routes, territories or concepts (each a short evocative noun phrase) sitting above a large set of files that all realise one of them. The one-to-many fan-out from a named idea to a hundred realisations is this row's structural fingerprint, and it is what makes a folder of format-incoherent files one campaign.",
+      "an INDEXED-BUT-UNREADABLE proprietary file inside a spec-matrix or media-plan neighbourhood: \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\". Ordinary here rather than exceptional, and still evidence when the neighbourhood carries the structures above."
+    ],
+    "needs_llm": [
+      "deciding whether a folder holding a brief, a spreadsheet of costs, a font licence, forty JPEGs and a signed PDF is ONE campaign or one download afternoon - 00's purpose-coherence question, asked of the group dossier and never of a lone JPEG",
+      "separating the campaign FOR a launch from the launch itself when both name the same offering, the same date and sit in the same folder - the reciprocal of business_operations.go-to-market's own fold question",
+      "judging whether a set of resizes is a delivery of this campaign, a portfolio re-export of a campaign that already ran, or a competitor's work saved as reference",
+      "reading a spec grid that is present but unlabelled - a folder of files whose only campaign evidence is that their pixel dimensions happen to be a known ad-unit set, where a wallpaper pack would look identical to a size-blind reader",
+      "deciding whether a market token on a stem is an adaptation of this campaign (this row) or a translation job with its own counterparty and delivery (creative.translation-project)",
+      "recognising a campaign whose flight has already ended, where the only remaining evidence is a retrospective case-study PDF that is now the maker's portfolio piece"
+    ],
+    "never_alone": [
+      "a BRAND name on its own, in a filename, a folder name or a page footer. This is the row's single most dangerous false positive and it is the direct read-across of 00's own warning - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" In an advertising corpus one brand string appears as the advertiser, the maker's own agency, a media owner, a competitor being benchmarked, a licensor of a track, a font vendor in a licence footer, and a product merely depicted in someone else's picture. A brand name is never alone here, and it is never a fact.",
+      "a pixel-dimension pair alone. 300x250 is an ad unit, a thumbnail spec, a sprite sheet cell, a stock-site preview size and a coincidence. The matrix signal requires a RUN of sibling files sharing a stem and differing on the grid coordinate; a lone 728x90 file proves nothing and is the fixture this rule exists for.",
+      "a `_final`, `_v3` or `_FINAL_FINAL` token read as a stage or as a flight state - inherited from the schema anchor and sharper here, because in a campaign the truly final file is usually the one named for a size, not the one named final. `logo_final_v3_FINAL.ai` remains the fixture.",
+      "a date RANGE alone read as a flight window. A range is also a fiscal period, a holiday, a rental, a subscription term and a conference. The window signal requires the range to be attached to named creative or to a channel row, not merely present in the document.",
+      "a channel or platform name alone (Meta, YouTube, OOH, TV, a publisher masthead) read as a placement fact. The same strings appear in analytics exports, invoices, personal social archives and downloaded reference material.",
+      "the maker's own name or DOCX/PSD author metadata read as anything placement-bearing - \"DOCX author metadata should remain supporting information only, because it may identify a prior editor, a document template, or a script rather than the meaningful subject or purpose of the file\", and \"It should avoid using authorship or creator identity as a destination dimension.\"",
+      "a parent folder named Campaigns, Ads, Clients or Q3 read as a fact. It is user vocabulary that legitimately steers retrieval - \"Existing curated folders and user-entered labels should influence retrieval because they represent the user's vocabulary\" - and it is not itself a campaign.",
+      "a design_creative SOURCE_TYPE or an advertising-looking extension on its own; \"file_kind_plausible\" is constitutionally never-alone and a .psd here is as often a downloaded template or a competitor's teardown as an authored key visual.",
+      "a large COUNT of near-identical images read as a matrix. A burst of camera frames, a scanned document run and a rendered animation sequence are all large near-identical runs. Multiplicity is only campaign evidence when what varies between members is a grid coordinate rather than a frame number or a timestamp.",
+      "an in-situ screenshot alone read as proof of placement - without a same-stem authored asset anywhere in the corpus it is a screenshot of an advertisement someone else made, which is Reference Clips or Temporary Screenshots, not this row.",
+      "a competitor teardown deck read as this campaign's own material - a folder of a rival's ads is reference, and its brand strings are the loudest evidence in the corpus while pointing at exactly the wrong owner."
+    ]
+  },
+  "proposed_context_terms": [
+    "flight",
+    "in-market",
+    "placement",
+    "media plan",
+    "key visual",
+    "cutdown",
+    "textless",
+    "trafficking",
+    "adaptation",
+    "concept route",
+    "tearsheet",
+    "usage term",
+    "impressions"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context SHAPE for course codes only; it does not list these. Each is offered as a context term that would let a grid-shaped token be read as an ad unit rather than as a thumbnail spec. `tearsheet` and `textless` are included because they are near-unambiguous; `impressions` and `placement` are included knowing they are weak alone, which is why they are context terms and not signals.",
+  "work_types": [
+    "brief",
+    "moodboard or reference sheet",
+    "storyboard",
+    "working file",
+    "export or deliverable",
+    "proof",
+    "master",
+    "cut or edit version",
+    "layout",
+    "production paperwork",
+    "release or rights document",
+    "stock or library asset",
+    "media plan",
+    "in-situ proof of placement"
+  ],
+  "work_types_note": "The first twelve are values already on the creative schema anchor's enum. The last two are PROPOSED VALUES for that enum, not fields and not nodes: a media plan and a tearsheet are real, recurring artifact classes here that the anchor's list does not name, and neither is expressible as an existing value. Flagged for R1c in NJ-ADCAMP-3.",
+  "grouping_reasons": [
+    "one concept route and every execution that realises it, however format-incoherent",
+    "one spec matrix - the run of sibling files that differ only by a grid coordinate",
+    "one flight window and everything scheduled inside it",
+    "one market or locale adaptation set across all its sizes",
+    "one media plan and the creative bought against it",
+    "one approval round on one date, and what came back from legal or the client",
+    "one campaign across several briefs, deliveries and revision rounds - the standing structure the transactional siblings each hold one slice of",
+    "an existing curated folder the maker already made and named"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT, exactly as on the creative schema anchor: a dimension may only branch on a field the same entry's schema declares (_CONTRACT rule 8) and this schema declares none (D1 as narrowed, rules 10 and 15, CONNECTION PR-6). The recommendation is therefore held as PROSE, and it DIFFERS from the anchor's default in two checkable ways. The anchor's default is client, then project, then stage, then artifact_type as the optional deepest level. THIS ROW RECOMMENDS: campaign (the anchor's project level, renamed to what this world calls it), then CONCEPT ROUTE, then the VARIANT AXIS - market or placement - with stage demoted to an optional leaf rather than a standing level. Two differences, both evidential. FIRST, stage is a weak level here and route is a strong one: a campaign's files do not sort cleanly into concept / production / delivery, because a route that survives selection carries files at every stage at once while a route that was killed carries only early ones, so a stage level scatters one idea across three branches while a route level holds it together. The parent-context test decides it - \"a parent dimension should provide the context required to understand the child. A work type such as Homework 3 is meaningful only after the course is known\" - and `300x250_v2.jpg` is meaningless without the route, exactly as Homework 3 is meaningless without the course, whereas it is no more intelligible for knowing it is a production file. SECOND, the client level is dropped MORE often here than the default drops it: an in-house or single-brand campaign corpus has exactly one advertiser, and a level with one value is the collector level 00's own validator rejects. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" This row does not claim the capture exception - the anchor grants it by name to creative.shoot-day-media and creative.raw-photo-catalogue only, and a flight window is a scheduled property of the work, not a capture date of the file. The flight period is a strong optional leaf under campaign for a corpus of many short seasonal bursts, and is still not the first level. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "image",
+      "audio_video",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "archive",
+      "ocr",
+      "email",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".psd",
+      ".ai",
+      ".indd",
+      ".fig",
+      ".aep",
+      ".prproj",
+      ".mov",
+      ".mp4",
+      ".wav",
+      ".jpg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".pptx",
+      ".zip",
+      ".html",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "AURA_Spring_KeyVisual_RouteB_Master_v4.psd",
+      "source_type": "design_creative",
+      "observations": [
+        "layered working file whose layer names are content-descriptive (headline, endframe lockup, product cutout, legal line)",
+        "interior names placed images and imported fonts it does not contain, several of which resolve to siblings in the same folder",
+        "filename carries a route-shaped token beside a version-shaped token, and a same-stem flattened export sits beside it"
+      ],
+      "facts_legal": [
+        "universals only: file type, creation date, language, duplicate family, version family, sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the brand string in the stem identifies the advertiser rather than the maker's own studio, a licensor or a depicted product",
+        "that `Master` or `v4` names a stage - the schema anchor's version-token rule applies and is sharper here",
+        "any domain fact at all: this schema declares no field rows"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AURA_Spring_RouteB_300x250_EN-GB_v2.jpg",
+      "source_type": "image",
+      "observations": [
+        "one cell of the matrix: the stem is shared with dozens of siblings and what varies is a pixel-dimension pair and a locale token",
+        "the sibling run contains 300x250, 728x90, 160x600, 970x250 and 320x50 - a closed externally-published ad-unit set, not a density ladder",
+        "no EXIF; canvas dimensions match the token exactly"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the pixel pair alone is campaign evidence - the never_alone rule on dimension pairs is written for exactly this file read in isolation",
+        "that EN-GB is a language fact about the file's content rather than a market coordinate on the stem",
+        "that this is a version of the 728x90 - matrix cells are siblings, not a version family, and treating them as duplicates would collapse the campaign into one file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "AURA_Spring_Media_Plan_v7.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled columns: publisher, placement, start date, end date, format, impressions, net cost",
+        "rows repeat the placement vocabulary that appears as tokens in the asset filenames elsewhere in the corpus",
+        "a totals row and a currency, but no invoice number, no payer and no payment terms"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the cost column makes this a finance record - there is no counterparty, no invoice identity and no settlement; a bought quantity beside a placement is a plan, not a payment",
+        "that the publisher names are the advertiser",
+        "that the date range is a project schedule - the range is attached to placements, which is what makes it a flight"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Campaign Brief - AURA Spring 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "purpose-coherence shape: an addressee organisation, a deliverables list, a deadline block, and a description of what the work must achieve",
+        "additionally carries a channel list and an in-market period, which a general creative brief does not",
+        "prose, unlabelled, headings only"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a brief activates this row on its own - a brief is creative.creative-brief's own evidence and only the channel-plus-window block leans this way",
+        "that the deliverables list is a spec matrix - a list of asked-for items is not a grid of realised coordinates"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AURA_TVC_30s_TXTLESS_ONLINE_ProRes.mov",
+      "source_type": "audio_video",
+      "observations": [
+        "duration token beside a delivery-state vocabulary (textless, online) that exists only because a broadcaster demanded it",
+        "container and codec metadata present; a same-stem 15s and 6s cutdown sit beside it",
+        "no captions; a separate same-stem .wav stem set exists in a neighbouring folder"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the duration ladder is a version family - 30s / 15s / 6s are matrix cells cut for different placements, not revisions of one another",
+        "that the finishing work is this row's - the conform and grade that produced this master are creative.post-production's evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Talent_Usage_Grant_ODonnell_TV+OLV_EU_2026-04-01_to_2027-03-31.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a signed grant naming a person, bounded by term, territory and named media together",
+        "carries a signature block, a date of birth and a representative's contact details",
+        "the end date matches the outer bound of the flight window in the media plan"
+      ],
+      "facts_legal": [
+        "universals only, and the sensitivity status specifically"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the named person is the corpus owner - this is a third party who never consented to a filing agent, let alone a model prompt",
+        "that a usage grant is a general release - the three-way term/territory/media bound is what makes it advertising paperwork rather than a shoot consent"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "AURA_Spring_Assets_FINAL.zip",
+      "source_type": "archive",
+      "observations": [
+        "member list read without unpacking: forty images whose names cross five locale tokens against eight size tokens, one spec PDF, a fonts folder, one .txt manifest",
+        "the crossing of two axes over one stem is visible in the member list alone",
+        "no member is individually distinctive"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that unpacking is required to see the matrix - it is legible from the manifest, which is the cheapest true signal on this row",
+        "that a zip named FINAL is the last delivery",
+        "that this archive is the campaign - it is one handoff of it, which is why creative.deliverable-handoff competes for this exact file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-04-09 at 08.12.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "a grab of a publisher page with the campaign's own key visual sitting inside a page frame, surrounding editorial text OCR-able around it",
+        "no EXIF; system screenshot naming",
+        "a same-stem authored asset for the artwork shown exists elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the absence of EXIF is proof of a screenshot",
+        "that any screenshot of an advertisement is a tearsheet - without the same-stem authored asset this is a picture of somebody else's ad, and the never_alone rule sends it to Reference Clips"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE_ AURA legal sign-off on the 15s cutdown.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled mail slots; the body names one duration token, one version token and a legal line change",
+        "an attachment stem matching a file already in the corpus",
+        "a dated approval sentence"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the sender's organisation is the advertiser rather than the maker's own or a third-party reviewer",
+        "that an approval date is a flight date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Brand_Guidelines_AURA_v3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "THE COLLISION FIXTURE. Same brand string, same colour values, same lockups and the same typeface names as every campaign file in the corpus",
+        "interior is a rule set: clear-space diagrams, correct and incorrect usage, a colour table, a type scale",
+        "no dates of any kind, no channel names, no placement grid, no counterparty deadline"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that shared brand evidence makes this campaign material - the discriminator is that a guidelines document has NO window and NO matrix; it is perpetual and it governs campaigns rather than being one",
+        "that its export set (logo files at many sizes) is a spec matrix - a logo suite varies by format and density, not by an externally-published placement grid"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AURA_Launch_Readiness_GoNoGo.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are cross-functional workstreams - product, sales, support, legal, operations - against named owners and one shared date",
+        "a go / no-go column and gate criteria",
+        "names the same offering and the same date as the media plan, and sits in the same parent folder"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that sharing the offering, the date and the folder makes this the campaign's file - the discriminating structure is owners-and-gates across functions, which is business_operations.go-to-market's evidence, against channel-placement-window-quantity, which is this row's",
+        "that this row may claim it because the campaign is gated on it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Untitled-3.psd",
+      "source_type": "design_creative",
+      "observations": [
+        "no readable stem, no version token, no brand string; layer names are Layer 1 through Layer 6",
+        "canvas is 1080x1350, which is a matrix coordinate and also a default social export size and a stock preview size",
+        "sits in a folder alongside nine files that do carry the campaign stem"
+      ],
+      "facts_legal": [
+        "universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the campaign, route or market of its neighbours may be copied onto it - the sparse-file rule applies exactly as `HW 3.pdf` does, and the neighbourhood is the only thing suggesting anything",
+        "that the canvas size alone activates this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.deliverable-handoff",
+      "signal": "The closest competitor on this row, and they compete over the SAME fixture: `AURA_Spring_Assets_FINAL.zip`. Both see a stem repeated across format and size variants. The discriminator is scope in time: a handoff is ONE transmission event with a recipient and a moment, and its evidence is the enclosure note and the act of sending; this row is the standing structure that emits many handoffs, and its evidence is the flight window and the media plan that neither the note nor the act contains. Reciprocally: the zip belongs to the handoff row when it is the last thing anyone can see about it; it belongs here when a media plan or a window elsewhere in the corpus explains what the enclosure was for. Provenance: inference."
+    },
+    {
+      "domain": "creative.creative-brief",
+      "signal": "Competing over `Campaign Brief - AURA Spring 2026.docx`. The brief row owns the purpose-coherence document as an object - addressee, deliverables, deadline, objective. This row owns it only when it additionally carries a channel list and an in-market period, and even then the brief row's claim on the document itself is the stronger one; what this row takes from it is the window, not the file. Reciprocally: a brief with a deadline but no channels and no window is the brief row's alone, and this row must not pull it in on brand evidence. Provenance: inference."
+    },
+    {
+      "domain": "creative.revision-round",
+      "signal": "Competing over `AURA_Spring_KeyVisual_RouteB_Master_v4.psd` and the round folders around it. The revision row owns ONE dated exchange - what was shown, what came back. This row contains many of them and owns none individually. The failure mode this edge prevents is a campaign folder being shredded into a stack of round folders that no longer name the idea, and its mirror: a single round being promoted to a campaign because a version token looked like a matrix. Reciprocally: version tokens over one stem are the revision row's; grid coordinates over one stem are this row's. Provenance: inference."
+    },
+    {
+      "domain": "creative.brand-identity",
+      "signal": "The collision fixture, both directions, over `Brand_Guidelines_AURA_v3.pdf`. Identity material is perpetual, has no dates and governs campaigns; campaign material has a window and a placement grid and is governed. Reciprocally: a logo suite exported at many sizes is identity's, not a matrix; a placement set cut to a published ad-unit grid is this row's, not an identity export. Where a single file is both a rule sheet and a campaign spec, the presence of a date range decides. Provenance: inference."
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "Reciprocating an edge that row already authored one-way (its NJ-BO-GTM-1), over the SAME fixture it names: a launch readiness sheet beside a campaign folder - here `AURA_Launch_Readiness_GoNoGo.xlsx`. Its discriminator, adopted verbatim in force: a cross-functional readiness plan with gates and owners across product, sales, support and legal supports that row; a channel plan, creative concepts, asset versions, media buying and a revision round support this one. Neither activates on an offering name and a date alone. Reciprocally: this row does not claim the readiness sheet merely because the campaign is gated on it, and that row does not claim the media plan merely because the launch depends on it. Provenance: inference."
+    },
+    {
+      "domain": "creative.content-marketing",
+      "signal": "Competing over an editorial or social calendar. Both hold a dated grid of scheduled published material. The discriminator is bought versus owned: this row's grid rows carry a placement and a purchased quantity against a media owner; the content row's carry a topic and an owned channel with no purchase. Reciprocally: a paid social flight with impressions is this row's even when the creative looks editorial; an organic posting calendar is the content row's even when the brand and the quarter match. Provenance: inference."
+    },
+    {
+      "domain": "creative.client-engagement",
+      "signal": "Same counterparty, different unit. The engagement row holds the RELATIONSHIP - the contract, the scope, the retainer, the several jobs. This row holds ONE campaign inside it. Reciprocally: a statement of work covering a year of unspecified work is the engagement row's and must not be pulled here by a brand match; a single campaign's brief and matrix is this row's and must not be dissolved into the engagement. Provenance: inference."
+    },
+    {
+      "domain": "creative.translation-project",
+      "signal": "Competing over the locale axis of the matrix - `AURA_Spring_RouteB_300x250_de_DE_v2.jpg` and its siblings. The translation row owns a job whose deliverable IS the language conversion, with a source text, a target and usually a separate counterparty. This row owns a market adaptation that is a coordinate in its own grid. Reciprocally: a locale token crossing a size token over one campaign stem is this row's; a locale pair with a source document and a delivery of its own is the translation row's, even when the client and the brand are identical. Provenance: inference."
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "signal": "Competing over `Talent_Usage_Grant_ODonnell_TV+OLV_EU_2026-04-01_to_2027-03-31.pdf`. The rights row owns the grant as a standing legal object across everything it covers; this row owns it only as the gate that bounds one flight. Reciprocally: a grant filed for its own sake, or covering an open set of future work, is the rights row's; a grant whose end date is the flight's outer bound and which sits inside the campaign's own dossier is legible here - and even then the rights row's claim is the safer default, because the sensitivity is third-party and durable. Provenance: inference."
+    },
+    {
+      "domain": "creative.post-production",
+      "signal": "Competing over `AURA_TVC_30s_TXTLESS_ONLINE_ProRes.mov` and its cutdown ladder. The post row owns the finishing craft - the conform, the grade, the mix, the project file and its media. This row owns the resulting masters as matrix cells bought against placements. Reciprocally: a timeline project referencing camera-original media is the post row's; a duration ladder with no project file and a media plan naming the same durations is this row's. Provenance: inference."
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "Competing over the in-situ proof grab. That row owns system-named screenshots as a class. This row claims one only when the artwork inside the frame has a same-stem authored asset in the corpus - which is a strong and checkable condition, not a preference. Reciprocally: absent that asset, the grab is the screenshots row's and falls to Temporary Screenshots or Reference Clips; with it, this row's tearsheet claim is the more specific one. Provenance: inference."
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "Competing over a retrospective case-study PDF of a campaign that already ran - the same key visuals, the same results, laid out as a credential. The portfolio row owns the finished piece SHOWN AS EVIDENCE OF THE MAKER; this row owns the making record. Reciprocally: a case study whose neighbourhood is other case studies and a CV is the portfolio row's; the same layout sitting inside the campaign's own dossier beside its media plan is this row's. The flight-ended case is exactly where this edge earns its keep, because by then the portfolio version may be the only surviving artifact. Provenance: inference."
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract. _CONTRACT rule 14 restricts also_holds_with to schema rows; a template may not widen its schema's co-activation set. The genuine co-activation this material has - a campaign asset that is simultaneously a career work sample - is expressed above as a collision with a reciprocal discriminator, which is where a template's claim belongs.",
+  "falls_through_to": [
+    {
+      "residual_template": "Reference Clips",
+      "why": "The most important fallthrough this row has, because the family's loudest false positive lives here: a swipe folder of competitors' advertising, saved awards-annual pages and downloaded reference films. The brand strings in it are the strongest evidence in the corpus and they point at the wrong owner. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\" The clause \"does not belong to a current project\" is the exact test.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for a real-looking campaign file whose campaign, route or side is unresolved - which here is the ordinary case, not the exception, because a lone resize and an untitled working file are what this world produces in bulk. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone delivered artifact with a durable purpose and no group around it - the one poster PDF, the one media plan from a campaign whose assets are gone, the guidelines document that is simply kept. \"Independent Records may live under Personal/Independent Records\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "In-situ grabs, spec-sheet screenshots and captured platform comments are a working habit here and most of them are disposable. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single resize or render with no matrix, no window and no family around it - the 728x90 that arrived alone. \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exceptional in advertising delivery: password-protected client packages, proprietary project bundles and platform archives no approved extractor reads. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The talent usage grant and any cast or contributor paperwork carry a third party's name, date of birth and signature. Where the campaign side is unresolved, the protection outcome must not wait on it.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and this is the interesting refusal. This row's material carries FOUR organisations in the same page footer playing four different roles - the advertiser whose product it is, the agency that made it, the media owner that carried it, and a licensor of a track or an image. That is a textbook role split and it cannot be written: role_split points at different FIELD KEYS held by the same entity type, the creative schema declares no field rows, and minting an advertiser/agency/publisher trio to solve one template row's problem is the move that produced thousands of private field names in the overnight pass. The consequence is carried instead by the brand-name never_alone rule, which is the strongest one on this node.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherits the creative schema's posture and DIFFERS FROM IT IN KIND, which is this row's third node-test leg. The anchor's confidentiality is indefinite - an unpublished work is confidential until it is published, and nothing states when that is. Here the confidentiality has a KNOWN EXPIRY and the material splits into two classes on it. Before the flight start, the creative is embargoed and its leak is a commercial harm to a counterparty who cannot be asked - \"The client's confidence\" in the anchor's terms, and the maker cannot consent on the client's behalf. After the flight start, the same creative is the most deliberately public artifact the maker owns, and continuing to treat it as secret is a filing error rather than a protection. The media plan, the rates and the bought quantities do NOT flip: they stay confidential permanently, because they expose a counterparty's commercial terms. And the usage grants never flip at all, because they carry third-party identity - names, dates of birth and signatures of people who never consented to a filing agent. So one row holds material with three different privacy lifetimes distinguished by one date, where the schema default holds one. Against all of it: \"Privacy policy must be enforced before content reaches any model or external connector.\" This row does NOT carry is_safety_domain - that flag stays with 00's four - and it assigns no handling class; handling is P7's.",
+  "open_question": "KEPT against a real refusal case, not waved through. The strongest argument for refusing this row is that it is four transactional siblings stacked - creative.creative-brief plus creative.revision-round plus creative.deliverable-handoff plus creative.client-engagement - each of which already owns one slice, leaving nothing but a brand name and a folder habit. That argument is defeated by three structures none of the four holds and none of them could hold without becoming this row: the SPEC MATRIX (a grid whose coordinates come from a media owner's published spec, not from the maker), the FLIGHT WINDOW (a start and an end date attached to named creative, so the work has a scheduled public life), and the MEDIA PLAN (channel plus placement plus date range plus bought quantity in one row). Each is checkable on real files and each is absent from all four siblings by construction: a brief precedes the matrix, a round is one date inside the window, a handoff is one moment, an engagement spans many campaigns. What remains open is narrower and is recorded as NJ-ADCAMP-1 and NJ-ADCAMP-2 in the memo: the placement/market key question, which belongs to R1c and to the schema anchor rather than to this row, and the one-way state of four of the twelve boundaries above, whose far sides have no node files yet. A re-examination trigger, not a doubt: if real corpora contain no media plans and no flight windows - only assets that happen to share a brand - then the detection leg fails and the coverage should route to creative.deliverable-handoff and creative.client-engagement, with the residue to Reference Clips and Review Later."
+}

@@ -1,0 +1,517 @@
+{
+  "id": "manufacturing.supplier-qualification",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Supplier qualification and audit",
+  "one_line": "The two-party approval file: evidence that a named external supplier and a named scope of supply (a part, a process, a commodity) were assessed against the holder's own requirements, were granted a standing approval, and are re-evidenced on a cycle so that the approval can be shown to still hold. Its anchor is neither the supplier's name nor the word audit or certificate: it is the pairing of a counterparty in the supplier role with an approval scope and a standing status carried by an assessment structure. Placeholder template on the fieldless manufacturing schema; fields: [] under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "supplier",
+      "type": "string",
+      "example": "Vertex Precision Ltd (supplier code V-10418)",
+      "why_no_existing_key": "This row's organising subject is a counterparty held in one specific role, and no canonical key carries it. `client` and `our_firm` are the canonical engagement-role pair but they point the other way: here the holder is the customer and the counterparty is the seller, so reusing `client` would invert the relationship on every file. `institution` is the Finance issuer role, `organization` is only a proposal about record custody, and the manufacturing schema's own `site` proposal names the facility that performs work, which may be the holder's plant or the supplier's plant and therefore cannot stand in for the party. A supplier organisation name is never-alone evidence on its own; this key may only be written when a labelled supplier, vendor or supplier-code slot appears inside an assessment or approval structure.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE because the supplier is the stable subject above many scopes, many record types and many years, and it is the level a person actually reaches for when asked whether a supplier may still be used. It is a counterparty, not authorship.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct only from a labelled Supplier, Vendor, Supplier Code or Manufacturer slot inside an assessment, submission or approval structure. A validated ceiling would require a local supplier-master or approved-list cross-check plus that labelled-role context, because the same organisation name also appears as an invoice issuer, a certificate holder, a shipper and a job applicant's employer. R4/R6 own the rule family; this row supplies no pattern and no threshold.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an approval-warrant structure with a labelled supplier or supplier-code slot, a part number and engineering change level, a submission reason and level, a declaration that samples were made from production tooling at production rate, and a customer disposition slot carrying approved, interim or rejected; the disposition box directed at a second party is the signal, not the word approval",
+      "an audit structure whose audited party is an external organisation, carrying an audit scope, a clause or checklist reference with scored rows, findings with a severity and an evidence note, an auditor identity, and corrective-action owners with due dates; the same structure with the holder's own site as the audited party is not this row",
+      "a first-article or initial-sample report with a part number and revision, a characteristic-accountability list tying each design characteristic to a measured result, a submitting-organisation slot and an accepting-organisation slot, where the two organisations differ",
+      "a supplier self-assessment questionnaire with sectioned response rows covering management-system certification, capacity, sub-tier control, and quality performance, returned by a named external respondent against the holder's own question set",
+      "an approved-supplier or approved-vendor register with many rows, each pairing a supplier identity with an approved scope of supply, an approval status and a requalification or expiry slot; the multiple rows prove a controlled population rather than one relationship",
+      "a supplier-directed corrective-action structure (a request issued outward) joining a problem statement, a containment, a root cause, a supplier response and an effectiveness check to one supplier identity and one received part or lot",
+      "a third-party management-system certificate whose certified object is an organisation and whose certificate body states a certified scope, an accreditation mark, an issue date and an expiry date, filed against a named supplier the holder buys from",
+      "a capability or measurement-system study submitted by an external organisation against a named part characteristic, carrying the submitting supplier in a labelled slot",
+      "an email whose labelled subject names a supplier code or supplier name together with a submission, audit, requalification or approval-status reference, and whose attachments name warrant, audit, first-article or certificate records",
+      "an archive whose manifest links one supplier and one part or process across submission, dimensional, material, study and approval members without any production lot of the holder's own making"
+    ],
+    "needs_llm": [
+      "an audit report whose cover page names two organisations and does not say which one was audited",
+      "a certificate of conformance received with a delivery, which may be qualification evidence for the supplier, incoming-inspection evidence for the received lot, or only a receipt attachment, depending on whether the holder filed it as standing status",
+      "a spreadsheet called Supplier Tracker.xlsx whose columns could be approval status, delivery performance, open corrective actions, spend, or a contact list",
+      "an OCR-poor scanned warrant where the disposition tick survives visually but the slot labels do not",
+      "a photograph taken during a supplier visit where neither the supplier identity nor the audited scope appears in the image's own evidence",
+      "a questionnaire in a language whose slot labels are absent from the deterministic context catalogue",
+      "a declaration document (substance, conflict-minerals, country-of-origin) that is simultaneously a statement about a material and a statement about a supplier's standing"
+    ],
+    "never_alone": [
+      "a supplier, vendor, manufacturer or organisation name alone, including a supplier code appearing in a filename or a folder name",
+      "the words supplier, vendor, audit, qualification, approved, approval, assessment or certificate alone",
+      "an expiry or valid-until date alone; an insurance certificate, a domain renewal and a passport carry the same shape",
+      "a management-system clause number or standard designation alone; the holder's own internal audit of its own plant cites the identical clauses",
+      "a part number, drawing number or revision letter alone; the engineering definition of the same part carries them too",
+      "a purchase order, invoice, quotation, packing list or delivery note alone; those are procurement and logistics evidence until an assessment or approval structure independently supports this row",
+      "an email domain or sender address matching a known supplier alone",
+      "a source_type or extension alone; warrants, audits, registers and certificates arrive as pdf, xlsx, eml, images and archives exactly as every neighbouring row does",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "a parent folder called Suppliers, Vendors, Quality or Purchasing alone",
+      "missing EXIF as proof that a supplier-visit image is a screenshot rather than a field photograph"
+    ]
+  },
+  "work_types": [
+    "supplier self-assessment or pre-qualification questionnaire",
+    "on-site or remote supplier audit report and findings log",
+    "supplier corrective-action request and its response and closure",
+    "part-approval submission packet and its warrant or disposition",
+    "first-article or initial-sample inspection report",
+    "capability, measurement-system or process-validation study submitted by a supplier",
+    "third-party management-system or process certificate held by a supplier",
+    "substance, conflict-minerals, country-of-origin or social-compliance declaration",
+    "approved-supplier register row and its approval scope",
+    "requalification, re-audit or surveillance notice and its evidence",
+    "supplier disqualification, suspension, conditional or interim approval record",
+    "sub-tier or subcontractor flow-down approval evidence",
+    "supplier quality performance review filed as approval evidence",
+    "supplier process-change notification received against an approved scope"
+  ],
+  "grouping_reasons": [
+    "one supplier across questionnaire, audit, findings, corrective action, certificates and requalification evidence",
+    "one approval scope (a part number with a revision, or a named process) across submission, study, first-article and warrant members",
+    "one audit event across the plan, the checklist, the evidence photographs, the findings log and the closure record",
+    "one supplier corrective-action event across the outbound request, the supplier response, the verification and the closure",
+    "one submission packet whose manifest is read without unpacking it to disk; the packet's purpose does not propagate onto the design records inside it",
+    "a certificate that expires and is replaced forms a currency family with its predecessor, and neither copies a supplier or scope fact onto the other"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: the manufacturing schema declares no canonical fields, so no destination-eligible key exists to order. The recommendation held as prose is supplier, then approval scope (the part or the named process), then record type. It is deliberately NOT the schema's default order. The default template's branch shapes are product then batch/lot then record type, or site then asset then record type; this row's files usually have no batch or lot at all, because they exist before and above any particular production run, and a lot-led branch would strand a standing certificate and an approved-supplier register that belong to no lot. The parent dimension is the supplier because \"a parent dimension should provide the context required to understand the child\": a warrant, an audit finding and a corrective action are unintelligible without knowing whose approval they concern. Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Status is deliberately NOT proposed as a dimension even though it is the most salient thing about a qualification file, because status changes and a status-led branch would move a file when nothing about the file changed. The user may reverse, remove or flatten this after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "pptx",
+      "jpg",
+      "png",
+      "eml",
+      "ics",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PSW_Vertex-Precision_BPA-210_Rev-C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Supplier Name and Supplier Code slots naming an organisation that is not the holder",
+        "labelled Part Number and Engineering Change Level slots",
+        "Reason for Submission and Submission Level slots with tick boxes",
+        "a declaration that samples were produced from production tooling at production rate",
+        "a Customer Disposition block with approved, interim approval and rejected options and a signature line"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "product (proposed)",
+        "record_type (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the part is approved, conforming, or currently valid; the ticked disposition is an observation of what the document records, not a status fact the catalogue asserts",
+        "a batch or lot fact; no production lot of the holder's own making exists on this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PPAP_BPA-210_Level-3_Submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest listing warrant, dimensional results, material certificates, control plan, process flow, failure-mode analysis and appearance-approval members",
+        "one repeated part number and one repeated supplier identity across member names",
+        "no member naming a production lot belonging to the holder"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "product (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the design records inside are this row's evidence; the container's purpose does not propagate onto its members",
+        "that the packet was accepted"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Supplier-Audit-Report_Vertex-Precision_2026-05-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an Auditee or Audited Organisation slot naming an external company and an Audit Scope slot naming a site and a process family",
+        "scored clause or checklist rows with conformity ratings",
+        "findings rows carrying a severity, an objective-evidence note, an owner and a due date",
+        "an auditor identity and an audit-team list"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "record_type (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the supplier is compliant, approved or unapproved; severities and scores are observations copied from the source, never a verdict",
+        "a handling class from the presence of the word confidential on the cover"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Internal-Audit-Report_Plant-2_QMS_2026-04.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "structurally identical to the supplier audit: scored clause rows, findings with severity and evidence, auditor identity, corrective-action owners and due dates",
+        "the Auditee slot names the holder's own plant and department, and no supplier or supplier-code slot exists",
+        "no approval is granted to any second party"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a supplier fact from the auditor's employer or from the standard cited",
+        "that clause numbers or the word audit activate this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AVL_Approved-Supplier-List_2026-Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "many rows, each with a supplier name and code, an approved commodity or process, an approval status and a requalification-due column",
+        "restriction and conditional-approval notes in a free-text column",
+        "no financial columns and no order quantities"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "record_type (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any listed supplier is currently approved; the register is a dated snapshot",
+        "that the row set is a contact list or a spend report"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FAIR_AS9102_Form-3_BPA-210.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a characteristic-accountability table tying each numbered design characteristic to a requirement and a measured result",
+        "a submitting-organisation slot and an accepting-organisation slot naming different companies",
+        "part number and revision, and a form-series reference"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "product (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the part conforms; measured values are observations",
+        "a batch or lot fact from the sample serial numbers"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SCAR-2026-018_Vertex_late-plating-adhesion.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an event identifier, an issued-to slot naming an external supplier, and an issued-by slot naming the holder",
+        "problem statement, affected part and received lot, containment, root cause, supplier response and verification sections",
+        "a response-due date and a closure signature"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "product (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a root cause is correct or that the action was effective",
+        "that the internal corrective-action file it references is this row's evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ISO9001-Certificate_Vertex-Precision_exp-2027-03-31.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate number, a certification-body identity and an accreditation mark",
+        "a scope-of-certification paragraph naming activities and a site address",
+        "the certified object is an organisation and its management system, not an article",
+        "issue and expiry dates"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "record_type (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the certificate is currently valid",
+        "that any product made by that organisation is certified"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SAQ_Vertex-Precision_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sectioned question rows with a response column and an evidence-reference column",
+        "sections covering management-system certification, capacity, sub-tier control and quality performance",
+        "a respondent name, role and date block at the head of the sheet"
+      ],
+      "facts_legal": [
+        "supplier (proposed)",
+        "record_type (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the self-reported answers are true",
+        "a site fact from an address given in a free-text answer"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RoHS and REACH SVHC Declaration - connector 5747299-1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a declaring-organisation block with a signatory and a date",
+        "a part number and description",
+        "a substance table with named substances and a threshold statement copied from the source"
+      ],
+      "facts_legal": [
+        "supplier (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the part complies; the declaration is a statement made by a second party",
+        "that the substance table becomes this row's evidence rather than the material definition's"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Requalification due - V-10418 Vertex - BPA-210.eml",
+      "source_type": "email",
+      "observations": [
+        "subject naming a supplier code, a supplier name and a part number together with a requalification reference",
+        "sender and recipient roles crossing an organisational boundary",
+        "attachment names referencing warrant and certificate records"
+      ],
+      "facts_legal": [
+        "supplier (proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an approval status from the subject line",
+        "that unnamed attachments are qualification records"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-06-02 at 09.14.11 - SQ Portal approval status.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence in the capture metadata and window chrome",
+        "OCR text showing a supplier row, an approval scope and a status label in a portal table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an approval status fact from OCR text alone",
+        "that missing EXIF would have proved screen origin"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RFQ-2026-114_Award-Recommendation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a bidder comparison table with prices, weighted scores and a recommended award",
+        "several supplier names, none of them granted a technical approval scope",
+        "an approval chain of commercial signatories"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a supplier qualification fact from the presence of supplier names and scores",
+        "that the word evaluation activates this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Vertex-Precision_Delivery-Note_DN-88214.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier name and address, a delivery number, a part number and a shipped quantity",
+        "a received-by signature line",
+        "no assessment structure and no approval scope"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a supplier qualification fact from a supplier name plus a part number",
+        "that a signature is an approval"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Supplier-Qualification-Archive_Vertex_password-protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive, member list unreadable",
+        "filename contains a supplier name and the word qualification"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a supplier fact, a scope fact or a status fact from the filename",
+        "that the archive should be forced open to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "The sharpest mutex on the roster, because both rows organise by the same counterparty organisation. Direction one: vendor-management owns the commercial relationship — onboarding admin, banking and tax details, contacts, spend, delivery and price performance, escalation and renewal. Direction two: this row owns the technical permission — whether a named scope of supply may be used, and the assessment evidence that it still may. Same fixture bytes: Vendor-Scorecard_Vertex_2026-Q2.xlsx is vendor-management when its columns are on-time delivery, spend and responsiveness, and is this row when its columns are open audit findings, approval status and requalification due; a scorecard containing both is held on disjoint evidence rather than fought over. Vendor-Onboarding-Pack_Vertex.zip is vendor-management even though it contains a certificate copy.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Reciprocal to the boundary that row already wrote against this one. Direction one: procurement-sourcing owns the competition and the award — requirements, bidders, comparison, recommendation, negotiation. Direction two: this row owns the approval that survives the competition and outlives any single order. Same fixture bytes: RFQ-2026-114_Award-Recommendation.pdf is procurement-sourcing even though it names suppliers and scores them; SAQ_Vertex-Precision_2026.xlsx is this row even when it was collected during the same sourcing exercise, because its question set is the holder's technical requirement set and its output is standing status.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "signal": "The audit-report structure is identical on both sides and this is the collision most likely to misfire. Direction one: quality-management-system owns the holder's own system — internal audits of the holder's own sites and processes, procedure control, management review. Direction two: this row owns audits whose audited party is an external organisation being granted or retaining an approval. Same fixture bytes: Internal-Audit-Report_Plant-2_QMS_2026-04.pdf and Supplier-Audit-Report_Vertex-Precision_2026-05-14.pdf differ only in which organisation sits in the auditee slot; clause numbers, severities, finding structure and auditor identity are common to both and decide nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "Direction one: inspection-record owns measurement of a received or produced quantity — an incoming-inspection result against a delivered lot, with a lot identifier and a disposition of that quantity. Direction two: this row owns measurement submitted to establish or maintain a standing approval, which has no lot of the holder's own making. Same fixture bytes: FAIR_AS9102_Form-3_BPA-210.pdf is this row because its accepting-organisation slot and characteristic accountability make it a submission; Incoming-Inspection_BPA-210_receipt-DN-88214.xlsx is inspection-record because its subject is one received quantity. A run of incoming-inspection results cited as requalification evidence is held by both on disjoint evidence and neither copies the other's anchor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "Direction one: nonconformance-capa owns the holder's own internally raised event and its internal corrective action. Direction two: this row owns the request issued outward to a supplier and the supplier's response, because its purpose is the standing of the relationship. Same fixture bytes: SCAR-2026-018_Vertex_late-plating-adhesion.pdf is this row when its issued-to slot names an external organisation; the internal CAPA it triggers, with the holder as owner, is nonconformance-capa. A single file that carries both an outbound request and an internal action plan is held by both on disjoint sections.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.product-certification",
+      "signal": "Reciprocal to the boundary that row already wrote. Direction one: product-certification owns evidence that a product meets an external rule, whoever manufactures it. Direction two: this row owns evidence that a named organisation is approved to supply. Same fixture bytes: ISO9001-Certificate_Vertex-Precision_exp-2027-03-31.pdf is this row because its certified object is an organisation and its management system; CE-Declaration-of-Conformity_AX410.pdf is product-certification because its certified object is an article against a named regulation. The word certificate and an expiry date are common to both and decide nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.automotive-program",
+      "signal": "Reciprocal to the boundary that row already wrote against this one, on the same fixture bytes PPAP_BPA-210_Level-3_Submission.zip. Direction one: this row owns the packet, because the packet's purpose is deciding whether a supplier's part may be used and keeping the evidence that it still may. Direction two: automotive-program owns the design records the packet cites, in their own right and in their own files; a container does not transfer its members' facts and members do not transfer the container's purpose.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.industrial-design",
+      "signal": "Reciprocal to the boundary that row already wrote. Direction one: industrial-design holds the document that establishes an appearance standard — the master or limit sample and its acceptance by the design authority. Direction two: this row holds a supplier's submission demonstrating conformance to that standard. Same fixture bytes: PPAP_Appearance-Approval_Supplier-Vertex_PSW-2201.pdf is this row; Appearance-Approval_BPA-210_Graphite_Master-Sample-MS-014.pdf is industrial-design and is the reference the first cites.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "Reciprocal to the boundary that row already wrote. Direction one: this row owns an inbound process- or product-change notification issued by the supplier against an approved scope, because it puts the standing approval in question. Direction two: change-order owns the holder's own internal change the notification triggers, which is a separate file. Same fixture bytes: PCN-2026-0331_Supplier-Bushing-EOL.pdf is this row; the internal ECN raised in response is change-order's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-procurement",
+      "signal": "Direction one: public-procurement owns a regulated public competition — tender notices, statutory evaluation records, award publication and challenge procedures, where the anchor is the procedure and its legal frame. Direction two: this row owns a private buyer's technical approval, which is not a procedure of public law and continues between competitions. Same fixture bytes: a supplier pre-qualification questionnaire returned under a public tender is public-procurement's when its questions and retention are set by the tender procedure, and is this row's when the same supplier's answers are filed as the holder's own standing approval evidence.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "engineering",
+      "why": "A supplier-issued declaration or a submitted study is simultaneously relationship evidence here and a substantive statement about a material or a characteristic there. Shared fixture: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — supplier-issued and therefore approval evidence on this side, while its substance table is a material-content statement on the engineering side; both hold on disjoint evidence rather than fighting, as engineering.material-specification already stated reciprocally.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "why": "Supplier approval is both a quality control and an organisational control. An audit-finding tracker with owners, due dates and management review carries both the assessment structure this row needs and the workflow business_operations owns, when one file genuinely contains both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "why": "A received consignment may carry a certificate of conformance that is both custody evidence for the shipment and standing evidence for the supplier. Each schema activates from its own slots; a supplier-approval fact is never copied onto a sparse packing list because the files arrived together.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standing certificate, questionnaire, declaration or audit report with durable purpose but no evidence tying it to a supplier relationship the holder actually maintains remains an independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A delivery note, order acknowledgement or shipping confirmation bearing a supplier's name proves a transaction and not an approval, and belongs in the receipt residual.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An audit report or supplier email whose audited party or approval scope cannot be resolved should abstain rather than invent a supplier fact.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected qualification archive or an unreadable portal export is represented without inferring supplier, scope or status from its filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced capture of a supplier-quality portal whose OCR does not establish a supplier and an approval scope stays a screenshot.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Audit findings, capability results, capacity and financial-health answers, price-linked qualification terms and disqualification records are commercially damaging to a second party as well as to the holder, and the holder is usually contractually restricted in how it may share them. Social-compliance and site-audit material can name individual workers and describe working conditions. The row assigns no handling class; person names remain search and privacy observations rather than destination dimensions, and privacy policy must run before any model or connector sees an audit body.",
+  "open_question": "NEEDS-JOSEPH NJ-SQ-1: is `supplier` the right key, or should R1c mint a canonical `counterparty` with a role qualifier so that the seller side of a two-party file reuses one key across supplier qualification, subcontracting and vendor management rather than one key per industry? NJ-SQ-2: approval status is the most useful fact on every file here and the most dangerous dimension, because it changes without the file changing; decide whether a status-like fact may exist as a search-only, non-destination fact or must not be extracted at all. NJ-SQ-3: this row and business_operations.vendor-management organise the same counterparty on the same folder level; decide whether they remain two templates with a mutex, or one template with a function dimension, before either grows fields. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}

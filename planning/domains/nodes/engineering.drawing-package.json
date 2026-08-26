@@ -1,0 +1,495 @@
+{
+  "id": "engineering.drawing-package",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Title-blocked drawing sheet series under revision control",
+  "one_line": "One controlled drawing number and every physical file that is that same sheet in a different state: the released plot, the superseded issue, the native source, the associated parts list at the same revision, and the transmittal that issued it. The unit is a version family carrying a title block, not the document type 'drawing'. It activates on the title-block slot cluster and the revision-history table, never on .dwg, never on the word Rev, and never on a revision letter alone. Also carries the absorbed legacy coverage eng.gdt-tolerance, whose feature-control-frame and datum evidence lives here as a recognition signal rather than as a node, because a tolerancing notation is a notation and not a filing situation. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps fields empty and keeps the machine-readable dimension_order empty until R1c makes the engineering schema's proposed keys legal.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Survives on two of the three legs, argued, and the third is a refinement rather than independent grounds; the memo states this rather than smoothing it. LEG 1, DETECTION DIFFERS. The engineering schema's default fires on any of ten controlled-definition structures - requirements matrices, TDP manifests, engineering-change structures, BOM/product structure, analysis packages, verification matrices, prototype records. This row fires on exactly one relation the default does not name: the title-block slot cluster (drawing identifier + revision/issue slot + sheet-n-of-m + scale/projection + a drawn/checked/approved block) joined to a revision-history table whose rows carry REV, description, date and a change identifier. That relation fires on files the schema default leaves in a residual - a bare .pdf plot with no project name, no requirement identifier and no BOM - and it fails to fire on a .dwg with no readable title block, which the extension would otherwise sell. It also carries the GD&T half of the absorbed legacy row: a feature control frame plus a datum identifier plus a general-tolerance note inside a dimensioned view, a structure that appears nowhere else in the schema's default list. LEG 2, DIMENSIONS DIFFER, and this is the load-bearing leg. The schema's researched default is project, design_item, lifecycle_stage, engineering_artifact_type. This row recommends design_item then engineering_artifact_type, drops lifecycle_stage, and - the whole point of the row - REFUSES the revision slot as a dimension even though it is the single most reliably labelled slot in the material and therefore the most tempting level anyone would build. Splitting Rev A / Rev B / Rev C into sibling folders scatters the one unit this row exists to hold, and trips 00's own guardrail: “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.” The revision trail is carried instead as the universal structural relation 00 already provides for retrieval - “Structural relationships should retrieve nodes that contain a version family, duplicate family, archive family, photo event, or derived document set.” lifecycle_stage is dropped for the same reason in a second guise: the title block's STATUS slot holds released / in-work / superseded / void, which is a document state that competes with the version family for the same files, not a lifecycle gate. LEG 3, PRIVACY, IS A REFINEMENT NOT A GROUND. The schema is already potentially_sensitive, so this row cannot claim a different class. What is genuinely different is the locus: distribution statements, export-control markings and wet or digital approval signatures sit INSIDE the same title-block cluster the row activates on, so a marking read there should scope suppression to the whole sheet series rather than the one file that happened to carry the stamp. Marked inference. The row would still stand if this leg were struck."
+  ,
+  "fields": [],
+  "fields_note": "Empty by contract and by PR-6. A template references its schema's fields and never copies them, and the engineering schema declares none today - its four roles (project, design_item, lifecycle_stage, engineering_artifact_type, with revision_or_baseline as metadata) sit in that row's proposed_fields awaiting R1c. The legal facts on any file this row recognizes are therefore the universals plus whatever R1c makes legal on engineering. This row mints nothing and re-proposes nothing the schema already proposed: revision is NOT proposed here because engineering already proposes revision_or_baseline, and proposing a variant spelling is the failure the shared vocabulary is trying to avoid.",
+  "proposed_fields": [
+    {
+      "key": "drawing_number",
+      "type": "string",
+      "example": "BPA-210-002",
+      "why_no_existing_key": "The engineering schema's proposed design_item names the physical or system configuration item; a drawing number names a controlled DOCUMENT about that item, and the two are not in bijection. One item routinely carries a detail drawing, an assembly drawing and an installation drawing under three numbers, and one number routinely covers a family of items on a tabulated sheet. No canonical key holds a controlled-document identifier: record_type is a finance category, artifact_type is research/code's role word, version_family is a structural relation and not an identifier, and repository is a code container. This key is what anchors the version family - it is the string that says these eleven PDFs are one document at eleven states rather than eleven documents. Alternative R1c should weigh: fold it into design_item and accept that the item level will sometimes hold a document identifier. That alternative is coherent and cheaper; it is not obviously wrong, and this row does not pretend otherwise.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE, deliberately, and against the row's own convenience. A folder level per drawing number would produce one child for most items in a small team's corpus and would repeat the concept already expressed by the item level above it - both conditions 00 names when it warns about a level. Its work is grouping and retrieval, not a directory. Naming it as a search-and-grouping key rather than a dimension is the point of proposing it at all.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct where a labelled title-block DWG NO / DRAWING NO / DOC NO slot exists. Otherwise validation requires an identifier-shaped token co-occurring with at least one other title-block slot - a revision/issue slot, a sheet-n-of-m pagination, or a revision-history table row. The rule family is identifier-pattern-plus-structural-context, the same shape 00 uses for a course code plus academic context. R2 owns the pattern; no regex, threshold or score is written here.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "proposed_context_terms": [
+    "sheet 1 of",
+    "unless otherwise specified",
+    "third angle projection",
+    "first angle projection",
+    "drawn by",
+    "checked by",
+    "approved by",
+    "rev history",
+    "superseded",
+    "issued for construction",
+    "do not scale",
+    "datum",
+    "feature control frame"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only and lists no term set for this material; these are candidates, and two of them (superseded, issued for construction) are listed because their correct effect is to move a file AWAY from this row - superseded toward the existing version family rather than a new node, issued for construction toward construction_property.drawings-revisions.",
+  "recognition": {
+    "deterministic": [
+      "TITLE-BLOCK CLUSTER: a labelled drawing-identifier slot co-occurring in one bordered block with a labelled revision or issue slot and a sheet-n-of-m pagination, alongside at least one of scale, projection symbol, or a drawn/checked/approved signature grid. 00 makes the labelled slot the direct-fact source - “Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.” The relation among the slots is the signal; no single slot fires the row.",
+      "REVISION-HISTORY TABLE: a table whose rows carry a revision designator, a change description, a date and a change-authority identifier, appearing on the same sheet as the title-block cluster. This is the structure that makes the file a member of a controlled series rather than a one-off technical picture, and no sibling engineering template carries it.",
+      "SHEET-SET RELATION: two or more files whose extracted drawing identifier matches and whose sheet-n-of-m pagination differs, or whose identifier matches and whose revision designator differs. This is a relation across files, which is why the row's unit is a series and not a document.",
+      "SUPERSESSION MARK: an obsolete, superseded, void or not-for-manufacture stamp or watermark on a sheet whose identifier also appears on a later-revision sheet. Correct outcome is membership of the existing version family, never a new grouping and never a folder level.",
+      "ASSOCIATED-LIST PAIRING: a tabular parts or item list whose header carries the SAME drawing identifier AND the same revision designator as a title-blocked sheet, with ITEM/FIND number, quantity, part identifier and description columns and no multi-level parent-child indenture.",
+      "GD&T STRUCTURE (absorbed legacy eng.gdt-tolerance): a feature control frame co-occurring with a datum identifier and a general-tolerance note inside a dimensioned view. Present as recognition only. It raises plausibility for this row when a title-block cluster is also present, and it must not fire anything on its own, because the same notation is dense in published standards, textbooks and inspection reports.",
+      "TRANSMITTAL LIST: a labelled issue or transmittal table joining several drawing identifiers to revision designators and an issue date, typically on a covering document or mail body. It evidences the SET; it does not give any one listed identifier to the covering file as its own fact."
+    ],
+    "needs_llm": [
+      "whether a title-blocked sheet controls a reusable designed item or is contract information for one site or premises, when the block names a project but no item and no parts list exists",
+      "whether a tabular list keyed to a drawing is an associated list at that drawing's revision or an authoritative product-structure bill of materials, when the indenture columns are absent or ambiguous",
+      "whether a revision designator is a released-issue letter under change control or an informal draft counter someone typed into a filename",
+      "whether a sheet carrying feature control frames is the controlled drawing, a ballooned reference copy inside an inspection record, or a page of a published tolerancing standard",
+      "whether a schematic or board sheet set belongs to this row's title-block situation or to the electrical-schematic and pcb-layout rows, when the only structural difference is the content of the drawing frame",
+      "whether a scanned or photographed sheet is a controlled issue or a marked-up working print someone drew on"
+    ],
+    "never_alone": [
+      "a .dwg, .dxf, .step, .iges or .stl extension. An extension is never sufficient on its own; Untitled1.dwg in a downloads folder has no title block and this row must not fire on it",
+      "the words drawing, sheet, plan, general arrangement or detail. Every one of them is dense in construction, architecture, publishing and presentation material",
+      "a Rev / REV token or a bare revision letter. A single uppercase letter beside a number is the cheapest false positive in this domain and appears in part numbers, batch codes and version strings",
+      "a bare identifier-shaped number token with no title-block slot beside it. 00 forbids a bare number carrying a fact by itself, and a hyphenated number run is a part number, a purchase-order number, an invoice number and a drawing number with equal ease",
+      "a Sheet 1 of 3 pagination alone. It appears on inspection forms, contracts, method statements and survey reports",
+      "a design office, consultancy or manufacturer name in a title block. An organisation name is never-alone evidence, and a title block is precisely where the organisation name is most prominent and least discriminating",
+      "a folder named Drawings, CAD or Issued. Parent-folder context may raise plausibility only after one title-block relation is already present",
+      "a feature control frame, datum symbol or tolerance callout. ASME Y14.5 itself is saturated with them and is a standards document, not a drawing",
+      "an approval signature or a stamp image. It is the same evidence on a certificate, a survey and a permit",
+      "the absence of a native CAD file is not evidence that a PDF is not a controlled issue, and the absence of EXIF on a photographed sheet is not proof of a screenshot"
+    ]
+  },
+  "work_types": [
+    "detail drawing",
+    "assembly drawing",
+    "general arrangement drawing",
+    "installation drawing",
+    "interface control drawing",
+    "weldment drawing",
+    "sheet-metal flat pattern",
+    "harness or wiring drawing",
+    "tabulated or family drawing",
+    "associated parts list",
+    "drawing revision history record",
+    "transmittal or issue sheet",
+    "superseded or void issue"
+  ],
+  "work_types_note": "Values of the engineering schema's proposed engineering_artifact_type when this row is active, not child nodes and not schemas. ALIGNMENT is explicit that work types are values; a request for a node per drawing kind is exactly the 574's mistake and none is made here.",
+  "grouping_reasons": [
+    "one drawing identifier's sheet set: sheets 1..n of the same issue, held together by matching identifier and differing pagination",
+    "one drawing identifier's revision trail as a single version family, released and superseded issues together, never split into per-revision siblings",
+    "a title-blocked sheet and the associated parts list carrying the same identifier AND the same revision designator",
+    "one transmittal or issue event and the sheets it names, where the transmittal evidences the set without donating any listed identifier to itself as a fact",
+    "a native CAD file whose filename stem matches a controlled identifier may join the series neighbourhood while acquiring no facts from the sheet's title block; the graph assembles context and does not propagate labels onto sparse files"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY IS THE CONTRACT-CORRECT ANSWER, not an omission. A template may only branch on a field its own schema declares, and PR-6 leaves the engineering schema with fields: []. Encoding levels now would make this row the first place a proposed key silently became legal. CONDITIONAL ON R1c the researched order is design_item then engineering_artifact_type, time_first false. design_item first because a revision designator, a sheet number or a drawing kind is unintelligible until the item is known - 00's own parent rule, stated for coursework and general in form: “A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.” engineering_artifact_type second as the leaf that separates detail from assembly from installation from the associated list. WHAT DIFFERS FROM THE SCHEMA'S DEFAULT ORDER: (a) lifecycle_stage is DROPPED. On the schema row it earns a level where a corpus spans genuine concept / preliminary / detailed / qualification gates; here the only stage-shaped evidence is the title block's STATUS slot, whose values are released, in-work, superseded and void - a document state that would build a Superseded folder competing with the version family for the same bytes, repeating a concept already expressed. (b) project is NOT a standing level here even though the schema puts it first, because a drawing identifier commonly outlives the project that created it and a reusable item's sheets would be scattered across programme folders; project returns as an optional top level for programme-organised corpora where every sheet carries a labelled programme slot. (c) The revision designator is REFUSED as a level outright. This is the row's central recommendation and it is a refusal, not an addition: revision is the best-labelled slot in the material and therefore the level a naive design would build first, and building it destroys the unit. OPTIONAL BRANCHES: a drawing-identifier grouping BELOW engineering_artifact_type for items carrying dozens of sheets, expressed as grouping rather than as a directory level per the proposed_fields entry; and a flat single level for a small corpus where the item level would yield one child. Recommended, not frozen - the user may reverse, remove, add or flatten these levels later.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "opaque_binary",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem",
+      "code_structured",
+      "design_creative"
+    ],
+    "extensions": [
+      ".pdf",
+      ".dwg",
+      ".dxf",
+      ".step",
+      ".stp",
+      ".igs",
+      ".xlsx",
+      ".csv",
+      ".tif",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210-002_RevC_Brake-Pedal-Bracket_sheet1of2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bordered block at lower right carries labelled slots DWG NO, REV, SHEET 1 OF 2, SCALE 1:2, and a DRAWN / CHECKED / APPROVED grid with three names and three dates",
+        "a projection-symbol glyph and a general note reading UNLESS OTHERWISE SPECIFIED with a tolerance table",
+        "a revision-history table with three rows: A, B and C, each carrying a description, a date and a change identifier",
+        "dimensioned orthographic views carrying feature control frames and two datum identifiers",
+        "no requirement identifier, no verification column, no multi-level parent-child table anywhere on the sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "drawing_number (proposed, this row)",
+        "design_item and engineering_artifact_type if R1c makes the engineering schema's proposed keys legal"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a revision level: REV C is a fact and a version-family member, never a directory, and never a reason to open a sibling to Rev B",
+        "lifecycle_stage from the STATUS slot; released is a document state, not a design gate",
+        "an owner or author destination from the DRAWN BY name; authorship is never a destination dimension",
+        "project from the enclosing folder name alone - parent-folder context may raise plausibility only after a title-block relation is present, which it is here, but the folder still supplies no labelled programme slot"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPA-210-002.dwg",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filename stem matches a controlled identifier that appears in a labelled DWG NO slot on a sibling PDF",
+        "proprietary container; no title block, no revision designator and no text is readable without a CAD parser",
+        "byte-level header identifies a CAD format and nothing about content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "the sibling PDF's revision designator - the .dwg is very often ahead of or behind the released plot, which is the exact error that makes an in-work model look released",
+        "design_item or drawing_number from the filename stem alone; a matching stem is a grouping relation, not an extracted fact",
+        "engineering activation from the .dwg extension - extension alone is never sufficient",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "PL-BPA-210-002_RevC.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header rows carry a labelled drawing identifier and a labelled revision designator matching the sheet above",
+        "columns ITEM, QTY, PART NUMBER, DESCRIPTION, MATERIAL, with a flat item-number sequence",
+        "no parent-assembly column, no indenture level column, no make/buy or routing column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "drawing_number (proposed, this row)"
+      ],
+      "must_not_conclude": [
+        "that this is the authoritative product structure; the absence of indenture and parent-assembly columns is what keeps it an associated list",
+        "a supplier or institution fact from a MATERIAL or manufacturer cell; a list REFERENCES parts and belongs to one drawing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ECO-1187_BPA-210-002_RevB-to-RevC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots: affected drawing identifier, FROM REV B, TO REV C, reason for change, effect on interchangeability, disposition of existing stock",
+        "an approval grid with named approvers and dates",
+        "the same change identifier appears as a row in the sheet's revision-history table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "drawing_number (proposed, this row) as a REFERENCE, not as this file's identity"
+      ],
+      "must_not_conclude": [
+        "that this file is a member of the drawing's version family; it is the authority that CAUSED a member, which is a different relation",
+        "a revision fact for the drawing from this document's own revision, if the change notice itself has one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A-101_Rev_P3_Ground-Floor-Plan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title block structurally indistinguishable from the mechanical sheet: DRAWING NO, REV P3, SCALE 1:50, SHEET, and a drawn/checked grid",
+        "the block also carries a site address and a contract or job number",
+        "the drawing frame contains a floor plan of one premises with room names and door schedules",
+        "no item or assembly identifier, no parts list, no feature control frame, no datum"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the title block alone - the discriminating absence is an identified reusable design item, and the discriminating presence is a site address in the block",
+        "design_item from the sheet identifier A-101",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FAI-Report_BPA-210-002_RevC_ballooned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "pages 3 to 6 are a copy of the controlled sheet with numbered balloons drawn over every dimension - byte for byte the same drawing content, including the title block and the feature control frames",
+        "pages 1 to 2 carry a characteristic table: characteristic number, nominal, tolerance, measured actual, pass/fail, instrument identifier",
+        "a lot or serial identifier and an inspector name and date in a labelled header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "drawing_number (proposed, this row) as a REFERENCE"
+      ],
+      "must_not_conclude": [
+        "activation of this row because the controlled sheet is embedded; a measured actual against a lot identifier is execution evidence and moves the file to the inspection neighbour",
+        "a revision-family membership for the ballooned pages; a reference copy inside another record is not an issue of the drawing",
+        "GD&T evidence as sufficient - the feature control frames here are quoted, not authored",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Drawing standards - ASME Y14.5-2018.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "several hundred pages saturated with feature control frames, datum identifiers, tolerance callouts and dimensioning examples",
+        "a publisher's front matter, a standard designation with a year, a scope clause and a numbered clause structure",
+        "no title block on any page, no revision-history table, no drawing identifier belonging to any item the user designs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation from GD&T notation density - this is the sharpest false positive the absorbed legacy tolerancing coverage produces, and the discriminator is the absence of a title block and a controlled identifier",
+        "a revision fact from the standard's edition year",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "BPA-210-002_RevC_plot-set.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extracting members: two PDFs whose names carry the same identifier and differing sheet pagination, one .dxf with the same stem, one .xlsx parts list with the same identifier and revision",
+        "every member name shares one identifier and one revision designator",
+        "no specification, no standard, no requirement document and no verification record among the members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "drawing_number (proposed, this row)"
+      ],
+      "must_not_conclude": [
+        "member facts extracted to disk; the manifest is the evidence and the archive is a family",
+        "that the archive is a technical data package - a TDP manifest joins specifications, standards and requirements to a baseline and is the engineering schema default's structure, not this row's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a phone photograph of a printed D-size sheet pinned to a wall, taken at an angle with perspective distortion",
+        "OCR recovers a partial title block: a DWG NO string and a REV letter; the remaining slots are illegible",
+        "EXIF carries a capture timestamp; no location",
+        "no revision-history table is legible, no parts list, no second sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "drawing_number from a partial OCR title block alone; one legible slot is not the slot cluster this row requires",
+        "that the photographed issue is the current one - a pinned print is frequently superseded",
+        "a screenshot conclusion from missing or unusual EXIF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "RE_ Transmittal 0042 - BPA-210 sheets for manufacture.eml",
+      "source_type": "email",
+      "observations": [
+        "body carries a labelled transmittal table joining six drawing identifiers to six revision designators and one issue date",
+        "one PDF attachment; the other five sheets are not attached",
+        "a reply chain in which a supplier asks which revision to cut"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a single drawing_number fact for the mail itself; a transmittal names a SET and belongs to none of its members",
+        "revision facts for the five sheets that are not present - the table is evidence about files the system may not hold",
+        "an organisation fact from the supplier's domain as proof of this row; an organisation name is never-alone evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "hardware/mainboard.kicad_sch",
+      "source_type": "code_structured",
+      "observations": [
+        "sits inside a git working tree with a repository root, a README and a build script",
+        "the file's own text carries a title-block s-expression with title, revision and date members, and a sheet count",
+        "component symbols with reference designators and a net list; no dimensioned view, no datum, no tolerance note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "repository",
+        "programming_language where the tree warrants it"
+      ],
+      "must_not_conclude": [
+        "that repository evidence alone activates this row, or that a title-block member alone deactivates the code schema; both relations are independently evidenced here and neither is inferred from the other",
+        "a drawing_number from the schematic title member without a controlled identifier slot",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Untitled1.dwg",
+      "source_type": "opaque_binary",
+      "observations": [
+        "sits in a downloads folder beside an unrelated supplier price list",
+        "filename carries no identifier-shaped token",
+        "proprietary container, nothing readable, no sibling PDF or parts list sharing a stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from the .dwg extension - this is the fixture the extension rule exists for",
+        "a download session as a topic or a project",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.cad-model",
+      "signal": "One identifier, two files, two rows. The native model carries geometry, a feature tree and often no title block; the released sheet carries the title-block cluster and the revision-history table. This row owns the ISSUED, title-blocked, revision-controlled sheet series; cad-model owns the authoring source and its model-tree evidence. Fixture bytes on both sides: BPA-210-002.dwg beside BPA-210-002_RevC_Brake-Pedal-Bracket_sheet1of2.pdf. The rule that keeps them apart in both directions: a matching filename stem is a grouping relation, never a fact transfer, so the model never inherits REV C and the sheet never inherits the model's save date.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "A parts table is the shared evidence. This row owns an associated list keyed to a drawing identifier AND a revision designator with a flat item sequence; bill-of-materials owns a product structure with parent-assembly and indenture columns that survives independently of any one sheet. Fixture bytes on both sides: PL-BPA-210-002_RevC.xlsx - this row's if the header carries the drawing identifier and revision and the rows are flat, the BOM row's if a parent/child indenture appears. Neither side may claim it on the presence of QTY and PART NUMBER columns, which both have.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "The change identifier appears on both: as a row in this row's revision-history table, and as the identity of the change document. This row owns the sheet whose state changed; change-order owns the instrument that authorised it, with its affected-item, from/to revision, effect and disposition slots. Fixture bytes on both sides: ECO-1187_BPA-210-002_RevB-to-RevC.pdf. The direction that is easy to get wrong: the ECO must NOT be pulled into the drawing's version family, because it is not an issue of the drawing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.electrical-schematic",
+      "signal": "The honest hard case. A schematic sheet set carries the same title-block cluster, the same sheet-n-of-m pagination and the same revision-history table; the structure this row activates on is present in full. The only discriminator is the content of the drawing frame - reference designators and nets versus dimensioned geometry, datums and tolerance notes. Fixture bytes on both sides: SCH_MainBoard_RevB.pdf, and hardware/mainboard.kicad_sch for the file-format variant. Stated as a collision rather than resolved, and raised as NJ-DWG-2, because the seam may be wrong in a way this row cannot settle: it is arguable that the title-block situation is one row and schematic/PCB are content values within it. engineering.pcb-layout sits on the same seam for board fabrication and assembly drawings.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "signal": "The strongest collision on the node, because the title block is genuinely the same artifact in both worlds. This row owns a sheet series controlling an identified reusable design item; the construction row owns a sheet series issued against one site or property under a contract or professional instruction. Fixture bytes on both sides: A-101_Rev_P3_Ground-Floor-Plan.pdf - construction's, on the site address and contract number in the block plus the absence of any item identifier or parts list; it would be this row's only if the same block carried an item or assembly identifier that recurs on an associated list. Neither side may claim a sheet on the presence of a title block, a revision letter or a scale. Reciprocal edge recommended to R1c; the construction node had not landed when this row was written.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "This is where the absorbed legacy tolerancing coverage actually bites. A ballooned drawing inside an inspection report contains this row's exact evidence - title block, feature control frames, datums - as quoted content. This row owns the sheet that DEFINES the tolerance; the inspection row owns the record that MEASURES against it, evidenced by a characteristic table with measured actuals and a lot or serial identifier. Fixture bytes on both sides: FAI-Report_BPA-210-002_RevC_ballooned.pdf. The direction that is easy to get wrong is this row stealing it, because the embedded sheet is the larger part of the file by page count.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "signal": "Published dimensioning and tolerancing standards are dense in exactly the notation the absorbed legacy row was named for. This row owns sheets that APPLY the notation under a controlled identifier; the standards row owns the published documents that DEFINE it, evidenced by a standard designation, an edition year, a publisher and a numbered clause structure with no title block. Fixture bytes on both sides: Drawing standards - ASME Y14.5-2018.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Text-based ECAD and parametric formats live under version control, so repository evidence and title-block evidence appear in one tree. A repository root, manifest and source structure activate code; a controlled identifier in a title-block slot activates this row. Fixture bytes on both sides: hardware/mainboard.kicad_sch. Neither is inferred from the other, and a hardware employer is not a reason for a repository to become a drawing series - which is why this same fixture also carries also_schema: code rather than being resolved to one winner.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: also_holds_with is restricted to schema-to-schema pairs and this is a template row. The engineering schema already carries the co-activations this situation produces (manufacturing, code, research, business_operations, construction_property). Per-file co-activation is recorded in also_schema instead, where exactly one file example claims it: hardware/mainboard.kicad_sch with code, on repository evidence and title-block evidence that are independently present. Every other file example carries also_schema: null on purpose - in particular the ballooned inspection report and the site plan, because a co-activation claim and a collision claim on the same bytes are contradictory, and both of those files are collisions.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone title-blocked sheet with durable meaning and no accepted item series - a supplier's part drawing kept for reference, a single archived issue, a transmittal with no sheets held locally. 00: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” Fixtures: BPA-210-002_RevC_Brake-Pedal-Bracket_sheet1of2.pdf when it arrives alone, ECO-1187_BPA-210-002_RevB-to-RevC.pdf, RE_ Transmittal 0042.eml.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The item-versus-site question and the associated-list-versus-BOM question are the two this row genuinely cannot settle from a single file's own evidence. 00: “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.” Fixtures: A-101_Rev_P3_Ground-Floor-Plan.pdf, PL-BPA-210-002_RevC.xlsx, FAI-Report_BPA-210-002_RevC_ballooned.pdf, hardware/mainboard.kicad_sch.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Unreadable proprietary CAD containers and password-protected issue packs must retain basic metadata without any purpose being inferred from a filename or an extension. 00: “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.” Fixtures: Untitled1.dwg, BPA-210-002.dwg when no sibling sheet exists, BPA-210-002_RevC_plot-set.zip when the manifest is unreadable.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photograph of a printed sheet with only a partial title block legible is an image with no established series membership. 00: “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.” Fixture: IMG_4471.jpg.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "A published tolerancing or drafting standard held for reference is reading material, not a drawing. 00: “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.” Fixture: Drawing standards - ASME Y14.5-2018.pdf, when engineering.standards-library does not fire.",
+      "provenance": "design",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty deliberately, and the refusal is interesting. Two splits are tempting. (1) The design office that OWNS a sheet against the customer whose part identifier also sits in the same title block. Canonical our_firm and client exist, but the engineering schema declares neither, and a template may only branch on its own schema's fields; minting a design-authority key to solve one template's title block is precisely the move that produced thousands of private field names in the overnight pass. It is recorded in the never_alone rule about organisation names instead. (2) The drawing identifier that IDENTIFIES the document against the item identifier that identifies the thing - a real same-entity/different-key candidate. It is not written as a role_split because both candidate keys are still proposals awaiting R1c, and a split between two unadjudicated proposals would be a decision this row is not entitled to make. Raised as NJ-DWG-1 instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherited, not escalated: the engineering schema is already potentially_sensitive and this row claims no new class - handling classes are P7's. What is specific here is the locus of the evidence. Distribution statements, proprietary and export-control markings and approval signatures sit inside the same title-block cluster this row activates on, so a marking read there is evidence about the whole sheet series rather than the single file that carried the stamp, and suppression should scope to the version family. Marked inference: no design span states this, and the row's node test does not rest on it.",
+  "open_question": "NJ-DWG-1: is drawing_number a key distinct from the engineering schema's proposed design_item, or should a controlled-document identifier be folded into design_item and the item level accept document identifiers? Alternatives: (a) keep both, accepting a same-entity/different-key role_split this row declined to write; (b) fold, and lose the ability to say that one item's three sheets are three documents; (c) treat the identifier as pure grouping evidence and propose no key at all, which is the cheapest and would leave the version family anchored on filename stems. NJ-DWG-2: does this row own schematic and PCB sheet sets, which carry an identical title-block structure, or do engineering.electrical-schematic and engineering.pcb-layout own them and leave this row 2D mechanical only? Alternatives: (a) content-of-frame decides, as encoded today, which means the same structural evidence resolves three ways; (b) this row owns the title-block situation and schematic/PCB become engineering_artifact_type values within it; (c) the three rows share the situation and split on discipline, accepting a permanent three-way collision. NJ-DWG-3 (reciprocates the engineering schema's NJ-ENG-2): is a revision designator a domain fact or only a version-family relation? This row recommends the latter and refuses it as a dimension either way; if R1c makes revision_or_baseline a domain fact, the refusal of the folder level must survive that promotion, because the promotion is exactly what would make the level look legitimate. NJ-DWG-4 (reciprocates NJ-ENG-3): for plant and infrastructure, does one sheet set activate both this row and construction_property.drawings-revisions, or does the reusable-item-versus-site seam decide exclusively? NJ-DWG-5, a RECOMMENDATION to R1c rather than a question: the absorbed legacy row eng.gdt-tolerance should be discharged as recognition signals inside this row plus the manufacturing.inspection-record and engineering.standards-library collisions, and no tolerancing node should be created - a tolerancing notation is a notation, and a row whose only evidence is a symbol that appears in standards, textbooks and inspection reports could never activate."
+}

@@ -1,0 +1,516 @@
+{
+  "id": "hr.workplace-health-safety",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Workplace health and safety administration",
+  "one_line": "The employer's duty of care kept as an administered record: hazard and risk assessments whose subject is a substance, machine, activity or building rather than a person; safe systems of work; inspection, drill and consultation records; accident, near-miss and investigation files; occupational-health and health-surveillance material; and statutory returns and regulator correspondence. It differs from the hr schema's default template in that a large part of its evidence names no employee at all, its activation anchor is a duty-of-care assessment structure rather than a personnel process, and its privacy posture is split rather than uniform. PLACEHOLDER ROW: writes no field rows (PR-6), and absorbs the legacy row med.occupational-health-screening.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a duty-of-care ASSESSMENT INSTRUMENT: a table or form whose column or slot set is hazard (or task/substance/area) + persons at risk + existing controls + residual evaluation + further action + assessor + review date, under a stated statutory or policy duty. The joint slot set is the signal. This is the row's primary anchor and it is satisfied by files that name no employee whatsoever - a COSHH assessment of isopropanol, a fire risk assessment of a building, a machine-guarding assessment of a press",
+      "the PERSONS AT RISK slot populated by CLASSES rather than individuals - employees, contractors, visitors, members of the public, lone workers, young persons, new and expectant mothers. A named individual in that slot is the exception (a personal DSE or expectant-mother assessment) and shifts the privacy posture, not the activation",
+      "an accident, incident or near-miss report whose labelled slots combine an affected-person block IDENTIFIED AS AN EMPLOYEE, CONTRACTOR OR VISITOR (not a patient, not a customer) with location, date and time, activity at the time, injury or exposure description, immediate action, witnesses, investigation and corrective action. The form structure alone discriminates nothing; the SUBJECT of the event is what decides",
+      "a statutory injury, disease or dangerous-occurrence RETURN whose audience is a state regulator: an establishment identity, a reporting year, case rows or aggregate counts, hours worked or average employee numbers, and a certification signature. This is the only material on the hr schema whose intended reader is a regulator and whose payload is an aggregate injury count",
+      "a safe system of work: a method statement or permit whose sections are sequence of operations, plant and equipment, PPE, competence required, emergency arrangements, and an authorisation and hand-back signature. Permit forms carry an issue and cancellation time",
+      "a periodic safety INSPECTION or monitoring record whose rows pair a checked item or area with a condition finding, a defect, a responsible owner and a rectification date - distinct from an equipment service visit because the finding is expressed as a risk to persons with a timescale",
+      "an occupational-health output: a referral with a reason-for-referral block, a fitness-for-work opinion with recommended adjustments and a review date, or a health-surveillance dataset (audiometry, spirometry, skin, HAVS) whose rows pair employees or employee IDs with a categorisation and a referral flag",
+      "an emergency arrangement bounded to ONE premises the employer occupies: an evacuation plan with a muster point, a drill record with a roll-call time and deficiencies, a first-aider or fire-warden roster with coverage by shift",
+      "a safety consultation record - a committee's terms of reference, a representative's inspection report, or minutes whose standing agenda items are accidents, assessments outstanding, and actions overdue",
+      "a regulator artefact addressed to the employer: an inspection report, an improvement or prohibition notice with a compliance date and a stated contravention, or correspondence citing an inspector's reference",
+      "an email or calendar item is deterministic ONLY when its structured slots carry a safety process - an ICS titled as a drill or evacuation with all-staff attendees and a muster location, or an email whose subject carries an incident reference and whose body reproduces investigation slots. Source type never activates"
+    ],
+    "needs_llm": [
+      "whether an unlabelled prose account of an event is an accident narrative under the employer's duty, an employee-relations conduct narrative, a clinical note, a service-operations postmortem, or an insurance claim description. Abstain and protect rather than guess when a named person and an injury co-occur",
+      "whether a hazard-and-control table is a statutory duty-of-care assessment or a corporate or project risk register wearing the same likelihood-impact-control columns. The frame - a duty owed to persons on a premises or in an activity, an assessor competence statement, a review date - is what decides, and it is often only in prose",
+      "whether a health-related file is the employer's administration of fitness, adjustment, surveillance or injury, or the individual's own clinical record that happens to have an employment anchor. The safe response to ambiguity is protection and abstention; clinical findings are never copied into an employer-side fact",
+      "whether a safety document about a building is this row's duty-of-care instrument or the occupier's premises-management record. See the collision with business_operations.facilities-workplace: the disagreement is live and stated in the open questions",
+      "whether an attendance sheet is a safety briefing register or a general training completion record belonging to hr.training-development. A toolbox talk on manual handling is both a training event and a control measure named in an assessment",
+      "whether a heterogeneous archive is purpose-coherent as one incident family when members include photographs, an OH referral, a witness statement, a statutory return draft and an insurer's email"
+    ],
+    "never_alone": [
+      "the words incident, hazard, risk assessment, safety, near miss, root cause, corrective action, or an incident-shaped reference number. `Incident 4471 - Sev1 postmortem - checkout API.md` carries all of them and is a service-operations record; `Ward incident - sharps injury - staff.pdf` carries the same tokens and IS this row - the tokens decided neither",
+      "an incident-report FORM structure alone. The identical form is used for patient harm, staff injury, property damage, security and information-governance events. The subject of the event is a separate observation, as clinical_practice.malpractice-incident argues from its side",
+      "a hazard / likelihood / control / owner / review column set alone. `Corporate risk register FY26.xlsx` and a project RAID log both have it. Without a duty frame and persons at risk this is business_operations.risk-register",
+      "a premises name or street address alone. A lease, a service contract, a utility bill and a fire risk assessment all carry it",
+      "a named person beside injury words. A motor accident claim, a personal injury solicitor's letter and a household insurance form all match and are finance, legal or medical",
+      "the employer's name, letterhead, email domain or custody of the file. Per the hr schema, this is a role perspective only",
+      "a PPE, first-aid, signage, fire-extinguisher or safety-training line item in a purchase order, invoice or budget. That is finance",
+      "a manufacturer's or supplier's safety publication - a Safety Data Sheet, an equipment manual's safety chapter, a regulator's general guidance note. These are published reference material, not the employer's record of its own duty",
+      "a certificate naming an individual's safety qualification (first aid at work, IOSH, forklift) held in that individual's own corpus. That is career; the employer's roster or matrix of who holds them is this row",
+      "source type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "membership in a download session or a parent folder named H&S, EHS, Safety, Compliance or Admin. 00: “A session should never be treated as proof of topic”",
+      "absence of EXIF as proof that a photograph of a damaged guard, a spill or a signed register is a screenshot"
+    ]
+  },
+  "proposed_context_terms": [
+    "persons at risk",
+    "existing control measures",
+    "residual risk",
+    "further action required",
+    "assessor",
+    "review date",
+    "safe system of work",
+    "method statement",
+    "permit to work",
+    "toolbox talk",
+    "near miss",
+    "dangerous occurrence",
+    "reportable injury",
+    "root cause",
+    "corrective action",
+    "immediate action taken",
+    "injured person",
+    "fitness for work",
+    "reasonable adjustment",
+    "health surveillance",
+    "return to work",
+    "muster point",
+    "roll call",
+    "first aider",
+    "fire warden",
+    "improvement notice",
+    "prohibition notice",
+    "competent person",
+    "thorough examination"
+  ],
+  "work_types": [
+    "general or task risk assessment",
+    "hazardous substance (COSHH-style) assessment",
+    "fire risk assessment and fire safety log",
+    "display-screen, ergonomic or manual-handling assessment",
+    "safe system of work, method statement or permit to work",
+    "workplace inspection, safety tour or monitoring record",
+    "safety induction, toolbox talk or briefing register",
+    "accident, incident, near-miss or dangerous-occurrence report",
+    "incident investigation and corrective-action record",
+    "statutory injury, disease or dangerous-occurrence return and annual summary",
+    "regulator inspection report, notice or correspondence",
+    "occupational-health referral, fitness opinion or adjustment record",
+    "health-surveillance programme record or result set",
+    "emergency plan, evacuation diagram, drill record, first-aider or fire-warden roster",
+    "safety committee, representative or consultation record",
+    "statutory thorough-examination or plant inspection report"
+  ],
+  "grouping_reasons": [
+    "one incident: first report, witness statements, scene photographs, investigation, occupational-health referral, corrective actions, insurer notification and the statutory return, held together by an exact incident reference plus a shared date and location",
+    "one assessment and its revision family: the assessment, its action plan, the evidence closing each action, and the re-assessment produced at the review date. This is a version_family case, not a topic cluster",
+    "one premises or one activity's standing regime across assessments, inspections, drills, registers and the fire log, where the corpus genuinely spans more than one site",
+    "one statutory reporting period: the injury log year, its annual summary, and the returns filed within it",
+    "one regulator engagement: the inspection report, the notice, the response, and the evidence of compliance served before the deadline",
+    "one briefing or consultation event: the register, the slides, the minutes and the action list",
+    "a sparse member - `photo of the guard.jpg`, `notes from the fall.docx`, a bare register scan - may join an accepted incident or assessment group WITHOUT the injured person, premises, activity or incident reference being copied onto it as a fact",
+    "no group is valid when a lone hazard-shaped or injury-shaped file carries no duty frame, no premises, no activity and no incident. Protected or independent residual placement is safer than inventing a safety corpus around a single document"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty under PR-6: the hr schema declares no canonical field rows, so nothing may be serialized as a dimension. The recommendation is held as prose for R1c and it differs from the hr schema's default order. The hr default leads with work type or a named people programme, then a workforce unit or cohort, then a people cycle, and never leads with a person. This row would instead lead with the PLACE OR ACTIVITY the duty attaches to, because that is the parent dimension that makes the child intelligible: `Fire Risk Assessment 2026.pdf`, `Permit 0412.pdf` and `Incident 26-031` are all unreadable without the building or the task, while they are perfectly readable without knowing which department the injured person sat in. Work type comes second, and a reporting period third for the statutory spine only. Occupational-health and health-surveillance material takes no visible dimension at all: a branch named for a health programme joined to a small site discloses who is under surveillance. The hr schema's `workforce_unit` proposal already carries a location sense in its own example (“Hong Kong warehouse”) alongside a department sense; this row needs the location sense and records that dual meaning as an open question rather than minting a variant key. Not time-first: a date on a safety record may be the event date, the assessment date, the review date, the permit issue date or the filing date, and collapsing them would scatter one incident across five years.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "COSHH assessment - isopropanol 99% - Lab 2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled substance, hazard statements, quantity and frequency of use, route of exposure, existing control measures, PPE, spill and first-aid procedure",
+        "persons at risk populated with the classes lab staff, cleaners and contractors",
+        "assessor name, assessment date and a review date; no employee is named as a subject"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "duplicate_family"],
+      "must_not_conclude": [
+        "any hr fact as canonical - this placeholder declares no field rows",
+        "that the absence of a named employee means the hr schema cannot be the right world: this is exactly the case where the schema's default personnel-process anchor fails and this row's duty-of-care anchor fires",
+        "that the substance's supplier is an organisation fact about the employer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Safety Data Sheet - Isopropanol 99% - Merck.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sixteen numbered SDS sections, hazard pictograms, supplier identification and an emergency telephone number",
+        "no employer, no premises, no persons-at-risk slot, no assessor, no review date",
+        "revision date is the manufacturer's, and the same bytes are downloadable by anyone"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family"],
+      "must_not_conclude": [
+        "activation of this row. THIS IS THE COLLISION FIXTURE: it is the single most safety-looking document in a workplace corpus and it is a supplier's publication, not the employer's record of its own duty. The discriminator is the persons-at-risk / existing-controls / assessor / review-date structure, which an SDS never has and a COSHH assessment always has",
+        "that sitting next to the COSHH assessment in the same folder makes it a member with the assessment's facts copied onto it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Fire Risk Assessment - 14 Mill Street - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "responsible-person block, premises description, occupancy and sleeping-risk statement",
+        "hazard / people at risk / existing control / residual evaluation / action-with-deadline table",
+        "assessor competence statement and a stated review date"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "that the address alone put it here",
+        "that this row and government.emergency-management can both hold it silently: the fixture is named on both sides and the boundary is scope of duty - one premises with a responsible person versus a jurisdiction owing a duty to a population",
+        "that business_operations.facilities-workplace holds it because the subject is a building: see the open questions, this boundary is contested and unresolved",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Incident 26-031 - warehouse fall report.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers labelled injured-person, site, date and time, witnesses, injury description, immediate action, investigation and corrective-action slots",
+        "the injured person's block is headed Employee",
+        "a medical attachment is named in the form but is not embedded; the scan has no text layer"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "a clinical diagnosis from the injury description",
+        "that absence of a text layer proves this is a scan",
+        "activation of the hr schema's DEFAULT template: this is the schema's own fixture, and it lands here rather than on the default because the anchor is an event at a place, not a personnel process",
+        "a folder path"
+      ],
+      "also_schema": "clinical_practice",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ward incident - sharps injury - staff.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an incident-reporting form identical in structure to the one used for patient-harm events on the same ward, with the same reference-number vocabulary",
+        "the affected-person block names an employee and the follow-up section names an occupational-health referral and a return-to-work line",
+        "no patient identifier, no clinical account of a patient"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of clinical_practice.malpractice-incident. That row authored this boundary one-way and this file is the reciprocal: the form discriminates nothing, the SUBJECT does",
+        "that a staff-subject incident is therefore low sensitivity - it names an employee's injury and a health referral",
+        "a folder path"
+      ],
+      "also_schema": "clinical_practice",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "OSHA Form 300A summary CY2025 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "establishment name and address, industry description, annual average number of employees and total hours worked",
+        "aggregate counts of cases by outcome and by injury or illness type; no individual is named",
+        "a company-executive certification signature and a posting-period instruction"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "that aggregation makes the underlying case log non-sensitive: the 300 log it summarises names employees",
+        "that this is a business_operations.compliance-audit finding - the audience is a regulator and the payload is a statutory injury count, not an audit against a management standard",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Occupational health referral and report - J Patel - capability.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "manager's reason-for-referral block cites attendance and capability concerns",
+        "the OH practitioner's opinion gives fitness for work, recommended adjustments and a review date, and withholds diagnosis",
+        "an employee-relations case reference appears in the header"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of this row. hr.employee-relations named this exact fixture against this row and IT IS RIGHT: the subject under review is the person's capability and attendance, not an incident, hazard or place. This row must not take a capability case merely because it cites health",
+        "a clinical fact, or that the withheld diagnosis may be inferred",
+        "that the file may be sent to a cloud model",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Health surveillance - audiometry - 2026 cohort.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per employee with employee ID, work area, exposure group, threshold values by frequency, a categorisation and a referral flag",
+        "a header block names the noise assessment that triggered the programme and the surveillance interval",
+        "small work areas make some rows re-identifiable without names"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that removing names makes the file non-sensitive",
+        "a health outcome, a diagnosis or a causation finding for any row",
+        "that this belongs to hr.workforce-analytics because it is a multi-employee spreadsheet",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Method statement and RAMS - roof access - Mill Street.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sequence of operations, plant and access equipment, PPE, competence required, emergency and rescue arrangements, authorisation signature",
+        "a paired task risk assessment is embedded as a second table",
+        "no construction phase plan, no principal-contractor appointment, no works package or F10 reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "activation of construction_property.site-health-safety: that row's anchor is a job under a principal contractor with CDM apparatus around it. The same bytes with a construction phase plan and an F10 reference are that row's, not this row's",
+        "that the contractor performing the task is the employer whose duty this is",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PAT test register - Head Office - Q1 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are asset ID, description, location, test date, result, tester and next-due date",
+        "no hazard column, no persons-at-risk column, no control measures, no residual evaluation, no duty statement",
+        "the register's cadence is a maintenance interval, and a failed item is recorded as removed from service"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": [
+        "activation of this row. This is the second collision fixture: it is filed in every safety folder in existence and it is an ASSET CONDITION record on a maintenance cycle. business_operations.facilities-workplace holds it. What discriminates is the absence of the assessment slot set, not the absence of the word safety",
+        "that a statutory thorough-examination report of a hoist is the same thing: that one states a defect as a danger to persons with a timescale and does activate this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Toolbox talk register - manual handling - 2026-01-14.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a paper attendance sheet with topic, date, presenter and a column of handwritten signatures and printed names",
+        "EXIF DateTimeOriginal is present and the frame shows a desk edge",
+        "the topic matches a control measure named in a landed manual-handling assessment"
+      ],
+      "facts_legal": ["file_type", "creation_date", "capture_year"],
+      "must_not_conclude": [
+        "that this is a screenshot because it looks like a document",
+        "a training-completion fact for every printed name, or an hr.training-development curriculum record: the discriminator is whether the session is a named control measure or a development curriculum item",
+        "the assessment's facts copied onto this image because it joined the assessment's group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Improvement Notice - HSE - 2026-04-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "regulator letterhead, an inspector's name and reference, the employer named as the recipient",
+        "a stated contravention with the provision cited, a schedule of required remedial measures and a compliance date",
+        "an appeal-rights paragraph"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": [
+        "any legal status, validity, appeal outcome or liability",
+        "that the compliance date is a deadline the product should compute or act on",
+        "that a management-system audit report against a standard is the same artefact - that is business_operations.compliance-audit",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Incident 26-031 - investigation pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists the first report, three witness statements, scene photographs, an occupational-health referral, an insurer email, the corrective-action tracker and a draft statutory return",
+        "the incident reference recurs in the outer name and in several members",
+        "members carry a named injured person, third-party statements and health material"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that every member shares every other member's subject, injury or person",
+        "that the archive may be unpacked or sent to a cloud model to improve classification",
+        "an hr fact as canonical while the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "notes from the fall - what happened.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled first-person prose describing a fall, a person by first name only, and what the writer did afterwards",
+        "no form, no reference, no premises, no date heading",
+        "created within minutes of a file that does carry an incident reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": [
+        "an incident, an injured person or a location fact from prose alone",
+        "membership in the incident group from creation-time adjacency: 00 - “A session should never be treated as proof of topic”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fire drill - all staff - muster point B.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event title names a drill, the location field names a muster point, attendees are an all-staff distribution list",
+        "organiser is the facilities or safety mailbox",
+        "no recurrence, and a separate roll-call spreadsheet exists with the same date"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "activation from the calendar source type - the muster location and drill framing in the structured slots are what carry it",
+        "attendance facts for the invitees: an invitation is not a roll call",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "The hardest boundary this row has, and it is CONTESTED. Shared fixtures: `Fire Risk Assessment - 14 Mill Street - 2026.pdf`, `PAT test register - Head Office - Q1 2026.csv`, `DSE workstation self-assessment`. That row has already authored the split as WHO IS AT RISK - employee-identifying material to this row, an assessment of the premises to that row. This row disputes that discriminator and proposes a structural one instead: an ASSESSMENT INSTRUMENT (hazard / persons at risk / existing controls / residual / further action / assessor / review date, under a stated duty) is this row even when no person is named; a PREMISES MANAGEMENT record (lease, plan, service contract, maintenance and test register, desk allocation, move plan) is that row even when employees appear in it. The PAT register is the clean case of the structural rule: no assessment slots, so it is theirs. THIS ROW MUST NOT TAKE a maintenance or asset-condition register, a cleaning schedule, or a move plan. THAT ROW MUST NOT TAKE a fire or COSHH assessment merely because its subject is the building or a substance. R1c owes the adjudication; see NJ-WHS-2. Provenance: inference."
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "Shared fixture named identically on both sides: `Occupational health referral and report - J Patel - capability.pdf`, and any investigation report bearing a case reference. That row authored the boundary first and this is the accepted reciprocal. THIS ROW MUST NOT TAKE an absence, capability, conduct or grievance case because it cites health, an OH report, or an investigation. THAT ROW MUST NOT TAKE an injury, hazard, near-miss or statutory safety report because it names a person and has an investigation and an outcome. The discriminator is whether the subject under review is A PERSON'S CONDUCT, CAPABILITY OR ATTENDANCE, or AN INCIDENT, HAZARD OR PLACE. Both rows agree the hr schema's own recognition list wrongly lumps them into one bullet and both recommend R1c adopt the split. Provenance: inference."
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "Reciprocal of a boundary that row authored one-way. Shared fixture named on both sides: `Ward incident - sharps injury - staff.pdf`. One reporting system, one form, one reference-number vocabulary serve patient harm and staff injury alike, so THE FORM STRUCTURE COUNTS FOR NEITHER ROW ALONE. THAT ROW MUST NOT TAKE an event whose affected-person block names an employee with an occupational-health or return-to-work line. THIS ROW MUST NOT TAKE an event whose affected-person block names a patient with a clinical account, even though the employer's duty also covers the ward. Provenance: inference."
+    },
+    {
+      "domain": "construction_property.site-health-safety",
+      "signal": "Reciprocal of an edge that row authored. Shared fixture: `Method statement and RAMS - roof access - Mill Street.docx`, and any permit to work or contractor risk assessment. THAT ROW MUST NOT TAKE the employer's standing regime - an organisation-wide policy, an occupational-health programme, an annual injury return - merely because the employer is a contractor. THIS ROW MUST NOT TAKE a document sitting inside CDM apparatus: a construction phase plan, an F10 notification, a principal-designer appointment, a works package. The discriminator is whether the safety record belongs to A BOUNDED JOB or to A STANDING DUTY. Provenance: inference."
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "Reciprocal of an edge that row authored. Shared column set: hazard, likelihood, control, owner, review. THAT ROW MUST NOT TAKE a statutory duty-of-care assessment with persons at risk, an assessor competence statement and a regulator-facing form - it says so itself, calling that outcome filing a statutory record in a management branch. THIS ROW MUST NOT TAKE an enterprise register with a category set, a risk-appetite statement and an inherent-versus-residual pair, nor a project RAID log. Shared bytes: `Risk register FY26.xlsx` against `Manual handling risk assessment - Goods In.xlsx`. Provenance: inference."
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "Reciprocal of an edge that row authored. Shared fixtures: safety audit reports, training attestation registers, and finding-and-deadline schedules. That row splits on employee-identifying material; this row proposes the sharper split as AUDIENCE AND OBJECT: an audit of the safety MANAGEMENT SYSTEM against a standard, producing non-conformities and a certification decision, is that row; a statutory return to a regulator, a regulator's own inspection or notice, and the assessment and incident records the audit samples are this row. THIS ROW MUST NOT TAKE an ISO 45001 audit report or certificate. THAT ROW MUST NOT TAKE an improvement notice or an annual injury return. Provenance: inference."
+    },
+    {
+      "domain": "government.emergency-management",
+      "signal": "Reciprocal of an edge that row authored one-way. Shared fixture named on both sides: `Fire Risk Assessment - 14 Mill Street - 2026.pdf`, plus evacuation diagrams, muster-point notices, first-aider lists and drill records. THE DISCRIMINATOR IS SCOPE OF DUTY: one premises with a responsible person or employer owing a duty to the people in that building is this row; a jurisdiction or multi-agency arrangement owing a duty to a population is that row. THIS ROW MUST NOT TAKE a civil-contingencies plan, a mutual-aid arrangement or a community risk register. THAT ROW MUST NOT TAKE an employer's fire log book or drill roll-call. Provenance: inference."
+    },
+    {
+      "domain": "career",
+      "signal": "Shared fixture: `First Aid at Work certificate - J Patel.pdf`, and any safety qualification, induction certificate or CSCS-style card. CAREER MUST NOT TAKE the employer's roster, matrix or register recording who holds which safety competence across a workforce. THIS ROW MUST NOT TAKE the individual's own certificate held in their own corpus merely because the qualification is a safety one. The discriminator is employer-side population structure, not the subject matter of the qualification. Provenance: inference."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "medical",
+      "why": "Occupational-health reports, fitness opinions, health-surveillance datasets and injury descriptions are simultaneously the employer's administration of a duty and health information about identified people. Both may hold disjoint facts; the medical posture is stricter and governs content exposure. 00 places a medical document in a protected state immediately, and this row does not soften that because an employer holds the copy. Absorbs the legacy row med.occupational-health-screening on the employer's side only."
+    },
+    {
+      "domain": "legal",
+      "why": "An improvement or prohibition notice, an enforcement correspondence chain, and an incident pack disclosed into a personal-injury claim are both safety administration records and legal instruments or matter evidence. Legal status does not erase the duty-of-care structure, and this row infers no liability, validity or outcome."
+    },
+    {
+      "domain": "business_operations",
+      "why": "A safety committee minute is both a consultation record and a governance meeting record; the governing Health and Safety Policy itself is a controlled corporate policy that business_operations owns while an employee's signed acknowledgement of it may activate hr. The policy-versus-application split the hr schema already draws applies here unchanged."
+    },
+    {
+      "domain": "finance",
+      "why": "An employer's liability insurance certificate, an insurer's incident correspondence and a claims record are financial instruments that also evidence the safety regime. Finance owns the policy, premium and claim slots; this row owns the incident they attach to, and neither copies the other's facts."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "material joins an identified person to injury, exposure, health surveillance, fitness for work or an incident narrative and no accepted safety group is active. 00: “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts”"
+    },
+    {
+      "template": "Independent Records",
+      "when": "a durable standalone duty-of-care document naming no person - an assessment, a permit, a notice, a certificate of thorough examination, a statutory annual summary - has no premises, activity, incident or accepted group around it. 00: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group”"
+    },
+    {
+      "template": "Reading Inbox",
+      "when": "the item is a published safety reference rather than the employer's own record - a supplier Safety Data Sheet, an equipment manual, a regulator's general guidance note, an industry standard extract"
+    },
+    {
+      "template": "Review Later",
+      "when": "unlabelled prose or a bare register scan is recognisably safety-shaped but its duty frame, subject and premises are unresolved. 00: “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision”"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "business_operations.facilities-workplace",
+      "this_role": "the duty owed to persons who work in or visit a place, expressed as assessments, controls, incidents and statutory returns",
+      "other_role": "custody and running of the place itself - lease, plan, services, maintenance and test registers, occupancy and moves"
+    },
+    {
+      "domain": "career",
+      "this_role": "the employer's register of safety competence, induction and health surveillance across a workforce",
+      "other_role": "the individual's own safety qualifications, certificates and training history"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "this_role": "an incident, hazard or place under investigation",
+      "other_role": "a person's conduct, capability or attendance under investigation"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The catalogue value is potentially_sensitive because the row's worst case is severe: an identified employee joined to an injury, an exposure, a health-surveillance result or a fitness-for-work opinion is health information, and 00 says a medical document should enter a protected state immediately and that protected material “should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it”. Health-surveillance datasets stay re-identifiable through small work areas even with names removed. But this row's posture genuinely differs from the hr schema's uniform employee-identifying rule, and the difference runs in BOTH directions and is the third leg of its node test. A large part of the corpus - COSHH assessments, fire risk assessments, method statements, permits, drill records, statutory annual summaries - identifies nobody, and treating it as protected by default would make the user's fire-safety folder local-only and unusable for no protective gain. The recommended posture is therefore split at the file: protect on a person-plus-health or person-plus-injury join, and treat person-free duty-of-care instruments as ordinary. This row invents no handling class and no threshold; P7 owns those."
+  ,
+  "open_question": "NEEDS-JOSEPH NJ-WHS-1: this row's acceptance is CONDITIONAL on NJ-HR-1. If R1c refuses the hr schema, this coverage does not fall to one place: person-free duty-of-care instruments go to business_operations, incident and occupational-health material to Protected Records, statutory returns to business_operations.compliance-audit, and the row should be re-refused rather than re-parented. NEEDS-JOSEPH NJ-WHS-2: adjudicate the contested boundary with business_operations.facilities-workplace. Alternative (a), this row's proposal: split structurally - assessment instrument here, premises management there - which keeps a fire or COSHH assessment on hr. Alternative (b), the facilities row's already-authored proposal: split on who is at risk, which sends every person-free assessment to facilities and leaves this row holding only person-identifying safety material; under (b) this row shrinks to the incident, occupational-health and statutory-return spine, and R1c should re-run the node test on that residue because it comes close to the hr default. Alternative (c): route premises assessments to facilities and keep the activity-based ones here, which splits a single fire log across two rows and this row opposes. NEEDS-JOSEPH NJ-WHS-3: the hr schema's proposed `workforce_unit` key carries two senses in one - a department (Customer Operations) and a location (Hong Kong warehouse). A payroll or engagement corpus keys on the department; this row keys on the site, and its recommended dimension order is unusable if the location sense is dropped. Decide whether to split the key or to widen its definition; this row deliberately minted no `premises` variant. NEEDS-JOSEPH NJ-WHS-4: decide whether a health-surveillance dataset with names removed is protected by default. This row says yes because small work areas re-identify, and states no threshold. NEEDS-JOSEPH NJ-WHS-5: decide whether the hr schema's single recognition bullet lumping employee-relations cases with workplace-safety cases should be split. Both hr.employee-relations and this row independently recommend the split; neither may edit the schema."
+}

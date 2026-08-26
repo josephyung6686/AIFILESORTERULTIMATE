@@ -1,0 +1,650 @@
+{
+  "id": "creative.book-manuscript",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Book-length manuscript",
+  "one_line": "One book being written - novel, memoir, trade non-fiction, cookbook, monograph - held as the making record of a single work assembled from ORDERED SECTIONS. Its distinguishing evidence is not length and not the word 'manuscript': it is a COMPILE CONTAINER that enumerates ordered same-kind text members forming one continuous reading sequence (an InDesign book file listing member documents, a writing-app binder manifest, an EPUB OPF spine, a LaTeX master with include lines, a chapter-ordered build config), and a BOOK APPARATUS wrapped around a repeated chapter heading level (title page, copyright or CIP block, generated contents, running heads, chapter-scoped notes, bibliography, index). Around that sit a book's own format-incoherent paperwork family - proposal, style sheet, permissions log, page proofs, cover brief - and, in non-fiction and memoir, source material whose third-party identity sits INSIDE the work's own text and cannot be redacted away from it. Absorbs the legacy row `write.editing-pass`, which survives as version_family plus P9 structure and NOT as a stage node, in alignment with `creative.revision-round`'s refusal. Placeholder launch (J-IND): the creative schema declares no fields (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so this row declares none and recommends no folder dimensions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Text documents such as PDF, DOCX, RTF, TXT, Markdown, HTML, EPUB, and OpenDocument files should yield full text, headings, metadata, links, and structural information.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below, inherited verbatim in force from the creative schema: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. Detection exists so a book in progress is recognised as one work rather than scattered by format across chapter files, proofs, spreadsheets and recordings.",
+      "ORDERED-SECTION COMPILE CONTAINER - a container file or manifest that ENUMERATES ORDERED MEMBERS OF ITS OWN KIND, where the members are fragments of one continuous reading sequence: an InDesign book file (.indb) listing member .indd documents in page order, a writing-app binder manifest naming a draft folder of ordered documents, an EPUB package spine listing content documents in reading order, a LaTeX master whose include lines name chapter sources in sequence, a build config naming chapter source files in order. This is a genuinely DIFFERENT structure from the creative schema's own LINKED-ASSET signal, which it would otherwise be mistaken for: the schema's linked assets are media of a DIFFERENT kind that the file does not contain (00 lists them as 'placed images, linked footage, referenced samples, external textures, imported fonts' in the design-format extractor sentence). Here the enumerated members are the same kind as the container and carry a READING ORDER, which no other creative sibling's container does.",
+      "BOOK APPARATUS AROUND A REPEATED CHAPTER LEVEL - within one text document, a front-matter and back-matter apparatus bracketing a repeated same-level heading run: a title page, a copyright or CIP block, a dedication or epigraph, a generated table of contents, running heads carrying the work title and the section title on facing pages, chapter-scoped note numbering, a bibliography, index entries. 00 licenses exactly this observation for this file class: 'Text documents such as PDF, DOCX, RTF, TXT, Markdown, HTML, EPUB, and OpenDocument files should yield full text, headings, metadata, links, and structural information.' Note carefully what this signal is NOT: it is an apparatus that is present or absent, not a word count, page count or length threshold. No threshold is stated here and none may be inferred.",
+      "ORDERED SAME-STEM SECTION RUN RESOLVED BY A SIBLING - a run of same-stem files carrying an ordered section token (ch01..ch32, Part_I..Part_III, 01_Opening..) where a compile container, a full-manuscript sibling, or a compiled output of the same stem resolves the run as one work. The universal half of this is already 00's, and this signal only adds the resolution requirement: '...duplicate and version-family signals, and parent-folder context.' Without the resolving sibling the run is a run, and its members go to Review Later or to a short-form sibling on their own evidence.",
+      "BOOK-WORKFLOW PAPERWORK ADDRESSED TO ONE NAMED TITLE - a format-incoherent family whose only coherence is the book: a proposal carrying labelled Overview, Author Platform, Comparable Titles, Chapter Outline and Sample Chapters sections; an editorial style sheet listing per-work spellings, hyphenation and character or term decisions; a permissions log tabulating quoted works against rightsholders, territories and fees; a typeset page-proof set carrying folios, running heads and proofreader marks; a cover or jacket brief. This is 00's purpose-coherence shape applied to a work rather than to an application packet, and it is what makes a folder of a .docx, an .xlsx and a .pdf one thing.",
+      "AN EDITORIAL RETURN PAIR - a same-stem document pair where the later member carries revision-marking objects and comment objects authored by a second named person, optionally beside a style sheet naming the same work. This is the absorbed `write.editing-pass` coverage. It is recorded as a detection signal for THIS row's group and explicitly NOT as an activation of any stage or pass node; `creative.revision-round` refused on precisely that ground and this row does not reopen it."
+    ],
+    "needs_llm": [
+      "Whether a chapter-shaped ordered run is one book, an anthology assembled from separately-authored pieces, a periodical's back-issue set, or a course reader - all four produce ordered same-stem text runs and only the surrounding apparatus separates them.",
+      "Whether a complete book apparatus belongs to a work being MADE or a work being READ. This is the row's hardest live judgement and the reason its principal collision fixture is a purchased ebook: a retail EPUB's front matter is more complete than any draft's.",
+      "Whether a long structured non-fiction draft is a trade book or a degree thesis when both apparatuses are partially present - a revised dissertation on its way to a trade publisher genuinely holds both, and 00 permits that: 'One file may hold facts from more than one domain without losing information.'",
+      "Whether a proposal, partial or synopsis is evidence of MAKING the work or of SELLING it, which decides between this row and `creative.submission-query`. The addressee block and the presence of a query letter are the readable discriminators; the LLM reads them, it does not guess from the filename.",
+      "Whether an interview recording, archival scan or reading note is source material bound to this work by an exact title reference, or an independent record that merely shares a subject with the book."
+    ],
+    "never_alone": [
+      "THE WORD 'manuscript' IN A FILENAME OR TITLE. It is the single most tempting token this row has and it is owned more heavily by neighbours: `manuscript_R1_clean.docx` is a journal article in a revision round (`research.manuscript-publication`), and the creative schema itself already lists 'manuscript draft' as a WORK-TYPE VALUE, not a node. A word that names a document type can never activate a situation.",
+      "A CHAPTER HEADING HIERARCHY ALONE. It trips a dissertation, a technical manual, a policy handbook, a company onboarding guide and a course reader. The apparatus signal above requires the front-and-back matter bracket, not the heading run by itself.",
+      "COMPLETE FRONT MATTER ALONE (title page plus copyright plus generated contents). This is the discriminator that fails hardest against the collision fixture: a purchased retail ebook has publisher-generated front matter of a completeness no draft ever reaches. Front matter proves a book exists; it does not prove the holder is making it.",
+      "DOCUMENT LENGTH, PAGE COUNT OR WORD COUNT. Stated explicitly because it is this row's own charge: 'book-length' names a LENGTH, and a length is a value, not an organizational situation. No threshold appears anywhere in this node and none may be introduced downstream.",
+      "AN EXTENSION ALONE - .docx, .pdf, .epub, .md, .scriv, .indd. 00 forbids extension-alone proof generally and this row is where it would be most seductive, because .epub and .scriv feel book-specific and are not: the first is also every purchased ebook, the second is also a screenplay, a podcast series bible or a thesis.",
+      "AN AUTHOR NAME, A TITLE, OR A PEN NAME. Never-alone under the authorship rule, which this world needs most because the author is normally the corpus owner and an author level would collect the entire disk: 'Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.'",
+      "AN ISBN-SHAPED OR BISAC-SHAPED TOKEN. It sits on the copyright page of every book ever bought as well as every book being produced, so it is bare-identifier evidence in the same family 00 already forbids.",
+      "A VERSION TOKEN (_v7, _R2, _final, _clean, _TRACKED) OR A TRACKED-CHANGES OBJECT. These are universal duplicate-and-version-family evidence and they are the exact evidence on which `creative.revision-round` was refused. They may join this row's group; they may not activate it."
+    ]
+  },
+  "work_types": [
+    "outline or beat sheet",
+    "chapter draft",
+    "full-manuscript draft",
+    "compile container or binder",
+    "book proposal",
+    "sample chapters or partial",
+    "editorial style sheet",
+    "copyedited return",
+    "page proof or galley",
+    "advance reading copy",
+    "front matter",
+    "back matter or index",
+    "permissions log",
+    "cover or jacket brief",
+    "compiled ebook",
+    "audiobook narration take",
+    "beta-reader or editorial feedback",
+    "research note",
+    "source interview recording or transcript"
+  ],
+  "grouping_reasons": [
+    "one named book across its compile container, its ordered section members, its full-manuscript drafts and its compiled outputs",
+    "one editorial pass - what went out and what came back marked - held as version_family plus P9 graph structure, never as a stage node",
+    "one book's paperwork family however format-incoherent: proposal, style sheet, permissions log, proofs, cover brief",
+    "one book's source and research set, bounded by an exact title reference and never by shared subject alone",
+    "one compiled release family - a same-stem run across .epub, .pdf and print-ready output produced from one manuscript state",
+    "an existing curated folder the writer already made and named"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT, and this row's HONEST ANSWER ON THE SECOND LIMB OF THE NODE TEST IS THAT IT DOES NOT DIFFER FROM THE SCHEMA DEFAULT HERE. A dimension may only branch on a field the entry's schema declares and the creative placeholder declares none. Held as prose against the schema's default (client where genuinely multi-client, then project, then stage, then artifact_type as the optional deepest level, not time-first): if option (b) of NJ-R1a-1 is ever taken, this row's recommendation is the DEFAULT ORDER UNCHANGED, with `project` being the book title and `client` normally absent because a book usually has no commissioning party. The one thing this row adds is a PROHIBITION rather than a level: THE ORDERED SECTION MUST NOT BECOME A FOLDER LEVEL. A per-chapter branch is 00's named validator failure twice over - it would 'create meaningless one-child levels' and it would 'produce empty branches when tested against the accepted group' for every chapter not yet written. The section number is a sequence position inside one work, and it is 00's own example of a child that needs its parent: 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' Chapter 12 is meaningless without the book in exactly that way. Not time-first: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders' - and a book is the extreme case, since a work drafted across several calendar years would be shredded by a year-first order. Whatever lands stays a recommendation: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "opaque_binary",
+      "filesystem",
+      "design_creative",
+      "spreadsheet",
+      "archive",
+      "email",
+      "image",
+      "ocr",
+      "audio_video",
+      "code_structured"
+    ],
+    "extensions": [
+      ".docx",
+      ".doc",
+      ".odt",
+      ".rtf",
+      ".md",
+      ".txt",
+      ".pdf",
+      ".epub",
+      ".opf",
+      ".azw3",
+      ".scriv",
+      ".scrivx",
+      ".indd",
+      ".indb",
+      ".idml",
+      ".tex",
+      ".bib",
+      ".xlsx",
+      ".eml",
+      ".m4a",
+      ".wav",
+      ".jpg",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Nightwork.scriv",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a package-shaped project whose interior manifest is not readable by any approved extractor",
+        "a same-stem folder of compiled outputs sits beside it carrying dated .docx and .epub members",
+        "the package references draft text it does not expose to the extractor",
+        "recorded as indexed-but-unreadable rather than empty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that an unreadable interior means the file is meaningless: 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.'",
+        "that the neighbouring compiled outputs may be moved away from the container that produced them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Nightwork_manuscript_v7_full.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a title page, a dedication and a generated contents field precede a long run of same-level headings named for sections",
+        "header objects carry a running head pairing the work title with the section title",
+        "document metadata carries an author slot and a template name",
+        "sits in a same-stem run v1 through v7 with byte-different members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "an author-based destination from the DOCX author slot: 'Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.'",
+        "a genre, an audience or a publication status from the text",
+        "that v7 is the current or final state - a version token orders a family, it does not adjudicate it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_ch03_draft.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a single section of continuous prose with one heading and no front matter",
+        "an ordered section token in the stem, matching a run ch01 through ch32 in the same folder",
+        "no title, no author metadata, no contents, no running head",
+        "a compile container of the same stem sits one folder above"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a work title copied onto this member because a group exists - this is the Homework 3 case and membership never writes the anchor's label onto a member",
+        "that the section number is a destination level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_copyedit_returned_TRACKED.docx",
+      "source_type": "text_document",
+      "observations": [
+        "revision-marking objects and comment objects authored by a second named person",
+        "an unmarked same-stem sibling exists with an earlier timestamp",
+        "a document named as a style sheet sits beside it listing per-work spellings, hyphenations and recurring names",
+        "the marked file is byte-different from its sibling throughout"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a stage or editing-pass node - `creative.revision-round` refused on exactly this evidence and this row inherits that refusal rather than reopening it",
+        "a `people` fact from the reviser's name; `people` is a photos-schema key, is seeded destination-ineligible, and its ceiling is user_confirmed",
+        "that the marks were accepted, rejected or acted on",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork - 1st pass pages.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "typeset pages carrying folios, running heads and a copyright page with an ISBN-shaped token and a cataloguing block",
+        "annotation objects carrying short correction marks from one named reader",
+        "shares a stem with a manuscript .docx and a compile container in the same folder",
+        "page furniture reading first pass"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the ISBN-shaped token identifies the holder's work rather than any book",
+        "a publication date, a print run or a publisher relationship from the copyright page",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Nightwork_Book_Proposal_2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sections reading Overview, Author Platform, Comparable Titles, Chapter Outline and Sample Chapters",
+        "an addressee block naming a literary agency",
+        "the Author Platform section reads as a professional biography with publication credits and audience figures",
+        "sits beside a partial extracted from the manuscript"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a `purpose` fact: PR-1 keeps `purpose` where 00's sentence puts it, on College applications, and no per-domain clone may be minted",
+        "that an addressee block establishes a client or a commissioning relationship",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_permissions_log.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns naming quoted works, rightsholders, contact addresses, requested territories, fees and a status column",
+        "a work-title header row matching a manuscript stem in the same folder",
+        "rows contain third-party names and contact details",
+        "a folder of signed grant letters sits beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a status value means a permission is valid, granted, expired or sufficient - the product decides no legal effect",
+        "a rights or licence fact: no canonical key holds a usage grant, and this row mints none",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Nightwork.indb (with Nightwork_ch01.indd ... Nightwork_ch32.indd)",
+      "source_type": "design_creative",
+      "observations": [
+        "a book-level container document enumerating member layout documents in page order",
+        "member documents carry synchronised master pages, running heads and continuous page numbering across the set",
+        "the members are the same kind as the container, not media of a different kind",
+        "an export set of the same stem sits in a sibling folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that this is the schema's LINKED-ASSET signal - the enumerated members carry a reading order and are documents, which is what separates this row's container from every other creative sibling's",
+        "that the members may be re-filed away from the container that orders them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Interview - Marisol Vega - 2026-03-04.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "a long single-channel recording with container metadata and a creation-time tag",
+        "a same-stem text file of speaker-labelled turns sits beside it",
+        "a notes document in the parent folder references the work title and a chapter number",
+        "the recording contains a third party's voice and stated identity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a person fact, a relationship or a consent status from the recording",
+        "that the content may leave the device for recognition: 'Privacy policy must be enforced before content reaches any model or external connector.'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "nightwork-book/ (.git, book.toml, src/ch01.md ... src/ch32.md, Makefile)",
+      "source_type": "filesystem",
+      "observations": [
+        "a repository marker and a build configuration at the root",
+        "the build configuration enumerates chapter sources in reading order",
+        "the source tree holds ordered markdown members and a bibliography file",
+        "a build output directory holds a generated .pdf and .epub of the same stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that anything inside a preserved repository root may be re-filed by this row",
+        "that a build config's ordered chapter list overrides the repository structure that encloses it",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_partial_50pp.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an opening run of sections extracted from a longer document, ending mid-work",
+        "a header block carrying a title, an author name and a contact address",
+        "a query letter and an agency-tracking spreadsheet sit in the same folder",
+        "shares text with a full-manuscript sibling one folder above"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the packet membership deletes the file's version_family relationship to the manuscript it was cut from",
+        "an outcome, a response or a representation status from the tracking spreadsheet",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_audiobook_ch01_take02.wav",
+      "source_type": "audio_video",
+      "observations": [
+        "an uncompressed mono recording with a take token in the stem and an ordered section token before it",
+        "a session package of a different stem sits in the parent folder",
+        "a script document carrying the same section text sits beside the takes",
+        "sibling takes cluster within one recording day"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that this row owns the recording session package - the session is its own making record and this row owns only the work being narrated",
+        "a delivery date from the clustered timestamps alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "The Overstory - Richard Powers.epub",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE - a complete package spine listing content documents in reading order, publisher-generated front matter, a copyright page with an ISBN-shaped token, a cover image and a generated contents",
+        "a retailer or distributor identifier in the package metadata, and a filename in an author-and-title pattern not used by any working file on the disk",
+        "no same-stem working file, no ordered draft run and no version family anywhere on the disk",
+        "sits in a folder with other single-file books by other authors"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a complete book apparatus proves the holder is making the book; here it proves the opposite, because retail packaging is more complete than any draft",
+        "that the ISBN-shaped token or the chapter spine is this row's evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Dissertation - Full Draft - Chen.docx",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE - a title page, an abstract, an acknowledgements page, a generated contents, a chapter run and a bibliography, structurally indistinguishable from a non-fiction book draft",
+        "a signature or approval page naming a committee, and a department formatting-compliance checklist in the same folder",
+        "a degree, programme and institution named on the title page",
+        "no proposal, no agency addressee and no comparable-titles section anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a chapter run and front matter make this a trade book; the degree apparatus is the discriminator and it belongs to a different schema",
+        "an institution fact from this row, which declares no fields at all",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "manuscript_R1_clean.docx",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE ON THE WORD ITSELF - the stem carries 'manuscript' and a revision token, and nothing else about the file resembles a book",
+        "an abstract, numbered sections in an introduction-methods-results-discussion order, figure captions and a reference list",
+        "a response-to-reviewers document and a journal submission-system receipt sit beside it",
+        "no front matter, no chapter run, no compile container"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the word 'manuscript' in a filename activates this row - it is a document-type word and a work-type VALUE the creative schema already lists",
+        "a venue, an acceptance status or an authorship order",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scan_typescript_1974_p001.jpg",
+      "source_type": "image",
+      "observations": [
+        "a flatbed-scan-shaped image with scanner metadata, no camera make or model and no GPS",
+        "an ordered page token in the stem across a run of hundreds of same-stem members",
+        "OCR yields monospaced prose with a repeated header line and a hand-written correction visible in the margin",
+        "a folder note names a work title and a decade"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a capture date from the scan timestamp - a scan's creation time is the digitisation, not the typing",
+        "that missing EXIF proves anything about the image's origin",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Nightwork - notes on the first half.eml",
+      "source_type": "email",
+      "observations": [
+        "a message from a named third party with a marked-up section document attached",
+        "the subject line carries the work title and a section range",
+        "the body quotes passages and names characters or real people appearing in the text",
+        "an earlier message in the same thread carries the outbound unmarked document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a relationship, a role or a permission from the sender identity",
+        "that quoted passages may be summarised remotely - the whole text is the confidential payload in this world",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.short-form-writing",
+      "signal": "THE LOAD-BEARING COLLISION AND THIS ROW'S OWN CHARGE, because 'book-length' names a LENGTH and a length is a value, not a situation. SAME FIXTURE: `Nightwork_ch03_draft.docx` - one file of continuous prose with a single heading, which is byte-shaped exactly like a standalone essay. THIS ROW claims it only when a compile container, a full-manuscript sibling of the same stem, or a resolved ordered run makes it a section of one continuous reading sequence. SHORT-FORM claims it when it is complete in itself, has its own addressee or outlet, or belongs to a run of unrelated stems. RECIPROCAL: short-form must not decline a piece because it is long, and this row must not claim a piece because it is long - neither side may use word count, page count or file size as evidence. Where neither resolves, both abstain: 'Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.'"
+    },
+    {
+      "domain": "creative.submission-query",
+      "signal": "SAME FIXTURE: `Nightwork_partial_50pp.docx`, the opening sections cut from the manuscript. THIS ROW claims it as a compiled state of the work, carrying a version_family relationship to the full manuscript it was extracted from. SUBMISSION-QUERY claims it as a member of a purpose-coherent packet evidenced by a query letter, a synopsis and an agency-tracking list. RECIPROCAL: the packet reading must not delete the partial's version_family link back to the manuscript, and this row must not absorb the query letter, the synopsis or the tracking spreadsheet, none of which are the work. The discriminator is the addressee, not the content: identical text, different purpose."
+    },
+    {
+      "domain": "creative.publishing-title",
+      "signal": "SAME FIXTURE: `Nightwork - 1st pass pages.pdf`. THIS ROW is the AUTHOR-SIDE holding: proofs arriving into a single work's folder beside that work's own manuscript version family. PUBLISHING-TITLE is the PUBLISHER-SIDE holding: the same proofs sitting in a production set alongside a schedule, a print specification, a jacket brief, a distribution metadata record, and OTHER TITLES IN THE SAME LIST. RECIPROCAL: the presence of other titles is publishing-title's decisive evidence and its absence is this row's; neither side may claim the other's from the proof pages alone, because the bytes are identical. This is a holder-role seam of the same shape 00 requires be modelled as distinct facets rather than collapsed."
+    },
+    {
+      "domain": "research.thesis-dissertation",
+      "signal": "SAME FIXTURE: `Dissertation - Full Draft - Chen.docx`, whose front matter, chapter run and bibliography are structurally identical to a non-fiction book draft. THESIS-DISSERTATION claims it on the DEGREE APPARATUS: a committee or approval page, a department formatting-compliance checklist, a programme and degree on the title page, a graduate-school submission receipt. THIS ROW claims a chaptered non-fiction draft only on the trade apparatus: a proposal with comparable titles, an agency or publisher addressee, a style sheet, a permissions log. RECIPROCAL: research must not claim a trade non-fiction manuscript because it has chapters and citations, and this row must not claim a dissertation because it has chapters and front matter. A revised dissertation genuinely on its way to a trade publisher holds both, which 00 permits: 'One file may hold facts from more than one domain without losing information.'"
+    },
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "A WORD COLLISION, not a structural one, and it is the reason 'manuscript' sits in this row's never_alone list. SAME FIXTURE: `manuscript_R1_clean.docx`. RESEARCH-MANUSCRIPT-PUBLICATION claims it on abstract-plus-sectioned-argument structure, a reference list, reviewer-response documents and a submission-system receipt. THIS ROW never claims it, because a journal article has no compile container, no front matter and no chapter run. RECIPROCAL: research must not decline an article because a book-shaped word appears in its stem, and this row must never activate from the word at all."
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "SAME FIXTURE: `The Overstory - Richard Powers.epub`, this row's principal collision fixture. READING-LIBRARY (or, with no project association at all, the Reading Inbox residual) claims a book the holder READS. THIS ROW claims only a book the holder MAKES. The discriminator is positive on both sides rather than an absence: retail packaging, distributor metadata and an author-and-title filename pattern support the reading side; a same-stem working container, an ordered draft run and a version family support the making side. RECIPROCAL: reading-library must not claim a compiled .epub that is the output of a working container on the same disk, and this row must not claim a complete book apparatus without a making record around it."
+    },
+    {
+      "domain": "creative.screenplay",
+      "signal": "SAME FIXTURE FAMILY: a novel and its own screen adaptation share a title, an author, a stem and often a folder. SCREENPLAY claims scene-heading and character-cue structure and its dedicated formats; THIS ROW claims the chapter run and the compile container. RECIPROCAL: screenplay must not claim a prose .docx because it contains scene-like breaks or dialogue, and this row must not claim a dedicated screenplay format because the story originated in the book. Where an adaptation folder holds both, both activate on their own evidence and neither suppresses the other."
+    },
+    {
+      "domain": "creative.translation-project",
+      "signal": "SAME FIXTURE: a chapter file containing the same section in two languages, or an ordered target-language run whose stems mirror a source-language run. TRANSLATION-PROJECT claims the parallel or aligned structure and the source-and-target pairing, which is its whole subject. THIS ROW claims the target-language book as one work when it has its own compile container and apparatus. RECIPROCAL: translation must not absorb the source work's own draft family, and this row must not flatten a two-sided translation into one book's version family, because a source revision and a target revision are not members of one sequence."
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "SAME FIXTURE: `nightwork-book/` with a repository marker, a build configuration enumerating chapter sources in reading order, an ordered markdown source tree and a generated output directory. CODE claims the preserved repository root on the manifest, the version-control marker and the source layout, and its internal structure is preserved rather than re-filed. THIS ROW recognises the ordered-section container inside it as a detection signal for grouping only. RECIPROCAL, and stated in the schema's own terms: code must not claim a chapter source tree merely because a repository encloses it, and this row must never propose re-filing anything inside a preserved repository root."
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE: `Nightwork_final_ebook.epub` or a published-book PDF sitting beside a resume and an author biography. CAREER claims the finished work as SELF-PRESENTATION: a curated set of finished outputs with no working files, ordered for showing. THIS ROW claims it as the MAKING RECORD: a compiled output whose container, draft run and paperwork family are present on the same disk. RECIPROCAL: career must not claim a compiled output that is the terminal member of a live version family, and this row must not claim a lone published file that has no making record around it - where a lone output has neither, neither activates and it falls through."
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "SAME FIXTURE: `Scan_typescript_1974_p001.jpg` and its ordered page run. PHOTOS.SCANNED-DOCUMENTS claims the scan family on scanner-origin evidence and the page-run structure. THIS ROW claims the same members as sections of one work only where an exact title reference or a transcription of the same stem resolves them as such. RECIPROCAL: photos must not lose the scan's own capture and family evidence because a work claims the pages, and this row must not manufacture a work from an ordered page run alone - a scanned run may equally be a will, a ledger or a family album."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "creative.journalism-reporting",
+      "signal": "A long-form reported book is legitimately BOTH, on disjoint evidence: the compile container, the chapter run and the book apparatus on one side; source recordings, interview logs, a fact-check apparatus and an outlet or commissioning relationship on the other. Filed as also_holds_with rather than a collision because the two do not compete for the same evidence item - the fixture `Interview - Marisol Vega - 2026-03-04.m4a` is the reporting row's material AND a member of this book's source set at the same time. Where the two readings differ is protection: journalism's posture protects SOURCES who spoke under an expectation, and this row's protects SUBJECTS who never took part at all. Neither reading may suppress the other's."
+    },
+    {
+      "domain": "legal",
+      "signal": "A publishing contract, an option agreement, a permissions grant and an assignment of copyright are legally operative instruments AND the rights record of one named book. The evidence is disjoint: a numbered clause set, defined terms, a parties block and an execution block on one side; the named work, its territory and its term on the other. The fixture `Nightwork_permissions_log.xlsx` and its folder of signed grant letters carry both readings. Neither may suppress the other, and neither decides whether any permission is valid or sufficient."
+    },
+    {
+      "domain": "career",
+      "signal": "Also listed as a collision against `career.portfolio-work-samples`, and both edges are true of different files. The legitimate double reading is the fixture `Nightwork_Book_Proposal_2026.docx`, whose Author Platform section genuinely IS a professional biography with credits and audience figures while the rest of the document is the making of one work. This is 00's stated shape - a document that holds facts from more than one domain - and it must not be used to smuggle the manuscript itself into a portfolio branch."
+    },
+    {
+      "domain": "photos",
+      "signal": "Cover photography, author portraits and archival illustrations commissioned or licensed for a book are simultaneously captures and members of the book's delivery family, on disjoint evidence: EXIF make, model and capture time on one side; a cover brief, a permissions log row and a placement in a compiled output on the other. Listed here as well as in the collision against `photos.scanned-documents` because the two cases are different files: the collision is about scanned pages, this entry is about pictures made FOR the book."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The normal outcome for this row, not the exceptional one, because an unresolved chapter file, an untitled draft and a version-token stem are the ordinary state of a book in progress. 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Where the collision fixture belongs and therefore the most important fallthrough this row has. A purchased ebook, a downloaded book PDF, a sample chapter of someone else's title: complete book apparatus, no making record. 'Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone durable artefact of a book with no group around it - a single proof PDF, a lone signed permissions grant, a copy of a published edition simply kept. 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary here rather than exceptional: writing-app packages whose interiors no approved extractor reads, and rights-protected ebook containers. 'Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The unattached research end of this world - saved articles, quotations, clipped passages and reading notes kept for a book that may never exist. The residual's own clause is the exact test: they are 'useful for later retrieval but does not belong to a current project.'",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherits the creative schema's unpublished-work posture, which already names this material by name, and adds ONE difference that is genuinely this row's and is the reason the third limb of the node test is argued rather than conceded. THE SENSITIVE THIRD-PARTY DATA IS INSIDE THE WORK'S OWN TEXT, NOT IN A SIDECAR. A memoir names living family members; a biography or an investigative book names subjects who never took part in the process and never consented to anything; a novel drawn from life carries recognisable people under thin cover. In every other creative row the identifying material sits in a separable artefact - a model release, a call sheet, a cast list - which can be handled apart from the work. Here it cannot: redact the names and the book is gone. The consequence for handling is concrete rather than rhetorical - there is no safe excerpt, because any excerpt of a memoir or a biography is exactly the sensitive content, so the usual expedient of sending a bounded passage for enrichment is unavailable to this row specifically. Against that: 'Privacy policy must be enforced before content reaches any model or external connector.' Two further reasons, weaker but real: (1) a pen name is a secret whose whole content is the LINK between two names, and a filesystem that files the work under one and the author metadata under the other discloses it by structure alone; (2) an embargoed proof or advance copy is the publisher's confidence and the author cannot consent on their behalf. This row does NOT carry is_safety_domain - that flag stays with 00's four - and it assigns no handling class, which is P7's vocabulary.",
+  "open_question": "Four. (1) NJ-BM-1, THE THIRD LIMB. This row is accepted on the FIRST limb of the node test (its compile-container and book-apparatus signals are absent from the schema default) and argues the third only partially, because the schema's own sensitivity_why already claims 'a manuscript before submission' as an unpublished-work case. The difference claimed here - that third-party identity is inseparable from the work's own text - is an INFERENCE from the material, not a design quote, and it overlaps the protection `creative.journalism-reporting` claims for sources. If R1c judges the two indistinguishable, this row keeps the node on limb one alone and the sensitivity paragraph reduces to an inherited posture. The alternatives are: (a) keep both rows with the subject-versus-source distinction recorded as here; (b) let journalism own the whole protective posture and have this row inherit it; (c) raise the distinction to the schema, where it would apply to every prose sibling. (2) NJ-BM-2, THE SECOND LIMB IS CONCEDED. This row's dimension recommendation is the schema default UNCHANGED, plus one prohibition (no per-chapter folder level). If option (b) of NJ-R1a-1 lands and `project` and `artifact_type` open folder levels, R1c should decide whether a prohibition is expressible in the template contract at all, or whether it must live as a validator rule beside 00's existing 'meaningless one-child levels' check. (3) NJ-BM-3, NO KEY IS MINTED AND ONE HOLE IS REAL. A book has a work identifier that is neither a title nor a project name - the identifier printed on the copyright page - and a book's ordered section carries a POSITION that must never be a destination. Neither gets a proposed field here, deliberately: minting on a fieldless schema is the 574's mistake at the point of maximum temptation, and the schema's own open_question already records the adjacent rights-and-licence hole for R1c. The alternatives if R1c disagrees: (a) leave both unrepresented; (b) let the identifier ride as a searchable observation with no field; (c) reuse `artifact_type` for the section kind and represent order only as P9 graph structure. This row recommends (c) and does not take it. (4) NJ-BM-4, THE AUTHOR-SIDE VERSUS PUBLISHER-SIDE SEAM IS UNRESOLVED IN ONE DIRECTION. The boundary against `creative.publishing-title` turns on whether OTHER TITLES are present, which is a corpus-level observation rather than a file-level one, and the activation algorithm reasons about files. R1c should decide whether a corpus-shape observation may inform activation at all, or whether the seam must instead be drawn per-file on the presence of a production schedule and distribution metadata, which is weaker but local. No role_split is authored for the author-and-publisher pair, or for the ghostwriter-and-credited-author pair, because the schema declares no field to split - both are recorded here so that whichever pass declares fields cannot collapse them."
+}

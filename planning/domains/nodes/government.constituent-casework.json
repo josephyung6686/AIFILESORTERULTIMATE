@@ -1,0 +1,604 @@
+{
+  "id": "government.constituent-casework",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Constituent and citizen casework",
+  "one_line": "The organizational situation of an office that takes up ONE NAMED PERSON'S PROBLEM WITH A PUBLIC BODY IT DOES NOT CONTROL — an elected member's or councillor's casework team, an ombudsman or public-advocate office, a statutory advocacy or complaints-referral office. Its structural signature is a three-party file: the petitioner, the holder office acting only on the petitioner's written authority, and a separately named respondent authority that is asked rather than instructed. That is the inverse of the government schema's default, where the holder is the body exercising the function and its own determination closes the file; here the closing document is somebody else's answer, and the office's own output is an approach, a chase, and a report-back. Placeholder launch: it writes NO field rows because the government schema declares none under PR-6, and its recommended dimension order is therefore empty. What it does add over the schema default is a distinct authorisation-and-approach detection signal, a per-petitioner privacy firewall across an unusually large population of unrelated private individuals, and a residual default of Protected Records rather than Independent Records.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below is an activation signal for this template, not a licence to write a government fact. The schema declares no field rows, so an accepted signal unlocks recognition, grouping candidacy, safety posture, and universal facts only. No signal may name the petitioner as an organizing fact.",
+      "a signed authority-to-act, consent-to-represent, or data-release record in which a named private individual authorises the holder office, by name, to correspond with a SEPARATELY NAMED public body about that individual's own matter — the discriminating artifact of this row, and the one no other government template requires",
+      "an outgoing letter or email from a public office mailbox or letterhead that opens on behalf of a named individual and is ADDRESSED TO ANOTHER AUTHORITY, carrying the holder's own case reference and enclosing or citing the authorisation",
+      "a chase, reminder, or holding-response thread on one case reference in which the holder office is waiting on the respondent authority — a cadence of escalating asks with no determination by the holder",
+      "a closure, referral-back, premature-complaint, or out-of-jurisdiction letter that declines to decide because the respondent body's own complaints route is unexhausted or the matter lies outside the office's remit; a refusal of jurisdiction is structurally different from a decision on the merits",
+      "an outcome or report-back letter to the petitioner that RELAYS the respondent authority's answer and states what the office did, without asserting entitlement, merit, or a remedy the office can grant",
+      "a casework log, register, or case-management export whose rows carry a holder case reference plus a RESPONDENT-AUTHORITY column — the presence of a named external body per row, not merely a status column, is what separates this from a support queue",
+      "a constituent surgery, advice-session, or public-advocate clinic list or calendar in which the organiser is the public office, the attendee is a named private individual, and a case reference or presenting issue is attached",
+      "an evidence bundle supplied BY the petitioner — an award notice, tenancy letter, refusal decision, identity copy, or medical letter addressed to the petitioner by a third body — filed against the holder's case reference; the bundle is evidence in the case, never a record of the holder's own function",
+      "a case-management export or correspondence archive whose manifest shows many per-case folders, each bounded to one petitioner, with no shared subject matter across them"
+    ],
+    "needs_llm": [
+      "distinguishing whether the holder office is the body that can DECIDE the matter or only the body that can ASK about it, when the letterhead is a public authority in both readings",
+      "separating an authority-to-act for non-legal advocacy from a solicitor's retainer, a medical records release, an insurance claim authority, or a power of attorney, all of which share the signed-consent shape",
+      "reading whether a case reference belongs to the holder's own scheme or to the respondent body's internal complaints scheme, when only one reference appears on the page",
+      "judging whether an inbound letter is the petitioner's own copy of their correspondence or the office's file copy, when the addressee block is the only difference",
+      "recognising a referral-back or premature-complaint closure as a jurisdictional outcome rather than as a substantive refusal of the petitioner's request",
+      "deciding whether an appointment list is a political-office advice session or a clinical, veterinary, or professional surgery, when the word 'surgery' is the only anchor",
+      "reading an export manifest well enough to see per-case bounding without unpacking the archive or opening member documents"
+    ],
+    "never_alone": [
+      "the words constituent, casework, caseworker, ombudsman, complaint, advocate, surgery, or enquiry alone; a ward mailing list, a campaign leaflet, a clinical surgery rota, and a company complaints policy all carry them",
+      "an elected member's, councillor's, senator's, ombudsman's, or public-advocate office name, letterhead, seal, crest, or mailbox domain alone; the office also runs a campaign, an employer relationship, a policy function, and a public communications stream from the same identity",
+      "a named private individual plus a named public body on the same page; that pairing is produced equally by a benefit letter, a tax notice, a summons, a school placement, a permit decision, and a voter registration confirmation",
+      "a case, reference, or ticket number alone; the respondent authority's own complaints scheme, a support desk, a permit register, an FOI log, and a court list all mint reference-shaped tokens",
+      "a signed consent, authority, release, or mandate form alone; a legal retainer, a medical records release, a mortgage broker mandate, and a claims-handler authority share the shape and the signature block",
+      "a contact list, address book, electoral extract, petition signature sheet, or mailing spreadsheet containing many constituents; a population of names is not a population of cases and creates no case anchor",
+      "receipt of the correspondence by the petitioner; identical bytes on the citizen's side are their personal record, and this row must not activate on the recipient's copy",
+      "an office folder named Casework, Constituents, Ward, Cases, or Correspondence alone; folder names are user context, not custody evidence",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a shared download or export session; “A session should never be treated as proof of topic”",
+      "dense text or absent metadata as proof that an image is a case-portal capture; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [
+    "on behalf of my constituent",
+    "authority to act",
+    "consent to act on my behalf",
+    "your reference / our reference pairing on one letter",
+    "I should be grateful for a response by",
+    "premature complaint",
+    "outside jurisdiction / outside remit",
+    "internal complaints procedure not exhausted",
+    "advice surgery",
+    "report back to the constituent"
+  ],
+  "work_types": [
+    "authority-to-act, consent, or data-release record signed by the petitioner",
+    "intake or presenting-issue note taken at a surgery, advice session, or first contact",
+    "approach or representation letter from the holder office to a respondent authority",
+    "chase, reminder, escalation, or holding-response correspondence on one case",
+    "respondent authority's substantive reply, review outcome, or refusal",
+    "evidence bundle supplied by the petitioner in support of the case",
+    "referral-back, premature-complaint, out-of-jurisdiction, or signposting closure",
+    "outcome or report-back letter from the holder office to the petitioner",
+    "casework register, log, or case-management export row",
+    "surgery or advice-session list, roster, and appointment record",
+    "aggregate casework theme, volume, or systemic-issue report produced from many closed cases"
+  ],
+  "grouping_reasons": [
+    "one petitioner's case, bounded by an exact holder case reference and never widened by the petitioner's name, address, ward, postcode, agency, or issue category",
+    "the approach, chase, reply, evidence bundle, closure, and report-back that carry the same case reference belong together even though they are content-incoherent, because they are purpose-coherent: “Purpose must be a first-class facet.”",
+    "a surgery or advice-session list is a single administrative member of the office's operating record; it is NOT a group parent, and it must not spread one case's facts across every named attendee on it",
+    "a case-management or correspondence export is one manifest-level group, kept shallow until per-case access boundaries are known and never unpacked merely to strengthen recognition",
+    "an aggregate casework theme report is grouped with the office's operating record, not with any case it was derived from; derivation is not membership",
+    "duplicate and version families of a template approach letter, standard consent form, or closure letter remain universal relationships and acquire no case facts from neighbourhood context",
+    "cross-petitioner semantic similarity is suppressed as a grouping reason: unrelated individuals routinely share the same respondent authority, the same issue category, the same ward, and the same template letter text",
+    "no group is a valid outcome; a single relayed notice with a durable purpose and no accepted case anchor is a standalone record, and a single disclosive letter about a named person with no accepted case anchor goes to Protected Records rather than being forced into a group"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract. PR-6 leaves the government schema with no field rows, and a template cannot branch on undeclared fields; every landed government template is in the same position. Recorded as prose for later adjudication: the only defensible first level here is the CASE as a bounded, opaque reference, then the function of the document within it (authorisation, approach, chase, reply, evidence, closure, report-back). The petitioner must never become a dimension even if a person-shaped field is later ratified, because a visible branch label would disclose that a named individual brought a benefit, housing, immigration, or child-protection problem to a public office. The respondent authority must not be first either: it would scatter one person's case when it is escalated from a department to an ombudsman, and it would build a browsable index of which agencies a named person is in dispute with. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — a casework file opened in one year and closed in the next would be split at exactly the point where the chase matters. Any later order stays editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "contacts",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".bak"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Authority to Act - A Rahman - Case 8841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "public office letterhead with a named elected member or ombudsman office",
+        "labelled slots for the individual's name, address and signature",
+        "wording authorising the office to contact a separately named public body about the individual's matter",
+        "office case reference repeated in the header and the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the individual's name, address, or issue as a destination fact",
+        "that the authorisation is valid, current, or legally sufficient",
+        "that the named respondent body has any obligation to respond",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case 8841 - approach to Housing Options - 04 Sept 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sender block is the holder office; addressee block is a different public authority",
+        "opening line writes on behalf of a named individual",
+        "our-reference and your-reference pairing",
+        "enclosure line citing a signed authority"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the holder office decides the housing matter",
+        "the merit of the individual's claim",
+        "the respondent authority as an owner fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Case 8841 - third chase - no substantive reply since 14 July.eml",
+      "source_type": "email",
+      "observations": [
+        "office mailbox in the sender slot and an agency mailbox in the recipient slot",
+        "case reference in the subject and in the quoted reply chain",
+        "body escalates a request for a response and references earlier unanswered messages",
+        "no determination or decision language attributable to the sender"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the respondent authority is at fault or in breach",
+        "the individual's identity as a destination fact",
+        "an entitlement, remedy, or outcome",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case 8841 - premature complaint - referred back to Council complaints.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "ombudsman or advocate office letterhead",
+        "statement that the body's own complaints procedure has not been exhausted",
+        "remit or jurisdiction paragraph",
+        "signposting to the respondent body's internal route with the office reference retained"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the complaint is unfounded",
+        "that the case is legally closed or time-barred",
+        "a jurisdictional rule as a durable fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Casework log 2026 - open cases by agency.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row with case reference, opened date, respondent authority, issue category, status, last chased, closure reason",
+        "many rows, each naming a different individual and a different external body",
+        "a respondent-authority column populated on every row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any individual row as a case fact copied onto a member document",
+        "issue category as a topic for the whole office",
+        "volumes, performance, or agency responsiveness as findings",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ward 7 advice surgery - 12 September - appointment list.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "time slots with attendee names and a presenting-issue column",
+        "venue and staffing columns naming the office's own caseworkers",
+        "a follow-up column carrying case references for some rows and blanks for others"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every attendee has an open case",
+        "one row's case reference as a fact about the whole list",
+        "the venue or ward as a destination fact",
+        "that this is a clinical surgery list",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Constituent surgery appointments.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organiser is the public office mailbox",
+        "attendee is a single named private individual",
+        "location is a community venue and the description carries a case reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the attendee as a destination fact",
+        "attendance, outcome, or issue from the event alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case 8841 - benefit award notice supplied by constituent.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing agency letterhead addressed to the named individual, not to the office",
+        "labelled award, entitlement and payment slots",
+        "office case reference stamped or written on after receipt"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the office holds a finance or benefits record of its own",
+        "the award amount or entitlement as a fact of this domain",
+        "that the notice is current or correct",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-09-02 - agency case tracker status.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in dimensions, naming convention and capture metadata",
+        "OCR text shows an external agency portal chrome with a status row and a reference token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the portal reference as an office case fact",
+        "the displayed status as a durable outcome",
+        "screen origin from absent metadata alone",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Constituent correspondence export - September 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest listing many per-case folders, each bounded to one reference",
+        "mixed member types inside each folder: letters, emails, spreadsheets, scans",
+        "no shared subject matter across folders"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any member's facts from the manifest alone",
+        "that the export may be unpacked to improve recognition",
+        "a single case anchor for the whole archive",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Casework CMS nightly backup.bak",
+      "source_type": "opaque_binary",
+      "observations": [
+        "unknown binary container with no readable manifest",
+        "filename mentions a case-management system"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any case, individual, agency or volume from the filename",
+        "that the container may be opened or parsed to classify it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Complaint CC-2026-0442 - final response - Council Complaints Team.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letterhead of the body being complained about, addressed to a named individual",
+        "stage-two final-response structure with findings and a remedy offer",
+        "reference belongs to the respondent body's own complaints scheme",
+        "no authorisation naming a third office and no intermediary in the correspondence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a casework intermediary is involved",
+        "that this row is active on complaint vocabulary and a reference token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ward 7 constituent mailing list - autumn newsletter.csv",
+      "source_type": "contacts",
+      "observations": [
+        "name, address, postcode and contact-preference columns",
+        "no case reference, no authorisation, no respondent authority",
+        "distribution and opt-out columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the word constituent activates casework",
+        "that a population of named residents is a population of cases",
+        "any individual as a case member",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Service desk ticket export - Q3 - IT and facilities.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "ticket id, requester, category, assignee, resolution time and SLA columns",
+        "requesters are the organisation's own staff or product users",
+        "no external respondent-authority column and no authorisation artifact"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a ticketed queue inside a public organisation is constituent casework",
+        "a case anchor from a ticket id",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Petition - save the Elmfield bus route - signatures.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "many signatory names and postcodes against one issue statement",
+        "one shared subject and no per-person matter",
+        "no authorisation to act for any individual signatory"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a case for any signatory",
+        "that a shared civic grievance is an individual's casework",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Casework themes 2026 - housing repairs and benefit delays.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "aggregate narrative with counts, categories and named agencies",
+        "no individual case reference and no named petitioner",
+        "framed as a systemic report for publication or to a scrutiny committee"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "membership in any individual case group",
+        "that the aggregate lowers the sensitivity posture of the cases behind it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.social-services-casework",
+      "signal": "The same bytes occur on both sides: a file about one named person's housing, benefit, care, or child-welfare problem held by a public office. The deciding evidence is POWER OVER THE OUTCOME. Social-services casework is the deciding authority's own statutory file — it assesses, it owes the duty, and its own determination closes the record. This row's holder can only ask: it acts on the individual's written authority and files somebody else's answer as the outcome. Shared fixture: a letter about Ms A's housing. On the allocating authority's letterhead deciding her application it is social-services casework; written by an outside office on her authority asking that authority to reconsider, it is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The respondent body's own complaints, correspondence, and enquiry-handling records share every surface feature with this row — a named individual, a public letterhead, a reference token, a chase, a final response. The discriminator is whether the holder is the respondent or the intermediary. Shared fixture: `Complaint CC-2026-0442 - final response - Council Complaints Team.pdf` — held by the council that answered it, it is that authority's own record; held by an ombudsman or member's office with an authority-to-act and its own separate reference, it is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-records-foi",
+      "signal": "Both rows hold a request made to an authority, a search and chase cycle, a statutory-ish deadline cadence, and a refusal or review letter. The discriminator is WHOSE INTEREST the request serves and which side the holder sits on. FOI is the records-holder's own disclosure process, and the requester's identity is normally irrelevant to the answer; this row is an intermediary asking about one named person's own matter, and the person's identity is the whole basis of the request. Shared fixture: `RE Case 8841 - third chase.eml`. If the chase is for records requested under an access regime and the holder is the answering authority, it is FOI; if it is a request for a decision on a named individual's case made on that individual's authority, it is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "The petitioner's own copy of this correspondence is the same bytes seen from the other end. The discriminator is holder role and corpus shape: the office's corpus contains many unrelated individuals with one case each, always with an office reference and file copies of outgoing letters; the individual's corpus contains one person's matter with inbound letters addressed to them. Shared fixture: `Case 8841 - outcome letter`. Addressed to the individual and held by them, it is a personal legal or protected record; held by the office as its outgoing file copy alongside the authorisation and the approach, it is this row. Neither side may activate on the other's copy.",
+      "design_cite": null
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "Both open with a signed instrument by which a person authorises a professional office to act, and both proceed by correspondence with third parties under one reference. The discriminator is the nature of the mandate. A retainer or engagement letter for LEGAL SERVICES with fee terms, a counsel role, and standing in proceedings supports the practice matter file; a consent or data-release letting a non-legal public office correspond with an agency, with no fee and no representation in proceedings, supports this row. Shared fixture: `Authority to Act - A Rahman.pdf` — the fee basis and the services described decide it.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "Case registers, queue exports, SLA and response-time reporting, escalation paths, and template replies are structurally identical. The discriminator is the third party and the direction of resolution: support operations is a continuous queue of the holder's OWN users or staff, and the holder resolves; this row's petitioner is not the holder's customer, and resolution can only come from a separately named authority. Shared fixture: a case-queue spreadsheet. With a requester, assignee, and resolution-time column it is support operations — including inside a public body's own IT service desk; with a respondent-authority column populated per row and an authorisation artifact behind it, it is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.political-campaign",
+      "signal": "An elected member's office keeps casework and campaign material in one drive, and both name the same residents. The discriminator is a case versus a contact. Canvass returns, voter-contact spreadsheets, mailing lists, leaflets, and fundraising records are campaign material even when the individuals in them later become petitioners. Shared fixture: `Ward 7 constituent mailing list.csv` — a distribution list with opt-out columns is campaign material; the same person's file with an authorisation, an approach, and a respondent authority is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.advocacy-campaign",
+      "signal": "Petitions, systemic-issue reports, and lobbying correspondence about the same grievance look like aggregated casework. The discriminator is whether an individual is the subject or the issue is. Shared fixture: `Petition - save the Elmfield bus route - signatures.csv` — many people behind one shared issue with no per-person matter is advocacy; one person's authorised complaint about their own bus pass is this row. An aggregate themes report derived from closed cases is advocacy-shaped output and does not join any case group.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a recognised casework artifact naming a private individual — an authorisation, an approach, a chase, an evidence bundle, a surgery list, or a closure — has no accepted case group; this is this template's DEFAULT residual, and it differs from the government schema's default of Independent Records because a single letter about a named person's benefit, housing, immigration, or care problem is disclosive standing alone",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the artifact is plainly official casework-shaped correspondence but the holder role cannot be settled — respondent body, intermediary office, or the individual's own copy — and guessing would misfile it into a neighbour",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a non-personal casework-adjacent artifact has durable standalone value and no case anchor — an aggregate themes report, a published complaints-procedure leaflet, a blank consent template, or a service-standards notice",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of an agency portal, tracker, or mailbox yields no accepted case anchor from OCR",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a case-management backup, encrypted correspondence archive, damaged export, or unknown binary cannot yield evidence beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Stricter in practice than the schema default even though the label is the same, because the corpus shape is different: not one authority's own function but a large population of UNRELATED named private individuals, each present only through their worst administrative problem — benefit refusal, eviction, immigration status, child welfare, care, debt, or a complaint against the state. A filename alone can be disclosive, so this row's default residual is Protected Records rather than Independent Records, display labels must stay redacted, and the case reference rather than the person must carry identity. Cross-petitioner joining is suppressed as a grouping reason, not merely discouraged. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” The office also holds published leaflets and aggregate reports that are genuinely low-risk bytes, but their presence cannot lower the posture of the case files beside them.",
+  "open_question": "NEEDS-JOSEPH: (1) This row's discriminating artifact is a signed authority-to-act, which is the same shape as a legal retainer, a medical records release, and a claims mandate. Decide centrally whether a mandate-or-authorisation recognition family is adjudicated once across legal, medical, finance, and government, or argued separately in each row — this row assumes the latter and may be creating a fourth copy of one rule. (2) If PR-6 is lifted, decide whether a bounded, opaque CASE REFERENCE may exist as a government field and whether it may ever be destination-eligible; this row needs it more than any government sibling and can least afford a person-shaped field beside it. (3) Decide whether an office's aggregate casework themes report is government operating record, advocacy output, or both, since it is derived from protected cases but is written for publication."
+}

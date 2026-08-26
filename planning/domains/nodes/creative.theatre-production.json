@@ -1,0 +1,640 @@
+{
+  "id": "creative.theatre-production",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Theatre and live performance production",
+  "one_line": "Mounting a show and then RUNNING it: the script becomes a cued prompt copy, the design becomes a scaled plan plus a schedule keyed to it, and the finished work is performed again on dated occasions, each of which generates its own report. The unit is one PRODUCTION - one staging of one text at one venue in one season - held together by a departmental grammar (SM, LX, sound, wardrobe, props, set) and by CUE NUMBERS that join documents no other creative row joins. Its defining filing consequence is the RUN: forty near-identical dated forms that a duplicate or version-family detector would collapse and must not. PLACEHOLDER ROW (J-IND, written to J-DEPTH): it writes NO field rows, because the creative schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), and therefore recommends NO folder dimensions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so a production's paperwork is recognised as one body, kept local where the sensitivity posture says so, and not scattered by department or by performance date. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "THE RUN AS A REPORT SERIES - the signal that is this row's and no sibling's. A set of same-stem dated documents, one per occasion, each carrying an occasion ordinal (Perf 27, Show 14, Matinee), a running-times block broken by act with an interval, an audience or house figure, and a fixed set of departmental note headings. Their bodies are ninety percent identical and their differences are three lines. 00 already collects the structural half universally - \"duplicate and version-family signals\" - and this row's whole contribution is that here the structure LIES in the opposite direction from everywhere else in creative: the members are neither duplicates nor versions of each other, they are separate events, and \"A content-hash match supports deduplication review; a filename match alone does not.\"",
+      "A CUE-NUMBERED CROSS-DOCUMENT JOIN: short alphanumeric cue tokens of the shape LX 42, SQ 7, FLY 3, Q19, appearing in a margin column of a script, again as rows of a list document, and again as note targets on a report. This is a join key that is not a version number, not a date and not a filename stem, and it is the only such key in the creative family. A cue token seen once and nowhere else is worthless; the signal is the RECURRENCE ACROSS DOCUMENT KINDS.",
+      "A PROMPT-COPY structure: script element grammar - scene or act headings, character cues above dialogue - carried on pages that ALSO have a ruled margin or facing column holding standbys, cue tokens, entrance and exit marks, and blocking notation. The text side alone is a script; the annotation column is what makes it the production's operating document rather than the writer's work.",
+      "A PLOT-AND-SCHEDULE PAIR: a scaled drawing of a physical space (groundplan, rig plan, section) whose annotated objects are lanterns, speakers, flying bars, rostra or entrances, accompanied by a tabular schedule keyed to the same drawing by unit or channel number - typically channel, dimmer, position, unit type, gel or colour, focus and purpose. Neither half is decisive alone; a drawing without its schedule is a design file and a schedule without its drawing is a spreadsheet.",
+      "A DEPARTMENTAL SECTION VOCABULARY: a small, stable, repeating set of headings - Stage Management, LX or Lighting, Sound, Wardrobe, Props, Set or Construction, Company - used as the internal structure of reports, as the addressee of notes, and often as sibling folder names. Its stability is the signal; the same seven words recur across unrelated documents in the neighbourhood.",
+      "A REHEARSAL-CALL structure: a dated document naming a start and finish time, a room, a scene or act range to be worked, and a list of who is CALLED - by character name as often as by person name. Distinct from a film call sheet, which schedules future CAPTURE of new material and names unit base, scene numbers to be shot, weather and nearest hospital.",
+      "A RUNNING PLOT structure: a positional table - stage left / stage right, preset / strike, act and scene - listing objects or costume pieces against the moment they move. Props plots, quick-change plots and scene-change plots all take this shape, and its distinguishing feature is that the columns are PLACES and MOMENTS rather than dates.",
+      "A COMPANY-PAPERWORK structure: a contact or company list carrying, per row, a person's name, their role or character, a phone number, and frequently an emergency contact and a next-of-kin. This is the row's sharpest protected fixture and it is ordinary production paperwork, not an exception.",
+      "A GET-IN / FIT-UP / TECH schedule: a dated half-day-blocked plan naming a venue, a load-in, a fit-up, a focus session, a tech or cue-to-cue, a dress, and a get-out - a schedule whose units are half-days against a venue rather than days against a location.",
+      "A PROGRAMME or FRONT-OF-HOUSE structure: a printed piece carrying a cast list in billing order, a creative-team credit block, a production sponsor or venue block, and a dated season line. It is the one member of this world that is both the production's own output and, for every person named on it, somebody else's career document.",
+      "AN OPAQUE SHOW-CONTROL PACKAGE: a show-file or workspace whose interior is not readable by any approved extractor but which sits beside a cue list and a prompt copy carrying the same cue tokens. 00 makes the abstention a recorded state - \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\" - and in this row that state is ordinary."
+    ],
+    "needs_llm": [
+      "deciding whether a run of dated same-stem forms is a report SERIES (separate occasions of one production) or a version FAMILY (drafts of one document) - the single judgement this row exists to get right, and one that filename and hash evidence alone answer wrongly",
+      "deciding whether an annotated play text is a prompt copy or a reader's annotated edition, when the annotation is handwritten and reaches the extractor only through OCR",
+      "deciding whether a cued run sheet governs a staged work with characters and scenes, or a corporate or conference event with agenda items and named speakers - both carry cue tokens, times, a caller and a rehearsal",
+      "deciding whether a production's paperwork is the corpus owner's PRODUCTION (they mounted it, so all departments are present) or their ENGAGEMENT in it (they performed or designed in it, so only their department is present)",
+      "reading a departmental note on a report - \"tab needs re-dressing\", \"understudy on from Act 2\" - to judge whether it is an ordinary technical note or a health or incident record that changes the file's posture",
+      "naming the production when the folder is called `SHOW` and the members are `plot.xlsx`, `sched v4.pdf` and `book.pdf`"
+    ],
+    "never_alone": [
+      "a THEATRE, COMPANY or VENUE NAME on its own - the direct read-across of 00's warning: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A theatre's name in this world appears as the producing house, the receiving venue on a tour, the rehearsal-room landlord, the corpus owner's employer, a credit in someone else's programme, and a building merely photographed",
+      "a PLAY TITLE alone - `Hamlet`, `The Cherry Orchard`, `Guys and Dolls` are the most reused strings in this domain and attach equally to a school text, a downloaded public-domain edition, a cast recording, a ticket confirmation, an essay and an actual staging. A title is a retrieval hook, never an activation",
+      "a CUE-SHAPED TOKEN seen once - `Q4` is a fiscal quarter, a queue, a question number and a lighting cue. The signal is recurrence across document kinds; a lone `Q4` in a filename is the row's cheapest false positive",
+      "a SCRIPT ELEMENT GRAMMAR alone read as a production - scene headings and character cues survive in a downloaded public-domain play, a screenplay, a student's set text and a competition submission. The prompt-copy reading needs the annotation column, and the production reading needs a department or a cue list somewhere in the neighbourhood",
+      "a CAST LIST or a CREDIT BLOCK alone - a list of people against roles is also a wedding party, a committee, a film crew, a conference panel and the back page of somebody else's programme",
+      "a DATED CREW DOCUMENT alone read as a show report - the discriminator is what the date DOES. A film call sheet schedules future capture; a show report records a completed repeat of finished material. Both are dated, both name departments, both list people",
+      "a PERSON'S NAME, or document author metadata, read as anything placement-bearing - \"It should avoid using authorship or creator identity as a destination dimension.\" In a production packet almost every document was typed by the stage manager, so the author slot would collect the entire show under one name and say nothing",
+      "a parent folder named Theatre, Shows, Productions or the show's title read as a fact - it is user vocabulary that legitimately influences retrieval (\"Existing curated folders and user-entered labels should influence retrieval because they represent the user’s vocabulary\") and is not itself a production",
+      "the ABSENCE of a client read as proof this is not professional work - a production is usually mounted BY the producing organisation rather than FOR a commissioning counterparty, so this row is the clearest case in the family where the default template's client level simply has no occupant. Absence of a counterparty must not deactivate anything",
+      "capture metadata on production photography read alone as a photo event - agreeing camera, capture time and location across a dress rehearsal would propose a capture-date home and scatter one production across the nights of its own run",
+      "a .pdf, .xlsx or .docx SOURCE_TYPE anywhere in this row - this is the most format-poor world in the creative family, its documents are ordinary office files, and 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\""
+    ]
+  },
+  "proposed_context_terms": [
+    "prompt copy",
+    "prompt book",
+    "blocking",
+    "standby",
+    "cue to cue",
+    "cue sheet",
+    "cue synopsis",
+    "LX plot",
+    "channel hookup",
+    "patch",
+    "gel",
+    "focus",
+    "rig",
+    "fly plot",
+    "groundplan",
+    "white card",
+    "set model",
+    "props plot",
+    "running plot",
+    "quick change",
+    "rehearsal call",
+    "rehearsal report",
+    "show report",
+    "running time",
+    "house count",
+    "get-in",
+    "fit-up",
+    "get-out",
+    "tech",
+    "dress rehearsal",
+    "preview",
+    "press night",
+    "matinee",
+    "understudy",
+    "swing",
+    "stage management",
+    "DSM",
+    "company manager",
+    "wardrobe",
+    "front of house",
+    "billing",
+    "cast list",
+    "band call",
+    "sitzprobe"
+  ],
+  "work_types": [
+    "prompt copy",
+    "script or libretto draft",
+    "cue sheet or cue synopsis",
+    "lighting or sound plot",
+    "channel hookup or patch schedule",
+    "groundplan or technical drawing",
+    "set model or white-card documentation",
+    "design rendering or costume drawing",
+    "props or running plot",
+    "rehearsal call or production schedule",
+    "get-in and get-out schedule",
+    "rehearsal report",
+    "show report",
+    "company or contact paperwork",
+    "risk assessment or method statement",
+    "score or instrumental part",
+    "programme or front-of-house print",
+    "production photography",
+    "archive recording"
+  ],
+  "grouping_reasons": [
+    "one production across all of its departments, however format-incoherent the members",
+    "one RUN held as a report series - a set of dated per-performance forms that are separate occasions rather than versions of each other",
+    "one performance or rehearsal date and everything it generated",
+    "one cue number appearing across a prompt copy, a plot and a report",
+    "one department's material across a production, where a departmental folder already exists",
+    "one venue or one leg of a tour, where the same production is re-plotted for a different stage",
+    "one drawing and the schedule keyed to it by unit or channel number",
+    "an existing curated folder the company or the stage manager already made and named"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT. A dimension may only branch on a field the entry's schema declares (D6, _CONTRACT rule 8) and `creative` declares none (D1 as narrowed, rules 10 and 15, CONNECTION PR-6). The recommendation is therefore held here as prose, and it is stated as a DIFFERENCE from the creative default template, which is the leg the node test asks for. THE DEFAULT is client (only where the corpus genuinely serves more than one) then project then stage then artifact_type. THIS ROW DIFFERS IN THREE WAYS. (1) The client level has no occupant: a production is normally mounted BY the producing organisation, not FOR a commissioning counterparty, so the default's top level would be exactly the collector 00's own validator rejects - it must not \"create meaningless one-child levels\" and must not \"use an author or organization merely as a collector\". (2) The stage level does not run to completion and stop. The default's progression - brief, concept, draft, approved, delivered - ends at handoff; here the work goes into a RUN, and everything generated after opening night is generated by a finished work being repeated. A DATE level under the production is therefore genuinely wanted for the run, and only for the run, which no other creative row needs. (3) The deepest useful level is a DEPARTMENT, not an artifact_type: an LX plot, an LX cue sheet and an LX note are one person's working set and belong together, whereas the default's deepest level would file the plot with other drawings and the cue sheet with other spreadsheets. No key is proposed for it (see open_question). Not time-first at the top: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\", and a production is the clearest instance - a year-first order would split one show's rehearsals from its own run when they cross a New Year. This row does NOT claim the photos exception; \"Photos and capture-based media are the major exception\" is granted to capture-based material and this row's material is overwhelmingly paperwork. The parent-context test fixes the order - \"a parent dimension should provide the context required to understand the child. A work type such as Homework 3 is meaningful only after the course is known\" - and `Show Report Perf 27` is meaningless without the production, exactly as Homework 3 is meaningless without the course. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "design_creative",
+      "image",
+      "audio_video",
+      "presentation",
+      "ocr",
+      "filesystem",
+      "archive",
+      "opaque_binary",
+      "email",
+      "calendar"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".fdx",
+      ".dwg",
+      ".dxf",
+      ".vwx",
+      ".skp",
+      ".ai",
+      ".psd",
+      ".jpg",
+      ".png",
+      ".arw",
+      ".cr3",
+      ".mp4",
+      ".mov",
+      ".mxf",
+      ".wav",
+      ".mp3",
+      ".ics",
+      ".eml",
+      ".zip",
+      ".qlab",
+      ".show",
+      ".mus",
+      ".sib"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Show Report - The Cherry Orchard - Perf 27 - 2026-11-19.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a one-page form: performance ordinal, date, an act-by-act running-times block with an interval, an audience figure, and fixed note headings for Stage Management, LX, Sound, Wardrobe, Props and Company",
+        "the LX note names a cue token that also appears as a row in a sibling list document",
+        "thirty-nine same-stem siblings sit beside it with different ordinals and dates; their bodies differ by three lines",
+        "the Company note reads that a named performer went off in Act 2 and the understudy went on"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the forty near-identical members are a duplicate or version family; they are forty separate occasions, and \"A content-hash match supports deduplication review; a filename match alone does not.\"",
+        "that the Company note may be summarised into a model prompt - a named third party's absence and its reason is health-shaped information about someone who is not the corpus owner",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Prompt Copy - Cherry Orchard - Act 1 (cued).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "scanned pages carrying script element grammar - act headings, character cues above dialogue",
+        "a ruled facing column holding standby and GO marks against short alphanumeric cue tokens, plus entrance arrows and blocking notation",
+        "the same cue tokens appear as rows of a sibling cue sheet and as note targets on the show reports",
+        "OCR recovers the printed text cleanly and the handwritten column only partially"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the script element grammar alone identifies this row rather than creative.screenplay; the annotation column and the cue-token recurrence are the discriminators",
+        "a cue fact from a token seen only here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cherry Orchard - rehearsal draft 4.fdx",
+      "source_type": "text_document",
+      "observations": [
+        "strict script element grammar, machine-readable, with revision-marked pages",
+        "filename carries a draft-shaped token and three same-stem siblings carry earlier ones",
+        "no cue column, no department heading and no cue token anywhere in the document",
+        "a sibling folder holds letters addressed to two named literary agencies"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the document - on this evidence it is a writer's draft series and creative.screenplay's, and it becomes this row's only once a cued copy of it exists",
+        "any creative fact - the schema declares none",
+        "a stage of `draft 4` as a fact; the token is a possible clue",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Channel Hookup - Cherry Orchard - Studio.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names read Hookup, Dimmers, Colour and Focus",
+        "columns are channel, dimmer, position, unit type, gel number, focus and purpose",
+        "unit numbers correspond to numbered symbols on a sibling scaled drawing",
+        "no dates anywhere in the workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a spreadsheet of equipment is an inventory or a purchase record; the join to the drawing is what makes it a plot",
+        "a venue fact from the sheet name Studio",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Groundplan - Cherry Orchard - 1-25 - rev C.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "a scaled drawing; canvas properties and layer names are readable, full interior structure is not",
+        "layer names read Rostra, Masking, Fly Bars, Lanterns and Sightlines",
+        "a title block carries a scale, a revision letter and a drawing number",
+        "numbered symbols correspond to rows in a sibling hookup workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a scaled architectural drawing belongs to creative.interior-design or creative.architectural-visualisation; the annotated objects here are lanterns, bars and sightlines rather than furniture, finishes or a building",
+        "a stage of `rev C` as a fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Rehearsal Call - Wed 21 Oct.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a dated half-page: start and finish times, a room name, an act and scene range to be worked",
+        "a called list mixing character names and person names in the same column",
+        "a footer naming a deputy stage manager and a mobile number",
+        "sits beside a production schedule blocked in half-days against a venue"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that this is a film call sheet - it schedules work on EXISTING material in a room, and names no unit base, no scene numbers to be shot, no weather and no nearest hospital",
+        "a people fact from the called list; `people` is a photos-schema key, seeded destination-ineligible, ceiling user_confirmed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Company Contact Sheet - Cherry Orchard - CONFIDENTIAL.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per person: name, role or character, mobile, email, emergency contact and relationship",
+        "four rows carry a guardian name and a chaperone reference",
+        "a legend states the sheet must not leave the building",
+        "no cue token, no date and no departmental note anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that ordinary production paperwork is therefore ordinary in posture; next-of-kin and guardian details for people who are not the corpus owner govern the file's handling regardless of which reading places it best",
+        "that the CONFIDENTIAL legend is a handling class - it is a literal observation and P7 owns handling",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Props Running Plot - SR table.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a table whose columns are act and scene, stage side, preset or strike, and item",
+        "entries name objects against the moment they move rather than against a date",
+        "a header names a production and a stage-management department",
+        "two same-stem siblings read SL table and Quick Change"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a list of objects is an inventory, a packing list or a shopping list; the positional and moment-based columns are the discriminating structure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Programme - Cherry Orchard - Nov 2026 - press ready.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a laid-out multi-page PDF with crop marks, bleed and a CMYK output intent",
+        "a cast list in billing order and a creative-team credit block",
+        "a venue and season line, and a sponsor block",
+        "the same file sits in a print supplier's delivery folder and in a named performer's personal folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that this row owns the file exclusively; the identical bytes are this production's output, the print job's press-ready artwork, and a work sample for every person named in the credit block",
+        "a career fact for the corpus owner from a name appearing in the credit block",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Dress Rehearsal 2026-11-03 - 0187.arw",
+      "source_type": "image",
+      "observations": [
+        "a camera original; EXIF make, model, lens and DateTimeOriginal present, GPS present",
+        "a same-stem sidecar carrying non-destructive edit instructions sits beside it",
+        "two hundred siblings share one evening's timestamps",
+        "a sibling folder holds a selects set and a credit-lined delivery to a press office"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a photos-schema `event` fact proposed from agreeing camera, capture time and location - a dress rehearsal is one occasion of a production, and a capture-date home would scatter one show across the nights of its own run",
+        "that the sidecar may be separated from the original it describes",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "CherryOrchard_showfile.qlab",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a package-shaped workspace whose interior is not readable by any approved extractor",
+        "a same-stem folder of numbered audio files sits beside it and the package references them by path",
+        "a sibling cue sheet carries the same cue tokens the package is named for",
+        "recorded as indexed-but-unreadable rather than empty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that an unreadable interior means the file is meaningless - \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\"",
+        "that the neighbouring audio may be moved away from the package that references it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Archive capture - Cherry Orchard - 2026-11-19 - cam A.mxf",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata and a creation-time tag are present; duration matches a running time on a sibling report",
+        "a locked-off single angle of an entire performance, with no coverage, no takes and no slate",
+        "a sibling folder holds a separate sound roll and a rights note restricting use to archive and casting",
+        "no edit project, no bins and no cut versions anywhere in the neighbourhood"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that camera-original media makes this creative.shoot-day-media or creative.film-production - there is no take structure, no shot list and no cut; it is one occasion of a live work recorded whole",
+        "a transcript - \"only under an explicit privacy and compute policy\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Run Sheet - Q4 Sales Kickoff - Main Stage.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are clock time, item, who is on, AV cue and house lights; rows carry cue-shaped tokens",
+        "the on-stage column names executives and the item column names agenda points, not characters and scenes",
+        "one date only; no ordinal, no running-times block, no repeat and no report series",
+        "sits beside a deck, a budget workbook and a venue quotation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it - THE COLLISION FIXTURE. It has cue tokens, times, a caller and a rehearsal, and it is a corporate event, not a staged work. The discriminators are three: the cue targets are agenda items rather than scenes, there is no script with an element grammar anywhere, and the event happens ONCE so the run-as-report-series signal cannot fire",
+        "any creative fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hamlet Act 3 annotated.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scan of printed play text with dense handwritten margin annotation",
+        "OCR recovers the printed text and, poorly, the annotation - which is thematic and interpretive prose, not standbys, cue tokens or blocking marks",
+        "no cue list, no plot, no department heading and no company list anywhere in the neighbourhood",
+        "the parent folder also holds a reading list and a document carrying a course-code-shaped token in academic context"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it - SECOND COLLISION FIXTURE. An annotated set text looks exactly like a prompt copy at the level of `script pages plus handwriting`. The discriminator is what the annotation IS: interpretation versus operation, and the total absence of the cue-token recurrence and the departmental vocabulary",
+        "any creative fact - the schema declares none",
+        "a production from the play title - a title is the most reused string in this domain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "CherryOrchard_handover.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest lists mixed members - a cued PDF, two workbooks, a DWG, a folder of JPEGs, an ICS and a text note",
+        "member paths carry one shared top folder named for the production and second-level folders named LX, Sound, SM and Wardrobe",
+        "no member is extracted to disk",
+        "the archive's own timestamp is the day the run closed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that format-incoherent members mean the archive is incoherent; a production handover is purpose-coherent by construction, the same shape 00 names for an application packet",
+        "member facts from the archive's own timestamp",
+        "that the manifest's departmental second level may be read as a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.screenplay",
+      "signal": "SAME FIXTURE BOTH SIDES: `Cherry Orchard - rehearsal draft 4.fdx` and the pages inside `Prompt Copy - Cherry Orchard - Act 1 (cued).pdf`. Screenplay owns the text as THE WORK - element grammar, a draft version family moving toward acceptance, a submission trail. This row owns the same text once it has become the production's OPERATING DOCUMENT: an annotation column of standbys and cue tokens, blocking, and pagination fixed against one staging. RECIPROCAL: creative.screenplay must not claim a prompt copy merely because it contains scene headings and character cues, and this row must not claim a writer's draft series merely because the play is later staged. Where a script has neither an annotation column nor a cue-token recurrence and no department appears in the neighbourhood, this row abstains - \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement\".",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.performing-practice",
+      "signal": "SAME FIXTURE BOTH SIDES: `Programme - Cherry Orchard - Nov 2026 - press ready.pdf`, and the sides, parts and score extracts of one role. Performing-practice owns them as ONE PERFORMER'S accumulated record across unrelated engagements - their part, their programme, their recording, their notes, filed by the person. This row owns them as members of ONE PRODUCTION across ALL departments and all personnel. The discriminator is what else is in the neighbourhood: the other departments (a plot, a hookup, an SM report series) means the corpus holds the production; the same person's material across DIFFERENT shows and no other department means the corpus holds a career. RECIPROCAL: performing-practice must not claim a production's whole paperwork because a cast list names the corpus owner, and this row must not claim a performer's audition, repertoire and lesson archive because one of its shows appears in it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.film-production",
+      "signal": "SAME FIXTURE BOTH SIDES: a dated departmental crew document, and `Archive capture - Cherry Orchard - 2026-11-19 - cam A.mxf`. Film owns the CALL SHEET and the shooting schedule - documents that schedule FUTURE CAPTURE of new material, naming unit base, scene numbers to be shot, weather and nearest hospital - and it owns camera media with take structure, slates, bins and cut versions. This row owns the REHEARSAL CALL and the SHOW REPORT - documents that work on, or report on, a COMPLETED repeat of finished material, with running times and an occasion ordinal - and it owns a whole-performance archive capture with no takes and no cut. RECIPROCAL: film must not claim a show report because it is a dated crew document naming departments, and this row must not claim a shoot day because a play is being filmed. Where a stage work is genuinely re-mounted for camera, both readings are true of different files and neither may suppress the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.exhibition",
+      "signal": "SAME FIXTURE BOTH SIDES, and the reciprocal is already authored on the exhibition row: a performance staged inside a gallery for one evening of the run, producing both a schedule naming crew and a list of participants. The discriminator is which grammar governs. A script's strict element structure plus a cast list plus rehearsal calls and a report series is this row; a checklist plus a hang plan plus condition reports is exhibition. RECIPROCAL, stated from this side to match: this row must not claim an install schedule because it names crew and half-days, and exhibition must not claim a rehearsal record because it happens in a gallery.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "SAME FIXTURE BOTH SIDES: `Dress Rehearsal 2026-11-03 - 0187.arw` with its sidecar. Photos owns the capture reading on EXIF make, model, DateTimeOriginal and GPS, which alone would propose a deterministic event and a capture-year home. This row owns the same bytes as one dated occasion of one production, evidenced by the paperwork around them - a report for that date, a running time, a credit-lined selects delivery. The failure this edge prevents is specific: capture-date placement scatters a single production across the forty nights of its own run. RECIPROCAL: a personal picture never acquires a production because a professional camera made it in a theatre, and this row never suppresses the capture facts. Recorded as a collision rather than a co-activation because a template may not widen its schema's also_holds_with; the legitimate double reading is carried on the file example as `also_schema: photos`.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "signal": "SAME FIXTURE BOTH SIDES: the programme PDF, and production photography. Career owns them as SELF-PRESENTATION - a curated set beside a headshot, a CV and a credit list, ordered for showing or for a submission. This row owns them as the production's own output, sitting beside the paperwork that made them. A director's or designer's CV is a LIST OF PRODUCTION NAMES, which is precisely the never-alone case: production names on a CV must never activate this row. RECIPROCAL: career.portfolio-work-samples must not claim a production packet because a credit block names the corpus owner, and this row must not claim a headshot-and-CV folder because it names productions. Where a lone programme PDF has neither the paperwork nor the presentation context, neither activates and it falls through.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "SAME FIXTURE BOTH SIDES: a show-control or projection-content folder. Code owns a repository root - manifest, lockfile, source layout, a version-control marker - and its internal layout is preserved rather than re-filed. This row owns a cue-numbered show-control document or opaque workspace keyed by cue token to the prompt copy. RECIPROCAL: code.software-project must not claim a media or cue folder merely because a repository encloses it, and this row must not propose re-filing anything inside a preserved repository root.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Run Sheet - Q4 Sales Kickoff - Main Stage.xlsx` - the collision fixture. Business operations owns a corporate or conference event whose cued run sheet targets agenda items and named executives, and whose neighbourhood is a deck, a budget and a venue quotation. This row owns a staged work with a script, characters, scenes and a repeat. The same edge also carries the producing house's own season - budgets, box office, board reporting - which is a delivery programme rather than a production. RECIPROCAL: business_operations.project-delivery must not claim a production's prompt copy or report series because the producing organisation is a business, and this row must not claim a season budget, a variance table or a box-office report because it names the show.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest honest outcome here, because this is the most format-poor world in the creative family: its documents are ordinary PDFs, DOCX and XLSX, and a schedule, a plot or a call whose production is unresolved is the normal case rather than the exception. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Company contact sheets carrying next-of-kin and guardian details, chaperone paperwork for minors, and any report whose departmental note is health- or incident-shaped need the protective home rather than the informative one. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Marked inference because 00's list does not name production paperwork; the mechanism it describes is what this row invokes.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone programme, a single ticket-and-credit page, or one signed chaperone consent kept with no production around it - a durable purpose and no group. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Show-control workspaces, notation and lighting-console files, and password-protected script deliveries under embargo. Ordinary rather than exceptional here. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A lone production photograph, a rehearsal-room snap or a set-model shot with no production, no event and no family around it. \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Grabbed seating plans, ticket portals, WhatsApp call changes and console screens are a working habit of stage management and most are disposable. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The route for the annotated-set-text collision fixture and for downloaded public-domain play editions, criticism and production histories with no staging around them. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Saved production images, design references and clips of other people's stagings gathered as inspiration. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Three reasons, and the first is specific to this row rather than inherited. (1) THE REPORT SERIES IS NOT BULK-SAFE. Thirty-nine of forty show reports are anodyne technical notes; the fortieth records that a named performer went off injured in Act 2. Health- and incident-shaped information about a third party arrives inside a document series whose overwhelming statistical character is boilerplate, which is exactly the shape that invites bulk summarisation. The whole series must therefore inherit the cautious posture rather than the average. (2) COMPANY PAPERWORK CARRIES NEXT-OF-KIN AND MINORS. Contact sheets hold emergency contacts, relationships, and for children's ensembles guardian names and chaperone assignments - people who are not the corpus owner and who never consented to a filing agent, let alone a model prompt. (3) UNPERFORMED WORK AND EMBARGOED CASTING. A new play before opening, a casting announcement before release and a design before reveal are confidential by default, and the harm is disclosure. Against all three: \"Privacy policy must be enforced before content reaches any model or external connector\", and \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\" This row does NOT carry is_safety_domain and assigns no handling class, which is P7's vocabulary.",
+  "open_question": "Three. (1) THE DEPARTMENT HOLE, and it is this row's only genuinely field-shaped want. The recommended deepest dimension above is a DEPARTMENT - SM, LX, Sound, Wardrobe, Props, Set - and no canonical key holds it: `artifact_type` names the document kind rather than the owning department, `stage` is the production's own progression, `client` has no occupant here, and `project` is the production itself. NO KEY IS PROPOSED, deliberately, because the creative schema declares none and minting one on a field-less schema at the exact point of maximum temptation is the 574's mistake. Alternatives for R1c: (a) leave the hole and let departmental folders be recognised only as existing user vocabulary; (b) treat department as a VALUE of `artifact_type`, which is honest for a plot but wrong for a report; (c) mint a key once D1 is revisited. This row recommends (a) at launch. (2) THE RUN'S DATE LEVEL VERSUS THE DEFAULT'S REFUSAL OF TIME. The template prose above wants a date level UNDER the production, for the run only, and no creative sibling needs this. The creative schema's default is not time-first and this row does not claim the photos exception. Whether a mid-order date level is expressible at all once dimensions become real is a question this row cannot settle, and it is the one place where the production/run split may need two templates rather than one. (3) WHERE A TOURING PRODUCTION'S VENUE LEG SITS. The same production re-plotted for a second stage produces a full second set of plots, hookups and get-in schedules while sharing one script, one cast and one report vocabulary. That is either one production with a venue level, or two productions of one work. No design doc settles it, and it is a question about a real touring company's filesystem rather than about the design."
+}

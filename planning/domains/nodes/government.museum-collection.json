@@ -1,0 +1,577 @@
+{
+  "id": "government.museum-collection",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Museum and gallery collection management",
+  "one_line": "J-DEPTH placeholder template for the custody records a museum, gallery, or keeping institution generates about the individual objects it holds — accessioning and transfer of title, object cataloguing, condition and conservation, preventive-conservation monitoring, location and movement control, inward and outward loans, and deaccession. It is not activated by the word museum, by an institution's name, by the words collection or accession, or by owning a photograph of an artwork. Its distinct anchor is a record whose described unit is a physical object bearing an accession number, carrying object-physical slots (material, dimensions, condition, location) that no neighbouring row's unit of description carries. It declares no government field rows and no folder dimensions under PR-6; activation unlocks recognition, a distinct privacy posture, and grouping only.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below is an activation signal only. This template declares no field rows, so no accession number, object name, valuation, donor, location, or condition grade may be written as a fact from any of them. Each accepted signal must evidence the holder as the keeping institution for the object, not as its viewer, borrower, insurer, photographer, or reader.",
+      "an accession-register entry: an accession-number-shaped token (year-dot-lot-dot-item, or an institutional prefix plus number) repeated in a register row alongside object name, maker or culture, production date, materials, measured dimensions, method of acquisition, and source or credit line",
+      "a transfer-of-title instrument (deed of gift, bequest schedule, purchase agreement, transfer form) whose schedule enumerates objects by accession or lot number and whose clauses concern unrestricted title, credit line, and restrictions on future disposal",
+      "an object condition report: labelled examination slots (support, surface, structure, previous intervention), a damage diagram or annotated object image, an examiner and date, and a stated examination occasion such as pre-loan, on arrival, on return, or periodic check",
+      "an object-entry or temporary-receipt form: a depositor block, a temporary reference distinct from any accession number, a stated purpose (loan in, consideration for acquisition, identification, conservation), limited-liability terms, and a return-by date — this evidences custody without title and is the case that proves accessioning and custody are separate events",
+      "a loan agreement whose object schedule carries accession numbers together with an insurance or indemnity valuation, a loan period, and physical conditions of loan (light level, relative humidity range, case or vitrine requirement, courier requirement)",
+      "a standard facility report received from or sent to a counterpart institution: sectioned building, environmental control, security, fire-protection, handling, packing, shipping, and insurance disclosures, filed against a named loan",
+      "a courier report narrating crate seals, transit conditions, unpacking, condition on arrival or return, and incidents, tied to an exact loan reference",
+      "a location or movement log whose rows pair an object identifier with a from-location and to-location inside the institution's own store, gallery, case, or off-site store, plus a mover and a timestamp",
+      "a preventive-conservation record: an environmental datalogger export with timestamped temperature, relative humidity, and light or ultraviolet readings keyed to a gallery, store, or display case; or an integrated-pest-management trap-check sheet keyed to the same spaces",
+      "a conservation treatment report: examination, analysis or technical imaging, materials and methods used, step-by-step treatment, before-during-after image references, a reversibility or ethics statement, and a conservator signature",
+      "a deaccession or disposal paper: an object schedule, a stated reason tested against a collecting policy, recorded checks for donor restriction and clear title, a proposed disposal method, a board or governing-body recommendation, and a use-of-proceeds statement",
+      "a provenance or due-diligence dossier: an ownership chain stated as dated holder-to-holder transfers, explicit gaps, and recorded searches against spoliation, stolen-art, or export-licence sources for one identified object",
+      "an inventory or audit reconciliation that pairs a register population against a located population and lists objects not found, found not recorded, or relocated",
+      "a collections-management-system export whose manifest names object, constituent, location, loan, and media tables together — the table set, not the vendor name, is the signal",
+      "object documentation photography: an image whose frame contains a colour target and scale bar with an accession number written on the target board, or whose sidecar names an accession number and a view (recto, verso, detail, raking light, ultraviolet)"
+    ],
+    "needs_llm": [
+      "deciding whether a schedule of objects is a transfer of title into this collection, a loan schedule out of it, an insurance schedule over it, or an auction or dealer schedule offered to it",
+      "deciding whether a withdrawal, disposal, or deaccession list is a museum deaccession (this row), a records-disposal schedule under a retention instrument (archives), or library stock weeding (library), when the list carries only identifiers, reasons, and dates",
+      "deciding whether an object-and-room list is a lender's loan schedule (this row) or a show's exhibition checklist (creative.exhibition), when both name the same objects and the same venue",
+      "deciding whether a condition note attached to an image is an object condition report or a photographer's or shipper's damage note",
+      "deciding whether a collections policy or board paper is the keeping institution's collections governance (this row) or its general charity or corporate governance (nonprofit.governance, business_operations)",
+      "reading a scanned or handwritten catalogue card through OCR well enough to see register structure rather than merely seeing an old card",
+      "separating an institution's custody records from a private collector's inventory when both list objects, makers, dates, and values"
+    ],
+    "never_alone": [
+      "the word museum, gallery, keeper, curator, collection, or an institution's name alone; the schema anchor already treats a museum name as never-alone, and the institution may be the subject, the venue, the lender, the borrower, the employer, the visitor attraction, or the reading source",
+      "the word accession, deaccession, catalogue, holdings, condition, loan, or provenance alone; each is shared verbatim with archives, libraries, auction, insurance, banking, and consumer-lending senses",
+      "an accession-number-shaped token alone. A bare dotted or four-digit number is exactly the case the design excludes: a bare 4-digit number is not sufficient proof on its own, and 1987.43.1 is equally an invoice line, a version, a statute reference, or a part number without register or object-slot context",
+      "a photograph of an artwork, sculpture, coin, specimen, or historic object alone; a visitor snapshot, a stock image, an auction lot photo, and an institutional documentation shot are byte-similar",
+      "an artist, maker, culture, title, or object name alone; those recur across reading material, auction catalogues, art-history research, and personal art purchases",
+      "a spreadsheet of items with identifiers, locations, and values alone; that shape is shared with IT asset inventories, warehouse stock, personal property schedules, and insurance schedules",
+      "a file extension or source_type alone; the design says to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a parent folder named Collection, Catalogue, Objects, Accessions, Store, or Curatorial alone",
+      "a shared download or scan session; \"A session should never be treated as proof of topic\"",
+      "missing EXIF or a plain background as proof that an object image is documentation photography; \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and the same abstention applies to inferring a studio origin from absent metadata",
+      "an authority-side signal borrowed from the parent schema — a public body's letterhead, a .gov-style domain, or a public-funding reference — does not make an object record a collection record, and does not make a collection record authority-side if the keeping body is private"
+    ]
+  },
+  "proposed_context_terms": [
+    "PROPOSED for R6, not design: accession register, deaccession, object entry, transfer of title, credit line, condition report, previous intervention, treatment report, reversibility, preventive conservation, relative humidity, lux, integrated pest management, facility report, courier, nail-to-nail, conditions of loan, provenance gap, spoliation, repatriation, object number, store location, inventory reconciliation. Each is proposed only as a CONTEXT term that must co-occur with a labelled slot structure or an object-physical slot; none may fire alone, and 00 lists none of them."
+  ],
+  "work_types": [
+    "acquisition, accessioning, and transfer of title",
+    "object cataloguing and documentation",
+    "condition checking and examination",
+    "conservation treatment",
+    "preventive conservation and environmental monitoring",
+    "location and movement control, inventory, and audit",
+    "inward loan, outward loan, courier, and facility assessment",
+    "exhibition installation and dismantling from the keeping institution's side",
+    "object rights, reproduction, and image supply",
+    "provenance research and acquisition due diligence",
+    "deaccession, disposal, and repatriation or restitution handling",
+    "collections development policy, documentation procedure, and emergency salvage planning"
+  ],
+  "grouping_reasons": [
+    "an exact accession number recurring across a register entry, a catalogue record, a condition report, a treatment report, a movement-log row, a loan schedule line, and an object image or its sidecar",
+    "an exact loan reference binding a loan agreement, the counterpart facility report, outgoing and incoming condition reports, a courier report, a packing list, and an insurance or indemnity schedule",
+    "an exact object-entry or temporary-receipt reference binding a deposit receipt to its return note or to the accession record it later becomes",
+    "an exact conservation job or treatment reference binding examination, analysis, treatment, and before-and-after imaging",
+    "a collections-management-system export manifest binding its own object, constituent, location, loan, and media members without unpacking them",
+    "a dated environmental or pest-monitoring series keyed to the same named gallery, store, or case",
+    "a sparse member joins a candidate group without acquiring its facts: an untitled detail image, an unlabelled condition note, or a bare movement row may sit in an object's neighbourhood for review while the object, donor, valuation, and location remain unknown"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, and this leg of the node test therefore does NOT distinguish the row — it is carried by detection signals and privacy instead. PR-6 leaves the government schema fieldless, and a template cannot branch on undeclared fields. Stated as prose only: this world's natural first level is the object or the bounded event (loan, treatment job, deposit), then the exact reference, then work type. Time is not first because \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Two dimensions must be refused even if fields are later ratified: a physical storage location must never become a folder level, because a browsable tree of store, room, and case discloses where valuable objects are kept; and a donor's name must never become a folder level. Any later order stays editable because the user \"can reverse, remove, add, or flatten dimensions\".",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".tif",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Accession Register 1987.43 - Nakashima side chair.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "register-row structure repeating accession number 1987.43.1 in a numbered sequence",
+        "labelled slots for object name, maker, production date, materials, measured dimensions in millimetres, method of acquisition, source, and credit line",
+        "an acquisition date distinct from the production date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an accession-number field, an object field, or a donor field — the government schema declares none",
+        "that the keeping institution is a public body merely because this row sits under the government schema",
+        "that title is clear, that the valuation is current, or that the object is presently held"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Deed of Gift - Whitfield bequest - signed 2026-03-11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "donor and recipient-institution blocks with signatures and a date",
+        "a schedule enumerating objects with lot numbers later matched to accession numbers",
+        "clauses on unrestricted title, credit-line wording, and the institution's freedom to dispose",
+        "an appraisal disclaimer addressed to the donor"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that title passed validly, that the gift is tax-deductible, or that any restriction is enforceable",
+        "that the donor's identity may appear in a display label or folder name"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Object Entry Form - OE2026-114 - temporary receipt.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a temporary entry reference that is explicitly not an accession number",
+        "depositor name and contact block",
+        "a stated purpose ticked as consideration for acquisition",
+        "limited-liability wording and a return-by date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the object entered the collection — custody is evidenced, title is not",
+        "that the depositor is a donor"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Condition Report - 1987.43.1 - pre-loan 2026-05-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled examination slots for support, surface, structure, and previous intervention",
+        "an annotated object diagram with numbered damage callouts",
+        "examiner name, date, and a stated occasion of examination",
+        "a packing and handling recommendation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a condition grade, a stability judgement, or a fitness-to-travel decision as a stored fact",
+        "that the object is currently in this condition"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Outgoing Loan Agreement - OL2026-08 - Beaumont Gallery.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "lender and borrower institution blocks",
+        "an object schedule keyed by accession number with a stated insurance value per object",
+        "nail-to-nail cover, courier requirement, and a loan period",
+        "environmental and light-level conditions of loan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the valuation is a market price, a current value, or safe to display",
+        "which side of the loan the holder is on, without the counterpart evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Standard Facility Report - Beaumont Gallery - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sectioned disclosures for building construction, environmental control, security systems, fire protection, staffing, handling, packing, shipping, and insurance",
+        "a completing officer and date",
+        "an explicit statement that the document is confidential to the lending institution"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the facility is adequate, or any security conclusion",
+        "that the counterpart institution is the holder"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Courier Report - OL2026-08 - return leg.docx",
+      "source_type": "text_document",
+      "observations": [
+        "free-prose narrative with crate and seal numbers",
+        "transit condition readings and unpacking sequence",
+        "an incident paragraph and a condition-on-return cross-reference",
+        "the same loan reference as the agreement"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that damage occurred or that liability attaches",
+        "a route, carrier, or address as a stored fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Location Movement Log 2026-Q2.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for object number, from-location, to-location, barcode scan, mover initials, timestamp, and reason",
+        "location strings resolving to store, bay, shelf, and case",
+        "object numbers matching the accession-number shape used in the register"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path, and specifically never a storage-location folder level",
+        "a current location as a durable fact",
+        "that this is an IT or facilities asset movement log without object-physical evidence elsewhere in the group"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Gallery 4 datalogger 2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "dense timestamped rows of temperature, relative humidity, and lux or ultraviolet readings",
+        "a header naming a gallery, store, or display case",
+        "a logger serial and calibration line"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that conditions were compliant, or that any object was harmed",
+        "that this is building-management or facilities data without a collections-space header"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IPM trap check - store B - 2026-07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "trap identifiers keyed to named collection spaces",
+        "counts by pest species and inspection dates",
+        "an action column referencing isolation or freezing of affected material"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an infestation finding, or that any named object is affected",
+        "that this is a facilities pest-control record without collection-space keying"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Conservation Treatment Report - 1962.9.4 - consolidation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "examination, technical-imaging, and analysis sections",
+        "named materials, concentrations, and application methods",
+        "step-by-step treatment with before, during, and after image references",
+        "a reversibility statement and a conservator signature"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the treatment succeeded, or any authenticity or attribution conclusion drawn from the analysis",
+        "a medical or laboratory schema from the analytical vocabulary"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "1987.43.1_recto_colourtarget.tif",
+      "source_type": "image",
+      "observations": [
+        "a colour target and scale bar inside the frame with an accession number written on the target board",
+        "EXIF capture date, studio strobe profile, and a plain sweep background",
+        "a sidecar or filename token naming the view as recto"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the object depicted is owned by the holder, from the image alone",
+        "a photographer's rights or licence position"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Scan_20260614_accession_card_1962.9.4.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed or scanned index card with ruled printed slots and handwritten entries",
+        "OCR recovers an accession-number-shaped token, an object name, a donor line, and a dimensions line",
+        "a stamped register page reference in the corner"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any slot value as a confirmed fact from handwriting OCR",
+        "that a card image alone activates this row; the register structure in the OCR text is what carries it"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Deaccession Proposal - 2026-04 board paper.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an object schedule with accession numbers and acquisition sources",
+        "reasons tested explicitly against a named collections development policy",
+        "recorded checks for donor restrictions and clear title",
+        "a proposed disposal method, a governing-body recommendation, and a use-of-proceeds statement"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that disposal was approved, lawful, or ethical",
+        "that this is a records-disposal schedule or a library withdrawal list"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Provenance dossier - 1938-1945 gap - 1962.9.4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an ownership chain stated as dated holder-to-holder transfers with an explicitly flagged gap",
+        "recorded searches against spoliation, stolen-art, and export-licence sources",
+        "correspondence extracts with an external researcher and a named family"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the object was or was not looted, that a claim is valid, or that title is defective",
+        "that a named family or claimant may appear in a display label or folder name"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Collections Management System export - objects.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming object, constituent, location, loan, and media tables together",
+        "mixed members: delimited data files, an XML schema, and a media folder of derivative images",
+        "a constituents table containing donor and lender personal data"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any object, donor, valuation, or location fact by unpacking members to improve classification",
+        "that the whole export shares one sensitivity because some members are published catalogue data"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibition Checklist - Threads of Empire - final.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "object rows carrying accession numbers, makers, dates, and dimensions",
+        "columns for room, wall, mount type, label copy, and lender",
+        "rows whose lender column names other institutions and private lenders",
+        "a version token and a design-file cross-reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder keeps any of these objects — accession numbers here belong to several owners",
+        "that the show and the collection are the same group"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fine Art Insurance Schedule 2026 - collection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "object numbers paired with declared values and a total sum insured",
+        "policy number, insurer, broker, premium, and period columns",
+        "a category breakdown by store and gallery"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a market value, a replacement cost, or a coverage conclusion",
+        "that valuation columns may be summarised into any shared or remote context"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Family collection inventory.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of artworks and antiques with makers, dates, purchase prices, and where bought",
+        "a room column naming domestic rooms",
+        "no accession numbers, no register structure, no transfer instrument"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a private inventory is a museum collection because it lists objects and values",
+        "an institution from an object list alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Museum Store daily takings 2026-07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the institution's name in the header and the filename",
+        "date rows with till, product line, quantity, and takings columns",
+        "no object identifiers and no object-physical slots"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this template from the word museum; the schema anchor already makes a museum name never-alone",
+        "a collection fact from a trading record"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Collections drive backup 2026.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "password-protected archive; no member listing recoverable",
+        "filename tokens suggesting collections content",
+        "size and timestamps only"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any object, donor, location, or valuation content from the filename",
+        "a sensitivity result from a suggestive name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.archives-recordkeeping",
+      "signal": "The nearest neighbour, and it has already argued this edge from its side: accessioning, donor instruments, catalogue description, condition and preservation records, and loan or access control occur identically on both sides, and the same deed-of-gift shape appears in both. Reciprocally stated here: the discriminator is the unit of description. Archives describes records arising from an activity, arranged so a child reference extends its parent's, and the described unit is a series or file. This row describes an individual object catalogued in its own right with material, dimension, condition, and location slots. Shared fixture: `Deed of Gift - Whitfield bequest - signed 2026-03-11.pdf` — a schedule of boxes and series supports archives; a schedule of objects with measured dimensions supports this row. A collection-level record with neither provenance hierarchy nor object-physical slots is undecidable and both sides must abstain.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.library-administration",
+      "signal": "Reciprocal to the edge that row already authored: accession and deaccession lists, condition checks, and stocktake records are the shared fixture family. That row requires circulating-stock structure — copies, barcodes, shelf classification, loan lifecycle against a borrower. This row requires an accession-register entry with an object description and acquisition source. Shared fixture: a withdrawal or disposal list carrying only identifiers, reasons, and dates is genuinely undecidable between stock weeding, records disposal, and deaccession; both sides abstain until a register block or a circulation block appears. A rare-books or local-studies collection inside a library service is the contested case both rows have flagged; it is settled by evidence, never by the holder's name.",
+      "design_cite": null
+    },
+    {
+      "domain": "creative.exhibition",
+      "signal": "Both worlds handle the same objects with the same accession numbers in the same rooms. That row's memo already excludes 'A museum's collection-management database export' as an institutional system of record rather than a show. Stated back: this row owns the keeping institution's custody of the object — register, condition, movement, loan-out, insurance. creative.exhibition owns the assembly of a named show — checklist by room and wall, label copy, design, install schedule, and objects borrowed from other owners. Shared fixture: `Exhibition Checklist - Threads of Empire - final.xlsx`. A lender column naming several owners, room and wall columns, and label copy support the show; the same object rows appearing inside a loan agreement with a valuation and conditions of loan support this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "An identifier, a location, a barcode scan, a custodian, and a timestamp are the whole shape of both a collections movement log and an IT asset movement log. This row requires the identifier to resolve to an accessioned object with material, dimension, or condition evidence somewhere in its group; the operations row requires serial numbers, models, purchase orders, assignees, and warranty or lifecycle columns. Shared fixture: `Location Movement Log 2026-Q2.csv` — identical columns, different populations. Neither side may claim it from column names alone.",
+      "design_cite": null
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "A fine-art schedule is simultaneously an insurance instrument and a collections instrument. Finance owns the policy, insurer, broker, premium, period, and claim slots; this row owns the object schedule, the per-object valuation as a condition of loan or of care, and the tie to accession numbers. Shared fixture: `Fine Art Insurance Schedule 2026 - collection.xlsx`. When only policy structure is present the record is Finance's; when only an object schedule with accession numbers is present it is this row's; when both are present both may hold it and neither may erase the other's evidence.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.governance",
+      "signal": "Most keeping institutions are charitable or private bodies, so their collections policies and deaccession board papers are also association-governance papers. This row requires the paper's operative subject to be objects in custody — a schedule, a collecting-scope test, a title and restriction check. nonprofit.governance owns the body's own constitution, trusteeship, and general board record. Shared fixture: `Deaccession Proposal - 2026-04 board paper.docx`. Its board-paper skin belongs to governance and its object schedule belongs here; the holder's public or private status does not decide it either way.",
+      "design_cite": null
+    },
+    {
+      "domain": "creative.raw-photo-catalogue",
+      "signal": "Museum documentation photography and a working photo catalogue are byte-similar: high-resolution masters, view tokens, sidecars, derivative sets. This row requires the frame or sidecar to tie the image to an accessioned object — an accession number on the colour target, or a register cross-reference. The creative row owns the photographer's own capture-and-selection workflow. Shared fixture: `1987.43.1_recto_colourtarget.tif`. The photographer's rights and the institution's custody are different claims over the same bytes and neither displaces the other.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "donor instruments, provenance and restitution dossiers, facility reports, storage-location and movement logs, valuation and insurance schedules, deaccession papers, constituent data inside system exports, and any culturally restricted or human-remains material, when no accepted collection group is active",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone register page, catalogue entry, condition report, treatment report, or certificate has durable value but no accepted object, loan, or treatment group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the file looks like collections work but the keeping role, the described unit, or the object population cannot be settled safely — an unattributed exhibition checklist, an environmental series with no collections-space header, an OCR'd card with no recoverable register structure",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a password-protected collections backup, a proprietary collections-system database, a damaged export, or an unreadable imaging format yields nothing beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "when": "an object image has no register, sidecar, or accession cross-reference and no accepted photographic group",
+      "design_cite": null
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published collection catalogue, museum-studies paper, conservation article, ethics code, or auction catalogue is held for reading rather than as custody work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's privacy posture is where it differs most sharply from its schema's default, and the difference is in kind, not only in degree. The government default protects citizen casework, submissions, and pre-decisional work. This row instead protects four things the parent default never contemplates: object locations, because a store, bay, shelf, and case string is a map to valuable property; per-object valuations, because a sum-insured column is a target list; donor, lender, and depositor identity, which is routinely given in confidence and is separable from the published object record; and provenance gaps together with restitution correspondence, culturally sensitive or sacred material, and human remains, where exposure carries claim, community, and ethical consequences the catalogue is not competent to weigh. Facility reports are counterpart security disclosures and are confidential to the lender. The design requires that \"Privacy policy must be enforced before content reaches any model or external connector.\" It further says protected material \"should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\" Published catalogue data being open is not a reason to lower the posture of a mixed collections packet, and no handling class is assigned here; P7 owns that vocabulary.",
+  "open_question": "NEEDS-JOSEPH: (1) Holder scope. The roster places this row under government, but most museums and galleries are charitable trusts, university departments, private foundations, or company collections producing byte-identical registers, loan agreements, and condition reports. Decide whether the row is holder-scoped to state-sector keeping institutions with the rest collided out to nonprofit, academic, and business_operations, or whether it is a cross-schema situation that government merely hosts — the same question government.library-administration raised. (2) The library row asks which sibling owns a rare-books or local-studies collection held inside a library service: this row, library-administration, or archives-recordkeeping. Recommendation to R1c, not decided here: settle it on unit of description rather than holder. (3) If PR-6 lifts, adjudicate centrally whether an object identifier, an object function, and a bounded event reference may exist as keys — this row deliberately proposes none — and rule that a storage location and a donor name are never destination-eligible even if they become fields. (4) Decide whether culturally sensitive material, sacred objects, and human remains need an access-restriction concept beyond potentially_sensitive, or whether that is entirely P7's."
+}

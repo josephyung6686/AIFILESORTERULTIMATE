@@ -1,0 +1,610 @@
+{
+  "id": "creative.exhibition",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Exhibition and gallery work (the show as an object, not the works in it)",
+  "one_line": "One SHOW - a named exhibition at a venue over a run of dates - held as a packet whose unit is a REGISTER OF OTHER PEOPLE'S OBJECTS rather than one work in revision: a checklist enumerating works that already exist with their artists, media, dimensions, editions and lenders; a hang plan placing those works in a room; loan agreements and paired condition reports that make the venue temporarily responsible for property it does not own; wall texts written to a length; an install and deinstall schedule; and a numbered documentation set shot after the hang. The artwork files and the exhibition files are different objects: this row never claims the making record of any work on the checklist, and never claims the artist's self-presentation. Placeholder row (J-IND, written to J-DEPTH): it writes NO field rows, because the creative schema declares none.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The creative schema declares no field rows, so nothing here writes a domain fact. Detection exists so a show packet is recognised as one thing, kept local where the sensitivity posture says so, and offered honestly rather than scattered by format. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "A CHECKLIST structure: a tabular document whose ROWS ARE WORKS - a repeating record carrying, per row, an artist name, a title, a year, a medium string, a dimensions string in centimetres or inches (often height x width x depth), and at least one of an edition fraction, a catalogue or wall number, or a courtesy/lender column. This is the single most exhibition-specific artefact that exists and it belongs to no other schema in the roster. It is decisive because it INVERTS the creative schema's unit: the schema's anchor is one named piece of work moving through revisions, and a checklist is many finished works most of which the corpus owner did not make. No default creative structure - linked assets, layers, revision rounds, a brief, a delivery set, production paperwork, a script - fires on it.",
+      "A HANG or FLOOR PLAN structure: a scaled drawing or vector export of a ROOM whose annotations are work positions, wall runs, plinth and vitrine locations, hanging heights (a centre-line figure), label positions and lighting positions, where the annotation labels resolve against the checklist's catalogue numbers. 00 already requires the extractor to reach this material - \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text\" - and the exhibition-specific part is the CROSS-REFERENCE: a plan of a room whose contents are named authored objects rather than furniture, finishes or building elements.",
+      "A LOAN-AND-CONDITION structure: an executed loan or consignment agreement naming a specific work and a specific borrowing venue for a specific date range, and/or a condition report - a form carrying a diagram of the object with annotated damage points, a tick grid of surface states, and a signature-and-date block - that occurs in a PAIR, incoming and outgoing, around one object. The pairing is the signal. It records custody of a third party's physical property, which nothing else in the creative family does.",
+      "A RUN-DATES structure: an opening or private-view date together with a closing date, i.e. a SPAN, distinguishing this world from the single dated event of a shoot day, a press date or a delivery date. Usually accompanied by an install window before the opening and a deinstall window after the close.",
+      "A WALL-TEXT FAMILY structure: several documents of the SAME content at different lengths - a room or introductory panel, a set of repeated five-element label blocks (artist / title / year / medium / credit line) with no connecting prose, and a large-print or accessible guide - often with a word or character count stated in the document or the filename. A family of same-content-different-length texts is not a version family and must not be read as one.",
+      "An INSTALLATION-DOCUMENTATION SET: several photographs sharing one stem and a sequence number, captured on or just after one date, whose embedded caption or an accompanying text carries a formatted credit line naming the show, the venue, the year and a photographer. The multiplicity plus the credit-line format is the signal; a single photograph of art on a wall is nothing.",
+      "An INSTALL-SCHEDULE structure: a day-by-day or hour-by-hour table naming crew or technician roles, crate numbers, courier arrival windows and a task per slot, bounded by the install window rather than a production calendar."
+    ],
+    "needs_llm": [
+      "Deciding whether a room-shaped plan is a HANG plan or an interior/architectural drawing, when the annotations are ambiguous and no checklist is present to resolve the catalogue numbers against.",
+      "Deciding whether a work-listing spreadsheet is a SHOW CHECKLIST or a standing COLLECTION INVENTORY - the same columns can serve both, and the discriminator is the presence of a show, a run, wall assignments or a lender column rather than a single owner.",
+      "Reading an unlabelled prose document that is in fact a curatorial essay, a press release or a room text, where the exhibition-ness is carried by the argument rather than by any slot.",
+      "Separating a private-view invitation from an ordinary event invitation when the venue name is the only exhibition-shaped token.",
+      "Deciding, for a performance or screening staged inside a gallery, whether the governing structure is a checklist-and-plan or a script-and-cast-and-call-sheet.",
+      "Deciding whether a photograph is installation documentation shot to a list or a visitor's snapshot taken in the same room."
+    ],
+    "never_alone": [
+      "A GALLERY OR MUSEUM NAME alone. This is the generalisation of 00's own rule against the university name as sole proof, and it is the sharpest false positive this row has: an institution's name appears on a membership renewal, a shop receipt, a job advert, a mailing-list newsletter, a visitor map and an artist's CV, none of which are a show packet.",
+      "The words 'exhibition', 'show', 'gallery', 'opening' or 'private view' in a filename alone.",
+      "A ROOM-SHAPED PLAN alone (.dwg, .skp, .rvt, a vector PDF of a floor). Without annotations resolving to named works this is an interior, architectural or facilities drawing.",
+      "A SPREADSHEET OF ARTWORKS alone. Artist / title / year / medium / dimensions / value is equally the shape of a collector's insurance schedule, a dealer's stock list, an estate inventory and an auction consignment - none of which is a show.",
+      "AN IMAGE OF ART ON A WALL alone. A visitor's phone photograph, a stock interior render and a press image all depict this and none of them is a documentation set.",
+      "A DATE RANGE alone. Two dates in a filename are a trip, a term, a billing period or a statement window before they are a run.",
+      "A FILE EXTENSION alone (00's standing rule): .dwg does not make a hang plan, .xlsx does not make a checklist, .tif does not make installation documentation.",
+      "A CALENDAR ENTRY for an opening alone. It is an event a person is attending, not evidence they are staging it.",
+      "AN EDITION FRACTION alone (12/40). It belongs to the impression, and its home is the edition register, not this row.",
+      "A CREDIT LINE alone in an image caption. Courtesy lines are copied verbatim into portfolios, press coverage and CVs, and travel far from the show packet that produced them.",
+      "AN INSURANCE VALUE alone. A currency figure beside an object is a claim, a schedule or a sale before it is a loan."
+    ]
+  },
+  "proposed_context_terms": [
+    "checklist",
+    "catalogue number",
+    "cat. no.",
+    "hang plan",
+    "install plan",
+    "installation view",
+    "private view",
+    "preview",
+    "opening",
+    "wall text",
+    "wall label",
+    "room text",
+    "large print guide",
+    "plinth",
+    "vitrine",
+    "condition report",
+    "loan agreement",
+    "loan form",
+    "facility report",
+    "courier",
+    "crate",
+    "lender",
+    "courtesy of",
+    "on loan from",
+    "deinstall",
+    "strike",
+    "invigilation",
+    "curator",
+    "curated by",
+    "press release",
+    "embargo",
+    "price list",
+    "solo",
+    "group show",
+    "touring"
+  ],
+  "work_types": [
+    "checklist",
+    "hang or floor plan",
+    "wall label set",
+    "room or panel text",
+    "large-print or accessible guide",
+    "loan or consignment agreement",
+    "condition report",
+    "facility report",
+    "courier and crate manifest",
+    "install or deinstall schedule",
+    "invigilation rota",
+    "installation documentation set",
+    "press release",
+    "press image pack",
+    "price list",
+    "invitation or private-view card",
+    "catalogue layout",
+    "curatorial essay or proposal",
+    "tour or venue-transfer packet",
+    "deinstall and return report"
+  ],
+  "grouping_reasons": [
+    "one named show at one venue across its run - the checklist, the plan, the texts, the paperwork and the documentation, however format-incoherent",
+    "one work's custody chain within one show - loan agreement, incoming condition report, outgoing condition report, crate and courier note",
+    "one install or deinstall window and everything dated inside it",
+    "one documentation shoot, recognised by a shared stem, a sequence and one capture date",
+    "one wall-text family - the same content at panel, label and large-print length",
+    "one touring show across venues, where the checklist is stable and the plan, the texts and the paperwork are re-made per venue",
+    "an existing curated folder the curator, registrar or artist already made and named for the show"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT. A dimension may only branch on a field the same entry's schema declares, and the creative placeholder schema declares none, so no serialisable folder dimension is legal here. The recommendation is therefore held as PROSE and is stated so that R1c can adopt it if the schema is ever given fields. RECOMMENDED IF FIELDS LAND: `project` (the show) first, then `stage`, then `artifact_type` - and this DIFFERS from the creative default template in two specific, arguable ways. (1) The default's optional top level is `client`; this row drops it and would use `venue` instead, because an exhibiting institution is not a commissioning counterparty - it shows work it did not order - and because the same show recurs at a second venue on tour, which makes show and venue orthogonal rather than nested. `venue` is an existing canonical key, so nothing is minted to say this. (2) The default's `stage` values are draft-to-final; this row's are pre-install, install, run, deinstall and tour, which is a custody sequence rather than a maturity sequence, and it is what makes a condition report dated after the close intelligible. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The exhibition is the parent context, exactly as 00's own test requires - \"a parent dimension should provide the context required to understand the child. A work type such as Homework 3 is meaningful only after the course is known\" - and a file named `Condition report - cat 14 - incoming.pdf` is meaningless without the show, in the same way. The two named time-first exceptions in this family (shoot-day media, raw photo catalogue) do not apply: this row's documentation set is capture-based, but the packet it belongs to is not. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "design_creative",
+      "image",
+      "presentation",
+      "email",
+      "calendar",
+      "archive",
+      "ocr",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".numbers",
+      ".docx",
+      ".pdf",
+      ".rtf",
+      ".dwg",
+      ".skp",
+      ".rvt",
+      ".ai",
+      ".indd",
+      ".svg",
+      ".tif",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".ics",
+      ".pptx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Checklist - Soft Weather - final.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads Cat. No. / Artist / Title / Year / Medium / Dimensions (cm) / Edition / Courtesy / Insurance value / Wall",
+        "rows repeat with eleven different artist names, only one of which recurs in the surrounding folder",
+        "a Courtesy column carries institution names and two rows reading 'Private collection'",
+        "the show title and a date span appear in a header cell above the table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any listed artist is the corpus owner or the author of this file",
+        "that a row's medium string is a making-record fact about that work",
+        "an insurance value as a domain fact - no canonical key holds it and none is proposed here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Hang plan - Gallery 2 - v4.pdf",
+      "source_type": "design_creative",
+      "observations": [
+        "vector drawing of four wall elevations plus a plan, with a scale bar",
+        "annotation labels are catalogue numbers that also occur in the checklist",
+        "a repeated dimension annotation reads 145 as a hanging centre line",
+        "layer or artboard names include Walls, Works, Labels, Lighting"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an interior-design or architectural project from the room geometry",
+        "that the centre-line figure is a work's dimensions"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Wall labels - Room 1 - large print.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the document is fourteen repeated five-line blocks with no connecting prose",
+        "each block is a name, a title in italics, a year, a medium-and-dimensions line, and a line beginning 'Courtesy'",
+        "a sibling file of the same stem exists without the 'large print' token and with the same content at a smaller point size"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a version family from the large-print sibling - this is a same-content-different-length family, not a revision",
+        "authorship of any listed work"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Loan Agreement - Untitled 2019 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered clause set with defined terms, a parties block naming a lender and a borrowing venue, and an execution block with two signatures and a date",
+        "a schedule at the end names one work with its medium, dimensions and an agreed value",
+        "an insurance clause names a coverage period matching a run plus transit windows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the lender's name or address is filable material",
+        "an agreed value as a domain fact"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Condition report - cat 14 - incoming.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a form carrying an outline diagram of the object with numbered annotation points",
+        "a tick grid of surface states with two cells marked and a handwritten note",
+        "a signature-and-date block naming a registrar and a courier",
+        "an identically-named sibling exists with the token 'outgoing' and a date after the close"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "damage as a fact about the work rather than an observation on a form",
+        "a version family from the incoming/outgoing pair - they are two events, not two drafts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Install schedule - week of 2026-03-09.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are half-day slots across five dates ending the day before an opening date used elsewhere in the folder",
+        "columns name a task, a crew role, a crate number and a courier arrival window",
+        "three named technicians recur"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the named technicians are a cast or crew list of a production",
+        "a shoot day from the dated structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "InstallView_03_SoftWeather_Whitechapel_2026.tif",
+      "source_type": "image",
+      "observations": [
+        "EXIF make and model are a professional body, DateTimeOriginal is two days before the opening date used elsewhere in the folder",
+        "an embedded IPTC caption reads as a formatted credit line naming the show, the venue, the year and a photographer",
+        "eleven sibling files share the stem with sequence numbers 01 to 12, one number missing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a personal photo event from the EXIF alone",
+        "that the photographer named in the credit line is the corpus owner",
+        "that the depicted works are the corpus owner's making record"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Press release - Soft Weather - EMBARGOED until 2026-03-19.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an embargo token and a date appear in the filename and again in a header line",
+        "a boilerplate block at the foot names the venue, its opening hours and a press contact",
+        "the body names the show, a curator and a date span"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the embargo date is the file's creation date",
+        "publication - an embargoed document is unreleased and the sensitivity posture governs it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Price list - Soft Weather - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "rows repeat catalogue number, artist, title, medium, dimensions, edition and a currency figure",
+        "some rows carry a status token such as reserved or sold",
+        "no invoice number, no purchaser and no payment terms anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a transaction - a price list states availability, it does not record a sale",
+        "a financial record from currency figures alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Collection inventory - insurance schedule 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads Artist / Title / Year / Medium / Dimensions / Acquired / Value / Location",
+        "no catalogue numbers, no wall assignments, no lender column, no run dates and no show title anywhere in the workbook",
+        "the Location column holds room names in a private residence",
+        "an insurer's policy number appears in a footer cell"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an exhibition - this is the COLLISION FIXTURE and it is not this row's evidence",
+        "a checklist from the artist/title/medium/dimensions columns, which are shared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Frieze London 2026 - visitor floor plan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a plan of a large space with several hundred numbered cells",
+        "the accompanying index names EXHIBITOR ORGANISATIONS, not works, and carries no medium or dimensions column",
+        "wayfinding furniture is present - entrances, toilets, cafés, an information desk",
+        "no install, condition, loan or documentation counterpart exists in the folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a hang plan from the room geometry and the numbered cells",
+        "a checklist from the indexed name list",
+        "that attending a fair is staging a show",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Catalogue_SoftWeather_cover_CMYK_press.pdf",
+      "source_type": "design_creative",
+      "observations": [
+        "CMYK colour space, crop marks and a bleed box are present",
+        "a printer's imposition proof of the same stem sits beside it",
+        "the depicted content names the show and its dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the show it depicts makes it this row's evidence - the press-ready chain owns it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "deinstall_photos.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists forty JPEGs, one PDF whose member name contains 'condition', and one spreadsheet whose member name contains 'crate'",
+        "member names carry a date after the closing date used elsewhere in the folder",
+        "members are not extracted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member-level facts from the manifest alone",
+        "an installation documentation set - these are post-close records, not the hang",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_2231.jpg",
+      "source_type": "image",
+      "observations": [
+        "phone capture, no embedded caption, no sequence stem",
+        "sits in a folder beside twelve InstallView files and a checklist",
+        "the neighbourhood is the only thing suggesting a domain"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the show, the venue or the credit line of the files beside it",
+        "a documentation set from adjacency",
+        "a screenshot from missing metadata",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Private view - 19 March 18.30.ics",
+      "source_type": "calendar",
+      "observations": [
+        "single event with a venue string in the location slot",
+        "no attendee list, no organiser matching the corpus owner",
+        "description is one line of invitation prose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the corpus owner is staging this show",
+        "an exhibition packet from a venue name in a location slot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain_id": "creative.printmaking-editions",
+      "why": "SAME FIXTURE BOTH SIDES: a checklist row reading 'Untitled, 2025, screenprint, edition 12/40'. Editions owns the impression register - all impressions of one matrix, printer's proofs, artist's proofs, chop marks, the numbering scheme itself. This row owns the checklist - many works by many hands assembled for one show. RECIPROCAL: editions must not claim a checklist merely because a row carries an edition fraction, and this row must not claim an edition register merely because one impression was hung.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "career.portfolio-work-samples",
+      "why": "SAME FIXTURE BOTH SIDES: InstallView_03_SoftWeather_Whitechapel_2026.tif, which is simultaneously the documentation of a hang and page four of an artist's portfolio. The discriminating evidence is what the file is FOR. Self-presentation evidence - a curated ordered set of finished images with no install, loan or condition counterpart, sitting beside a CV whose exhibitions list is prose lines, or an artist statement - is career. Documentation evidence - a sequenced set keyed to a plan, with a credit line and a photographer's paperwork, inside a packet holding a checklist - is this row. Where a lone install view has neither, neither activates: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\" RECIPROCAL: career must not claim a documentation set because its images are impressive, and this row must never claim a CV, an artist statement or a portfolio PDF, whose exhibition lines are the strongest false positive it will ever see.",
+      "provenance": "design"
+    },
+    {
+      "domain_id": "photos.camera-events",
+      "why": "SAME FIXTURE BOTH SIDES: the twelve InstallView files, which carry the same EXIF make, model and DateTimeOriginal that any dated gathering carries, plus opening-night crowd photographs shot on the same evening in the same room. The discriminator is the structure around the captures: a sequence stem resolving against a plan, a formatted credit line, and a checklist in the folder. RECIPROCAL: photos must not lose a candid opening-night snapshot to this row because a gallery is depicted, and this row must not claim a party. IMG_2231.jpg is the fixture where the correct outcome is that neither reading is asserted.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "creative.print-production",
+      "why": "SAME FIXTURE BOTH SIDES: Catalogue_SoftWeather_cover_CMYK_press.pdf, and print-production's own rejected fixture 'Museum poster on gallery wall.jpg'. Print-production owns the proof-to-press-to-run-to-delivery chain regardless of what the printed thing depicts; a catalogue, an invitation card and a vinyl wall-text artwork are its evidence even though their subject is the show. This row owns the show the printed thing serves. RECIPROCAL: this row must not claim a press-ready chain because the artwork names an exhibition, and print-production must not claim a checklist or a wall-label document because they will eventually be printed.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "creative.interior-design",
+      "why": "SAME FIXTURE BOTH SIDES: Hang plan - Gallery 2 - v4.pdf, a scaled room drawing with elevations and annotations. Interior design owns a plan whose annotated objects are furniture, finishes, fittings and specification codes. This row owns a plan whose annotated objects are named authored works resolving against a checklist. RECIPROCAL: interior design must not lose a gallery refit drawing to this row because the room is a gallery, and this row must not claim a room drawing on geometry alone - which is why the room-shaped plan is a never_alone here.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "creative.theatre-production",
+      "why": "SAME FIXTURE BOTH SIDES: a performance staged inside the gallery for one evening of the run, producing both a schedule naming crew and a list of participants. The discriminator is which grammar governs: a script's strict element structure plus a cast list plus call sheets is theatre; a checklist plus a hang plan plus condition reports is this row. RECIPROCAL: theatre must not claim an install schedule because it names crew and half-days, and this row must not claim a rehearsal record because it happens in a gallery.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "legal.leases-agreements",
+      "why": "SAME FIXTURE BOTH SIDES: Loan Agreement - Untitled 2019 - signed.pdf. Legal owns it as an executed instrument - numbered clauses, defined terms, a parties block, an execution block - and that reading governs its handling, because it carries a lender's identifying details. This row owns it as one link in one show's custody chain, which is what makes the paired condition reports intelligible. RECIPROCAL: legal must not suppress the show membership, and this row must not weaken the protective posture by treating the instrument as ordinary project paperwork. Recorded as a collision rather than a co-activation because a template may not widen its schema's also_holds_with; the double reading is carried on the file example as also_schema.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "business_operations.project-delivery",
+      "why": "The confusable evidence is an institution's exhibition PROGRAMME: budgets, staffing plans, approval chains, board papers and post-show reporting, all naming the same show. Business operations owns the governing and reporting document - a controlled-document header, an approval block, a period-and-variance table. This row owns the show packet - checklist, plan, texts, custody paperwork, documentation. RECIPROCAL: business operations must not claim a checklist because a budget line references it, and this row must not claim a variance report because a show title appears in its subject cell.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "code.software-project",
+      "why": "The confusable evidence is a repository root sitting inside a media-artwork installation - a package manifest, a lockfile and a .git marker over software that drives a screen or a sensor in the room. Code owns the repository and its internal layout is preserved rather than re-filed. RECIPROCAL: code must not claim the checklist, the plan or the condition reports because a repository sits in the same show folder, and this row must never propose re-filing anything inside a preserved repository root.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "creative.self-initiated-work",
+      "why": "The confusable evidence is an artist's own studio folder for a solo show, where the making record and the show packet are physically interleaved. Self-initiated work owns the making of the works - working files, linked assets, revision families, tests. This row owns the show as an object - the register, the room, the custody, the texts, the documentation. RECIPROCAL: self-initiated work must not claim a condition report because it concerns the artist's own piece, and this row must not claim a working file because the piece it makes ends up on the wall. This is the boundary the row's own one_line states: the artwork files and the exhibition files are different objects.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reference Clips",
+      "why": "The home of this row's commonest false positive: saved exhibition material a person collected as inspiration or as a visitor - other people's press releases, downloaded fair maps, saved installation views, gallery newsletters. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\" The clause 'does not belong to a current project' is the exact test that separates attending a show from staging one.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for real-looking show material whose show, venue or stage is unresolved - which is the normal case here, because plans, schedules and condition reports are routinely filed under catalogue numbers with no show title anywhere in the file. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A lone install view, a single documentation frame or one photograph of a work on a wall with no set, no credit line and no packet around it. \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone durable document of a show with no packet - a kept invitation, a lone price list, a single wall-label document, a press release for a show that closed. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Grabs of a gallery listing page, a shared plan or a comment thread are a working habit of this world and most of them are disposable. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exceptional here: proprietary CAD packages, password-protected loan portals' exports, and deinstall archives kept sealed. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The route for loan agreements, condition reports and lender correspondence carrying third-party names, addresses and agreed values, where the protective posture matters more than the placement. Named here as a routing preference, not as a handling class - handling classes are P7's vocabulary and none is assigned.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "venue",
+      "other_field": "client",
+      "other_domain": "creative.client-engagement",
+      "why": "The exhibiting institution and the commissioning counterparty are the same entity TYPE - an organisation - in two different roles, and a single gallery routinely appears in both on the same page: it shows an artist's work (venue) and separately commissions a new piece or a catalogue design from them (client). 00 requires exactly this modelling - \"The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.\" `venue` is an existing canonical key and `client` is one of the creative schema row's four adoption candidates; NEITHER is declared by this placeholder, so the split is recorded here only so that whichever pass declares them cannot collapse a venue into a client. Collapsing them would be a real information loss on tour, where one show has one client and several venues.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Four reasons, and three of them are specific to this row rather than inherited from the creative schema's generic unpublished-work confidentiality. (1) THIRD-PARTY OWNERS AND THEIR PROPERTY. Loan agreements, courtesy columns and condition reports carry the names, addresses and agreed values of lenders who are not the corpus owner, some of whom are anonymous by contract - the checklist row that reads 'Private collection' exists precisely because the owner refused to be named, and a filing agent must not undo that. (2) A MAP OF WHERE VALUABLE OBJECTS ARE AND WHEN THEY MOVE. A hang plan marking vitrine and plinth positions, plus a courier and crate schedule, plus an insurance schedule, is jointly a security document; the harm is not identity theft but physical loss, and it is a kind of harm no other creative sibling produces. (3) EMBARGO. Press releases, press image packs and pre-opening install shots are unreleased by explicit instruction with a stated date, and this row will routinely see the embargo token itself. (4) THE VENUE'S AND ARTIST'S CONFIDENCE. A show before opening is not the corpus owner's secret to give away. Against all four the operative rule is 00's boundary: \"Privacy policy must be enforced before content reaches any model or external connector.\" This row does NOT carry is_safety_domain and assigns no handling class.",
+  "open_question": "Three. (1) NJ-EXH-1, THE LENDER HAS NO KEY AND MUST NOT GET ONE HERE. The courtesy or lender line is the most field-shaped thing on a checklist and there is no canonical key for it. `client` is wrong (a lender does not commission), `venue` is wrong (a lender does not host), and minting a lender key on a schema that declares no fields would be the 574's mistake at the point of maximum temptation. Alternatives for R1c: (a) leave it as content, searchable but never a dimension - this row's recommendation, because a folder named for a private collector publishes exactly the identity the courtesy line was written to protect; (b) mint a counterparty-role key on the shared vocabulary and fence it destination-ineligible; (c) fold it into the role_split above by giving `venue` a second role, which loses the distinction on tour. NO FIELD IS PROPOSED. (2) NJ-EXH-2, WHICH ROW OWNS A STANDING COLLECTION INVENTORY. `Collection inventory - insurance schedule 2026.xlsx` is this row's collision fixture and it has no obvious home: it is not a show, it is not a making record, and its columns are identical to a checklist's. It is routed to Independent Records here. If a collection-or-inventory row is ever added, this fixture and its discriminators (no catalogue numbers, no wall assignments, no lender column, no run) should move with it, and this row's never_alone on a spreadsheet of artworks becomes that row's boundary statement. (3) NJ-EXH-3, TOURING BREAKS THE SINGLE-PROJECT LEVEL. One show at three venues has one stable checklist and three sets of plans, texts, schedules and documentation. Under the recommended prose order the show is the parent and the venue has nowhere to go except inside `stage`, which is a custody sequence and cannot carry an institution name. Alternatives: (a) show first with venue as a leaf under `stage` - lossy but harmless; (b) show first with `venue` as a genuine second level, which requires the creative schema to adopt `venue` alongside its four candidates; (c) venue first, which scatters one show across institutions and is the exhibition analogue of the year-first mistake 00 warns about. Recommendation offered, not taken: (b)."
+}

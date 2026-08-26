@@ -1,0 +1,542 @@
+{
+  "id": "law_practice.family-law",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Family and children matter file (practitioner side)",
+  "one_line": "The practitioner-side matter file in which the SUBJECTS ARE A HOUSEHOLD THAT IS BEING TAKEN APART - two private individuals who shared a life, and one or more children who are subjects of everything and parties to nothing. It is NOT activated by the practice-area words family, matrimonial, divorce or custody, by a two-personal-name caption, by a court form code, or by a statement-of-truth block; a practice area is a VALUE and this row concedes that ruling in full. It survives its own schema's NJ-LP-4 test on LEG THREE, the privacy rule, and only there: this is the one situation in the family whose file carries an INTERNAL non-disclosure boundary between two people who are both named inside it - a withheld-address or confidential-contact slot, a redacted-for-service copy - so the ordinary practitioner posture (protect a third party from the outside world) is not sufficient, and a named CHILD is a subject_of_record who is not the client, not the counterparty, and cannot consent at any age. Its detection default adds two structures the schema's default template cannot see: a MIRROR PAIR of sworn means-and-resources statements about two private individuals inside one matter reference, and a WELFARE REPORT about a named child written by an assessor who is neither side's practitioner. Its dimension rule is stricter than the schema's in one absolute way: the schema seeds the client level ineligible pending explicit user approval; here there is NO client level and NO party-naming matter level at all, because both parties are private individuals and the branch would publish a relationship breakdown, a protective application or a child-protection case about a named person. Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED WHOLE AND NOT RESTATED AS A DIFFERENCE. The `law_practice` schema default must already hold before this template is considered: an exact matter, file or engagement reference repeated across two or more artefacts, PLUS at least one artefact whose own labelled slots separate a practitioner or firm role from a client role. Everything below is what this row adds ON TOP of that precondition. None of the signals below fires on its own, and specifically: a practice-area word, a form code, a two-personal-name caption and a child's name are struck tokens under `never_alone`, singly and in combination.",
+      "THE MIRROR-PAIR MEANS STRUCTURE, and it is this row's cleanest detection difference because the schema's default template has no signal that sees it. A form whose own labelled slots enumerate ONE NAMED PRIVATE INDIVIDUAL's bank accounts, real property, pensions, policies, business interests, liabilities, income and monthly outgoings, closed by a declaration or statement-of-truth block and a numbered schedule of attached statements - AND a SECOND form of the same shape completed by a DIFFERENT named individual, joined to the first by one exact matter reference. The pairing is the structure. A single such form is an individual's own financial dossier and is `finance`'s on `finance`'s own evidence; two of them, mirror-imaged, inside one practitioner matter, is a division of one household's assets between the two people who owned them. Read through 00's direct-fact path, which names \"a labeled form field\" as the reliable slot, and through its spreadsheet path for the attached schedules.",
+      "THE WELFARE-REPORT STRUCTURE: a report, assessment or evaluation whose own labelled slots name a CHILD with a date of birth in a subject slot, name an author in an assessor, officer, evaluator or guardian role WHO IS NEITHER SIDE'S PRACTITIONER, and separate observations, interviews or contacts from a recommendation section, closed by a distribution or filing list. The three-role structure - two parties, a child subject, a non-party author - is one no other sibling in the family produces, and it is a structure rather than a topic: delete the practice-area word and the child's name and the labelled subject-plus-non-party-assessor grammar still stands.",
+      "THE NON-DISCLOSURE-TO-A-NAMED-PARTY STRUCTURE, AND IT IS THE ROW'S EXISTENTIAL SIGNAL. A form, cover sheet or schedule whose own slot is labelled as contact details, address or whereabouts TO BE WITHHELD FROM THE OTHER PARTY; or a service copy whose redaction schedule names what has been removed and from whom it is being kept. This is the only artefact in the whole `law_practice` family whose labelled structure encodes a disclosure boundary BETWEEN TWO PEOPLE WHO ARE BOTH INSIDE THE SAME FILE. It is detected in order to be protected - never previewed, never thumbnailed, never summarised into a group label, never placed in a dossier - and its detection is the reason this template exists rather than folding into its schema's default.",
+      "THE HOUSEHOLD-DISSOLUTION EXHIBIT BUNDLE: an index or archive manifest binding statements, payslips, mortgage and pension papers, school letters, correspondence and identity copies to ONE named individual's sworn statement by an exhibit-numbering scheme. 00's own licence for the group is the purpose sentence - \"The documents are content-incoherent but purpose-coherent.\" - and the exhibit index is the anchor without which there is no group: \"It should not form a supported group when there is no valid anchor\". A manifest is read WITHOUT unpacking and the members keep their own schemas' facts.",
+      "THE ARRANGEMENTS-AND-CONSENT STRUCTURE: an agreed plan or draft order paired with a summary of the two parties' means or of the arrangements for a named child, submitted together for approval. Its diagnostic negative matters as much as its positive: it carries NO execution block and NO tribunal caption, so `legal`'s instrument-and-proceeding signals do not fire on it, which is precisely why it is this schema's. Once the same instrument is executed or sealed it is `legal`'s on `legal`'s own evidence and this row takes nothing away.",
+      "THE PROTECTIVE-APPLICATION STRUCTURE: an application paired with a supporting sworn statement, an undertaking or safety slot, and a service or notification record naming the person from whom protection is sought. Recognised for protection only. The product decides nothing about whether an order exists, is in force, has been breached, or is being complied with.",
+      "AN EMAIL or CALENDAR record whose structured slots tie it to an ALREADY EVIDENCED family matter: labelled sender and recipient roles crossing the practitioner-client boundary with the exact matter reference in the subject, or an organizer-and-attendee set separating practitioner, client, other side and tribunal. Position is weighted as 00 weights it; a firm domain, a source type or an emotive subject line never fires."
+    ],
+    "needs_llm": [
+      "DECIDING THE SIDE, inherited from the schema and HARDER HERE THAN ANYWHERE ELSE IN THE FAMILY, because in a family matter neither party is an organisation. Elsewhere the side can sometimes be resolved from a company name in a signature block; here both parties are private individuals with the same surname on the same former address, and the only discriminator may be which of two mirror-image sworn statements the holder's firm drafted. Abstention is the correct outcome: 00 requires that a model \"must return unknown\" when its cited evidence is insufficient.",
+      "Separating this row from the holder's OWN family matter. This is the schema anchor's under-firing fixture and it is a family-law file, which makes it this row's problem before anyone else's: every practitioner-looking token can be present while the holder is the client. The discriminating evidence is where the practitioner-side apparatus is, never a firm name, never a matter reference, never a folder called Divorce.",
+      "Deciding whether a child's school report or medical letter is an EXHIBIT in this matter or the holder's own child's record. The bytes are identical; only the exhibit index, the matter reference or an explicit disclosure request separates them, and the wrong answer in either direction is a serious one.",
+      "Separating a real sworn means statement from a blank court form, a firm precedent, a training exemplar or a law-school problem. \"Topic answers what a file is about, while purpose answers what the file was for.\" is the only test that works, and this world's blank forms are unusually convincing because they carry every labelled slot of the real thing.",
+      "Deciding whether one household's papers are ONE matter or several. Finance, children and protection between the same two people are commonly separate proceedings with separate references, deliberately kept apart. Bridging them by shared surname, shared address or shared child is forbidden regardless of what the model concludes.",
+      "Recognising unlabelled practitioner prose - an attendance note of a distressed telephone call, a chronology typed in running text, a handwritten-then-scanned file note. The route is local interpretation from a bounded dossier or abstention.",
+      "Interpreting a party-made recording, message export or screenshot bundle offered as evidence, where the speakers, the consent position and the relevance are all unstated. The product identifies a media file and abstains; it decides no admissibility, no legality and no speaker identity.",
+      "Interpreting jurisdiction-specific or multilingual family artefacts whose labelled roles no approved pattern covers. This row defines no court list, no form catalogue, no jurisdiction rule, and jurisdiction is never a field or a dimension."
+    ],
+    "never_alone": [
+      "A PRACTICE-AREA WORD - family, matrimonial, divorce, dissolution, custody, contact, access, separation, maintenance - ALONE, AND BESIDE A FIRM OR PERSON NAME. Struck first because it is the charge against this row and the row concedes it whole: a practice area is a VALUE, exactly as its schema and clinical_practice both ruled. A practice-area word beside a firm name is TWO struck tokens and resolves nothing. This is true of `Divorce papers.pdf`, which fires nothing and goes to Review Later.",
+      "A TWO-PERSONAL-NAME CAPTION, in `v.`, `and`, `Re:` or initials-only form. This row's captions are two private individuals, which is indistinguishable by shape from any two-party dispute, from an address-book pair, from a joint account statement and from a wedding photo filename. The schema already strikes captions generally; here the strike is sharper because the names carry no organisational signal at all.",
+      "A CHILD'S NAME, A CHILD'S INITIALS, OR A DATE-OF-BIRTH SLOT ALONE. THE STRICTEST INSTANCE IN THIS FAMILY AND THE ONE THAT MOST DIRECTLY DEFENDS THE ROW'S REASON FOR EXISTING: a DOB slot appears on identity documents, medical records, school reports, HR files, insurance forms and passport scans, so it is simultaneously the least discriminating token available and the one whose misuse would write a minor's identity into a filesystem. A name that appears only as an initial in the source must never be expanded, and a child's name must never become a group label or a folder level under any evidence whatsoever.",
+      "A COURT FORM CODE, FORM NUMBER OR FORM TITLE ALONE, INCLUDING A COMPLETE SET OF ITS LABELLED SLOTS WHEN THEY ARE EMPTY. A form code says WHICH form; it says nothing about whose matter, which side, or whether there is a matter. The blank downloaded form is the precedent-bank inverse-recognition case and belongs to `law_practice.precedent-bank` or to Reading Inbox, not here.",
+      "A STATEMENT-OF-TRUTH, SWORN, AFFIRMED, DECLARATION or NOTARIAL BLOCK ALONE. It appears on immigration applications, probate papers, insurance claims, personal-injury statements and company filings. It is `legal`'s execution-shaped signal, not this row's.",
+      "BANK STATEMENTS, PAYSLIPS, MORTGAGE STATEMENTS or PENSION VALUATIONS AS A SET, however many, and however co-located. A folder of a person's financial year is `finance`'s own evidence or a download session; it becomes disclosure material only through an EXHIBIT INDEX or an exact matter reference. Without one it is the collision fixture, not the row.",
+      "A MARRIAGE, CIVIL-PARTNERSHIP, BIRTH, DEATH or CHANGE-OF-NAME CERTIFICATE ALONE. These are `identity`'s own evidence and are equally at home in a household's own drawer. Exhibit membership never converts a certificate into this row's fact.",
+      "A CONFIDENTIAL, PRIVATE, NOT FOR SERVICE, WITHOUT PREJUDICE or IN CAMERA LEGEND ALONE. The literal observation is preserved; the legal status is decided by nobody here, and such legends appear on commercial and HR documents constantly.",
+      "AN EMOTIVE OR RELATIONSHIP-SHAPED SUBJECT LINE, MESSAGE THREAD or CHAT EXPORT. Private correspondence about a relationship is the single largest class of false positives available to this row and it is overwhelmingly the holder's own life, not a client's matter.",
+      "A SOURCE TYPE or EXTENSION ALONE, including text_document, email, spreadsheet, archive, image, ocr, calendar and audio_video and every extension listed on this row. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME or FOLDER containing divorce, custody, kids, family, matrimonial, split or the surname of a household. Paths stay local and a folder name is an unlabelled position.",
+      "AUTHOR, CREATOR or LAST-SAVED-BY METADATA naming a practitioner, a firm, a court or a document-assembly tool. 00: \"It should avoid using authorship or creator identity as a destination dimension.\"",
+      "A SHARED SURNAME, SHARED FORMER ADDRESS, SHARED CHILD or SHARED HOUSEHOLD ACROSS TWO MATTERS as a bridge between them. Finance, children and protection proceedings between the same two people are frequently separate on purpose, and bridging them is a privacy failure before it is an accuracy one."
+    ]
+  },
+  "proposed_context_terms": [
+    "financial statement",
+    "statement of means",
+    "sworn financial disclosure",
+    "questionnaire and replies",
+    "schedule of assets and debts",
+    "income and expense declaration",
+    "pension valuation",
+    "pension sharing",
+    "statement of information",
+    "consent order",
+    "financial remedy",
+    "maintenance",
+    "child support calculation",
+    "child arrangements",
+    "parenting plan",
+    "contact and residence",
+    "welfare report",
+    "welfare checklist",
+    "guardian",
+    "custody evaluation",
+    "chronology",
+    "position statement",
+    "non-molestation",
+    "occupation order",
+    "restraining order application",
+    "undertaking to the court",
+    "confidential contact details",
+    "address withheld",
+    "redacted for service",
+    "certificate of service",
+    "mediation information meeting",
+    "collaborative practice agreement",
+    "separation agreement",
+    "prenuptial agreement instructions",
+    "decree or final order record"
+  ],
+  "work_types": [
+    "petition, application or notice commencing a divorce, dissolution or separation",
+    "sworn financial statement, means disclosure and schedule of attachments",
+    "questionnaire, replies and disclosure chasing correspondence",
+    "statement of information for a consent order",
+    "draft and approved financial remedy, property or maintenance order record",
+    "pension valuation, sharing report and implementation record",
+    "child arrangements application, parenting plan and agreed schedule",
+    "welfare, guardian or custody-evaluation report and response",
+    "protective-order application, supporting statement and undertaking record",
+    "address-withholding, redaction and service record",
+    "child support or maintenance calculation, variation and enforcement record",
+    "mediation, collaborative-practice and negotiated settlement record",
+    "public-law or child-protection proceedings record",
+    "international relocation, jurisdiction and child-abduction record",
+    "prenuptial, postnuptial, separation and cohabitation agreement drafting record",
+    "chronology, position statement, hearing bundle index and attendance note",
+    "party-supplied evidence bundle - messages, recordings, photographs and screenshots"
+  ],
+  "grouping_reasons": [
+    "ONE FAMILY MATTER from opening to closure, joined by an exact repeated matter reference - inherited from the schema default and restated only because its members here are unusually content-incoherent: an intake screen, two sworn means statements, a welfare report, a school letter, a pension valuation, a chronology and an order. \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no party, child, address or financial fact onto any member.",
+    "ONE DISCLOSURE EXCHANGE, AND IT IS THE ONLY GROUP IN THE `law_practice` FAMILY WHOSE MEMBERSHIP IS DEFINED BY TWO SUBJECTS RATHER THAN ONE: the applicant's means statement and the respondent's, the questionnaires and the replies, and each party's exhibit bundle, joined by one exact matter reference and by exhibit-numbering schemes that are per-party and must not be merged. The two halves are grouped together and remain labelled apart.",
+    "ONE PARTY'S EXHIBIT BUNDLE to one sworn statement, joined by an exhibit index. Members keep their own schemas' facts - a bank statement stays finance-shaped evidence, a birth certificate stays identity-shaped evidence - and the archive stays intact, its manifest read without unpacking.",
+    "ONE CHILD'S ARRANGEMENTS THREAD: the application, the welfare report, the plan and the resulting order, joined by an exact proceeding or matter reference AND NEVER BY THE CHILD'S NAME. Stated as a grouping reason and a prohibition in the same breath, because the name is the obvious axis and using it would write a minor into the group label.",
+    "ONE DOCUMENT across draft, redline, sworn, redacted-for-service and sealed versions - the universal version_family fact, supported by hashes or explicit revision markers. WITH ONE HARD EXCEPTION UNIQUE TO THIS ROW: a redacted service copy and its unredacted original are NOT a duplicate pair and must never be collapsed, de-duplicated, or have one silently preferred over the other, because the difference between them is the withheld information itself.",
+    "NOT grouping reasons, listed because each is the obvious wrong answer here: a shared surname; a shared former address; a shared child; two proceedings between the same two people; a folder named for a household; a download session of one person's bank statements; and \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, AND THEN STRICTER THAN THE SCHEMA'S EMPTY - WHICH IS THIS ROW'S LEG-THREE DIFFERENCE STATED AS A FILING RULE. By contract there is nothing to order: `law_practice` declares no field rows under PR-6, a dimension may only branch on a field the same schema declares, and this template mints nothing. But the schema's default template does not stop at the contract - it holds a recommendation in prose (client only where the corpus spans more than one client AND the user has explicitly approved a client-named branch, then matter, then document function, then period) and every one of its 36 templates is measured against that paragraph. THIS ROW DIFFERS FROM IT IN ONE ABSOLUTE WAY. In the schema's default the client level is SEEDED INELIGIBLE AND UNLOCKABLE BY USER APPROVAL, because a client there is typically a company and the disclosure is commercial. Here it is INELIGIBLE FULL STOP, and so is any matter level whose reference or label embeds a party name, because every party in this world is a private individual and the branch does not disclose that a company has lawyers - it discloses that a named person is being divorced, is seeking protection from someone, or has a child in proceedings. The schema states the general rule and this row is its sharpest case: a named third party may never be a folder level, and here the third parties include a CHILD who cannot consent at any age and a person whose ADDRESS IS DELIBERATELY WITHHELD INSIDE THE FILE ITSELF - a filesystem path that named either would defeat, in the one place a later process is guaranteed to read it, the very protection the document was constructed to provide. 00's posture governs: \"The default posture must therefore be local-first and data-minimizing.\" WHAT SURVIVES AS PROSE, if PR-6 ever lifts: an opaque matter token that names nobody, then DOCUMENT FUNCTION, then period last - function under the matter because a child is unintelligible without its parent (a replies-to-questionnaire, an exhibit bundle or a supplemental statement is meaningless without the matter it answers), and function is the one axis in this world that discloses nothing about a person. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Filing time, hearing time, sworn date and filesystem time mean four different things here and nothing in this world is capture-based. And whatever lands is a recommendation the user may reverse, remove, add to or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "calendar",
+      "ocr",
+      "image",
+      "audio_video",
+      "contacts",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".m4a",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Financial statement - applicant - sworn - 41127-0011.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots enumerate one named individual's accounts, property, pensions, policies, liabilities, income and monthly outgoings",
+        "a declaration or statement-of-truth block with a signature and a date",
+        "a numbered schedule of attachments listing statements and valuations by exhibit number",
+        "the same matter reference appears in the footer and on a second, mirror-image form completed by a different named individual",
+        "no tribunal caption and no execution block binding two parties to anything"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and `client`, `our_firm`, `project` and `subject_of_record` are proposals on the anchor awaiting R1c",
+        "FINANCE FACTS. This is the fixture's whole point and the seam runs the opposite way to the anchor's client-account fixture: `finance` is a safety domain and its PROTECTION may correctly co-activate on the account rows, and this row takes nothing away from that - but `institution`, `account_type` and `record_type` must stay UNKNOWN, because finance's records are the HOLDER's and these accounts belong to a private individual who is not the holder and did not choose this filesystem",
+        "that a single such form activates this template. THE MIRROR PAIR IS THE STRUCTURE; one form alone is an individual's financial dossier",
+        "that the sworn declaration establishes truth, completeness, currency or legal effect",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Confidential contact details - address withheld.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a short form whose own slot is labelled as contact details to be withheld from the other party",
+        "a named applicant, a named person from whom the details are withheld, and one address",
+        "a court or office stamp and a filing reference",
+        "it sits beside a longer application whose service copy carries a redaction schedule"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THE ADDRESS MAY BE READ OUT ANYWHERE. This is the row's existential fixture: the address must not be indexed for search, rendered in a preview or thumbnail, written into a group label or a folder name, or placed in any dossier local or remote. The file is detected in order to be protected and for no other purpose",
+        "that a withheld-details form proves danger, an order, a finding, or anything about either named person's conduct",
+        "that the neighbouring service copy and the original are a duplicate pair - see version_family below; they differ precisely by this information",
+        "any law_practice fact, and no person, address or relationship fact of any kind",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Application and supporting statement - REDACTED FOR SERVICE.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "black-box redactions over address, employer and school passages",
+        "a redaction schedule naming what has been removed and the party from whom it is withheld",
+        "a certificate-of-service page with a date and a method",
+        "an unredacted file of near-identical length and near-identical text sits in the same directory"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "duplicate_family OR a collapsed version_family with the unredacted file. THIS IS THE ROW'S SHARPEST OPERATIONAL RULE: near-identical text is exactly what a redacted pair looks like, and treating them as duplicates - preferring one, hiding the other, showing the 'best' copy - would either destroy the served record or surface the withheld information. They are two files with different audiences and both are kept",
+        "that redaction succeeded, that it is complete, or that the redacted layer is unrecoverable",
+        "that service occurred, was valid, or was received",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Welfare report - A (a child) - 41127-0011.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled subject slot naming a child and a date of birth",
+        "an author block giving an assessor, officer or evaluator role belonging to neither side's practitioner",
+        "sections separating interviews and contacts from a recommendation",
+        "a distribution list naming both parties' solicitors and the court"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THE CHILD'S NAME OR INITIALS AS ANY STORED IDENTIFIER, GROUP LABEL, PREVIEW LINE OR FOLDER LEVEL. The child is a subject_of_record who is not the client, not the counterparty, and cannot consent at any age; an initial in the source is never expanded",
+        "any welfare, best-interests, risk or parenting conclusion, or that the recommendation was accepted, is current, or is correct",
+        "a medical fact from the health passages, or an education fact from the school passages - those neighbours hold their own evidence and this report is not it",
+        "that the non-party author is the holder's expert; the assessor role is precisely what distinguishes this from `law_practice.expert-materials`",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit bundle JS1 - statements payslips and school letters.zip",
+      "source_type": "archive",
+      "observations": [
+        "the archive manifest is readable without unpacking and shows member paths numbered against one exhibit scheme",
+        "members span bank statements, payslips, a mortgage redemption figure, two school letters and a birth certificate scan",
+        "one matter reference recurs in the member path prefix",
+        "a separate archive in the same directory carries a different party's exhibit numbering"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the archive should be unpacked to improve classification - the manifest is read as 00 describes an archive being read, and the packet stays intact",
+        "finance, identity, education or medical FACTS on the members from their membership here; each member keeps its own evidence and its own protection",
+        "that the two parties' exhibit schemes may be merged into one numbering or one group label",
+        "a directory name as a fact on any member",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Parenting plan - agreed - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a two-party plan with a week-by-week schedule of time with a named child, and holiday and handover clauses",
+        "a matter reference in the header and a revision marker in the footer",
+        "bracketed open points remain in two clauses",
+        "no execution block, no witnesses, no tribunal caption"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "`legal` activation. This is the row's inverse-recognition fixture on the safety neighbour: `legal` fires on a bound party pair plus an execution block or a tribunal caption, and an unexecuted plan HAS NEITHER. Once the same content is embodied in a sealed order, `legal` fires on that document's own evidence and this row concedes it",
+        "that the plan is agreed, in force, complied with, or approved by anybody",
+        "the child's name as a version_family label or a group label",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Chronology and position statement - FDR - 41127-0011.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a dated event table running from cohabitation to separation, with page references into a bundle",
+        "sections separating issues, the client's case, the other side's case and proposals",
+        "a producer marker for the holder's firm and the matter reference in the header",
+        "no caption and no signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege, work-product status, or confidentiality as a legal conclusion, from the internal character of the document or from any label on it",
+        "that any dated row is a fact about either person's life, or that any proposal was made, accepted or rejected",
+        "an authored_by value promoted to a dimension - 00: \"It should avoid using authorship or creator identity as a destination dimension.\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Handover arrangements this weekend - client instructions.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient roles crossing the practitioner-client boundary",
+        "the exact matter reference in the subject line",
+        "a forwarded message thread between the two parties quoted below the instruction",
+        "an attached photograph of a handwritten note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any fact about the child, either party's conduct, or what was agreed - the message is evidence that a message exists",
+        "that the forwarded party-to-party thread is safe to summarise or excerpt into a prompt; it is private correspondence between two people neither of whom is the holder",
+        "contacts facts about the quoted participants from the thread headers",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Recording - handover 12 Jan.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "container metadata gives a duration and a device-shaped encoder string",
+        "it arrived as an attachment in the matter mailbox and sits beside a party-made transcript document",
+        "no speaker labels, no matter reference inside the media, and voices include at least one child",
+        "the neighbouring transcript carries the matter reference in its header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "speaker identity, consent, legality, admissibility, relevance, or what the recording shows - the product identifies a media file and abstains",
+        "membership in the matter from the media file alone; the exact reference is on the transcript, and the recording joins only through it",
+        "that the audio may be transcribed or summarised into a dossier by default - it may contain a child's voice, which is the strictest content this row can hold",
+        "a capture location fact from device metadata",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ellis and Co - Client Care Letter - my divorce.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a law-firm letterhead, a matter reference allocated by that firm, and a responsible-solicitor block",
+        "labelled sections on scope, hourly rates, complaints procedure and the right to cancel",
+        "the addressee block names the HOLDER personally and the holder's own signature appears on the client copy",
+        "no intake screen, no time record and no work product produced by the holder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THE UNDER-FIRING COLLISION FIXTURE, TAKEN DELIBERATELY FROM THE SCHEMA ANCHOR'S OWN FILE LIST AND NAMED IDENTICALLY ON BOTH SIDES SO THE SEAM CAN BE CHECKED: the anchor chose a DIVORCE letter for its hardest case, which makes it this row's problem before any sibling's. Every practitioner-looking token is present and the holder is the CLIENT. `legal.personal-legal-matters` owns it",
+        "that a matter reference is practitioner-side evidence - it is allocated by SOME firm, and whose is a question the reference cannot answer",
+        "that the practice area supplies the answer; family is a value on both sides of this seam",
+        "a folder path, and specifically nothing recording the existence or subject of the holder's own proceeding"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Financial statement (blank) - downloaded from court website.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "every labelled slot of the real sworn form is present and every one is empty",
+        "guidance notes and a form code and version date in the footer",
+        "no matter reference, no party name, no signature and no attachments schedule",
+        "it sits in a downloads directory beside two unrelated PDFs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "THIS ROW, OR ANY MATTER. THE OVER-FIRING COLLISION FIXTURE: the labelled-slot structure this template's strongest signal depends on is present in full, and it is worthless because the slots are empty and there is no second form and no matter reference. A blank court form is the precedent-bank inverse-recognition shape - `law_practice.precedent-bank` owns it if a firm template marker is present, and Reading Inbox owns it otherwise",
+        "sensitivity_status as protected material - uniquely among this row's fixtures there is no party, no child and no third party in the file at all",
+        "a download-session neighbour as evidence of topic",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Estate inventory and account - Re late M Hartley.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers enumerate assets, liabilities, valuations at a stated date and distributions",
+        "a header block names a personal representative role and a DATE OF DEATH",
+        "beneficiary rows carry shares and relationships",
+        "one matter reference recurs and the firm's template footer is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THE SIBLING COLLISION: an asset-and-liability schedule inside a practitioner matter is exactly this row's mirror-pair shape, and the discriminating slots are a DATE OF DEATH and a PERSONAL REPRESENTATIVE role - one estate being distributed, not two living people dividing what they held together. `law_practice.estates-administration` owns it, and this row does not claim it even when the family is the same family",
+        "a beneficiary relationship as a fact about a living family, or a distribution as evidence of a division",
+        "finance facts - there is no institution-and-account header",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Divorce papers.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the practice-area word and a document-type word in the filename and nothing else",
+        "the PDF has no extractable text layer and no document title",
+        "no matter reference, no party, no labelled slot, no caption",
+        "it sits in a folder whose name is a surname"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "THE NEVER-ALONE TRIPPER, AND IT IS THE CHARGE AGAINST THIS ROW IN FILE FORM: a practice-area word plus a document-type word plus a surname folder is three struck tokens, and three struck tokens are not evidence. Nothing fires - not this row, not `law_practice`, not `legal`",
+        "whose divorce it is, or that a divorce exists",
+        "a party fact from the folder surname - a folder is an unlabelled position",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "THE EXISTENTIAL COLLISION AND THE ONE THE SCHEMA ANCHOR ALREADY CHOSE A FAMILY-LAW FILE TO ILLUSTRATE. Same fixture on both sides, named identically: `Ellis and Co - Client Care Letter - my divorce.pdf`. Toward that neighbour: the holder is a party to their own relationship breakdown, holds a client care letter, a sworn means statement, a welfare report and a sealed order about their own children, and every token this row's precondition looks for is present except the practitioner-side apparatus. Toward this row: the holder's firm ALLOCATED the reference, produced the intake screen, drafted one of the two mirror-image means statements, and recorded time - and the client is somebody else's household. THE DECIDING EVIDENCE IS WHERE THE APPARATUS IS, never the firm name, never the matter reference, never the practice-area word, never the folder. The asymmetry of cost is stated so R1c can weigh it: a personal file misrouted here is over-classification into a protective home, while a client's file misrouted there is the holder's own life mixed with a third party's - so where the side is unresolved the answer is Review Later, not a guess in either direction. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.estates-administration",
+      "signal": "THE SIBLING COLLISION ON THIS ROW'S STRONGEST SIGNAL. Same fixture on both sides: `Estate inventory and account - Re late M Hartley.xlsx` beside `Financial statement - applicant - sworn - 41127-0011.pdf`. Both are a complete asset-and-liability schedule about a named private individual, inside a practitioner matter, produced on the firm's template, with beneficiaries or a spouse named in rows. Toward this row: TWO mirror-image schedules about TWO LIVING people who are dividing what they held together, sworn by each of them. Toward estates: ONE schedule about ONE person, with a DATE OF DEATH and a PERSONAL REPRESENTATIVE role in the header, distributed rather than divided. The seam is a slot pair (date of death plus representative role) and a cardinality (one subject versus a mirrored two), not a practice-area word, and it must be drawn this way because the same household and the same surnames frequently appear in both matters. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "THE VOLUME COLLISION - most bytes in this row's world are somebody's bank statements. Same fixture on both sides: `Exhibit bundle JS1 - statements payslips and school letters.zip` and the loose statements that would otherwise sit in a downloads folder. Toward finance: an individual's statements, payslips, mortgage and pension papers are finance's own evidence on an institution-and-account structure, and they remain so wherever they sit; finance is a safety domain and its protection runs first. Toward this row: the SAME bytes become disclosure material only through an EXHIBIT INDEX or an exact matter reference, and even then this row writes no finance fact on them - it adds membership and protection, nothing else. The critical direction is the one that fails silently: a folder of statements co-located with matter papers is a download session, and \"It should not form a supported group when there is no valid anchor\". Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "THE CHILD COLLISION, and the reason this row's leg-three claim cuts both ways. Same fixture on both sides: a paediatric letter or a school health report naming a child with a date of birth. Toward that neighbour: the holder's own child's health record, which is the holder's household business and belongs where the family keeps it. Toward this row: the identical letter as an EXHIBIT in a practitioner's matter about somebody else's child, reachable only through an exhibit index, a disclosure request or an exact matter reference. The bytes do not differ at all. Both sides must therefore treat the child's name as never-alone and never as a folder level, and where the route is unresolved the file stays in Protected Records rather than being placed in either home. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.immigration-casework",
+      "signal": "THE RELATIONSHIP-EVIDENCE COLLISION, between two of the three practice-area rows NJ-LP-4 conditionally allowed. Same fixture on both sides: a marriage certificate, cohabitation evidence, a child's birth certificate and a household financial bundle. Toward immigration: the same evidence is assembled to prove a relationship TO AN AUTHORITY - there is an application reference, an authority addressee, and a checklist of required documents, and the household is being shown to be intact. Toward this row: the same evidence is assembled for a DIVISION BETWEEN THE TWO PEOPLE THEMSELVES - there is no external addressee, there are two mirror-image disclosures, and the household is being unwound. The seam is the presence or absence of an external decision-maker as addressee. It matters because the two situations co-occur in one household and the misroute changes whose immigration status is implied by a filename. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first and it takes almost everything this row recognises when the matter cannot be confidently anchored, because the characteristic isolated file here is a document about a named private individual or a named child. 00 licenses surfacing without a group for exactly this material - \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" - and the corpus sentence names what a single one of these matters contains at once: a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\". The withheld-address form, the welfare report and the party-made recording go here and stop here.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The correct home for this row's defining failure, which is unresolved SIDE - is the holder the practitioner or the party - and for its second failure, a real-looking artefact with no anchor at all such as `Divorce papers.pdf`. It is named rather than guessing, because guessing wrong in the practitioner direction files a stranger's household under the holder's own life.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For the blank downloaded court form, the guidance leaflet, the published judgment and the practice note - the one class of file here that contains no party, no child and no third party, and therefore is not protected material. It is also where a blank form goes when no firm template marker sends it to the precedent bank instead.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected disclosure archives, split matter exports, proprietary case-system files and party-supplied message-export blobs are ordinary here and are precisely the files that must not be forced open to improve classification.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For a certificate, a school letter or a statement that is genuinely a household's own record rather than a practitioner's matter member - the finance and identity collisions resolved away from this row when no exhibit index or matter reference exists.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and unlike most templates this row's privacy claim is not merely inherited - IT IS THE LEG OF THE NODE TEST THE ROW STANDS ON, because its schema ruled that a practice-area row survives only if it changes the privacy rule and never because it changes the topic. Three changes, each of which the `law_practice` default does not state. FIRST, AN INTERNAL NON-DISCLOSURE BOUNDARY. The schema's posture protects a third party from the outside world. This row's file protects one named person FROM ANOTHER NAMED PERSON WHO IS INSIDE THE SAME FILE: a withheld-address slot, a redacted service copy, an exhibit bundle that exists in a served version and an unserved one. That has an operational consequence no sibling has - a redacted copy and its original are NOT duplicates and must never be collapsed, preferred, or de-duplicated, because the difference between them is the withheld information itself. SECOND, A SUBJECT WHO CANNOT CONSENT AT ANY AGE. The schema already argues that its third parties never chose this filesystem; a CHILD additionally cannot choose, cannot later object, and cannot be asked, and a family matter is about that child from beginning to end - a welfare report, a school letter, a handover recording carrying their voice. The rule that follows is a naming rule: a child's name or initials may never become a stored identifier, a group label, a preview line or a folder level under any evidence whatsoever, and an initial in the source is never expanded. THIRD, EXISTENCE IS DISCLOSIVE ABOUT A PRIVATE PERSON RATHER THAN A COMPANY. Elsewhere in the family a client-named branch discloses that a company has lawyers; here it discloses that a named individual is being divorced, is seeking protection from someone, or has a child in proceedings - which is why this row makes the client dimension ineligible outright rather than unlockable, against 00's posture that \"The default posture must therefore be local-first and data-minimizing.\" Two consequences bind everything above: nothing here is legally interpreted - no order, finding, breach, protection, consent, admissibility, welfare outcome or financial entitlement is decided by this product - and no name, address, child, financial value or recording content is placed in a remote prompt by default, since 00 keeps \"raw sensitive values\" local. Handling classes are P7's and this row assigns none.",
+  "open_question": "Four, and the first is the one that decides whether the row exists. (1) NJ-FL-1, THE PRACTICE-AREA CHARGE, answered as a NARROW YES on leg three exactly as the schema anchor's NJ-LP-4 demanded, and recorded so it can be reversed: this row does NOT stand on holding family-shaped documents - it stands on three privacy rules its schema's default template does not state (an internal non-disclosure boundary between two people inside one file, a subject who cannot consent at any age, and existence-disclosure about a private individual rather than a company), plus two detection structures the default cannot see (a mirror PAIR of sworn means statements, and a welfare report authored by a non-party assessor). If R1c judges that the redaction and withheld-address rules belong on the `law_practice` schema itself rather than on one template - which is a defensible reading, since a criminal or an investigation file can also carry a protected witness address - then the correct outcome is REFUSAL of this row, the rules move up to the schema, and the coverage routes to the schema default plus Protected Records. This row would rather be refused than kept for its topic. (2) NJ-FL-2, THE THREE-ALLOWED-ROWS SEAM: NJ-LP-4 allowed `family-law`, `criminal-defence` and `immigration-casework` on the same leg-three argument, and this row has now found a same-evidence collision with immigration on relationship evidence and can see one with criminal defence on protective-order breach. R1c should check whether the three are really three privacy rules or one, and if one, whether the right structure is a single protected-natural-persons template with the practice areas as `work_type` values. This row raises it and edits nothing. (3) NJ-FL-3, THE REDACTED-PAIR MECHANIC: the rule that a redacted service copy and its unredacted original must never be de-duplicated is stated here as a privacy rule, but it is enforced by whatever computes `duplicate_family` and `version_family`, which is not this row's. Alternatives: (a) a universal rule that near-identical files whose difference is a redaction layer are never collapsed; (b) a per-domain suppression flag; (c) leave it to user review, which this row believes is unsafe because the pair is invisible to a user until one of them is surfaced. (4) NJ-FL-4, THE SUBJECT-OF-RECORD DEPENDENCY: this row's child-naming rule is currently a prohibition with no field behind it. If R1c adopts `subject_of_record` from the `clinical_practice` / `nonprofit` / `law_practice` proposal, this row asks that the destination-ineligibility live on the KEY rather than being restated by every template, and adds the observation that its own subject is the strongest case for that: a child in proceedings is a subject who is neither the holder, nor the holder's counterparty, nor a party, nor capable of consent."
+}

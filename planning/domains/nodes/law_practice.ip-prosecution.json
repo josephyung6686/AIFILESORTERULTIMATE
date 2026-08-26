@@ -1,0 +1,582 @@
+{
+  "id": "law_practice.ip-prosecution",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Intellectual property prosecution",
+  "one_line": "The practitioner-side apparatus of OBTAINING and KEEPING a registered right before a granting office - the application as filed, the office's own examination correspondence and the response to it, the recordal and renewal record - identified not by the practice-area words patent or trademark but by an OFFICE-ISSUED RIGHT IDENTIFIER standing in a labelled slot beside the firm's own docket number in the office's correspondence-address block. That pairing is why this row is not the law_practice default template with a narrower filename filter: the default's second leg requires an artefact whose labelled slots separate a practitioner role from a CLIENT role, and the office's own forms - the filing receipt, the office action, the information-disclosure form, the notice of allowance, the registration certificate - carry NO client slot at all, because the exchange is ex parte between a firm of record and an examiner. It deliberately does not hold the inventor-side disclosure (`engineering.invention-disclosure`), the exploitation of a granted right (`creative.licensing-rights`, `law_practice.transactional-deal`), enforcement against an infringer (`law_practice.pleadings`, `law_practice.matter-correspondence`), or a published register document that anybody could download (`research.reading-library` / Reading Inbox). Writes NO field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "record_type",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING CANONICAL KEY, RAISED FOR ONE NARROW ROLE AND WITH THE HONEST WARNING ATTACHED. This row's grouping anchor is not a matter reference and not a `project` - it is an OFFICE-ISSUED RIGHT IDENTIFIER (application number, publication number, registration or patent number, international application number) which is allocated by a third party, is printed on that third party's own forms, survives the closure of the matter that created it, is carried across firms when the right is transferred, and CHANGES ITS OWN FORM as the right progresses. `project` (which the schema proposes for the matter) cannot hold it, because one right routinely spans several matters and several firms over decades, and one matter routinely covers several rights. Canonical `record_type` is the nearest existing key for 'which kind of official record this identifier is', and this row asks R1c to decide whether the identifier itself needs a key at all or whether it must stay a raw observation forever. THE WARNING: this row's own preference is that it stays an OBSERVATION. An application number resolves in one public search to a named proprietor and a technical disclosure, so promoting it to a stored fact creates the disclosure the family's privacy posture exists to prevent. `patent_number`, `application_number`, `registration_number`, `official_number`, `right_id`, `ip_family` and `docket_number` are ALL variants of one concept and none of them may be minted by this row or by any sibling.",
+      "preferred_resolution": "Preference order: (a) no key - the identifier stays a literal observation used for linkage during local review and is never stored as a fact or written into a path; (b) if R1c judges that linkage across a right's decades-long life genuinely needs a named field, adjudicate ONE key for the whole roster with `destination_eligible` FALSE, and record the disclosure reason on the key rather than on this template; (c) refuse any per-template mint. Option (a) is what this row actually asks for.",
+      "why": "The row's real anchor is an identifier no existing key holds; it is raised so that thirty-six siblings do not each mint a spelling of it, and raised with the argument for holding NO key at all."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION AND INHERITANCE. These are template-activation signals on a fieldless schema, not licences to write facts. The `law_practice` default requires BOTH legs - an exact matter or engagement reference repeated across artefacts, AND at least one artefact whose labelled slots separate a practitioner or firm role from a client role. THIS TEMPLATE'S WHOLE STRUCTURAL CLAIM IS THAT ITS CHARACTERISTIC FILES FAIL LEG (ii) AND STILL BELONG TO THE FAMILY, because the examination exchange is EX PARTE: it runs between a firm of record and an examiner, and the office's own forms carry no client slot. The substitute leg this row supplies is stated in the next signal. Everything the schema strikes stays struck: the words patent, trademark, design, invention, intellectual property; a law-firm or IP-attorney name; a practice-area word; a document-type word beside either.",
+      "THE SUBSTITUTE SECOND LEG, AND THE ROW'S SINGLE DISCRIMINATING SIGNAL - A DUAL-DOCKET PAIRING IN LABELLED SLOTS: an OFFICE-ISSUED RIGHT IDENTIFIER (application, serial, publication, registration, patent or international application number) standing in the office's own labelled slot, TOGETHER WITH the correspondent firm's OWN internal docket reference standing in the office's CORRESPONDENCE ADDRESS or ATTORNEY DOCKET slot on the same page. Neither half fires alone: the right identifier alone is on every published register document anybody can download, and a docket reference alone is a bare identifier the schema already struck. It is the PAIRING, in two slots the office itself labelled, that says a firm is acting of record. Read through 00's direct-fact path, \"a labeled form field\", and weighted by position for the reason 00 gives - \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\" - these identifiers live in a front-page slot block, not in a citation list.",
+      "AN EXAMINATION-OBJECTION structure: an office communication whose body is a NUMBERED OBJECTION SET, each objection naming the CLAIM NUMBERS it applies to and citing prior-art references by their own official numbers, together with a SET PERIOD FOR REPLY, an examiner name and an examining unit or group. There is no caption, no adverse party, no counsel block for another side and no operative order - which is precisely why `legal`'s instrument-and-proceeding signals and the sibling `law_practice.pleadings` signals DO NOT FIRE on it. A separate cited-references sheet listing patents, publications and their dates is part of the same structure.",
+      "A CLAIM-AMENDMENT structure, and it is this row's most distinctive artefact because no neighbour on the roster produces anything shaped like it: a response document containing a section that RE-LISTS EVERY CLAIM IN NUMERIC ORDER, each claim carrying a parenthetical STATUS IDENTIFIER (original, currently amended, cancelled, withdrawn, previously presented, new) and, where amended, in-line insertion and deletion markup; followed by a separate remarks or arguments section that answers the objections by number. The join between the two documents is a CLAIM NUMBER, not a party name and not a date, and a claim-number join exists nowhere else in this family.",
+      "AN OFFICIAL-RECEIPT-AND-STATUS structure: a filing receipt, acknowledgement of receipt, notice of publication, notice of allowance with fees due, issue or registration notification, or certificate, whose labelled slots pair the right identifier with a FILING DATE, a PRIORITY DATE, a first-named applicant or proprietor, and an examining unit. The distinguishing feature is that the DATE SLOTS ARE LEGAL PRIORITY POSITIONS RATHER THAN DOCUMENT DATES, and the product records them as literal observations only: it decides no priority, no entitlement, no validity, no term, and no deadline.",
+      "A REFERENCE-DISCLOSURE structure: a form listing cited documents by official number, country or office code, date and named party, with a signed certification block beside it, plus optional copies of the listed documents. The FORM plus the CERTIFICATION plus the docket slot is the signal; a list of patent numbers in a document body is a citation list and is not.",
+      "A RENEWAL, ANNUITY OR MAINTENANCE PORTFOLIO structure: a table whose rows are REGISTERED RIGHTS rather than matters, each row carrying an official registration or patent number, a two-letter office or country code, a proprietor, a status word, and a NEXT DUE date that RECURS ON AN ANNUAL CYCLE across many future years. The recurring annual cycle over an official number is what separates this from the sibling `law_practice.deadlines-diary`, whose rows are matters with one-off procedural key dates in a live proceeding, and from `business_operations.contract-administration`'s register, whose rows are live obligations under executed contracts. The shape decides nothing; what the rows are ABOUT decides everything.",
+      "A RECORDAL structure: an assignment, change-of-name, licence or security-interest recordation COVER SHEET whose labelled slots pair a conveying party, a receiving party, an execution date, a list of affected right identifiers, and - after recordal - an office-allocated reel-and-frame or recordal number. The cover sheet is this row's; the executed assignment instrument underneath it has a bound party pair and an execution block and is `legal`'s on `legal`'s own evidence. Both may be true of one PDF, and this row takes nothing away from the safety domain.",
+      "A FOREIGN-ASSOCIATE INSTRUCTION structure: a letter or email pairing an INSTRUCTING FIRM slot with an INSTRUCTED AGENT slot in another jurisdiction, enclosing a deadline for a national or regional step and a list of right identifiers to be acted on. Two separately labelled professional firms plus an official identifier list is a three-slot structure; a firm name in an address block alone is the struck token.",
+      "AN INTERNATIONAL-PHASE structure: a search report or written opinion issued by a searching or examining authority, listing cited documents against claim numbers with relevance categories, or a national or regional PHASE-ENTRY INSTRUCTION listing target offices against one international application number. The one-application-to-many-offices fan-out is the observable shape.",
+      "AN ARCHIVE OR IP-MANAGEMENT EXPORT whose manifest, read WITHOUT unpacking, shows member paths repeatedly encoding ONE right identifier across several coherent prosecution families - as-filed, office correspondence, responses, formalities, recordals, renewals - and often across several office codes for the same family. \"the normal scan should never extract archive contents to the filesystem\", and 00's archive yield governs what may be read: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\". Directory names are observations and become facts on no member."
+    ],
+    "needs_llm": [
+      "DECIDING WHETHER THE RIGHT IDENTIFIER MEANS THE HOLDER IS ACTING, WHICH IS THIS ROW'S WHOLE QUESTION AND IS USUALLY UNRECOVERABLE FROM THE BYTES. Every official number in this world is public and is printed identically on the file a firm of record holds, on the file the applicant's in-house team holds, on the file an opponent's firm holds, on a competitor's watch-list download, and on a copy an undergraduate saved from a search engine. Only the correspondence-address and docket slots resolve who is acting, and they are absent from most published versions. Abstain when they are absent: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "Separating an AS-FILED application from the PUBLISHED version of the same application. The text is frequently byte-identical, and the difference is a legal event that happened on a date and is not written in the content. Getting this wrong in the permissive direction is the row's worst failure, because the unpublished draft is the most disclosure-fragile document in the entire `law_practice` family - publishing its content is not an embarrassment, it can extinguish the property right the file exists to obtain.",
+      "Separating PROSECUTION from ENFORCEMENT and from EXPLOITATION. The same right identifier appears on an office action, on an infringement complaint, on a licence agreement, on a freedom-to-operate opinion and on a due-diligence schedule. Prosecution is the exchange WITH THE OFFICE about whether the right exists; the others are about a right that already does, and belong to `law_practice.pleadings`, `law_practice.transactional-deal`, `law_practice.opinions-advice` and `creative.licensing-rights`. Topic will not separate them - \"purpose answers what the file was for\" is the only test that works.",
+      "Separating an EX PARTE examination exchange from an INTER PARTES office proceeding - an opposition, a cancellation, a re-examination or an administrative trial. The second has two named parties, a captioned style, service on the other side and a decision, and is `law_practice.pleadings` and `law_practice.orders-and-judgments` material even though it happens inside the same office and carries the same right identifier. This row claims only the ex parte half and concedes the rest.",
+      "Separating the PRACTITIONER acting for a client from a HOLDER who filed their own application. A sole founder or small company that files without an attorney produces a filing receipt, an office action and a response carrying every token this row recognises, with the applicant's own address in the correspondence slot and no docket number. That is `legal.personal-legal-matters` or the holder's own business record, and no amount of official structure makes it practitioner-side.",
+      "Separating a practitioner's own professional credential from a right's identifier. An IP practitioner's registration number sits in a signature block on almost every document this row touches; it identifies a PERSON, not a right, and routing on it would be the schema's struck practising-certificate token wearing a number.",
+      "Recognising unlabelled practitioner prose in this world - a strategy note on whether to appeal a final rejection, an email weighing a divisional against an abandonment, a scanned handwritten interview note recording what an examiner indicated would be allowable. 00 names exactly this class among the reasons rules are insufficient.",
+      "Deciding whether several documents are ONE right's family or several rights. Continuations, divisionals, national-phase entries and related marks in different classes recur with near-identical text, near-identical drawings and the same proprietor. Only an EXACT priority or parent-application reference in a labelled slot may bridge them; textual and drawing similarity may not, however convincing.",
+      "Interpreting office artefacts from any jurisdiction, office or language whose labelled slots no approved pattern covers. The route is local interpretation or abstention. This row defines NO office list, NO country-code gazetteer, NO form-number catalogue and NO classification scheme; jurisdiction is never a field and never a dimension.",
+      "Abstaining whenever the acting-of-record pairing cannot be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "AN OFFICIAL RIGHT IDENTIFIER ALONE - an application, serial, publication, registration, patent or international application number - IN ANY FORM, IN A FILENAME, A HEADING, A BODY OR A CITATION LIST. This is the row's existential strike and it is the one that trips the tempting false file: a granted patent PDF downloaded from a public register carries the number, the filing date, the priority date, the applicant, the examiner's name, the firm's name and the classification codes, all in labelled front-page slots, and it is not this row's evidence, is not the holder's, and would look identical on a stranger's disk. Only the pairing with a correspondence-address or attorney-docket slot survives this strike.",
+      "A PUBLICATION, GRANT OR REGISTRATION EVENT AS PROOF THAT THE LOCAL COPY OR ITS SURROUNDING MATTER IS LOW-SENSITIVITY OR ELIGIBLE FOR A CLOUD PROMPT. The register copy being public says nothing about the local file, the annotations on it, the correspondence around it, the client whose portfolio it belongs to, or the unfiled sibling application sitting next to it. This is the schema's public-availability strike stated in this world's own terms, and it is the strike a reasonable reader is most likely to think does not apply here.",
+      "THE WORDS PATENT, TRADEMARK, TRADE MARK, DESIGN, COPYRIGHT, INVENTION, INTELLECTUAL PROPERTY, IP, PRIOR ART, CLAIM, SPECIFICATION, PRIORITY, EXAMINER, OPPOSITION, RENEWAL or ANNUITY, ALONE OR IN COMBINATION. The schema already struck the practice-area word intellectual property by name, and this row's existence depends on conceding that strike completely: a practice area is a VALUE, and technical, academic, marketing, investor and software-licensing material uses every one of these words constantly.",
+      "AN IP OFFICE, REGISTRY, WIPO, EPO, SEARCH-AUTHORITY, RENEWAL-AGENT, IP-FIRM, PATENT-ATTORNEY, APPLICANT or PROPRIETOR NAME ALONE, INCLUDING AN OFFICIAL FORM NUMBER OR AN OFFICIAL LETTERHEAD. Read across from 00's role-ambiguity reasoning - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" - an office name appears as the issuer of a real communication to the holder, as the issuer of a communication to somebody else that the holder downloaded, as the target of an application, as a cited source, as a search-portal footer, and on a fraudulent solicitation designed to look official.",
+      "A PRACTITIONER'S REGISTRATION, ADMISSION OR AGENT NUMBER, or an IP-firm signature block. It identifies a person and belongs to `career.credentials-licenses` and `law_practice.admission-cle`; it is the schema's struck practising-certificate token and it is struck here again because in this world it appears next to a real right identifier and looks like corroboration.",
+      "A CLASSIFICATION CODE, GOODS-AND-SERVICES CLASS NUMBER, OFFICE OR COUNTRY CODE, ART-UNIT OR EXAMINING-GROUP NUMBER, or a bare four-digit year-shaped number inside any identifier. These are technical and administrative values, never a structure, and their digits are never a date.",
+      "A CLAIM SET, A DRAWING SHEET, A SEQUENCE LISTING or TECHNICAL PROSE ALONE. An unlabelled numbered claim set with figures is what a draft specification, a published application, a granted patent, a competitor's document reproduced for analysis, a training deck and an engineering write-up all look like. Without the office slot pairing it activates nothing here, and it may well be `engineering.invention-disclosure` or `research.manuscript-publication` on their own evidence.",
+      "A LOGO, WORDMARK, LABEL PHOTOGRAPH, PACKAGING SHOT or PRODUCT SCREENSHOT, EVEN WHEN A REGISTERED-MARK SYMBOL IS VISIBLE. A specimen becomes evidence only inside a submission whose own slots label it as a specimen against a class and a date of first use; standing alone it is `creative.brand-identity` material.",
+      "A DEADLINE, DUE DATE, RESPONSE PERIOD, GRACE PERIOD or TERM STATED ON A DOCUMENT. It is a literal observation. The product calculates, validates, extends, monitors and acts on nothing, and a due date does not identify who owes the step.",
+      "A CONFIDENTIAL, DO-NOT-DISCLOSE, PATENT-PENDING, PRIVILEGED, ATTORNEY-CLIENT or NOT-YET-PUBLISHED LABEL. Preserved as a literal observation; it decides no legal status and no handling, and it appears on marketing material and investor decks constantly.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including every extension this row lists, and specifically the office-portal artefacts .zip and .xml. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME OR FOLDER containing patents, trademarks, IP, prosecution, filings, portfolio, a right identifier or a docket reference. \"A session should never be treated as proof of topic\", a folder name is an unlabelled position, and a bulk download of register PDFs that arrived together is a session, not a portfolio.",
+      "MATCHING TECHNICAL SUBJECT MATTER, DRAWINGS, CLAIM LANGUAGE, CITED PRIOR ART, PROPRIETOR NAME or CLASSIFICATION ACROSS TWO RIGHTS. This world is built out of near-duplicates by design - continuations, divisionals, national-phase copies, refiled marks - and semantic bridging here would be wrong more often than in any other family on the roster. Only an exact labelled priority or parent reference bridges."
+    ]
+  },
+  "proposed_context_terms": [
+    "attorney docket number",
+    "correspondence address",
+    "application number",
+    "serial number",
+    "filing receipt",
+    "filing date",
+    "priority date",
+    "priority claim",
+    "as filed",
+    "specification",
+    "claims",
+    "abstract",
+    "drawings",
+    "sequence listing",
+    "examiner",
+    "art unit",
+    "examining division",
+    "office action",
+    "official action",
+    "examination report",
+    "non-final rejection",
+    "final rejection",
+    "objection",
+    "notice of references cited",
+    "prior art",
+    "search report",
+    "written opinion",
+    "response to office action",
+    "amendments to the claims",
+    "currently amended",
+    "previously presented",
+    "claim status identifier",
+    "remarks",
+    "arguments",
+    "information disclosure statement",
+    "certification statement",
+    "restriction requirement",
+    "divisional",
+    "continuation",
+    "national phase entry",
+    "international application",
+    "designated states",
+    "notice of allowance",
+    "issue fee",
+    "issue notification",
+    "grant",
+    "letters patent",
+    "certificate of registration",
+    "notice of publication",
+    "statement of use",
+    "specimen of use",
+    "date of first use",
+    "class of goods and services",
+    "opposition period",
+    "power of attorney",
+    "assignment recordation",
+    "cover sheet",
+    "reel and frame",
+    "change of name",
+    "annuity",
+    "renewal fee",
+    "maintenance fee",
+    "next due date",
+    "lapse",
+    "restoration",
+    "abandonment",
+    "foreign associate",
+    "instructing firm",
+    "instructed agent"
+  ],
+  "work_types": [
+    "invention or mark intake and filing instruction received from a client",
+    "draft specification, claim set, drawings and abstract before filing",
+    "application as filed and its formalities papers",
+    "priority document, certified copy and priority-claim record",
+    "power of attorney, applicant declaration and inventor declaration",
+    "filing receipt, acknowledgement and formalities notice",
+    "information or reference disclosure statement and its certification",
+    "search report, written opinion and examination report",
+    "office action, objection set and cited-references sheet",
+    "response, claim amendment, argument and declaration in support",
+    "examiner interview record and interview summary",
+    "restriction, unity or divisional election record",
+    "notice of allowance, fee payment and issue or registration notification",
+    "certificate, grant document and register extract",
+    "specimen, statement of use and proof-of-use filing",
+    "publication, opposition-period and third-party-observation record",
+    "assignment, change-of-name, licence or security recordal cover sheet and confirmation",
+    "annuity, renewal and maintenance-fee schedule, instruction and confirmation",
+    "lapse, restoration, abandonment and revival record",
+    "international application, phase-entry instruction and designated-office record",
+    "foreign associate instruction, report and fee note",
+    "portfolio docket report, status list and family chart"
+  ],
+  "grouping_reasons": [
+    "ONE RIGHT ACROSS ITS WHOLE LIFE, joined by an exact office-issued identifier and by the exact labelled references that carry a right from one identifier form to the next - application number to publication number to registration or patent number. This is the row's characteristic group and it is what makes the row different from its siblings' matter groups: it is content-incoherent and purpose-coherent - \"The documents are content-incoherent but purpose-coherent.\" - it OUTLIVES the matter that created it, and it can outlive the engagement, the firm and the proprietor.",
+    "ONE PRIORITY FAMILY: a first application and its exactly-referenced children - continuations, divisionals, national and regional phase entries, refilings - joined ONLY by a labelled priority or parent reference. Near-identical text, near-identical drawings, the same proprietor and the same classification are explicitly NOT the join, and this is stated here because in this world they are more tempting than anywhere else on the roster.",
+    "ONE EXAMINATION ROUND: an office action, its cited-references sheet, the response, the claim amendment and any declaration in support, joined by the right identifier and cross-joined by CLAIM NUMBER. The claim-number join is unique to this family.",
+    "ONE FILING EVENT PACKET: the specification, claims, abstract, drawings, declarations, fee sheet and the resulting receipt, joined by an exact filing reference. \"It should not form a supported group when there is no valid anchor\".",
+    "ONE RENEWAL CYCLE across a portfolio: an annuity schedule, the instruction to the renewal agent and the office's payment confirmations, joined by the exact registration numbers on both sides. It is a group of RIGHTS, not of matters.",
+    "ONE DOCUMENT across draft, as-filed, amended and granted versions - the universal version_family fact, supported by hashes and explicit revision markers, never by a `-final` suffix, and never by claim-text similarity, which in this world is a near-duplicate trap rather than evidence.",
+    "MULTI-MEMBERSHIP IS NORMAL HERE: one specification is a member of its right's group and of the matter's group, and a recorded assignment is a member of both a right's group and an executed-instrument group. \"A file may validly belong to more than one accepted group\".",
+    "NO GROUP AT ALL is a valid and common outcome. A single downloaded register PDF, a lone draft claim set and an unmatched renewal reminder each stay ungrouped, and staying ungrouped does not make any of them safe to move or to send anywhere.",
+    "NOT grouping reasons: shared proprietor across two portfolios; shared classification code; shared office; shared technical field; a bulk register download session; a firm name; and cross-right bridging by drawings, claim wording or cited prior art."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, FOR THE SCHEMA'S THREE REASONS UNCHANGED - no declared field to branch on (D1 as narrowed, PR-6), co-activation of the safety domain `legal` (\"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\"), and disclosure. THE PROSE RECOMMENDATION, AND HOW IT DIFFERS FROM THE SCHEMA'S: the schema's default prose is client (only where the corpus spans more than one AND the user has explicitly approved it) then MATTER then document function then period. This row asks for ONE INVERSION and ONE ADDITIONAL BAN. The inversion: where anything ever branches below the client level, THE RIGHT COMES BEFORE THE MATTER, not after it, because in this world the matter is the smaller and shorter-lived container - one right is prosecuted, renewed, assigned and re-argued across several matters, several firms and several decades, so a matter-first branch would scatter one right's own life across folders in exactly the way 00 warns time-first branching scatters work: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Document function then follows the right for 00's parent-intelligibility reason - \"A work type such as Homework 3 is meaningful only after the course is known\" - because a response, an amendment or a renewal confirmation is unintelligible without the right it answers for. THE ADDITIONAL BAN, and it is the reason this recommendation must stay prose: THE RIGHT IDENTIFIER IS ITSELF SEEDED INELIGIBLE, more strongly than the schema's client level. A client-named folder discloses that a named person is in a legal matter; an application-number-named folder discloses that AND, through one public search, the technical content of what the client is building and who else is in the family - and where the application has not yet published, the folder name publishes the existence of a filing that the whole exercise depends on keeping unpublished. Against \"The default posture must therefore be local-first and data-minimizing.\", writing that token into a path is worse than writing a client name. JURISDICTION, OFFICE AND CLASSIFICATION MAY NEVER BE LEVELS: they are values, the schema's ban on jurisdiction as a field or a dimension is inherited unchanged, and a per-office branch would create exactly the \"create meaningless one-child levels\" the design warns against for most portfolios. NOT TIME-FIRST: filing date, priority date, publication date, grant date, renewal due date, correspondence date and filesystem date all mean different things here and several of them are legal positions rather than document dates, so a year-first tree would be actively misleading as well as scattering. And it stays a recommendation the user may reverse, remove, add to or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "image",
+      "ocr",
+      "calendar",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".xml",
+      ".txt",
+      ".tif",
+      ".png",
+      ".jpg",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Office Action - Application 18-742-113 - our ref P4412-US.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a front-page slot block pairing an application number, a filing date, a first-named applicant, an examiner name and an examining unit",
+        "a separate labelled correspondence-address block carrying the firm's own docket reference P4412-US",
+        "numbered objections, each naming the claim numbers it applies to and citing prior-art documents by official number",
+        "a stated period for reply and a separate sheet listing the cited references with dates and named parties",
+        "no caption, no second party, no counsel block for another side, no operative order"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and no record_type value, which is a proposal awaiting R1c",
+        "that this is `legal` material or `law_practice.pleadings` material. IT IS NEITHER, AND THAT IS THE ROW'S STRUCTURAL CLAIM: `legal` fires on a bound party pair, an execution block or a tribunal caption, and a pleading needs a caption and an opposing side. This document has none of them because the exchange is ex parte - it is the clearest case in this row of a file both neighbours are blind to",
+        "that the stated reply period is a deadline the product tracks, calculates, extends or acts on; it is a literal observation",
+        "that the objections are correct, that the cited art is relevant, or that the claims are invalid",
+        "a date fact from digits inside the application number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Response and Amendment - P4412-US - claims 1-20.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a header repeating the application number, the examiner name and the firm's docket reference",
+        "an AMENDMENTS TO THE CLAIMS section re-listing every claim in numeric order, each with a parenthetical status identifier such as currently amended, original, cancelled or new",
+        "in-line insertion and deletion markup inside the amended claims",
+        "a REMARKS section answering each objection by its number and by claim number",
+        "tracked changes and a document-assembly producer in the metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the claim status identifiers are a product status, a workflow state or a handling class; they are the office's own vocabulary preserved as an observation",
+        "that any argument succeeded, that the amendment was entered, or that the claims are now allowable",
+        "that tracked changes or a `-final` suffix establishes the version order; only hashes and explicit revision markers do",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "US11234567B2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a printed grant document with a patent number, filing and priority dates, an applicant, an assignee, an inventor list, an examiner name, an agent-or-firm line and classification codes, all in labelled front-page slots",
+        "an abstract, a representative drawing, numbered claims and a description",
+        "a references-cited list running to two columns",
+        "no correspondence-address block, no attorney docket slot, no reply period, no client, and no covering communication",
+        "the file sits in a folder of forty similarly named PDFs downloaded in one session"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. IT IS THE COLLISION FIXTURE AND THE ROW REFUSES IT OUTRIGHT: every official identifier this row recognises is present, in labelled slots, on the front page - and the file is a PUBLISHED REGISTER DOCUMENT that anybody in the world can download, that would look byte-identical on a stranger's disk, and that says nothing about who the holder is or whether the holder ever acted. The discriminating absence is the DUAL-DOCKET PAIRING: no correspondence-address block and no attorney docket slot, so the row's substitute second leg fails",
+        "that the surrounding folder of forty such PDFs is a portfolio, a matter or a prior-art search; \"A session should never be treated as proof of topic\"",
+        "that the named firm on the agent line is the holder's firm, or that the assignee is the holder's client",
+        "that this file's public availability makes any neighbouring local file low-sensitivity",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "DRAFT specification - do not disclose - v6 clean.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered claim set, a background, a detailed description and figure references, with no application number anywhere",
+        "bracketed drafting queries addressed to a named inventor, and comment bubbles",
+        "the firm's docket reference alone in the footer",
+        "a header reading DRAFT and NOT YET FILED"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the absence of an official number makes this low-value or routable. THE OPPOSITE IS THE CASE AND IT IS THIS ROW'S SHARPEST PRIVACY POINT: an unfiled specification is the most disclosure-fragile document in the whole `law_practice` family, because leaking its CONTENT does not merely embarrass anyone, it can destroy the novelty the filing exists to secure. It is protected material precisely while it has no identifier",
+        "that a DO NOT DISCLOSE or PATENT PENDING label is a handling class or a legal status; it is a literal observation",
+        "that any excerpt, claim, figure caption or summary of it may be placed in a remote prompt by default",
+        "`engineering.invention-disclosure`, which is the inventor-side artefact; the docket reference and the drafting queries addressed to the inventor are what put this on the practitioner side, and neither is conclusive alone",
+        "a folder path, and specifically nothing naming the invention"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annuity schedule 2027 - Hartley Group portfolio.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per registered right: registration or patent number, two-letter office code, proprietor, status, next annuity due date and amount",
+        "columns for the following five due years, so each right recurs on an annual cycle",
+        "an instruction column naming a renewal agent and a decision column reading pay, review or lapse",
+        "several hundred rows spanning many offices; no matter reference column anywhere",
+        "no institution-and-account header and no invoice number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is the sibling `law_practice.deadlines-diary`'s matter diary. Both are a portfolio table with a date column and an owner column; THE DISCRIMINATING EVIDENCE IS WHAT THE ROWS ARE: these rows are REGISTERED RIGHTS with official numbers whose dates recur annually for decades and survive the closure of every matter, and the diary's rows are MATTERS with one-off procedural key dates inside a live proceeding. The shape decides nothing",
+        "that a money column makes it finance's. There is no institution-and-account header and no issuer-and-billed-to block; an annuity INVOICE from a renewal agent is finance's on finance's own evidence and this row does not claim it",
+        "that the product may compute, monitor, warn about or act on any due date, or infer that a right has lapsed or been renewed",
+        "a fiscal_period or tax_year fact - neither key exists on this schema",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Trademark Renewal Notice - REGISTRATION 5,884,201 - AMOUNT DUE.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an official-looking crest, a registry-sounding organisation name and a formal reference block",
+        "a genuine registration number, the correct mark, the correct proprietor address and a real renewal date, all copied from the public register",
+        "a payment demand with a bank account, a due date and a tear-off remittance slip",
+        "small print stating the sender is not a government agency and that the service is optional",
+        "no correspondence-address block naming the holder's firm and no attorney docket reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. IT IS THE SECOND COLLISION FIXTURE AND IT IS A REAL AND COMMON DOCUMENT TYPE: unofficial renewal solicitations are built by scraping public registers precisely so that every identifier a system like this one recognises is correct. The registration number is genuine and proves nothing - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" applies here as role ambiguity about the ISSUER",
+        "that the official-looking letterhead, crest or form-number-shaped reference is evidence of an office; those are the struck never-alone tokens and here they are deliberately imitated",
+        "that the product should evaluate, warn about, flag or judge the legitimacy of any sender; it records observations and takes no position",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Invention disclosure - IDF-2026-014 - Hartley R&D.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a form with labelled slots for inventors, department, a description of the problem and the solution, and the date of conception",
+        "slots for prior public disclosure, planned publication and any conference abstract already submitted",
+        "a lab-notebook page reference and an internal inventor-compensation section",
+        "an employer's template footer, and no attorney docket reference and no official identifier",
+        "a covering email transmits it to a named firm with an instruction to advise on filing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row on the form ALONE. THIS IS THE RECIPROCAL BOUNDARY WITH `engineering.invention-disclosure` AND THE FORM ITSELF BELONGS TO THAT NEIGHBOUR: the employer template, the inventor-compensation section and the lab-notebook reference are the neighbour's own evidence, and they say the file was produced INSIDE a research organisation. It reaches this row only through the covering transmission to an instructed firm and an allocated docket reference, and if either is missing the neighbour keeps it",
+        "an `engineering` fact and a law_practice fact simultaneously as though membership copied either: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "that the planned-publication slot is a deadline, a risk assessment or a compliance finding",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Specimen of use - packaging - class 9.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of product packaging with a wordmark and a registered-mark symbol visible",
+        "no embedded capture metadata; the image was exported from a design tool",
+        "the file is enclosed in a submission PDF whose own labelled slots name it as the specimen, state a class number and a date of first use in commerce, and repeat the application number",
+        "the same image also exists in a brand-asset folder at a different resolution"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that the image alone activates this row. It does not, in either direction: standing alone it is `creative.brand-identity` material, and it becomes a specimen ONLY through the enclosing submission's labelled specimen, class and first-use slots plus the application number. This is the reciprocal boundary with `creative.brand-identity` named on the same bytes",
+        "a capture-date fact, and specifically not that missing metadata proves a screen origin",
+        "that the registered-mark symbol is evidence that any right exists, is registered, is owned by anybody or is valid",
+        "that a class number is a folder level; it is a value",
+        "a folder path"
+      ],
+      "also_schema": "creative",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Assignment recordation cover sheet and executed deed - P4412 family.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a first page that is a recordation COVER SHEET with labelled conveying-party, receiving-party, execution-date and affected-right-identifier slots, plus a firm docket reference",
+        "an office stamp allocating a recordal reel-and-frame number",
+        "a second part that is an executed assignment deed with a full party recital, operative words of assignment and signed and witnessed execution blocks",
+        "a schedule listing eleven application and registration numbers across six office codes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row displaces `legal`. IT DOES NOT AND CONCEDES IT: the party recital plus the execution block is `legal`'s own deterministic signal, `legal` is a safety domain whose protection runs first, and this row co-activates through the cover sheet's office slots and the docket reference. The cover sheet is this row's; the deed underneath is `legal`'s",
+        "that title, ownership, validity, effectiveness or recordal has in fact passed or been achieved",
+        "that a schedule of eleven identifiers licenses eleven groups; only the exact labelled references do",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FW Instructions - national phase entry - PCT-EP2025-061234 - deadline.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient slots crossing a firm-to-firm professional boundary, with an instructing firm and an instructed foreign agent",
+        "a subject line carrying an exact international application number and the firm's docket reference",
+        "a body listing target offices against that one application number and enclosing a fee estimate",
+        "two attachments: the application as filed, and a translation certificate"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an IP-firm email domain or a legal-sounding subject fires this row; the labelled two-firm role pairing plus the exact identifier is the evidence, and position is weighted for 00's reason - \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\"",
+        "that the stated deadline is calculated, monitored or acted on, or that entry was in fact made in any named office",
+        "that the attachments inherit the email's facts, or that the target-office list creates per-office groups",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan - examiner interview note - 18-742-113.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned handwritten page with the application number written at the top and partially legible",
+        "OCR yields a date, an examiner surname, claim numbers and fragmentary prose about what might be allowable",
+        "no docket reference is legible and no letterhead is present",
+        "the scanner wrote its own model into the producer metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from the application number alone. The number is the row's own struck token, and OCR of a number is weaker evidence still; without the docket pairing or a separately evidenced right this abstains rather than routes",
+        "that the note records what an examiner agreed, indicated, allowed or promised, or that any position taken is current or binding",
+        "an author fact from the producer metadata, and no dimension from it - \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IPMS export - P4412 family - 2026-08.zip",
+      "source_type": "archive",
+      "observations": [
+        "a readable manifest showing member paths that repeatedly encode one docket reference across six office-code subfolders",
+        "coherent professional families within each: as-filed, formalities, office correspondence, responses, recordals, renewals",
+        "an XML index carrying right identifiers, event codes and dates",
+        "one member is a password-protected sub-archive"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "anything from unpacking. \"the normal scan should never extract archive contents to the filesystem\", and only 00's archive yield may be read: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\"",
+        "that member directory names supply a right, a client, an office or a status fact to any member",
+        "that six office subfolders license six folder levels; jurisdiction is never a dimension here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "id": "engineering.invention-disclosure",
+      "why": "SAME BYTES, RECIPROCAL. The disclosure form, the draft claim set and the drawing sheets exist identically on both sides. THIS ROW YIELDS unless the artefact carries practitioner-side transmission - an instructed firm and an allocated docket reference; the NEIGHBOUR KEEPS it on its own evidence - an employer template, an inventor-compensation section, a lab-notebook reference, an internal review workflow. Named fixture on both sides: `Invention disclosure - IDF-2026-014 - Hartley R&D.docx`."
+    },
+    {
+      "id": "law_practice.regulatory-submission",
+      "why": "SAME EVIDENCE, AND THE CLOSEST SIBLING. Both are a submission made to a government body on a client's behalf, both produce official receipts, both have deadlines. THE PROPOSED SEAM, which needs R1c to ratify or merge (see open_question): this row is the exchange that CREATES OR MAINTAINS A REGISTERED PROPERTY RIGHT whose office-issued identifier persists, renews and transfers; the sibling is a compliance, authorisation or notification submission to a regulator that produces no such transferable identifier. Contested fixture on both sides: `Office Action - Application 18-742-113 - our ref P4412-US.pdf`."
+    },
+    {
+      "id": "law_practice.pleadings",
+      "why": "SAME EVIDENCE AT THE EX PARTE / INTER PARTES SEAM. An opposition, cancellation, re-examination or administrative-trial paper happens inside the same office and carries the same right identifier, but has two named parties, a captioned style and service on the other side. THE NEIGHBOUR KEEPS everything with a party pair and a caption; THIS ROW KEEPS only the ex parte examination exchange, whose defining absence is that there is no other side. Named fixture on both sides: a notice of opposition carrying application number 18-742-113."
+    },
+    {
+      "id": "law_practice.deadlines-diary",
+      "why": "SAME SHAPE, DIFFERENT ROWS, RECIPROCAL. Both are a portfolio table with a due-date column and an owner column. THIS ROW KEEPS the table whose rows are REGISTERED RIGHTS bearing official numbers with annually recurring due dates that survive matter closure; THE NEIGHBOUR KEEPS the table whose rows are MATTERS with one-off procedural key dates inside a live proceeding. Named fixture on both sides: `Annuity schedule 2027 - Hartley Group portfolio.xlsx`."
+    },
+    {
+      "id": "creative.brand-identity",
+      "why": "SAME IMAGE FILE, RECIPROCAL. A wordmark, logo export or packaging photograph is the neighbour's core asset and this row's specimen. THE NEIGHBOUR KEEPS the standalone image in every case; THIS ROW REACHES IT ONLY through an enclosing submission whose own labelled slots name it as a specimen against a class and a date of first use. A registered-mark symbol in the artwork is explicitly not the discriminator. Named fixture on both sides: `Specimen of use - packaging - class 9.jpg`."
+    },
+    {
+      "id": "creative.licensing-rights",
+      "why": "SAME RIGHT IDENTIFIER, OPPOSITE PURPOSE, RECIPROCAL. A licence, assignment schedule or royalty term sheet names the same registration numbers this row recognises. THE NEIGHBOUR KEEPS the exploitation of a right that already exists; THIS ROW KEEPS the exchange with the office about whether it comes into existence and stays alive. Named fixture on both sides: the eleven-identifier schedule inside `Assignment recordation cover sheet and executed deed - P4412 family.pdf` - the recordal cover sheet is this row's, the licensing terms are the neighbour's."
+    },
+    {
+      "id": "research.reading-library",
+      "why": "SAME BYTES, AND THIS ROW'S PRIMARY FALSE POSITIVE. A published application or granted patent downloaded from a register is technical reading matter with official identifiers in labelled slots. THE NEIGHBOUR KEEPS every register document that arrives without a covering communication, a correspondence-address block or a docket reference; THIS ROW takes it only when the dual-docket pairing is present. Named fixture on both sides: `US11234567B2.pdf`."
+    },
+    {
+      "id": "legal.personal-legal-matters",
+      "why": "SAME OFFICIAL STRUCTURE, ROLES REVERSED, RECIPROCAL - and it is the schema's under-firing risk in this row's own terms. A self-filing founder or small company holds a filing receipt, an office action and a response carrying every token this row recognises. THE NEIGHBOUR KEEPS them whenever the correspondence address is the holder's own and no practitioner apparatus exists; THIS ROW requires a firm of record. Named fixture on both sides: a filing receipt for application 18-742-113 whose correspondence address is the applicant's own home address."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "id": "legal",
+      "why": "One PDF may carry a recordal cover sheet (this row's office slots) and an executed assignment deed (a bound party pair plus execution blocks, `legal`'s own deterministic signal). Both are legitimately true of the same bytes and `legal` is a safety domain whose protection runs first; this row takes nothing away. `Assignment recordation cover sheet and executed deed - P4412 family.pdf`."
+    },
+    {
+      "id": "research.manuscript-publication",
+      "why": "00's abstract-and-application case in this world: one technical description may be simultaneously a draft specification and a conference or journal manuscript, and in this family that dual life is the single most consequential one, because publishing the manuscript can destroy the novelty the specification depends on. Both schemas are legitimately true of the file; neither may erase the other, and the product infers no consequence from the overlap."
+    },
+    {
+      "id": "engineering.invention-disclosure",
+      "why": "Listed in BOTH lists deliberately. Where the transmission and docket evidence is present, the disclosure form is genuinely both the research organisation's internal record and a practitioner-side filing instruction - `also_holds_with`. Where that evidence is absent it is a straight `collides_with` and this row loses. R1c should keep both edges rather than collapse them."
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Receipts and Confirmations"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Potentially sensitive throughout, and the reason is NOT the one the schema gives. The schema's claim is that a named third party - a client, a witness, a deponent - is exposed. That is true here too, but this row carries a second and unusual exposure that the roster has nowhere else: CONTENT LEAKAGE CAN DESTROY THE ASSET ITSELF. An unpublished specification, an unfiled claim set and a not-yet-published filing derive their whole value from not having been disclosed, so an excerpt in a remote prompt, a summary in a shared display, or an application number written into a folder name is not merely an embarrassment - it can extinguish the right the file exists to obtain, and it can do so for the client, not for the holder. Against \"The default posture must therefore be local-first and data-minimizing.\", the posture here is: recognise locally from the minimum necessary slot block or manifest, treat publication state as unknowable from the bytes, and never treat a printed publication or registration number as evidence that the local copy, its annotations, its correspondence or its unfiled neighbours are public. Sensitivity in this phase is only `potentially_sensitive`; P7 owns handling policy and its class vocabulary, and no compliance, confidentiality or privilege label on any of these documents is this product's classification.",
+  "open_question": "NJ-IPP-1: the seam with the sibling `law_practice.regulatory-submission` is real and this row cannot settle it - an application to an IP office IS a registry submission made on a client's behalf, and that phrase is a `work_type` VALUE on the parent schema. This row's proposed discriminator is the persistent, transferable, renewable office-issued right identifier; the alternatives are (a) keep both rows with that seam, (b) merge this row into the sibling and demote the whole of IP prosecution to a work_type value, (c) merge the sibling into this row. R1c must pick one, reciprocally. NJ-IPP-2: whether the right identifier may ever be a stored fact - this row's own answer is no, it stays an observation, but `record_type` is raised in proposed_fields so the question is adjudicated once rather than thirty-six times. NJ-IPP-3: publication state is a legal event that is not readable from the bytes and that flips the same text between maximally sensitive and publicly available; this row's rule is to assume unpublished and never infer otherwise, and Joseph should confirm that a conservative rule which will over-protect thousands of freely downloadable register PDFs is the intended trade."
+}

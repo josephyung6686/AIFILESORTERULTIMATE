@@ -1,0 +1,517 @@
+{
+  "id": "law_practice.evidence-exhibits",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Evidence and exhibits",
+  "one_line": "J-DEPTH placeholder template for the RE-IDENTIFICATION LAYER a practice puts over material it tenders to a decision-maker: a designator applied on top of a document that belongs to some other world (a contract, a photograph, a bank statement, a message export, a medical record), together with the schedule, exhibit note or crosswalk that closes over the designator namespace and lets the item be referred to. It is NOT the exhibit's own subject matter, NOT a document type, and NOT the compiled hearing bundle. It differs from the law_practice DEFAULT TEMPLATE on the first leg of that template's own precondition: the default requires an exact matter reference repeated across artefacts PLUS an artefact whose labelled slots separate a practitioner role from a client role, and a marked exhibit characteristically has NEITHER - a photograph with a burned-in sticker carries no matter reference and no role pair, and its host document's structure is somebody else's entirely. This row fires instead on a two-leg pairing the default does not describe: a DESIGNATOR-BEARING artefact plus a SCHEDULE (or exhibit note, or production-to-exhibit crosswalk) that enumerates the same namespace. Its privacy default is also stricter than the schema's along a different axis: the schema protects one named third party's affairs, an exhibit set is a COMPILATION of many unrelated people's records lifted out of their own domains and re-filed for use against someone. Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, AND IT IS WHAT SAVES THE ROW FROM BEING A work_type VALUE. The law_practice schema already lists `evidence, exhibit and bundle index` among its work_types, so a row justified by holding exhibit-shaped documents would be the schema's default template with a narrower filename filter and must be refused. This row stands only on a TWO-LEG STRUCTURAL PAIRING that the schema's default precondition does not contain: (i) an artefact carrying an EXHIBIT DESIGNATOR applied on top of a host document whose own structure is intact and belongs to another world, and (ii) a second artefact that CLOSES OVER THAT NAMESPACE - a schedule enumerating the designators, an exhibit note naming the designator and the statement it is referred to in, or a crosswalk mapping production control numbers to designators. Either leg alone is struck. The schema's own deletion test governs unchanged: delete every entity name and every document-type word, and if no structure survives, nothing fires.",
+      "THE EXHIBIT SCHEDULE, and it is this row's cleanest signal because no neighbour produces this table. One row per tendered item carrying a DESIGNATOR, a description of the document, the document's own date (distinct from any filing or capture date), a PRODUCING or OFFERING party column, and commonly an objection column, an offered/admitted column, or a bundle page range. Read through 00's spreadsheet path, which licenses column headers and labelled cells as evidence. The discriminating column is the DESIGNATOR: a table of documents with a reviewer and a coding decision is the disclosure review log and belongs to `law_practice.discovery`; a table with continuous page ranges over pleadings, statements, authorities and correspondence is a hearing bundle index and belongs to `law_practice.trial-preparation`.",
+      "THE EXHIBIT NOTE or COVER SHEET: a single interposed page whose entire content is ABOUT another document - it names a designator and identifies the statement, affidavit or deponent the exhibit is referred to in, and carries a sworn, affirmed or dated attestation slot. Structurally it is a page with no subject matter of its own, which is a shape nothing else in the roster produces. It is the strongest single artefact in the family because it supplies leg (ii) by itself for one designator.",
+      "THE APPLIED-STAMP relation: the same designator or control number appearing in a CONSISTENT PAGE POSITION across an otherwise foreign document whose own labelled structure survives underneath - clause numbering, an account header, EXIF-bearing image content, a message thread. The evidence is the LAYERING, not the token: something has been written onto a document by someone who did not author it. Real designator shapes observed on such pages include a letter series, a party-prefixed series, an initials-and-number series used for statement exhibits, and a zero-padded control-number range. This row names those as observation shapes only and defines no pattern catalogue or gazetteer.",
+      "THE PRODUCTION-TO-EXHIBIT CROSSWALK: a two-column table pairing control numbers or a bounded control range with exhibit designators. It is the artefact that proves the two neighbouring worlds are distinct, because it exists precisely to translate between them, and it is the cleanest evidence that a stamped page has been TENDERED rather than merely produced.",
+      "A NATIVE-FORMAT or MEDIA EXHIBIT SET delivered as an archive, recognised from the manifest alone because \"the normal scan should never extract archive contents to the filesystem\": member paths repeatedly encode one designator series, a load file or index member sits beside them, and the members are heterogeneous by source type - spreadsheets, images, audio, message exports - which is itself the signal, since a purpose-coherent set of content-incoherent members is 00's own group shape, \"The documents are content-incoherent but purpose-coherent.\"",
+      "AN OCR PATH for a scanned exhibit bundle in which the stamps are the only machine-readable structure: repeated designator tokens in a consistent page position across page images, separator sheets, and an index page. OCR text is `possible` evidence at best and the schedule must still be found before this row fires."
+    ],
+    "needs_llm": [
+      "DECIDING WHETHER A STAMPED PAGE WAS PRODUCED OR TENDERED, which is this row's whole seam with `law_practice.discovery` and is frequently unrecoverable from the bytes. A control-number stamp is applied at production to everything; an exhibit designator is applied to the small subset that is put before a decision-maker. The same page often carries both, and a page carrying only the production stamp is the neighbour's.",
+      "DECIDING WHETHER A COMPILATION IS AN EXHIBIT SET OR A HEARING BUNDLE. Both are paginated multi-document PDFs with an index. The bundle's index runs over the whole case including pleadings, statements and authorities and its pagination is continuous across the volume; the exhibit set's index runs over tendered items only and its ordering is the designator namespace. Where the index does both, `law_practice.trial-preparation` holds the compilation and this row holds the schedule.",
+      "READING AN INKED, HANDWRITTEN OR SLIP-STICKER DESIGNATOR from a scan, and deciding whether a partially legible token belongs to this proceeding's namespace or to another matter's. Abstention is the correct outcome: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "SEPARATING AN EVIDENTIARY EXHIBIT FROM A CONTRACT ANNEX. In transactional drafting the schedules to an agreement are routinely called Exhibit A, Exhibit B, Annex 1. The word is identical and the structures are opposite: an annex is bound INTO its host instrument and is referred to by the host's own clauses; an exhibit is a foreign document with a designator written ON it and is referred to by a schedule outside it.",
+      "SEPARATING A PRACTITIONER'S EXHIBIT SET FROM A PARTY'S OWN CLAIM FILE, which is the seam a landed construction neighbour already stated from its side and which this row must not contradict.",
+      "PRESERVING THE HOST DOMAIN. An exhibit is almost always another schema's evidence wearing a stamp. The model must not let the designator erase or overwrite the photograph's capture facts, the statement's institution and account structure, or the medical record's own protection - and must not copy the designator's proceeding onto the host as a fact.",
+      "Abstaining when the namespace cannot be closed: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "AN EXHIBIT DESIGNATOR ALONE - Exhibit A, Exhibit P-14, JB1, Tab 4, an exhibit sticker image. This is the row's existential strike and it is inherited unchanged from the schema, which already lists an EXHIBIT LABEL among the tokens that supply linkage only after a role is established. `Exhibit A - Bank statement - Hartley.pdf` with no schedule anywhere in the corpus activates nothing here; the account header activates finance on finance's own evidence and the residual is Protected Records.",
+      "A BATES-SHAPED OR ZERO-PADDED CONTROL-NUMBER STAMP ALONE. This is the collision token, and it trips the row's headline false positive: `PROD0004512-PROD0004519.pdf` is a produced document, not a tendered exhibit, and belongs to `law_practice.discovery` until a designator and a schedule appear. A stamp proves that somebody processed the page in bulk; it does not prove that anybody tendered it.",
+      "THE WORDS EXHIBIT, ANNEX, APPENDIX, SCHEDULE or ATTACHMENT IN A FILENAME OR HEADING. `MSA - Exhibit A - Statement of Work.pdf` is a contract annex and this row must never claim it. Transactional drafting, technical reports, grant applications, planning submissions and expert reports all number their attachments in exactly this vocabulary.",
+      "CONTINUOUS PAGINATION, TAB MARKERS, SEPARATOR SHEETS or A VOLUME NUMBER ALONE. That is the hearing-bundle shape and it belongs to `law_practice.trial-preparation`. A paginated compilation is a compilation; it is not proof of a designator namespace.",
+      "MATCHING DESIGNATORS ACROSS TWO MATTERS. Every proceeding has an Exhibit A. Designator identity across matters is the least informative coincidence in this family and bridging on it is forbidden as a privacy rule and an accuracy one alike; only an exact schedule membership or an explicit user decision joins two items.",
+      "A CONFIDENTIAL, REDACTED, SEALED, ATTORNEYS-EYES-ONLY or PROTECTIVE-ORDER ENDORSEMENT. The product preserves the literal observation and decides no legal status, access right or handling class - and such endorsements appear on commercial and HR documents constantly.",
+      "A FOLDER NAMED EXHIBITS, EVIDENCE, PRODUCTIONS or TRIAL. A folder is an unlabelled position and paths stay local; an existing folder supports review only.",
+      "A COURT CAPTION, CASE NUMBER OR FILED STAMP ALONE. That is `legal`'s signal and it is satisfied identically by a public docket download that nobody in this corpus ever acted on.",
+      "A PERSON'S NAME ALONE, in any role on an exhibit - a deponent, a witness, a photographer, an account holder, an author of a produced email. The row's own privacy claim is that these people are here without choosing to be, so a bare name is at once the weakest evidence and the most dangerous.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including every one this row lists. Exhibits span every source type in the vocabulary, which is why file kind can never be the discriminator here.",
+      "PUBLIC AVAILABILITY of a docket exhibit as proof that the local copy, its neighbours, or the fact of its retention is low-sensitivity or eligible for a cloud prompt.",
+      "DOWNLOAD-SESSION OR ARCHIVE MEMBERSHIP. 00: \"A session should never be treated as proof of topic\". A folder of official-looking PDFs that arrived together is a session, not an exhibit set."
+    ]
+  },
+  "proposed_context_terms": [
+    "exhibit",
+    "exhibit list",
+    "exhibit schedule",
+    "schedule of exhibits",
+    "index of exhibits",
+    "exhibit note",
+    "referred to in the witness statement of",
+    "marked for identification",
+    "offered",
+    "admitted",
+    "objection",
+    "demonstrative",
+    "produced by",
+    "producing party",
+    "control number",
+    "production range",
+    "load file",
+    "native file",
+    "chain of custody",
+    "evidence log",
+    "seized",
+    "imaged",
+    "hash value",
+    "redacted version",
+    "unredacted version",
+    "attorneys eyes only",
+    "confidential designation",
+    "bundle page",
+    "tab"
+  ],
+  "work_types": [
+    "exhibit designation and marking of a host document",
+    "exhibit schedule, list or index of exhibits",
+    "exhibit note or cover sheet attaching an exhibit to a statement",
+    "production-to-exhibit crosswalk and control-number concordance",
+    "native-format or media exhibit set and its load file",
+    "demonstrative, chart, timeline or animation prepared for a hearing",
+    "chain-of-custody, seizure, imaging or evidence-log record",
+    "redacted and unredacted exhibit version pair",
+    "confidentiality designation and de-designation record for a tendered item",
+    "exhibit transmittal, lodging or service record"
+  ],
+  "grouping_reasons": [
+    "ONE DESIGNATOR NAMESPACE closed by one schedule: the schedule, the exhibit notes, the marked host documents and the crosswalk, joined by exact designator membership in that schedule. This is the row's only strong anchor and it is the reason the row exists. Membership copies NO fact onto a member - not the proceeding, not the party, not the document date - because \"The graph does not automatically copy those missing facts onto sparse files.\" is the general rule and here it is also a protection: the host document belongs to another world and must keep its own facts.",
+    "ONE EXHIBIT ACROSS ITS VERSIONS - the clean host document, the stamped copy, the redacted copy, the re-marked copy under a second designator in a later proceeding. This is the universal version_family fact supported by hashes or explicit markers, never by a `-final` suffix, and it is unusually common here because marking creates a new file every time.",
+    "ONE WITNESS'S EXHIBIT SET, joined by exhibit notes that name the same statement. The statement itself is `law_practice.depositions-testimony`' or `legal`'s on its own evidence; the notes join the exhibits without claiming the statement.",
+    "ONE PRODUCTION TRANSLATED INTO ONE EXHIBIT SET, joined by an explicit crosswalk. The production side stays `law_practice.discovery`'s. 00: \"A file may validly belong to more than one accepted group\".",
+    "NOT GROUPING REASONS, stated because they are the tempting ones in this family: a shared designator letter across matters; a shared stamp appearance or page position; a shared producing party; a shared subject matter between two exhibits; a folder named Exhibits; and a download session. \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, for the schema's three reasons plus one that is this row's own. (1) BY CONTRACT: a dimension may branch only on a field the schema declares and this placeholder declares none (PR-6). (2) BY THE SAFETY NEIGHBOUR: exhibits co-activate `legal`, and \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - no deep template unlocks from safety activation. (3) BY DISCLOSURE: the schema's natural levels are a client and a matter, and a visible client or matter branch publishes that a named person is in a proceeding. (4) THE REASON PARTICULAR TO THIS ROW, and it is why the row does not inherit a narrower order even in principle: the only sub-axis this world actually offers is the DESIGNATOR SEQUENCE, and a designator is an identifier, not a fact - branching on it would create one leaf per item, which is the meaningless-one-child-level failure, and a branch named `Exhibit D - Patel medical records` would write a third party's identity and condition into the filesystem where every later process reads it, against \"The default posture must therefore be local-first and data-minimizing.\" A PRODUCING-PARTY level is worse still, because it names the adverse side. HELD AS PROSE, and it differs from the schema's paragraph in one respect: whatever matter-level structure the schema recommends, the exhibit set should stay a FLAT set beneath it, ordered by nothing, because the host documents belong to other domains and any function level here would compete with the level those domains would want. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" and the four dates on an exhibit - the host document's date, the production date, the marking date and the filesystem date - mean four different things.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "audio_video",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".dat",
+      ".zip",
+      ".tiff",
+      ".jpg",
+      ".png",
+      ".mp4",
+      ".mp3",
+      ".pst",
+      ".msg",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Schedule of exhibits - Hartley v Nash - trial.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers: exhibit number, description, document date, producing party, objection, offered, admitted",
+        "the exhibit-number column runs a single letter-and-number series with no gaps",
+        "a second sheet reconciles the series to a control-number range",
+        "descriptions name documents that are individually contracts, emails, photographs and statements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and no exhibit_number, party or proceeding value; those keys do not exist and this row does not mint them",
+        "that the description column may be summarised to a cloud model. It is a one-line abstract of every sensitive document in the case, which makes the sheet bulk-sensitive as a whole even though no single row is long",
+        "a date fact from the digits inside a designator or a control number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit JB1 - supply agreement - marked.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page one is an interposed cover sheet naming a designator and the witness statement the exhibit is referred to in, with a dated attestation slot",
+        "pages two onward are an executed supply agreement with a party recital, clause numbering and a signature block",
+        "a designator token repeats in the same page-footer position on every following page",
+        "the underlying agreement's own structure is untouched"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row displaces `legal`. IT DOES NOT AND THE ROW CONCEDES IT: pages two onward are a bound party pair plus an execution block, which is `legal`'s own deterministic signal on a safety schema, and its protection runs first. This row holds the COVER SHEET and the designator layer; `legal` holds the instrument",
+        "that the attestation slot proves the statement was sworn, or that the agreement is valid, current or admissible",
+        "a party fact copied from the agreement onto the schedule, or a proceeding fact copied from the cover sheet onto the agreement",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit P-14 - site photograph 2026-03-04.jpg",
+      "source_type": "image",
+      "observations": [
+        "a burned-in designator sticker occupies a lower corner of the raster, over the image content",
+        "EXIF DateTimeOriginal and GPS coordinates survive on the file",
+        "the image itself shows a building elevation with no text of its own",
+        "a schedule in the same corpus lists the same designator with a description matching the scene"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "camera_model",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the designator erases or overrides the photograph's own capture facts. The host keeps its domain: EXIF is evidence for a capture date under 00's evidence-versus-fact rule and the sticker is not",
+        "a capture date derived from the date token in the FILENAME, or from the date the exhibit was marked",
+        "that GPS coordinates may be exposed. They locate a real place connected to a proceeding and are minimised like any other located fact",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PROD0004512-PROD0004519.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a zero-padded control-number stamp in a consistent footer position on each page",
+        "a confidentiality endorsement beside it",
+        "the content is an internal email chain between employees of a company that is not the holder's client",
+        "no designator anywhere in the file, and no schedule in the corpus enumerates it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE HEADLINE COLLISION FIXTURE AND THE ROW GIVES IT AWAY: a control-number stamp proves bulk processing, not tender. The discriminating evidence is a designator plus a schedule that closes over it, and neither exists here. `law_practice.discovery` owns the production stamp, the load file and the control range",
+        "that the confidentiality endorsement is this product's sensitivity classification or a legal status",
+        "the named correspondents as stored facts, prompt content or folder levels - they are third parties to a third party",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "MSA - Exhibit A - Statement of Work.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the heading reads Exhibit A and the body is a scope-of-work description with deliverables and milestones",
+        "an incorporating clause in the parent agreement refers to this document by the same letter",
+        "two organisation names and a signature page appear on the parent agreement, not on this file",
+        "no designator stamp applied over the text, no cover sheet, no attestation, no schedule of exhibits anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE VOCABULARY COLLISION AND IT IS THE ONE MOST LIKELY TO FIRE FALSELY: transactional drafting numbers its annexes Exhibit A, Exhibit B, and the word is identical to the evidentiary one. The discriminator is direction of reference - an annex is referred to BY its host instrument's own clauses and is bound INTO it, while an exhibit is a foreign document with a designator written ON it and referred to by a schedule OUTSIDE it",
+        "an evidentiary or proceeding fact of any kind",
+        "that a filename token can settle the question - the word exhibit is struck never-alone precisely because of this file",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Bundle index - Hartley v Nash - vol 2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tabbed index whose rows run over pleadings, witness statements, exhibits, correspondence and authorities alike",
+        "continuous page numbering stamped across the whole volume, restarting at the volume boundary",
+        "tab letters that are not the same series as the exhibit designators inside",
+        "a volume-of-volumes statement on the front sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. `law_practice.trial-preparation` owns the compiled bundle and its index: the index runs over the whole case rather than over tendered items, and its ordering is the hearing's, not a designator namespace. Where one document is both, that row holds the compilation and this row holds the schedule of exhibits inside it",
+        "that continuous pagination is evidence of anything but compilation",
+        "an exhibit designator fact from a tab letter",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit 12 - Lee depo - text messages.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a printed message thread with timestamps and two participant handles",
+        "an inked designator and a court-reporter's marking stamp on page one",
+        "the transcript in the same corpus refers to the same designator at a page-and-line citation",
+        "no schedule of exhibits exists for this proceeding, only the transcript's own exhibit index"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row as the primary holder. THE ROW CONCEDES THE DEPOSITION CASE: where the only closing artefact is one transcript's own exhibit index, the anchor is the EXAMINATION and `law_practice.depositions-testimony` is the more specific home. This row holds it only when a separate schedule spans several examinations or joins the deposition series to a trial series",
+        "the message participants as stored facts or prompt content",
+        "a capture or send date for the messages from the marking stamp",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit D - Patel - medical records - redacted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a designator stamp over a clinical record with a provider header, an encounter date and clinical narrative",
+        "black redaction boxes over some passages and not others",
+        "an unredacted sibling file with the same page count sits beside it",
+        "the schedule lists the designator with a description naming the record type"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the designator strips the host of its own protection. IT IS THE OPPOSITE: this is the sharpest privacy fixture in the family - a person's clinical record, about someone who is neither the holder nor the holder's client, lifted out of medical and re-filed to be used against them. Both protections apply and the stricter governs",
+        "that the redacted version is safe to send to a model because redaction boxes are present, or that the unredacted sibling is a duplicate to be collapsed",
+        "any clinical fact, condition or diagnosis as a stored value",
+        "a folder path, and specifically no branch naming a person or a condition"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Native exhibits and load file - production 004.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest is readable without extraction and lists member paths encoding one control-number series",
+        "an index member and a delimited load file sit at the archive root",
+        "members are heterogeneous by source type: spreadsheets, message stores, images and one audio file",
+        "a crosswalk member maps a subset of the control numbers to a designator series"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the archive should be unpacked to improve classification - \"the normal scan should never extract archive contents to the filesystem\"",
+        "that the whole archive is this row's. Only the crosswalked subset is tendered; the rest is `law_practice.discovery`'s production, and a member path is an unlabelled position that creates no fact on any member",
+        "a code or software fact from a native manifest inside a member",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scanned exhibits - box 3 - unindexed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "page images with no text layer until OCR, separator sheets between items",
+        "a repeated designator-shaped token in a consistent corner position, partly illegible on several pages",
+        "no schedule, no cover sheets, no index page in the corpus",
+        "the pages are visibly a mixture of letters, invoices and photographs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Leg (ii) is missing: there is nothing that closes over the namespace, and an OCR'd designator is `possible` evidence at best. Recognition may retrieve it as a candidate for local review and must abstain from the fact",
+        "that a scan of documents is `photos.scanned-documents`' by default either - that row wants positive scan-origin evidence, and the two must not both claim it silently",
+        "a document date from any OCR'd digit sequence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Adjudication bundle - Oakfield - vol 2.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest shows a referral notice, a programme, delay records, site diary pages and photographs",
+        "member paths encode a paginated appendix series",
+        "no matter reference and no practitioner or client role pair appears anywhere in the manifest",
+        "the compiling organisation named in the manifest is the contractor, not a practice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row by default. THE RECIPROCAL IS OWED TO A LANDED NEIGHBOUR AND THIS SIDE MATCHES IT: `construction_property.variation-claim` states that a matter reference, a paginated exhibit convention and a solicitor's framing support the practitioner row, and a party's own claim file supports theirs. Here the compiler is the party itself, so it is theirs",
+        "that appendix pagination is an exhibit designator namespace",
+        "a delay, entitlement or contractual conclusion of any kind",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Trial exhibits - Example Holdings v Example Agency (docket download).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a court caption, a case identifier and a filed stamp on the front page",
+        "designator stamps and a schedule inside, both belonging to a proceeding between two organisations",
+        "a public-access footer with a retrieval date",
+        "nothing in the corpus links the holder to either party or to any practice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row, and this is the row's cheapest over-firing risk: an internally complete exhibit set with its own schedule satisfies BOTH legs and still belongs to nobody here. The missing precondition is the schema's - no matter, no role pair, no representation - and a downloaded docket copy is reading material",
+        "that public availability makes the local copy, its neighbours, or the fact of its retention low-sensitivity or cloud-eligible",
+        "a matter or client fact from a caption",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Exhibit set - sealed - passworded.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the archive header is readable and reports encryption; member names are not listed",
+        "the filename carries a designator-shaped token and a sealing word",
+        "no manifest, no index, no crosswalk is readable",
+        "the file sits beside readable schedules from a different proceeding"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "any exhibit, proceeding, sealing or sensitivity conclusion from a filename. A sealing word is a never-alone token and encryption is not evidence of content",
+        "that adjacency to readable schedules joins it to their namespace - that is archive and directory membership, which is struck",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.discovery",
+      "signal": "THE ROW'S PRIMARY MUTEX, on the same bytes. A produced page and a tendered exhibit are frequently the same document, and the same page can carry both stamps. The discriminating evidence: a control-number stamp within a bounded production range, a load file, a review or coding log and a privilege log support `law_practice.discovery`; a DESIGNATOR plus a schedule, exhibit note or crosswalk that closes over the namespace supports this row. Shared fixture: PROD0004512-PROD0004519.pdf, which this row gives away because it has a stamp and no designator. Reciprocal owed on that side. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.trial-preparation",
+      "signal": "THE ROW'S CLOSEST DUPLICATE RISK AND THE ONE R1c SHOULD SCRUTINISE. Both rows hold paginated compilations with indexes. The discriminating evidence: continuous pagination across a volume, tab markers, a running order, a chronology and a skeleton support `law_practice.trial-preparation`; a designator namespace and the schedule that closes over it support this row, and the schedule survives the hearing that the bundle was built for. Shared fixture: Bundle index - Hartley v Nash - vol 2.pdf, which this row gives away. If R1c judges the seam too fine to hold at placeholder depth, THE CORRECT MERGE DIRECTION IS INTO trial-preparation, and this row would rather be merged than padded. Reciprocal owed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.depositions-testimony",
+      "signal": "Deposition exhibits are marked, indexed inside the transcript, and cited at page and line. The discriminating evidence: a notice, a transcript with a reporter's certificate, an errata sheet and an exhibit index internal to one examination support that row and it is the more specific anchor; a schedule that SPANS several examinations, or joins a deposition series to a hearing series, supports this row. Shared fixture: Exhibit 12 - Lee depo - text messages.pdf, which this row gives away in the single-examination case. Reciprocal owed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.expert-materials",
+      "signal": "An expert report's appendices and its materials-considered list are an enumerated attachment set that looks exactly like a schedule. The discriminating evidence: an instructing block, a qualifications section, an opinion structure and a materials-considered list scoped to one report support `law_practice.expert-materials`; a designator series applied across documents the expert did not produce, closed by a schedule outside the report, supports this row. Shared fixture: Appendix 3 - materials considered - Dr Patel.pdf, which this row gives away. Reciprocal owed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "CONCEDED IN THE LARGER HALF, as the schema concedes it. A great many exhibits are executed instruments or proceeding records - a marked agreement, a marked order, a sworn statement - and those fire `legal`'s own deterministic signals on a safety schema whose protection runs first. This row takes nothing away: it holds the cover sheet, the designator layer and the schedule, and `legal` holds the instrument underneath. Shared fixture: Exhibit JB1 - supply agreement - marked.pdf. Reciprocal owed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "A scanned exhibit bundle and a scanned-document set are the same page images. The discriminating evidence: positive scan-origin evidence - scanner metadata, page-image characteristics, separator sheets - supports `photos.scanned-documents`; a legible designator series CLOSED BY A SCHEDULE supports this row, and where the schedule is absent this row abstains. Shared fixture: Scanned exhibits - box 3 - unindexed.pdf, which this row gives away. Reciprocal owed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "THE RECIPROCAL A LANDED ROW ALREADY ASKED FOR, and this side is written to match its words rather than to compete with them. That row states that a matter reference, a paginated exhibit convention and a solicitor's framing support the practitioner side, and a party's own claim file supports theirs. This side adds only the designator test: an appendix series compiled by the party itself is not an exhibit namespace. Shared fixture, named identically on both sides: Adjudication bundle - Oakfield - vol 2.zip, which this row gives away. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The default home and the one most often correct, because the characteristic unmatched file here is a stamped document about a named third party who never chose this filesystem. 00 names the residual and this material together - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" - and licenses surfacing a single such file with no group at all: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" A lone `Exhibit A - Bank statement` with no schedule lands here, protected, unclassified.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's defining failure, which is leg (ii) missing: a designator-bearing artefact whose namespace nothing closes, and the vocabulary collision where a document titled Exhibit A may be a contract annex. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For the internally complete exhibit set that belongs to nobody here - a downloaded docket copy, a published sample bundle, a training exemplar. It satisfies both of this row's legs and still fails the schema's precondition, so the residual must be the reading one rather than the protective one.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For sealed or passworded exhibit archives, proprietary review-platform exports and native members no reader opens. Nothing is unpacked and no purpose is manufactured from the name.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and this row's claim is stronger than its own schema's along a different axis, which is one of the three legs on which it survives the node test. The schema protects one named third party - a client, an adverse party, a witness. AN EXHIBIT SET IS A COMPILATION: it is where a practice's corpus concentrates OTHER people's records from every protected world at once, lifted out of the domain that protected them and re-filed to be used against somebody. 00's own corpus sentence describes exactly the contents of a heavy exhibit schedule - a collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and here every one of those may sit under a single letter series, about people who are not the holder, not the client, and often not parties at all. Three consequences the row states rather than smooths. FIRST, the designator does not strip the host of its own protection: a medical record marked Exhibit D is medical's and this row's at once, and the stricter governs. SECOND, the SCHEDULE is bulk-sensitive as a whole even though every row is short, because its description column abstracts every sensitive document in the case into one screen - the same reading 00 gives elsewhere, \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" THIRD, public availability of a docket exhibit proves nothing about the local copy or its neighbours, and redaction boxes on a page are an observation, not a clearance. The row assigns no handling class; P7 owns those.",
+  "open_question": "Four, none of them smoothed. (1) NJ-EX-1, THE EXISTENCE QUESTION, answered as a narrow YES and recorded so it can be reversed: this row stands ONLY on the designator-plus-schedule pairing, which is a different activation path from the schema's matter-reference-plus-role-pair default, and on the compilation privacy claim. If R1c judges that pairing to be a filename-and-document-type filter rather than a structure, THE CORRECT OUTCOME IS REFUSAL and the coverage routes to `law_practice.discovery` (production apparatus), `law_practice.trial-preparation` (compilations), `law_practice.depositions-testimony` (examination exhibits), `legal` (the marked instruments) and Protected Records. This row would rather be refused than kept to save an id. (2) NJ-EX-2, THE MERGE DIRECTION: if the seam with `law_practice.trial-preparation` is too fine to hold at placeholder depth, merge INTO trial-preparation and let the schedule be a work_type value there; do not merge trial-preparation into this row. (3) NJ-EX-3, THE HOST-DOMAIN RULE, which is bigger than this row and which no design document settles: when a file is an exhibit AND a photograph AND a medical record, which schema's template places it, and does membership of an exhibit namespace suppress the host domain's own grouping? This row's position is that the host keeps its facts and the stricter protection governs placement, but that is an inference and it recurs wherever one domain compiles another's material. (4) NJ-EX-4, RECIPROCALS OWED: seven neighbours are edged one-way from this side - `law_practice.discovery`, `.trial-preparation`, `.depositions-testimony`, `.expert-materials`, `legal`, `photos.scanned-documents` and `construction_property.variation-claim` (which asked for this one first). Fixture bytes are named on this side for each so the reciprocal can be checked. Not this agent's to write."
+}

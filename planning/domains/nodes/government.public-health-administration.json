@@ -1,0 +1,564 @@
+{
+  "id": "government.public-health-administration",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Public health administration",
+  "one_line": "Authority-side custody of population-health protection work: the notifiable-disease surveillance chain from a clinician's notification through a line list to an aggregate bulletin, immunisation and screening call-recall with its coverage denominators and defaulter lists, outbreak and cluster investigation, health-protection inspection and statutory exclusion, and population health-needs assessment. It is not activated by a health topic, a health department name, a disease word, or possession of a health document. Its distinct default is the aggregation boundary: one workflow holds identifiable named-person case material and the deliberately de-identified output derived from it, so the low risk of the published end never lowers the posture of the source, and person lists defined by an absence — non-responders, defaulters, unreached contacts — disclose health status by omission. Absorbs the legacy row med.public-health-reporting. Declares no fields and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below inherits the government schema's role precondition. A public-health subject, a health-department name, a disease name, or a health document in the corpus never activates this row on its own. The evidence must place the holder or producer on the authority side of a population-health function.",
+      "a statutory notification artifact: a labelled case-notification form or received notification record carrying a notifying-clinician or laboratory block, a receiving health-protection or communicable-disease-control office block, a notification reference, an onset or specimen date slot, and a case-classification slot (confirmed / probable / suspect / discarded)",
+      "a line list: a tabular record whose columns combine a case or contact identifier with onset or exposure date, case classification, laboratory result, exposure setting, and outcome or follow-up state, repeated across rows for one named cluster or outbreak reference",
+      "a case-definition document that states inclusion and exclusion criteria in person, place, and time terms for one cluster, and is versioned against an outbreak or incident reference — this artifact type is produced by no other government sibling",
+      "a contact-tracing record with contact-tier or exposure-category columns, follow-up attempt slots, and advice or exclusion-period end dates tied to an index case or outbreak reference",
+      "an immunisation or screening call-recall operational record: invitation, due, overdue, non-responder, defaulter, or declined slots for named individuals against a programme round, or a coverage report combining a numerator, an eligible-population denominator, and a coverage figure by practice, school, district, or cohort",
+      "a vaccine or biologic logistics record on the programme-administration side: cold-chain temperature excursion logs with a storage-unit identifier and affected lot or batch numbers, stock and wastage returns against a programme round, or an authority-issued lot recall or provider-action notice",
+      "a health-protection inspection or premises-investigation record whose working frame is transmission or exposure of persons — hygiene contravention findings, exclusion of a food handler, closure or restriction of a setting pending clearance — held by the inspecting public-health office rather than by the inspected premises",
+      "an aggregate surveillance output with a period identifier, counts or rates by disease and geography, an epidemic-curve or trend section, and a small-cell suppression or disclosure footnote, where sender, publication, or system slots show the producing authority rather than a reader",
+      "a health-needs assessment or population health profile combining an eligible or resident population frame, mortality and morbidity indicators, service-provision gaps, and recommendations addressed to a named public authority's own decision process",
+      "an outbreak, incident, or programme export whose archive manifest repeatedly encodes one outbreak, cluster, campaign, screening round, or notification reference across notification, laboratory, line-list, correspondence, and closure families; the manifest is read without unpacking",
+      "an email or calendar record whose structured sender, recipient, organizer, attendee, subject, or attachment slots tie it to an already evidenced outbreak, notification, campaign, or screening-round reference held by the public-health office; an official health-service address alone never fires"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes may sit with the notifying clinician, the reference laboratory, the public-health authority, the inspected premises, an employer, a school, a journalist, an epidemiological researcher, or the named person; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a public-health authority from a hospital infection-prevention team, an occupational-health provider, a health charity, an accreditor, a professional college, or a commercial laboratory when clinical and statutory vocabulary is identical on both sides",
+      "deciding the OPERATING MODE for material that is genuinely both surveillance and emergency response: a standing programme with a reporting cycle versus a declared activation with operational periods and situation reports",
+      "recognizing an unlabelled outbreak narrative, cluster summary, health-protection duty-log entry, or investigation note whose function is expressed only in prose with no form furniture",
+      "judging the AGGREGATION STATE of a table — identifiable, pseudonymised, or aggregate — from column semantics rather than from the file's own claim about itself, and abstaining rather than concluding that a pseudonymised line list is anonymous",
+      "deciding whether a mixed folder is authority-side programme administration or a recipient-side collection of appointment letters, vaccination records, screening invitations, and result notices belonging to one person or household",
+      "interpreting multilingual notification forms, screening invitations, and public-health notices whose labelled role vocabulary is not covered by deterministic structure rules",
+      "abstaining whenever the evidence cannot cite an authority-side population-health role; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a disease, pathogen, vaccine, syndrome, symptom, or public-health term alone; the word appears identically in a patient chart, a clinical guideline, a news article, a teaching deck, a grant application, and an insurance letter",
+      "a health department, public-health agency, health-protection team, health service, clinic, laboratory, or ministry-of-health name, letterhead, logo, or email domain alone; the body may be issuer, recipient, employer, cited source, laboratory counterparty, or research venue",
+      "a person's own vaccination card, screening invitation, test-result letter, appointment letter, or exemption certificate merely because a public-health programme issued it; the recipient's copy is a personal health record",
+      "an epidemic curve, case count, incidence rate, coverage percentage, or disease map alone; these are reproduced verbatim inside teaching slides, journal articles, press coverage, dashboards, and student coursework",
+      "a case-classification or triage word such as confirmed, probable, suspect, index, contact, or cluster alone; the same vocabulary appears in clinical notes, research protocols, and news copy",
+      "a laboratory report, culture result, sequencing or typing result alone; a result is clinical evidence until a notification or outbreak reference places it in an authority-side workflow",
+      "an inspection, hygiene, contravention, or closure word alone; the identical form furniture serves licensing, environmental, fire, building, and trading-standards inspection",
+      "a hospital's or clinic's own infection-control audit, antimicrobial-stewardship report, or outbreak log; a provider auditing itself is practice administration, and the presence of case counts does not supply a population denominator",
+      "an employer's workplace outbreak record, exposure register, or return-to-work clearance; occupational health protection held by the employer is the employer's record",
+      "a health charity's, campaign's, or professional body's report, briefing, or statistics summary; public-benefit purpose is not public authority",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Public Health, Outbreak, Surveillance, Immunisation, Screening, Epi, or Health Protection alone",
+      "a shared download session or browser batch of pandemic-era PDFs; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR text as proof that an image is a surveillance-dashboard capture; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "case notification, notification register, or notifiable-disease receipt",
+    "case definition, line list, epidemic curve, or descriptive epidemiology working paper",
+    "contact tracing log, exposure assessment, or exclusion and clearance record",
+    "outbreak or cluster investigation report, control-measure record, or outbreak closure record",
+    "aggregate surveillance bulletin, periodic communicable-disease report, or disease-trend release",
+    "immunisation programme plan, campaign delivery record, session or clinic plan, or coverage report",
+    "screening programme round, invitation and call-recall operations, non-responder or defaulter list, or failsafe record",
+    "vaccine and biologic logistics: cold-chain monitoring, excursion and disposition record, stock and wastage return, lot recall or provider-action notice",
+    "health-protection inspection, premises investigation, hygiene or contravention finding, exclusion notice, restriction or closure record",
+    "environmental-health-adjacent health-protection casework where the frame is transmission or exposure of persons",
+    "health needs assessment, population health profile, health-equity or inequalities analysis",
+    "public-health guidance, standard operating procedure, protocol, or algorithm issued by the authority to providers or the public",
+    "health-promotion or public-communication campaign material produced by the authority",
+    "programme monitoring, performance return, or public-accountability report on a population-health function"
+  ],
+  "grouping_reasons": [
+    "one evidenced outbreak, cluster, or incident, linked by an exact outbreak or incident reference across the case definition, notifications, laboratory results, line list, contact records, control measures, correspondence, and closure report",
+    "one notification, linking the received form, laboratory confirmation, follow-up record, and any exclusion or clearance record by an exact notification reference; membership never copies a case classification, diagnosis, or identity onto a sparse member",
+    "one immunisation or screening programme round, linking the round plan, invitation and call-recall operations, session records, logistics, and the coverage report by an exact round or campaign identifier",
+    "one aggregate publication cycle, where the periodic bulletin, its supporting tables, and its release record group together while the identifiable source records they were derived from retain a strictly higher posture and do not join the published group",
+    "one inspection or health-protection case on a premises or setting, linked by an exact case reference; a shared premises name, address, or proprietor name is not membership evidence",
+    "one authority export or archive manifest, kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "duplicate and version families remain universal relationships; successive versions of a case definition, guidance note, protocol, or bulletin do not acquire new facts from neighbourhood context",
+    "no group is a valid outcome for a standalone health notice, published bulletin, guidance leaflet, or vaccination confirmation; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract. PR-6 leaves the government schema fieldless, and a template cannot branch on undeclared fields. This row's recommended order, held as prose only, does not differ from the government default and is therefore NOT one of the legs on which this node was accepted: the bounded workflow (outbreak, notification, programme round, or inspection case) would come first, then the exact reference, then work type, and a named person must never become a folder level because a branch label naming a case discloses a diagnosis. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The one prose nuance this row would add if fields ever existed is that aggregation state — identifiable source, working list, published output — is a stronger candidate separator than period, because the three tiers have different access rules while sharing every other value. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".zip",
+      ".xml",
+      ".json"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Notifiable Disease Notification - NOTIF-26-0912 - measles.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled notifying-clinician block and a receiving health-protection office block on the same page",
+        "notification reference repeated in header and footer",
+        "labelled slots for onset date, specimen date, case classification, immunisation status, and named patient identifiers"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any government field, because the schema declares none",
+        "that the named person has the disease, or that the classification on the form is a verified fact",
+        "that the notifying clinician's chart copy of the same form belongs to this row",
+        "a folder path, or a person as a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Outbreak OB-2026-118 - Line List - working.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one outbreak reference in the sheet header, repeated in the filename",
+        "columns for case identifier, onset date, classification, age band, locality, exposure setting, contact tier, laboratory result, and outcome",
+        "a second sheet holds a name-to-case-identifier key"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the pseudonymised sheet is anonymous, or that the presence of a key sheet is a fact about disclosure risk",
+        "case counts, attack rates, or trend claims as stored facts",
+        "that any locality, school, or workplace value may be used for cross-file semantic joining"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case Definition v3 - respiratory cluster - Mill Lane School.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered inclusion and exclusion criteria expressed in person, place, and time terms",
+        "confirmed, probable, and suspect tiers each defined against laboratory and clinical criteria",
+        "version marker and an outbreak reference in the header; the setting is named in the title"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the named school has an outbreak as a stored fact",
+        "that this definition is clinically or legally correct",
+        "the setting name as an organizing dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contact Tracing Log - OB-2026-118.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows keyed to an index-case identifier with contact name, exposure date, contact tier, and follow-up attempt columns",
+        "advice and exclusion-period end-date columns",
+        "several rows carry only a not-reached or declined marker with no further data"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a not-reached or declined row is a fact about the person's health or compliance",
+        "exposure or infection status for any named contact",
+        "that a household or workplace shared by contacts may be inferred as a group anchor"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Weekly Communicable Disease Bulletin - Week 34 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "period identifier in title and running header",
+        "count and rate tables by disease and district, an epidemic-curve figure, and a trend commentary",
+        "a footnote states that small cells are suppressed; a producing-authority publication block appears on the last page"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the low risk of this published artifact lowers the posture of the line list it was derived from",
+        "that the suppression footnote is a verified disclosure-control fact",
+        "that a reader's downloaded copy is authority-side custody"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Immunisation Coverage Report - 2026 Q2 - by practice.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "numerator, eligible-population denominator, and coverage-percentage columns per practice and per antigen",
+        "a target line and a variance column",
+        "sheet notes name the authority's immunisation programme team"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this is an official-statistics release, which requires a statistical production and access framework",
+        "practice performance as a judgement",
+        "coverage figures as stored facts about any person"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Call-Recall - Cervical Screening - non-responders August 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "named individuals with due date, invitation-sent date, reminder date, and last-attended columns",
+        "every row is present precisely because an appointment did not occur",
+        "a programme round identifier in the header row"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that non-attendance is a health fact, a risk fact, or a compliance fact about a named person",
+        "that an absence-defined list is less sensitive than a result list",
+        "any name as a folder level or display label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vaccine Cold Chain Excursion Log - Clinic 4 - 2026-07-19.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "storage-unit identifier, minimum and maximum temperature columns, and an excursion start and end window",
+        "affected lot or batch numbers listed against a disposition decision",
+        "a sign-off row naming the programme's responsible officer"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the affected doses were unsafe or that the disposition was correct",
+        "that this row is uniformly protected; this fixture carries no person data and shows sensitivity varying inside one row",
+        "a clinic name as an organizing dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Vaccine Lot Recall Notice - Lot XJ-4471 - action for providers.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing public-health programme block addressed to providers as a class",
+        "lot or batch identifier, reason, required action, and a response-by slot",
+        "a distribution list of provider categories"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a clinic's received copy of this notice belongs to this row; the receiving provider holds pharmacy or practice-administration evidence",
+        "that the recall is current, complete, or complied with",
+        "product or manufacturer as a stored fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Food Premises Inspection - The Harbour Cafe - FHRS visit 2026-08-11.docx",
+      "source_type": "text_document",
+      "observations": [
+        "inspecting-officer block naming an environmental health and public protection service",
+        "numbered contravention findings with a hygiene scoring narrative and an improvement or closure recommendation",
+        "a premises case reference and a revisit date"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the premises is unsafe, non-compliant, or closed",
+        "that a hygiene rating is a stored fact",
+        "a licensing outcome; a licence-condition frame would support permit-licensing instead"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exclusion Notice - food handler - Case NOTIF-26-0930.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "notice served on a named individual by an authorized public-health officer",
+        "restriction on specified work pending microbiological clearance, with a clearance-criteria section",
+        "notification case reference repeated from a received notification"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the notice is lawful, valid, in force, or lifted",
+        "that the named person is a carrier or a case",
+        "employment, employer, or occupation as a stored fact"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Cluster at Mill Lane School - lab confirmation and next steps.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a reference laboratory account; recipients are a health-protection duty mailbox and a named consultant",
+        "subject carries the exact outbreak reference; body references the case definition version",
+        "one attachment is a typing or sequencing result naming specimen identifiers"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "a diagnosis, a linkage between specimens, or a transmission conclusion",
+        "that the attachment stops being clinical laboratory evidence because the email joined an outbreak group",
+        "recipient identity as a dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Health Protection Team - Incident Call - OB-2026-118.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is the health-protection duty office; attendees include laboratory, school, and communications roles",
+        "subject carries the exact outbreak reference",
+        "recurrence pattern is a daily call for a bounded period"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a recurring call constitutes a declared emergency activation; an activation level and operational periods would support emergency-management instead",
+        "attendee identity or affiliation as a stored fact",
+        "outbreak severity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Health Needs Assessment - District 4 - draft v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "resident-population profile section with mortality and morbidity indicator tables",
+        "service-provision gap analysis and numbered recommendations addressed to a named authority's committee",
+        "draft marker and version in the header; no person-level data anywhere"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the recommendations were adopted; an adoption resolution would be governance evidence",
+        "indicator values as stored facts",
+        "district as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-08-20 - surveillance dashboard case counts.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in image metadata and window chrome, not merely absent EXIF",
+        "OCR recovers a dashboard title, a period selector, and count tiles by disease",
+        "no outbreak or notification reference is visible"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that dense OCR text or missing EXIF proves screen origin",
+        "case counts as facts, or the dashboard's authority as custody evidence",
+        "membership in any outbreak group without an exact reference"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Outbreak OB-2026-118 - full case file export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists notification, laboratory, line-list, correspondence, exclusion, and closure families under one outbreak reference",
+        "member paths repeatedly encode the same reference",
+        "no member is opened during recognition"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "member-level facts from the manifest alone",
+        "that unpacking is permitted merely to strengthen classification",
+        "that a coherent manifest establishes the authority's identity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vaccination Record - Mira Patel - childhood schedule.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE: dates, vaccine names, and lot or batch numbers identical in shape to programme evidence",
+        "the header addresses one named person or parent; there is no eligible-population denominator, coverage frame, call-recall slot, or authority-side office block",
+        "clinician signature or clinic stamp appears per row"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that lot numbers or a programme's name make this authority-side custody",
+        "that this row activates; the recipient's copy is a personal health record",
+        "immunisation status as a government fact"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Infection Control Audit - Ward 6 - August 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE: case counts, isolation decisions, and control-measure vocabulary read exactly like health protection",
+        "the producing team is the hospital's own infection-prevention service auditing its own ward; the denominator is bed-days, not a resident population",
+        "no notification reference and no external authority block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a provider auditing itself is a public authority",
+        "that in-facility case counts constitute population surveillance",
+        "that this row activates"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Complaint 26-4471 - odour - Mill Lane - caller details.docx",
+      "source_type": "text_document",
+      "observations": [
+        "SHARED FIXTURE with government.environmental-regulation, named identically on both sides",
+        "caller details, locality, and a complaint reference; the working frame is what decides the edge",
+        "no case definition, notification, or exposed-person follow-up appears in this version"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a health-adjacent nuisance is population-health work",
+        "a source, a pollutant, or an exposure as a stored fact",
+        "that this row activates without a health-protection investigation of exposed persons"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Surveillance system nightly backup.bak",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filename names a surveillance system; content is unreadable without the application",
+        "no manifest and no readable structure",
+        "size and timestamp are the only reliable observations"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "any case, person, outbreak, or programme fact from the filename",
+        "that the file may be opened or converted to improve recognition",
+        "a sensitivity result derived from the word surveillance"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.emergency-management",
+      "signal": "RECIPROCAL of the one-way boundary authored in government.emergency-management. An outbreak response is genuinely both worlds and the same authority holds both. The discriminating evidence is the OPERATING MODE: a standing surveillance, immunisation, screening, or health-protection programme with a reporting cycle supports this row; a declared activation carrying an activation level, operational periods, a coordination centre, and situation reports supports that row. The shared fixture pair is a mass-vaccination clinic plan: written as a programme document it is this row's, and run under an activation with incident-command form documentation it is theirs. `Health Protection Team - Incident Call - OB-2026-118.ics` is this row's because it carries an outbreak reference and no activation level.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "RECIPROCAL of the boundary already authored in government.environmental-regulation, naming the same fixture on both sides. Both hold sampling programmes, laboratory results, premises inspections, and nuisance complaints, and one municipal office often runs both. That row requires an environmental authorisation, release, or receiving-medium frame — a permit condition, an emission or discharge point, a pollutant inventory. This row owns population-health surveillance, disease and food-borne investigation, and health-protection casework about exposed persons. On `Complaint 26-4471 - odour - Mill Lane - caller details.docx`: traced to a permitted installation's abatement conditions it is theirs; pursued as a health-protection investigation of exposed persons it is this row's.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "Premises inspection produces identical form furniture on both sides: officer block, numbered contraventions, revisit date, case reference. The discriminating evidence is the OPERATIVE FRAME the findings are written against. A finding written against a licence, registration, or authorisation condition, feeding a grant, variation, suspension, or revocation decision, is that row's. A finding written against transmission or contamination risk to persons, feeding exclusion, clearance, or closure pending remediation, is this row's. `Food Premises Inspection - The Harbour Cafe - FHRS visit 2026-08-11.docx` is the shared fixture and can land either way on that test alone. Authored ONE-WAY here; R1c owes the reciprocal.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.statistical-programme",
+      "signal": "Aggregate outputs, denominators, small-cell suppression, and disclosure footnotes appear on both sides. That row requires an official-statistics PRODUCTION frame — a survey or census instrument, a collection round, a published methodology, and a microdata-access regime. This row's aggregates are a by-product of operational surveillance and are derived from case notifications no one consented to a statistical collection for. `Weekly Communicable Disease Bulletin - Week 34 2026.pdf` is the shared fixture: released under a statistical code with methodology and revision policy it is theirs; issued as an operational health-protection bulletin from the notification register it is this row's. Authored ONE-WAY here; R1c owes the reciprocal.",
+      "design_cite": null
+    },
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "The notification form exists in two custodies as identical bytes. The clinician who completed it keeps a chart copy; the authority keeps the received notification. The discriminating evidence is which side's block is the RECEIVING slot and whether a notification register reference has been assigned. A completed form with no receipt reference, filed among that patient's encounter notes, is chart material. `Notifiable Disease Notification - NOTIF-26-0912 - measles.pdf` is the shared fixture. Neither side may erase the other: a laboratory result inside an outbreak group remains clinical evidence. Authored ONE-WAY here; R1c owes the reciprocal.",
+      "design_cite": null
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "Every programme this row administers issues an artifact to a named person: vaccination records, screening invitations, result letters, exemption certificates, exclusion notices. Those recipient copies are personal health records and this row must not claim them. The discriminating evidence is the presence of an eligible-population denominator, a call-recall or register operation, or an authority-side office block in a producing rather than issuing role. `Vaccination Record - Mira Patel - childhood schedule.pdf` is the shared fixture and is the collision fixture for this row. Authored ONE-WAY here; R1c owes the reciprocal.",
+      "design_cite": null
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "A workplace outbreak generates near-identical artifacts on two sides: an exposure register, a contact list, a return-to-work clearance record, a control-measures note. The discriminating evidence is the HOLDER: an employer managing its own workforce holds occupational records, and its duty runs to its employees; a public-health office investigating the same workplace holds a health-protection case with a notification or outbreak reference and a duty running to the population. A staff exposure register naming employees and shifts, with no outbreak reference and no authority block, is that row's. Authored ONE-WAY here; R1c owes the reciprocal.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.social-services-casework",
+      "signal": "Both are named-person casework held by a public office, often the same council, and both carry health information. The discriminating evidence is the CASE FRAME: a case opened because of transmission, exposure, immunisation, or screening status supports this row; a case opened because of a person's care, safeguarding, welfare, or entitlement need supports that row, even when its file is full of health material. A vulnerable-adult case that also records an unmet screening invitation stays theirs. Authored ONE-WAY here; R1c owes the reciprocal.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "any named-person surveillance, notification, contact, exclusion, call-recall, or premises-casework material has no safe accepted group; this is the principal fallback for this row",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone health notice, provider-action notice, guidance leaflet, logistics log with no person data, or vaccination confirmation has durable value but no authority-side workflow or accepted group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published bulletin, epidemiological report, guideline, or outbreak news item is held for reading rather than as authority-side work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document looks like population-health work but the holder role, aggregation state, or operating mode cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a dashboard, portal, or case-management screen yields no accepted outbreak, notification, or programme reference through OCR",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a surveillance-system backup, encrypted case export, or unknown registry binary cannot be read, and its filename must not manufacture a case, person, or outbreak fact",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Protected by default, and stricter than the government default in three specific ways that are the principal ground on which this node was accepted. First, the AGGREGATION BOUNDARY is internal to one workflow: identifiable notification, pseudonymised line list, and published aggregate are three tiers of the same material, so the low risk of a published bulletin must never lower the posture of the source it was derived from, and the catalogue must not treat a document's own suppression footnote as a verified disclosure-control fact. Second, ABSENCE-DEFINED PERSON LISTS — screening non-responders, immunisation defaulters, unreached or declining contacts, excluded workers — disclose health status by omission and are at least as sensitive as result lists; the government default has no rule for a list whose rows exist because something did not happen. Third, cross-file semantic joining is suppressed on onset date, locality or postcode, premises name, and school or workplace name, because their COMBINATION re-identifies in a small population even where each value looks innocuous; this parallels the unit-and-posting suppression in government.defence-veterans but the mechanism is small-number epidemiological disclosure, not aggregation of a career. Confidentiality legends, statutory-notification wording, and disclosure-control notes are recorded as literal observations and never become a handling class — that vocabulary is P7's. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Published bulletins, guidance, and logistics logs with no person data are genuinely low-risk bytes, but their presence inside a mixed outbreak packet cannot lower that packet's posture.",
+  "open_question": "NEEDS-JOSEPH: (1) The aggregation state — identifiable source, working list, published output — is the strongest organizing distinction this row has and it is currently expressible only as prose, because PR-6 leaves the government schema fieldless. If PR-6 is lifted, decide centrally whether an aggregation-state or access-tier concept may exist at all, whether it may ever be destination-eligible, and whether it belongs on the government schema or as a universal privacy attribute alongside sensitivity_status; this row mints nothing. (2) Adjudicate the premises-inspection frame test against government.permit-licensing: `Food Premises Inspection - The Harbour Cafe - FHRS visit 2026-08-11.docx` is decidable only by reading what the contraventions are written against, and a real municipal service issues one document that serves both purposes. The alternatives are to route all premises inspection to permit-licensing and leave this row the person-level chain only, to route hygiene and communicable-disease inspection here and authorisation inspection there, or to accept dual candidacy and force user review. (3) Decide whether the notification form's two custodies (clinician chart copy versus authority receipt) may be represented as a role_split at all, given that neither schema declares a role field to split on."
+}

@@ -1,0 +1,343 @@
+{
+  "id": "engineering.prototype-build",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Prototype and first-article build records (the article as made)",
+  "one_line": "The record of one physical article that was actually made from a design definition that is not yet released: which unit it is, which machine and material made it, which process parameters were actually used, and how the thing on the bench departs from the thing on the drawing. It is token-level where the rest of the engineering schema is type-level: the other engineering rows describe a class of product, this row describes one object with a serial number, a build date and a list of things that went wrong. Additive-manufacturing print jobs, machine-shop first articles, board spins, breadboards and automotive mules are the same relation at different scales, not different nodes. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps `fields` empty; one key is proposed for R1c because this row's recommended order cannot be stated without it.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "charge_against_the_row": "The strongest case for refusal, stated before the defence. (a) `prototype` is a VALUE of the engineering schema's own proposed `lifecycle_stage`, sitting between detailed design and qualification, and a row named after a lifecycle stage is one of the named failure modes. (b) It is also a VALUE of the schema's proposed `engineering_artifact_type`: the schema row's `work_types` list contains the literal string `prototype configuration record`. (c) Worse, the schema's default template already carries the situation as its own eighth deterministic signal - `a prototype/build record that names the experimental article or prototype configuration and reconciles its deviations against the intended design definition` - so on its face this row is a duplicate of its own schema's default, which is exactly the finding that refused `engineering.automotive-program`. (d) `additive manufacturing` in the row's hint is a FABRICATION PROCESS and `print job` is a MEDIUM; `.gcode`, `.3mf` and `.nc` are FILE FORMATS. None of those is a filing world. (e) A build record is arguably just a production record with a quantity of one, in which case `manufacturing.production-record` already owns it. This case is serious and (b) plus (c) would be fatal on their own.",
+    "signals_differ": "Defeated on evidence the schema default provably cannot see. Every deterministic signal on the engineering schema row is a DEFINITION-SIDE, TYPE-LEVEL relation among labelled slots inside one controlled document: title block joined to item and revision, requirement rows beside verification columns, a TDP manifest, a change block with an affected item, a BOM parent/child tree, analysis inputs against requirements, a verification matrix. Every one of them describes a class of product. This row's discriminating relation is a PROCESS-SIDE, TOKEN-LEVEL join: an article-identity slot (unit, serial, build or plate number) bound to a machine identity, a material identity resolved to a lot or spool, the process parameters that were ACTUALLY used rather than specified, and an outcome - completed, aborted, scrapped, reworked - with a departure list against a named revision. The schema's prototype bullet names only the first and last of those five and never names the process side at all, which is precisely the half that collides with manufacturing rather than with the definition rows. The decisive point is stronger than a refinement: a real and common part of this corpus - a slicer project, a machine program, a printer run log and a photograph of a failed part - contains NO title block, NO requirement identifier, NO revision slot, NO BOM, NO approval block, and frequently no item identifier more formal than `bracket_v3`. The engineering schema's default template cannot fire on it at all. This row's signal set is therefore not a narrowing of the default's; it includes a class of evidence the default is blind to.",
+    "dimensions_differ": "The schema's researched default is project -> design_item -> lifecycle_stage -> engineering_artifact_type. This row's researched order is design_item -> build_event, and it differs by INTRODUCING a level the schema has no vocabulary for rather than by re-sorting the schema's own. lifecycle_stage is dropped because every member of a build corpus sits at one lifecycle point by construction - a level with one child is not a level. engineering_artifact_type is dropped from the standing levels because within one build the log, the deviation list, the photographs, the machine program and the shakedown sheet are MEMBERS of a single event; splitting on type first scatters one build across five folders and makes each fragment unintelligible, which is 00's parent-makes-child-intelligible rule applied to a build instead of a course. build_event survives as the second level because a unit number is meaningless without the item, and because a build corpus that is not partitioned by article degenerates into an undated pile the moment a second unit exists. `project` is dropped from the front for the reason the schema row itself gives: a project name alone is business_operations evidence.",
+    "privacy_differs": "Weakly, and this row does not rest on it - stated plainly rather than inflated to pad a third leg. The schema is already potentially_sensitive and no handling class is assigned here. The one genuine difference in kind is that a build corpus is saturated with PHOTOGRAPHS taken in a workshop or on a bench, which the definition-side corpus is not: those images carry EXIF capture time and GPS that frequently resolve to a home address, and they catch incidental people. That forces two rules the definition rows never need - a workshop photograph's GPS is never a build fact, and image members route to One-Off Images rather than to a document residual. Legs one and two carry the row; this is a consequence, not a justification."
+  },
+  "fields": [],
+  "fields_note": "Empty by binding PR-6: the engineering schema row is a placeholder and declares no fields, and contract rule 12 forbids a template copying its schema's list in any case. The legal set on any file this row recognizes is the engineering schema's proposed set once R1c licenses it, plus the universals (file type, creation date, language, duplicate family, version family, sensitivity status).",
+  "proposed_fields": [
+    {
+      "key": "build_event",
+      "type": "string",
+      "example": "Unit 004 (2026-03-11)",
+      "why_no_existing_key": "No canonical or currently-proposed key identifies ONE MADE ARTICLE. The engineering schema's proposed `design_item` is deliberately type-level - its own justification says one design item can survive across projects - so overloading it with `BPA-210 Unit 004` would destroy the grouping it exists to provide, splitting a single item's requirements, drawings and analyses across every unit ever built from it. `batch` and `lot` belong to manufacturing's execution vocabulary and carry a released-definition, quantity-many meaning that a one-off prototype does not have. `version_family` identifies membership in a family of FILES; a build event is a family of physical facts, and two units of the same revision are not versions of each other. `revision_or_baseline` names the definition the article was built to, not the article. This key is exposed for R1c rather than assumed: the honest alternative is (b) below in open_question, and if R1c declines the mint, this row's recommended order collapses to design_item alone and its second leg of the node test weakens accordingly. Stated here rather than hidden.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE, as the second level only. A build log, a deviation list and a bench photograph are intelligible together under one article and unintelligible apart from it. It is not authorship, not an organization collector, and not a date.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled unit, serial, article, build-number or plate slot in a build sheet header can be direct. Otherwise validation requires an article-identifier pattern co-occurring with at least one independent build structure - a machine or material-lot slot, an as-designed/as-built pair, or a build outcome disposition. A bare serial-shaped token is an asset tag, an order line or an invoice reference and must never validate alone. R2 owns the patterns; no regex and no threshold is written here.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "proposed_fields_note": "Exactly one key is proposed, deliberately. The other strings this material is saturated with - machine identity, material lot, layer height, nozzle temperature, feed rate - are NOT proposed as fields. They are process parameters: they are excellent evidence, they belong in content and search, and a folder level named for a nozzle temperature would be a filesystem organised by a number that changes between two adjacent files of the same build. Minting a key per parameter is the move that produced thousands of private field names in the overnight pass.",
+  "recognition": {
+    "deterministic": [
+      "an article-identity slot (unit, serial, article, build or plate number) in a labelled header, joined in the same record to a machine identity, a material identity, or a build-date/outcome slot; the join is the signal and no member of it fires alone",
+      "an as-designed / as-built pair structure: rows that state what the definition required beside what the article actually is, with a reason and, where present, an engineering disposition accepting or rejecting each departure against a named revision",
+      "a machine-program header block whose labelled slots name a printer or machine profile, a material, and the process parameters of one job - layer height, nozzle and bed temperature, feed and speed, tool list - where the body is machine motion rather than geometry or prose",
+      "a slicer or CAM project container whose manifest exposes a plate or setup arrangement, per-object process settings and a preview, with mesh members that are arranged for making rather than defined parametrically",
+      "a machine run log of timestamped process telemetry - temperatures, positions, tool changes, aborts, error codes - bounded to one session of one machine",
+      "a first-article or board-spin build sheet that enumerates individual assembled units and records per-unit rework: jumper wires, reworked designators, hand-fitted or reamed features, substituted components",
+      "a configuration-under-test statement that identifies the physical article a test was run on - its serial, its deviations, its firmware load, its fixture - as distinct from the requirement-to-result matrix that consumes it",
+      "a teardown, shakedown or build-acceptance record that reports what the completed article did on first operation, against expectation rather than against a numbered requirement",
+      "an archive whose manifest joins a machine program, an arrangement file and a settings record under one article or plate without extracting members to disk",
+      "a photograph whose CONTENT (not its EXIF, and not its neighbourhood) shows a part in a machine, on a bed, in a fixture or under measurement, WHEN an accepted build record in the same neighbourhood already carries an article identity; the photograph joins the group, it does not create it",
+      "a parent folder naming a build, a unit or a print may raise plausibility only after one of the structures above is present; it never fires this template by itself"
+    ],
+    "needs_llm": [
+      "whether a departure from the definition is a prototype deviation that will be designed out, a change that should become an engineering change order, or a manufacturing nonconformance requiring a QMS disposition, when the record states the difference in prose rather than in a labelled disposition slot",
+      "whether a build sheet records a one-off article built to an unreleased definition or a serialised unit of released production, when the record carries a serial but no revision status and no acceptance limits",
+      "whether a machine program is a job that was actually run against an owned design or a job prepared from a downloaded third-party model that was never made",
+      "whether a witnessed dated notebook page records build steps and observed behaviour, records conception of an invention, or records a research protocol run",
+      "whether a photograph of a machine, a bench or a part is build evidence, an appearance-model record, a maintenance record, or an unrelated snapshot",
+      "whether a rework list on a board is prototype bring-up or field repair of a shipped unit"
+    ],
+    "never_alone": [
+      "the words prototype, build, print, mule, rig, unit, article, sample, spin or breadboard alone. Prototype-Budget-Q1.xlsx contains the first of them in its filename and is business_operations evidence end to end",
+      "a serial-shaped or unit-shaped token alone. The same shape is an asset tag, a purchase-order line, an invoice reference, a licence number and an arbitrary counter; this is the same defect 00 identifies for a bare four-digit number",
+      "a machine or printer name alone, and a material or filament name alone. 3DBenchy_0.2mm_PETG_MK4.gcode carries both and is not a build record of anything the user designed",
+      "a slicer or CAM parameter block alone. Parameters describe an intended job; a build record requires that something was made and that its outcome or departure was recorded",
+      "a .gcode, .3mf, .stl, .nc or .log extension alone, and the design_creative or code_structured source_type alone. 00 requires extension to be a routing signal rather than an assumption about meaning",
+      "a photograph of a machine, a bench or a part alone. IMG_4471.jpg is a picture of a failed print and nothing in the image identifies an item, a unit or a revision",
+      "EXIF capture time or GPS alone as a build date or a build location. The coordinates on a workshop photograph are a home address, not a fact about the article",
+      "absence of EXIF, or a screenshot-like appearance, as proof of anything. 00 forbids missing EXIF as screenshot proof and the same discipline applies here",
+      "a machine run log alone. Printer-log_2026-03-09_thermal-runaway.txt records the machine's afternoon, not an article; it acquires an article only when a build record names one",
+      "a lot or batch number joined to acceptance limits and an inspector disposition. That combination is manufacturing execution evidence and belongs to manufacturing.production-record even when it cites this row's revision",
+      "a pass/fail table alone; manufacturing inspection, software tests and certification all contain one",
+      "a bounded download session alone. 00 says a session is never proof of topic, which is exactly how a folder of downloaded printable models defeats this row's parameter signals",
+      "a parent folder named Prototypes, Builds or 3D Prints alone"
+    ]
+  },
+  "proposed_context_terms": [
+    "as built", "as designed", "bill of deviations", "build log", "build sheet", "first article", "unit serial", "configuration under test", "material lot", "filament spool", "layer height", "print profile", "aborted", "scrapped", "reworked", "jumper wire", "hand fitted", "shakedown", "teardown", "bring-up", "mule", "board spin", "plate arrangement", "run log"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context SHAPE for course codes only; it does not list these terms and this row does not pretend that it does. Several are listed because their correct outcome is a refusal: `layer height`, `print profile` and `filament spool` appear in full strength on the downloaded-model collision fixture below.",
+  "work_types": [
+    "build log or build sheet",
+    "bill of deviations / as-built departure list",
+    "prototype configuration record",
+    "first-article build record",
+    "slicer or CAM job project",
+    "machine program",
+    "machine run log",
+    "build photograph set",
+    "rework and jumper-wire list",
+    "material lot and spool record",
+    "build acceptance or shakedown record",
+    "teardown record"
+  ],
+  "work_types_note": "Candidate VALUES of the engineering schema's proposed engineering_artifact_type (or of a widened canonical artifact_type), never child schemas. Note that `prototype configuration record` already appears on the schema row's own work_types list - which is part of the case against this row, answered in node_test.charge_against_the_row and node_test.signals_differ rather than ignored.",
+  "grouping_reasons": [
+    "one made article across its build sheet, its deviation list, its machine program, its photographs and its shakedown result",
+    "one build campaign - several units of one revision built together - where the units differ from each other and no unit's deviations may be copied onto another",
+    "one machine's run history across unrelated articles; the machine is a legitimate grouping neighbourhood and never a design_item fact",
+    "one article's link to the verification runs performed on it, preserving the link rather than copying the requirement trace into the build record or the build configuration into the test report",
+    "a sparse IMG_4471.jpg may join an accepted build neighbourhood without acquiring design_item, build_event or revision facts; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding PR-6: the engineering schema declares no destination-eligible fields, so no machine-readable order may be encoded, and the one key this order needs is only PROPOSED above. Subject to R1c, the researched order is design_item -> build_event, and it is deliberately different in KIND from the schema's researched default of project -> design_item -> lifecycle_stage -> engineering_artifact_type rather than a re-sort of it. lifecycle_stage is dropped: every member of a build corpus sits at one lifecycle point by construction and a level with one child is not a level. engineering_artifact_type is dropped from the standing levels because the log, the deviations, the photographs, the machine program and the shakedown sheet are members of ONE event and splitting on type first scatters a build across five folders; it survives only as an optional leaf INSIDE a build for corpora with many members per unit. project is dropped from the front because the schema row itself holds that a project name alone is business_operations evidence. Two optional branches: (a) a machine level replacing build_event for a maker corpus that is genuinely organised by printer and where most jobs never acquire an article identity - accepting that this files by tool, which is a real user preference and a poor default; (b) no build_event level at all where only one article was ever made, returning to cad-model's shorter order. time_first is FALSE: a build has a date and the date is strong evidence, but 00's document-domain rule puts project/function/subject before time, and a build corpus ordered by date separates a unit's log from the photographs of the same unit taken the following week. The user may reverse, remove, add or flatten any of this; it is a recommendation, not a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["filesystem", "text_document", "spreadsheet", "image", "ocr", "code_structured", "design_creative", "archive", "email", "opaque_binary"],
+    "extensions": [".xlsx", ".csv", ".pdf", ".docx", ".jpg", ".png", ".txt", ".log", ".gcode", ".3mf", ".nc", ".stl", ".zip", ".eml"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210_Build-Log_Unit-004_2026-03-11.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["header row labels design item, unit serial, build date and builder", "operation rows name machine, material lot and setup, with an actual-parameter column beside a specified-parameter column", "three rows in a deviation column describe departures from Rev C", "a closing cell records outcome as completed with rework"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["domain fields before R1c licenses them", "build_event before R1c adjudicates the proposed key", "that the builder name is a destination level", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPA-210_Bill-of-Deviations_Unit-004_vs_RevC.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled article slot and labelled governing-revision slot on page one", "rows pair an as-designed value with an as-built value and a reason", "an engineering disposition block accepts each departure for prototype use only", "no requirement identifier appears anywhere"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a manufacturing nonconformance from the word deviation, absent a QMS disposition structure", "an approved engineering change from an accepted-for-prototype disposition", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "bracket_v3_0.20mm_PETG-CF_MK4.gcode",
+      "source_type": "code_structured",
+      "observations": ["leading comment block labels printer profile, nozzle diameter, layer height, material and estimated duration", "body is coordinate motion and temperature commands", "the stem bracket_v3 is the only item-shaped token and it carries no revision, drawing number or approval"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that the job was ever run, from the program alone", "a design_item from a filename stem with a version-shaped suffix", "activation from .gcode or from the parameter block alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "bracket_v3.3mf",
+      "source_type": "archive",
+      "observations": ["manifest exposes a plate arrangement, per-object process settings and a thumbnail", "members are triangulated meshes plus a settings document, with no parametric history", "member names repeat the same stem as the machine program beside it"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["facts from uninspected member contents", "cad-model activation from mesh members, absent a native parametric sibling and an item identifier", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": ["photograph shows a part on a heated bed with a visible layer shift", "EXIF carries capture time and GPS coordinates that resolve to a residential address", "no text, no identifier and no scale appears in the frame", "two accepted build records in the same neighbourhood name BPA-210 Unit 004"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["design_item or build_event copied from neighbouring files", "a build date or build location from EXIF", "screenshot status from EXIF properties", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Printer-log_2026-03-09_thermal-runaway.txt",
+      "source_type": "text_document",
+      "observations": ["timestamped lines record hotend and bed temperature, position and an abort code", "the machine identifies itself in a banner line", "no article, item, revision or operator appears in the file"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["an article identity from the log alone", "that the log's date is a build date for any particular unit", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "A2409-CTRL_RevD_FirstArticle_S-N-002.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["header names the board assembly, the release revision and one serial of five built", "rows list reworked reference designators, three jumper wires and two substituted components", "a bring-up column records which supply rails came up and which did not"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["pcb-layout activation from a designator column, absent layer and coordinate structure", "that the five units share one deviation set", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DVT-07_Configuration-Under-Test.docx",
+      "source_type": "text_document",
+      "observations": ["names the prototype serial, its accepted deviations, its firmware load and its test fixture", "declares itself an annex to a verification report", "contains no requirement identifier and no pass/fail result"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["verification-validation activation from the DVT token", "requirement satisfaction, which this document never asserts", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Mule-3_Build-Sheet_2026-02.pdf",
+      "source_type": "text_document",
+      "observations": ["identifies a development vehicle by mule number and a donor-vehicle identification", "a fitment table lists which subsystems are production-intent and which are carry-over", "an open-issues section lists what the mule cannot be used to evaluate"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a released production configuration from a fitment table", "that carry-over subsystems inherit the programme's current revision", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Lab-notebook_p114_witnessed_2026-02-27.jpg",
+      "source_type": "ocr",
+      "observations": ["handwritten page numbered 114, dated, signed and countersigned by a witness", "OCR recovers a sequence of build steps, a measured dimension and a note that the bore was reamed by hand", "no invention title, claim reference or docket number appears on the page"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["invention-disclosure activation from a witness signature, which is ordinary practice in both worlds", "a research protocol from a numbered notebook page", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "3DBenchy_0.2mm_PETG_MK4.gcode",
+      "source_type": "code_structured",
+      "observations": ["sits in a downloads folder beside eleven unrelated model archives", "header block names printer profile, material and full process parameters at stock values", "the stem is a widely distributed third-party benchmark model", "no owned item, no outcome, no deviation and no article identity exists anywhere in the neighbourhood"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["this template, despite machine, material and parameters all being present", "a topic from the download session, which 00 forbids as proof", "a design_item from a model name", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LOT-24-081_Final-Inspection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["header identifies a production lot and an inspection station", "rows record measured values against acceptance limits with an inspector disposition", "a drawing revision appears only as the governing reference"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["this template from measured-versus-specified rows, which look exactly like as-designed/as-built rows", "an article identity from a lot number", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Prototype-Budget-Q1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows list vendor, purchase-order number, amount and cost centre", "the word Prototype appears in the filename and in a column heading", "no article, machine, material lot, parameter or deviation appears anywhere"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["engineering from the word prototype", "an article identity from a purchase-order number", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.cad-model",
+      "why": "Reciprocating that row's own edge, with its fixture and mine on the same seam. It owns geometry as a DEFINITION; this row owns the BUILD EVENT - machine, material, parameters, outcome. Fixture bytes both ways: bracket.stl / bracket_v3.3mf is cad-model's when a native parametric sibling and an item identifier exist, and is this row's when it is a member of a build record naming machine and material. A mesh arranged on a plate beside a machine program is making evidence; the same mesh beside a parametric assembly is definition evidence. Neither side infers the other from adjacency.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "why": "One file routinely contains both structures and the schema row's own BPA-210_DVT-07_Verification-Report.pdf is the shared bytes. That row owns the requirement-to-result trace: which requirement, which method, which procedure, pass or fail. This row owns what the article IS: serial, deviations, firmware load, fixture - the configuration-under-test annex. Discriminator both ways: a requirement identifier column makes it theirs, an article identity joined to a deviation list makes it this row's, and a report containing both is two groups, not one merged row. DVT-07_Configuration-Under-Test.docx is this row even though its name begins with a test identifier.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.pcb-layout",
+      "why": "Reciprocating that row's edge on its own fixture. A board spin IS a prototype build. Discriminator both ways, as that row states it: its evidence describes what is to be MADE - layer and coordinate structure, designator-to-placement joins - and carries no unit identity; this row's evidence names actual articles, serials and observed departures. Fixture bytes: A2409-CTRL_RevD_Fab.zip is pcb-layout's, A2409-CTRL_RevD_FirstArticle_S-N-002.xlsx sitting beside it is this row's, and directory adjacency proves nothing in either direction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.industrial-design",
+      "why": "Reciprocating that row's edge in its own terms. It owns appearance models whose declared purpose is to represent look and feel and which explicitly do not represent function; this row owns configuration and functional departure - what the article is, how it differs from the intended design, what it may be used to test. Same fixture bytes: a looks-like model record is theirs, a works-like rig with a bill of deviations is this row's, and one article that is both carries both records with neither inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.invention-disclosure",
+      "why": "Reciprocating that row's edge on the identical fixture. Lab-notebook_p114_witnessed_2026-02-27.jpg is invention-disclosure's when the page is a witnessed CONCEPTION record tied to an invention title, a claim reference or a docket, and is this row's when it records build steps and observed departures. A witness signature decides nothing: witnessing is ordinary practice in both worlds. A first working article is simultaneously a build record and, in patent language, a reduction to practice; the two readings sit on disjoint evidence in the same page.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "why": "A prototype departure that is accepted permanently becomes an engineering change, and the two records use the same as-is/to-be shape. That row's evidence is a labelled affected-item slot with current and replacement revisions and an approval disposition against the CONTROLLED DEFINITION; this row's evidence disposes of one ARTICLE for prototype use only and changes no released document. Fixture bytes: BPA-210_Bill-of-Deviations_Unit-004_vs_RevC.pdf is this row, and the ECR raised the following week to make deviation three permanent is change-order's - same technical content, different object.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "why": "The sharpest cross-schema seam, and the strongest form of the objection that this row is a production record of quantity one. Manufacturing owns EXECUTION OF A RELEASED DEFINITION at batch or lot scale: lot identity, routing, operator signoff, conformance as the purpose. This row owns execution of an UNRELEASED definition on a one-off article where departures are expected and are recorded as findings rather than as failures. Fixture bytes both ways: LOT-24-081_Final-Inspection.xlsx stays manufacturing even though its measured-versus-specified rows look exactly like an as-designed/as-built table, because it carries a lot number, acceptance limits and an inspector disposition; BPA-210_Build-Log_Unit-004 is this row even though it names machines and materials, because it carries an article identity against a revision that is not released.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "why": "Both worlds record a thing that is not what the drawing says. Discriminator both ways: a nonconformance carries a QMS disposition structure - use-as-is, rework, scrap, return - a containment action and a corrective-action reference, and asserts that a released process failed. A prototype deviation asserts that the DEFINITION is not final yet and disposes of one article for development use. Fixture bytes: the same as-designed/as-built table is nonconformance-capa's when a containment or CAPA reference is present and this row's when the disposition reads accepted for prototype use only.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.scratch-prototypes",
+      "why": "A purely lexical collision, and worth naming precisely because it is lexical - it is what a keyword-driven router would get wrong. That row owns throwaway repositories and experiment directories recognised by repository roots, manifests and source structure. This row owns physical articles. A directory named prototype-v2 containing a package manifest is code's on repository evidence and never becomes engineering because its author also owns a printer; a folder named prototype-v2 containing a machine program, a build sheet and bench photographs is this row's on build evidence and never becomes code because the machine program is a program.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "why": "Reciprocating the schema row's own collision at template scale. Business operations owns schedule, budget, governance and delivery evidence. Prototype-Budget-Q1.xlsx is the fixture: the word prototype in a filename and a column heading, purchase orders and cost centres in the rows, and not one article, machine, material lot or departure anywhere. A prototype programme's spend is business operations; the article it bought is this row's.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing",
+      "why": "A production-representative build - a pilot or pre-production article made on production tooling to an unreleased definition - can truthfully carry both an execution record and a prototype build record in one file, when both structures are separately present. Neither side is inferred from the other, and a pilot article does not become a lot.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "why": "An experimental rig can both produce generalizable knowledge and be an article built to a design definition with recorded departures. The research project and artifact facts remain independently evidenced, following 00's abstract-that-is-also-an-application-document pattern.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.invention-disclosure",
+      "why": "Mirroring the landed edge on that row rather than contradicting it: a prototype record can be both a build record against the design definition and reduction-to-practice evidence for a claim when both structures are present in the same file. Flagged in the memo as a contract question, because this pair is SAME-SCHEMA and the same relation is also written as a collision on both sides; R1c should decide whether same-schema co-membership belongs in also_holds_with or only in collides_with plus grouping_reasons.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with_note": "Cross-schema entries are true co-activations on two independently observed relations, never a merge. The engineering.invention-disclosure entry exists only to reciprocate a landed sibling and is explicitly queried in open_question.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone build sheet, deviation list or first-article record with durable meaning but no reliably evidenced design item or accepted project belongs here rather than activating from the word build.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The default home for machine programs, slicer projects and machine logs whose article, ownership and outcome cannot be established from their own evidence - including the downloaded-model collision fixture, which carries every parameter signal and no build.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "Bench and workshop photographs that do not join an accepted build neighbourhood. This route is why the privacy leg of the node test matters at all: the alternative is a document residual that has no reason to withhold EXIF location from a filename.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Proprietary CAM and slicer containers and machine-vendor binaries that cannot be read retain basic metadata without filename-only purpose inference.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Left EMPTY deliberately, and the seam refused is worth recording. The same physical unit is a BUILT ARTICLE here and a MANAGED ASSET in manufacturing.asset-register - one entity, two roles, which is exactly the shape role_split exists for. It is not written because role_split requires the two sides to point at DIFFERENT FIELD KEYS, and under PR-6 this row has no legal key at all; the only candidate on either side is a proposal awaiting R1c. Writing the edge now would encode a key relation that does not yet exist. Recommended to R1c, not asserted.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two distinct exposures. First, and shared with the schema, a build corpus contains unreleased design definition, supplier and material-lot identity, and evidence of what does not yet work - commercially the most damaging engineering material a person holds. Second, and specific to this row, it is saturated with photographs taken where the work happens: EXIF capture time and GPS on a bench photograph frequently resolve to a home address, and incidental people appear in frame. No handling class is assigned - that is P7's - and 00's binding rule stands that privacy policy is enforced before any model or connector receives content.",
+  "open_question": "NEEDS-JOSEPH NJ-PB-1: no key names one made article. Alternatives: (a) mint build_event as proposed above, token-level and destination-eligible at the second level; (b) overload the schema's design_item to hold `BPA-210 Unit 004`, which destroys the type-level grouping design_item exists to provide and scatters an item's requirements and drawings across every unit ever built; (c) leave build identity as a searchable observation only, in which case this row's recommended order collapses to design_item alone, becomes indistinguishable from engineering.cad-model's order, and the second leg of its node test fails - a genuine path to a later refusal, stated rather than hidden. NJ-PB-2: where does a downloaded third-party model, sliced but never made, belong? Review Later is recommended here on the ground that its meaning is partly understood; Independent Records and a reference-collection row are both defensible and 00 does not settle it. NJ-PB-3: is an accepted as-built deviation on an unreleased prototype ever manufacturing.nonconformance-capa evidence? Recommended: no, absent a QMS disposition or containment structure - but a regulated developer may run prototype departures through the same QMS, in which case one file legitimately holds both. NJ-PB-4: source_type routing for .gcode and .nc. Treated here as code_structured because a machine program is a program with a labelled header block; opaque_binary and text_document are both arguable and 00 does not name the case. NJ-PB-5: same-schema also_holds_with - engineering.invention-disclosure lists this row in both its collides_with and its also_holds_with; this row mirrors that, but the contract reading used by landed rows in other schemas is that same-schema co-membership is grouping plus collision and never an also_holds edge. R1c should rule once and apply it to both files."
+}

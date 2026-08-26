@@ -1,0 +1,542 @@
+{
+  "id": "engineering.aerospace-airworthiness",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Airworthiness approval and continued-airworthiness evidence",
+  "one_line": "The situation in which a controlled technical corpus is organised not by its own design baseline but by an externally issued airworthiness approval, and in which a serialised individual article must be shown to still conform to that approval years after it was granted. It activates on a relation between an authority-issued approval instrument (or the compliance submission seeking one) and either the certificated type it covers or an identified individual article carrying a registration mark or serial number. It is not an aerospace-industry folder: an aircraft manufacturer's ordinary drawings, BOMs and internal requirements stay on the engineering schema's default template, a job done to an aircraft stays manufacturing, and a published airworthiness code stays a received standard. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps fields empty and keeps dimension_order machine-empty; the recommended order is held as prose until R1c adjudicates the engineering schema's proposed keys.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "detection_signals_differ": "The engineering schema's default fires on internally authored controlled-definition structures: a title block with an item and revision, a requirements table with the organisation's own stable requirement identifiers, a technical data package manifest, an engineering-change structure, a BOM, an analysis margin comparison, a verification matrix. Every one of those keys on evidence the design organisation wrote about its own baseline. This row's discriminators key on evidence an outside authority wrote, or that was written to be handed to one: an issuing-authority block joined to a certificate number, a holder and an approved-model list; a compliance matrix whose requirement column holds citations to a published airworthiness code at a named amendment level rather than internal requirement identifiers, beside a means-of-compliance column and an authority finding column; a numbered-block release certificate joining a part number and serial to a statement of conformity to approved design data; a mandatory directive whose applicability is a model plus a serial range and whose compliance time is expressed in flight hours, cycles or calendar limit. Those structures do not appear anywhere in the schema default's signal list, and the schema default's signals do not discriminate them.",
+    "dimensions_differ": "The schema's researched default is project then design_item then lifecycle_stage then engineering_artifact_type. This row drops two of those four and inserts a level the schema does not have. lifecycle_stage is dropped because this corpus lives entirely at and after approval: the concept/preliminary/detailed/qualification axis resolves to one value and opens a branch the facts cannot fill, while the state that actually varies is approval currency (in force, superseded, directive-mandated, expired) which is not a lifecycle gate. project is dropped or demoted because airworthiness data outlives the programme that produced it; a data sheet issued decades ago and a modification approved last year belong to the same certificated type and would be scattered by a project level. The inserted level is the approval instrument itself, and on the continued-airworthiness branch, the individual article. Machine-readable dimension_order stays empty under PR-6.",
+    "privacy_differs": "No. This is stated rather than smoothed: the engineering schema row already names export-controlled and critical-technology information, proprietary supplier data, safety analyses and signatures in its sensitivity rationale, so this row's export-control and distribution-statement material adds no new privacy rule. The per-article half does add owner and operator identification to otherwise technical records, but that is a degree, not a kind, and it does not carry the row. The row stands on the first two legs.",
+    "not_an_industry_label": "The industry word is deliberately not doing the work. Nothing here activates because a file is about aviation, and the row explicitly refuses an aerospace manufacturer's ordinary internal design definition, which stays on the schema default. What is being modelled is the approval relation, which happens to be at its densest and most document-bearing in this world."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract. Templates reference their schema's fields and never copy them (_CONTRACT rule 12), and PR-6 keeps this placeholder schema's fields empty in any case. The legal set on any file this row recognises is whatever R1c settles for the engineering schema (its proposals are project, design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline) plus the universals file_type, creation_date, language, duplicate_family, version_family and sensitivity_status.",
+  "proposed_fields": [
+    {
+      "key": "approval_instrument",
+      "type": "string",
+      "example": "Supplemental Type Certificate ST-0442-AV",
+      "why_no_existing_key": "No canonical key names the externally issued approval under which a designed item is legal to operate, and that approval is this row's join key. record_type and the engineering schema's proposed engineering_artifact_type name what a document is, not what approval it belongs to; project names the undertaking, which the approval outlives; the engineering schema's proposed design_item names the configuration item, and one item is commonly covered by a base type certificate plus several independently held modification approvals whose data must not be merged. The engineering schema's proposed revision_or_baseline is the nearest neighbour and R1c may reasonably resolve this by widening it, since an approval instrument functions as a baseline held outside the organisation; that alternative is named here rather than a variant key being minted quietly. institution is not a substitute: it is the finance issuer key, and here the issuing authority, the approval holder and the operator are three different organisations on the same page.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE. A compliance checklist, a finding letter, an effectivity list and a release certificate are unintelligible until the reader knows which approval they support, which is 00's parent-makes-child-intelligible rule applied to this corpus. It is not authorship and not an organisation collector: the instrument is a document-shaped approval, not the body that issued it.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct when a labelled certificate-number or approval-reference slot exists on an authority form or in a submission cover sheet. Otherwise validation requires an approval-certificate structure: an issuing-authority block co-occurring with a certificate-number-shaped token and either a holder slot or an approved-model or effectivity list. A bare alphanumeric token never validates. The rule family is authority-certificate structure plus context terms, in the same shape 00 gives for a course code needing academic context. R2 owns any pattern; this row writes no regex, no term list claimed complete, and no threshold.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an authority-issued certificate structure: an issuing-authority block, a certificate or approval number slot, an approval-holder slot, and a list of approved models, variants or effectivity, commonly with a certification-basis list naming published regulation paragraphs at stated amendment levels; the relation among the labelled slots is the signal, never the word certificate",
+      "a compliance matrix whose requirement column holds citations to a published airworthiness code rather than the organisation's own requirement identifiers, beside a means-of-compliance column drawn from a small authority-defined vocabulary, a compliance-document reference column, and a finding, acceptance or closure column; the external citation and the finding column together are the discriminator against an internal verification matrix",
+      "a numbered-block release or conformity certificate joining a part number and a serial or batch identifier to an explicit statement of conformity to approved design data and an authorisation to return the item to service; the numbered blocks are labelled slots, not prose",
+      "a mandatory-directive structure whose applicability is stated as a model plus a serial or effectivity range, which states an unsafe or non-conforming condition, a required action, and a compliance time expressed in operating hours, cycles or a calendar limit, usually referencing a holder-issued bulletin by number",
+      "a holder-issued service bulletin structure: an effectivity list, accomplishment instructions, a material or parts list, and a statement that the technical content is approved under a named design-approval authority",
+      "a per-article continuing-compliance ledger whose rows are directives, bulletins or life-limited components and whose columns are method of compliance, the date, hours or cycles at compliance, the next due point and a certifying signature slot",
+      "a per-registration configuration report, such as a weight-and-balance or equipment list, that cites the modification approvals embodied on that individual article; this is the type-to-article join in one document",
+      "a registration or airworthiness certificate structure naming an individual article by registration mark and serial and naming the type it conforms to, with an issue or review validity slot",
+      "an archive manifest exposing several of the above structures under one approval instrument or one article, read without extracting members to disk",
+      "parent-folder context naming a registration mark, a type or a certificate number may raise plausibility only after one approval or continuing-compliance structure is present in the file itself; it never fires this template alone"
+    ],
+    "needs_llm": [
+      "whether a test report was written to close a means-of-compliance item against a published code paragraph, or to verify an internally authored requirement, when the trace is prose rather than a labelled column",
+      "whether a bulletin-shaped document is an approved design change with effectivity, an advisory maintenance recommendation, or a marketing upgrade notice",
+      "whether a per-article record is proving continued conformity to an approved design or is recording the cost, scheduling and labour of a job performed on an asset",
+      "whether an audit report concerns approval of an organisation and its procedures or approval of a product and its design",
+      "whether a document citing an airworthiness code paragraph is compliance evidence, a received copy of the code itself, or a legal or insurance argument that merely cites it",
+      "whether a manual or instruction set is an approved part of the type design or an internal working procedure that happens to describe the same task"
+    ],
+    "never_alone": [
+      "a registration-mark-shaped token such as a letter-prefixed alphanumeric tail identifier. It appears on hull-insurance certificates, hangar leases, fuel and landing invoices, flight-crew logbooks and photographs of the aircraft; the hull-insurance fixture in this row's file list trips exactly this and must not activate",
+      "the words airworthiness, aviation, aircraft, aerospace, flight, avionics or airframe alone. Every one of them appears in received standards, insurance documents, travel material, procurement records and enthusiast photography",
+      "a part-number-and-serial pair alone. The same pair labels a production inspection record, a spare-parts line, a purchase order line and a warranty claim; without a conformity-to-approved-design statement or a continuing-compliance ledger it is not this row's evidence",
+      "the word certificate alone. 00 routes standalone certificates with a durable purpose and no broader group to a residual, and this row must not capture them by vocabulary",
+      "a regulation or code paragraph citation alone. The published code itself, a legal submission, an insurance dispute and a training slide all cite the same paragraphs; the citation becomes evidence only inside a means-of-compliance or finding structure",
+      "a short chapter-shaped or section-shaped numeric token alone, in line with 00's prohibition on a bare short number being sufficient evidence",
+      "a revision, issue or amendment token alone. Received codes, internal drawings, contracts, policies and repositories all carry them, and the engineering schema already refuses revision control as a sole activator",
+      "a file extension or source_type alone. 00 requires the agent to treat \"extension as a routing signal rather than an assumption about meaning\"",
+      "an authority name, an approval-holder name or an operator name alone. These are organisation names, which are never-alone evidence, and here three different organisations appear on one page in three different roles",
+      "a maintenance task, labour-hours or parts-consumed structure alone. That is a job performed on an asset and belongs to the maintenance neighbour even when the tail number is present",
+      "the presence of a technical drawing or CAD model in a folder whose name mentions an aircraft. An aerospace manufacturer's ordinary design definition stays on the engineering schema's default template"
+    ]
+  },
+  "work_types": [
+    "type certificate data sheet",
+    "certification programme or certification basis document",
+    "means-of-compliance checklist or compliance matrix",
+    "compliance report or substantiation document",
+    "certification review item or issue paper",
+    "authority finding, approval or acceptance letter",
+    "supplemental type certificate or minor change approval",
+    "design approval holder service bulletin",
+    "airworthiness directive",
+    "authorised release or conformity certificate",
+    "certificate of airworthiness or airworthiness review certificate",
+    "registration document",
+    "weight and balance report or equipment list",
+    "directive and bulletin compliance record",
+    "life-limited part traceability record",
+    "instructions for continued airworthiness",
+    "approved flight manual or flight manual supplement",
+    "maintenance programme or maintenance review board reference",
+    "conformity inspection record",
+    "effectivity or applicability list"
+  ],
+  "grouping_reasons": [
+    "one approval instrument and everything submitted to obtain it and everything issued to maintain it",
+    "one individual article's continuing-compliance history, which survives changes of owner, operator and maintenance provider",
+    "one directive and the per-article records that close it out across a fleet",
+    "one modification: its approval, its effectivity list, its bulletin and the articles it was embodied on",
+    "a sparse plot or photograph may join an accepted compliance-test neighbourhood without acquiring the approval instrument or the article identity; the graph assembles context and does not copy facts onto sparse files"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Machine-empty under PR-6, because the engineering schema declares no fields yet and this row must not encode a level before its key is legal. The researched recommendation, held as prose and branch-shaped rather than one deep tree: for type-design and approval data, approval_instrument then engineering_artifact_type, with design_item above it only when a corpus genuinely spans several certificated types; for continued-airworthiness data, the individual article then engineering_artifact_type, with the article key unresolved and recorded as NJ-AERO-2 rather than minted here. Against the schema's researched default of project then design_item then lifecycle_stage then engineering_artifact_type, this drops lifecycle_stage as a one-valued axis, drops or demotes project because the approval outlives it, and inserts a level the schema does not have. Not time-first: the continuing-compliance ledger is indexed by date, hours and cycles, but compliance status is a property of an article and an approval, so a year-first order would scatter one article's life across calendar folders, which 00 warns against for document and record domains. The user may reverse, remove, add or flatten any of this; it is a recommendation, not a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".pptx",
+      ".eml",
+      ".zip",
+      ".jpg",
+      ".png",
+      ".tif"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "TCDS_TC-A-0142_Issue-09.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one masthead names an issuing airworthiness authority and a certificate number slot",
+        "a holder field, a table of approved models with engine and propeller entries, and operating limitations",
+        "a certification basis section listing regulation paragraphs with stated amendment levels",
+        "an eligible-serial-numbers note tying models to serial ranges",
+        "an issue number and issue date in a labelled revision block"
+      ],
+      "facts_legal": [
+        "approval_instrument",
+        "engineering_artifact_type",
+        "design_item",
+        "revision_or_baseline",
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this file contains the approved design data; it references it and is not it",
+        "that the certification-basis paragraph list makes this a received standard",
+        "an owner or operator; a data sheet covers a type, not an article"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Compliance-Checklist_Cabin-Interiors_Rev-D.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per regulation paragraph, with the paragraph reference and its amendment level in labelled columns",
+        "a means-of-compliance column holding short codes from a small repeated vocabulary",
+        "a compliance-document reference column pointing at report numbers",
+        "a status column whose values are submitted, under review, accepted and closed",
+        "a header block naming the approval sought and the certification programme"
+      ],
+      "facts_legal": [
+        "approval_instrument",
+        "engineering_artifact_type",
+        "design_item",
+        "revision_or_baseline",
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the paragraph citations are this organisation's own requirement identifiers",
+        "that an accepted status is an issued approval",
+        "lifecycle_stage from the status column; approval currency is not a design lifecycle gate"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Release-Cert_PN-30-4412_SN-4471-2296.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a one-page form of numbered blocks rather than prose",
+        "labelled blocks carry a part number, a description, a quantity, a serial or batch identifier and a work or status entry",
+        "a certification block states conformity to approved design data",
+        "a further block authorises return to service, with an authorisation number and a signature slot"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "approval_instrument",
+        "design_item",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the part-number-and-serial pair alone establishes this domain",
+        "the aircraft the part is fitted to; the certificate follows the part, not an airframe",
+        "a manufacturing batch record from the batch slot"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AD-2026-04-11_Model-X_SN-0101-0480.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing authority masthead and a directive number in a labelled slot",
+        "an applicability section naming a model and an inclusive serial range",
+        "an unsafe-condition statement, a required-action section and a compliance-time clause expressed in flight hours and calendar months",
+        "a related-material section citing a service bulletin by number and revision"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "approval_instrument",
+        "design_item",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any article the user owns is affected; applicability is a fact about serial ranges, not about this user",
+        "that the cited bulletin is present",
+        "a change_order; the authority mandates, it does not author the design change"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SB-32-1180_Rev-2_MLG-Actuator.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issued on the design-approval holder's letterhead, not an authority's",
+        "an effectivity list of serial numbers, an accomplishment-instructions section, a material list and manpower estimate",
+        "a statement that the technical content is approved under a named design-approval authority",
+        "a revision block with a reason-for-revision paragraph"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "approval_instrument",
+        "design_item",
+        "revision_or_baseline",
+        "file_type",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder is the issuing authority",
+        "that an effectivity list is a customer list",
+        "that this is a work instruction to be performed; the record of performing it is the neighbour's"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "N214FR_Weight-and-Balance_2026-03-18.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header names a registration mark and an airframe serial number",
+        "an empty-weight and centre-of-gravity table with a computation date",
+        "an equipment list whose entries cite modification approval numbers",
+        "a superseded-report reference and a signature block"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "approval_instrument",
+        "design_item",
+        "revision_or_baseline",
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an owner or operator identity from the registration mark alone",
+        "that this is an asset-register entry; it exists to show conformity, not to inventory",
+        "that the cited approvals are held locally"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AD-Compliance-Record_N214FR_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per directive or bulletin, with its number and revision in labelled columns",
+        "columns for method of compliance, the date and the airframe hours and cycles at compliance, and a next-due entry",
+        "a certifying-signature or authorisation-number column",
+        "a sheet header naming one registration mark and one serial number"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "approval_instrument",
+        "design_item",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a maintenance cost or labour fact; hours here are aircraft operating hours, not labour hours",
+        "capture_year or tax_year from the compliance dates",
+        "that a next-due entry is a calendar event"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "WO-2026-0413_N214FR_Wheel-Change.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a work-order number, a raised-by and an assigned-to slot",
+        "a task-card reference, labour hours booked, parts consumed with quantities, and a completion timestamp",
+        "the registration mark appears in the asset field",
+        "no approval-basis reference and no conformity-to-approved-design statement anywhere on the page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "this template, on the registration mark or the aviation vocabulary alone",
+        "a folder path",
+        "an approval_instrument from the task-card number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published code in numbered paragraphs with an amendment number on the cover",
+        "an issuing-authority masthead and a preamble describing what changed",
+        "no holder, no effectivity, no article identifier and no finding column anywhere in the document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "this template, from the authority masthead and the paragraph numbering",
+        "a folder path",
+        "that the amendment number is a revision of anything the user authored"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "certification_submission_2026-02.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a compliance checklist, several substantiation reports, a drawing list and a transmittal letter",
+        "member names repeat one approval reference and one model designation",
+        "a members directory implies a submission structure rather than a personal folder"
+      ],
+      "facts_legal": [
+        "approval_instrument",
+        "engineering_artifact_type",
+        "design_item",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "facts about individual members that were not read; the manifest is evidence about the packet",
+        "that every member shares the packet's approval reference"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FW_ Release cert for SN 4471-2296.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line carries a serial-shaped token and the words release cert",
+        "body is two sentences and names no approval, model or authority",
+        "one PDF attachment whose name repeats the serial"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this template from the subject line; the labelled evidence is in the attachment, not the mail",
+        "a folder path",
+        "an approval_instrument from a serial-shaped token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "pressure_curve.png",
+      "source_type": "image",
+      "observations": [
+        "an unlabelled plot with axis ticks and no legend text",
+        "sits in a directory alongside two accepted substantiation reports",
+        "no embedded title, no capture metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "approval_instrument, design_item or any article identity copied from its neighbours",
+        "a folder path",
+        "that absence of capture metadata proves anything about what the image is"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "N214FR_Hull-Insurance-Certificate-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the registration mark and the airframe serial both appear in an insured-item block",
+        "the word certificate is in the title, and an aviation insurer's masthead is on page one",
+        "policy number, period of cover, sums insured and territorial limits in labelled slots",
+        "no approval basis, no conformity statement, no compliance column"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "this template, from the registration mark plus the word certificate",
+        "a folder path",
+        "an approval_instrument from the policy number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.product-certification",
+      "signal": "a compliance checklist and an issued certificate",
+      "why": "Both rows hold a file showing that a product meets an external rule and the certificate that results. The boundary in this direction: this row takes the file only when the approval is an operating approval that must be maintained after issue, evidenced by an effectivity or serial-range clause, a continuing-compliance obligation, or a directive trail. In the other direction, product-certification takes it when the certificate is a point-in-time conformity statement with no continuing obligation attached to individual articles. Same fixture bytes: Compliance-Checklist_Cabin-Interiors_Rev-D.xlsx is this row's when its status column feeds an authority finding on an operating approval, and is product-certification's when the identical sheet is closing a conformity assessment that ends at issue.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "a test report with a pass or fail conclusion",
+      "why": "This row takes a test report only when its requirement column cites a published airworthiness code paragraph and its result is consumed by a means-of-compliance finding. Verification-validation takes it when the requirement traced is the organisation's own identifier and the reader is the design team. Same fixture bytes: a flammability test report referenced from Compliance-Checklist_Cabin-Interiors_Rev-D.xlsx is this row's on the compliance side and verification-validation's on the internal-requirement side, and the same report can genuinely be both, which is a two-group question rather than a boundary failure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "signal": "a document citing or containing airworthiness code paragraphs",
+      "why": "Standards-library holds received, licensed, never-authored codes; this row holds documents written against them. The discriminator is authorship plus structure, not vocabulary: a finding column, an effectivity list or a holder slot is never present in a received code. Same fixture bytes: Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf is standards-library's in both directions and is this row's collision fixture; if a copy were bound inside certification_submission_2026-02.zip it would still be the library's member, and the packet's approval reference must not be copied onto it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "a per-article record naming a registration mark and a task",
+      "why": "Maintenance-work-order owns the job: the request, the instruction, the labour and parts consumed, and the history it becomes. This row owns the proof of continued conformity that a job may produce. The discriminator is whether the page carries execution slots or an approval and conformity slot. Same fixture bytes: WO-2026-0413_N214FR_Wheel-Change.pdf is maintenance-work-order's in both directions; if a release certificate is issued at the end of that job it is this row's, and the work order it came from is still not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "a per-article configuration document",
+      "why": "Asset-register owns what a physical asset is, where it is and what is permanently true about it. This row owns whether that article still conforms to the approval it was built to. Same fixture bytes: N214FR_Weight-and-Balance_2026-03-18.pdf is this row's, because its equipment list cites modification approvals and its purpose is conformity; an asset card carrying the same registration mark, a location and an acquisition date is asset-register's and must not be pulled here by the tail number.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "a part number and serial pair with a pass result",
+      "why": "Inspection-record owns measured evidence that a produced item conforms to its drawing. This row owns the certificate that releases the item against approved design data. Same fixture bytes: Release-Cert_PN-30-4412_SN-4471-2296.pdf is this row's on its conformity and return-to-service blocks; the dimensional inspection sheet for the same part number and serial, with measured values and tolerances, is inspection-record's, and the two legitimately travel together in one packet.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "one identified vehicle across its working life",
+      "why": "This is the sharpest same-shape neighbour, because an aircraft is a vehicle with a life record. Fleet-vehicle owns acquisition, licensing, insurance, servicing, defects, fuel and disposal, organised around operating the asset. This row owns only the subset whose purpose is proving continued conformity to an approved type design. Same fixture bytes: N214FR_Hull-Insurance-Certificate-2026.pdf is fleet-vehicle's in both directions and is a false positive here; AD-Compliance-Record_N214FR_2026.xlsx is this row's in both directions, and fleet-vehicle must not claim it merely because it is indexed by the same registration mark.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "a controlled change to a released design",
+      "why": "Change-order owns the request to change a released design and the record of what was decided. This row owns the externally approved change and its effectivity against identified articles. Same fixture bytes: SB-32-1180_Rev-2_MLG-Actuator.pdf is this row's on its effectivity list and design-approval statement; the internal change request that authorised the redesign, with its disposition and board approval and no effectivity list, is change-order's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.safety-case",
+      "signal": "an argued justification that a hazardous system is safe enough",
+      "why": "Safety-case owns the argument and the evidence beneath it, organised around hazards. This row owns compliance findings organised around code paragraphs and approvals. Same fixture bytes: a system safety assessment is safety-case's when its spine is a hazard list with claims and evidence, and is this row's only when it is submitted as the substantiation closing a named code paragraph, in which case both rows may hold it for different reasons.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "an audit report against an external standard",
+      "why": "Compliance-audit owns evidence that an entity meets an obligation and the reviews that test it. This row owns approval of a product, not of an organisation. Same fixture bytes: an audit report on a maintenance or continuing-airworthiness organisation, with a findings and corrective-action register and no article or approval instrument, is compliance-audit's in both directions; a finding closed against a code paragraph on a product approval is this row's.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: _CONTRACT rule 14 restricts also_holds_with to schema rows, and this is a template. Genuine co-activation is expressed on file examples via also_schema, using only schemas the engineering schema row already names: manufacturing on Release-Cert_PN-30-4412_SN-4471-2296.pdf, where the same page is both a production conformity record and an approval release, and business_operations on certification_submission_2026-02.zip, whose transmittal letter is governed programme correspondence. Research is a real third case, for a flight-test campaign that both produces generalisable data and closes a compliance finding, and it is left off the file list rather than asserted on a fixture that does not show it.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A release certificate, a registration document or a weight-and-balance report that arrives alone, with no approval instrument and no article neighbourhood, has durable meaning and no group. Routing it here is the correct outcome and is why the word certificate is a never_alone rule rather than a signal.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the large middle of this corpus: a bulletin-shaped or matrix-shaped technical document whose role between approving, changing, maintaining, inspecting and researching cannot be established from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Certification submissions are routinely delivered as password-protected archives, and native or proprietary model formats are common; these retain metadata without any filename-only inference of purpose.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Packages bearing an export-control or distribution-statement marking should be represented rather than opened up, and their names and contents kept out of model prompts. This is a routing recommendation, not a handling class, which is P7's to assign.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The tempting split is three organisation roles on one page: the authority that issues the approval, the holder that owns the design, and the operator that owns the article. _CONTRACT rule 14 permits role_split only over canonical field keys, and the canonical pair our_firm and client is a professional-services relation that would misdescribe all three. All three are also organisation names, which this row already lists as never-alone evidence. Minting a producer-side or authority-side key to solve one template's problem is the move that produced thousands of private field names; the distinction is carried in must_not_conclude on the data sheet and bulletin fixtures instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Export-control and distribution-statement markings, safety-critical failure and vulnerability information, proprietary supplier substantiation, and per-article records that identify an owner or operator alongside their asset. Stated honestly: this does not differ from the engineering schema's default sensitivity rationale, which already names export-controlled and critical-technology information, and it therefore contributes nothing to the node test. No handling class is assigned here.",
+  "open_question": "NJ-AERO-1: approval_instrument may instead be a widening of the engineering schema's proposed revision_or_baseline, since an approval is a baseline held outside the organisation; R1c must pick one and must not ship both. NJ-AERO-2: the continued-airworthiness branch needs a key for the individual article, and there are three answers with three different products — reuse the manufacturing schema's proposed asset key across schemas, widen the engineering schema's proposed design_item to admit an individual article as well as a type, or mint an article-identity key; no key was proposed here because it is a shared-vocabulary decision. NJ-AERO-3: if R1c narrows engineering.product-certification to point-in-time conformity assessment, does this row absorb all operating approvals across transport modes (rail, marine, road type approval), which would make its name wrong, or does it stay aviation-scoped and accept that engineering.automotive-program holds the same relation for vehicles? NJ-AERO-4: does the per-article continued-airworthiness half belong on the engineering schema at all, or is it manufacturing's asset-and-record relation wearing an approval reference, in which case this row should be narrowed to type-design approval only and the article half handed to manufacturing.asset-register with a reciprocal edge?"
+}

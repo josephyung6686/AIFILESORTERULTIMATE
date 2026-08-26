@@ -1,0 +1,504 @@
+{
+  "id": "government.education-accreditation",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Education accreditation and quality assurance — assessor side",
+  "one_line": "The reviewing body's own working file for judging an institution or programme against a published, numbered standards set on a fixed review cycle: the standards edition itself, the self-study and exhibits received from the reviewed institution, the recruited peer-reviewer team with its conflict-of-interest recusals, the site-visit record, the draft findings under embargo, the institution's due-process response, and the commission action that closes the cycle. It activates only from assessor-side apparatus — a submission received rather than authored, a reviewer assignment, a criterion-numbered finding, or a decision issued to an institution — never from an accreditor's name, an accreditation word, a standards PDF held for reading, or an institution's own self-study draft.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema. None of them licenses a government fact row. Every accepted signal must place the holder on the ASSESSOR side of a review — receiving, evaluating, or deciding — not on the reviewed institution's side and not in the audience for a published standard.",
+      "a received-submission wrapper around an institutional self-study: a portal submission or transmittal identifier, a received or date-stamped cover sheet, an accreditor-side reference for the institution, and a reviewer or staff assignment line, all attached to a document the holder did not author",
+      "a numbered standards or criteria edition published under the reviewing body's own imprint (for example WSCUC Standards of Accreditation with its Criteria for Review, ABET Criteria for Accrediting Engineering Programs with Criterion 1 through Criterion 8, Middle States Standards for Accreditation and Requirements of Affiliation, the AACSB business standards, or the UK Quality Code) held together with per-criterion findings written against that same numbering for one named institution",
+      "a peer-review team apparatus: a team roster naming evaluators drawn from other institutions with their home affiliations, a team chair designation, signed conflict-of-interest or recusal disclosures, and reviewer training or assignment records — staff-only inspection casework does not produce this shape",
+      "a site-visit or evaluation-visit record keyed to one institution and one cycle: a visit itinerary with interview blocks by constituency, room and escort logistics, an evidence-room or exhibit index, and exit-meeting notes",
+      "a finding document whose sections are keyed to the standards numbering and whose findings carry the body's own severity labels (observed labels include deficiency, weakness, concern, requirement, recommendation, or commendation), addressed to an institution and signed by a team rather than by the institution",
+      "a draft-versus-final pair for the same findings, with an explicit institution response window between them — a draft statement or draft team report, an institutional response or due-process response, and a final statement carrying the same criterion numbering",
+      "a commission, council, or board action letter issued to an institution with an accreditation outcome and a next-review or reaffirmation date (initial accreditation, reaffirmation, continued accreditation with interim report, deferral, probation, show cause, or withdrawal)",
+      "a substantive-change or new-programme application received from an institution, with the accreditor's own review worksheet or staff analysis attached",
+      "a complaint against an institution filed with the reviewing body, carried with the body's intake reference, jurisdiction screen, and referral or closure record",
+      "an annual or interim institutional data submission (enrolment, completion, retention, placement, finance ratios) received on the body's own reporting instrument across many institutions in the same reporting year"
+    ],
+    "needs_llm": [
+      "deciding whether an unlabelled self-study copy is the reviewed institution's authored draft or the accreditor's received submission, when the received-wrapper apparatus is absent and only prose remains",
+      "deciding whether a criterion-numbered finding document is a peer-review team's evaluation of an institution, an internal quality office's mock or gap analysis rehearsing the same criteria, or a consultant's readiness report",
+      "deciding whether a body issuing a standards edition and a decision letter is acting as an education accreditor, a professional licensing regulator for individuals, a product or management-system certifier, or a school inspectorate",
+      "deciding whether an institution named across a cycle packet is the review subject, a reviewer's home institution, a comparison peer, or a complainant's employer",
+      "deciding whether a decision letter in the holder's possession was issued by the holder or received by the holder"
+    ],
+    "never_alone": [
+      "the name of an accrediting or quality-assurance body — WSCUC, Middle States, ABET, AACSB, LCME, ACGME, QAA, Ofsted, or any national agency — appearing in a filename, letterhead, footer, or PDF producer string; the body may be issuer, subject, cited authority, membership organisation, or the reviewed institution's counterparty",
+      "the words accreditation, accredited, reaffirmation, self-study, quality assurance, standards, criteria, peer review, or site visit anywhere in a filename, heading, or body text; these are the reading vocabulary of the whole sector and are present on both sides of every review",
+      "a standards, criteria, handbook, or policy-manual PDF downloaded from an accreditor's website; publication by the body is not custody by the body, and an institution preparing for review keeps the identical bytes",
+      "an institution, university, college, school, or programme name alone; it may be the review subject, a reviewer's employer, a peer comparator, a complainant, an applicant, or simply the holder's own employer",
+      "a self-study report on its own, in any state of completeness; the same document exists as authored draft on the institution's side and as received submission on the assessor's side, and only the received-wrapper apparatus separates them",
+      "an accreditation certificate, decision letter, badge image, or seal held by an institution or a graduate; the recipient of an accreditation outcome is not the assessor",
+      "a criterion-shaped or standard-shaped token such as CFR 2.4, Criterion 3, or Standard III on its own; the same numbering appears in the published standard, in the institution's self-study, in a consultant deck, and in a student's paper about accreditation",
+      "a person's name on a reviewer roster; a named evaluator is never-alone evidence and a reviewer roster must not become an organizing dimension",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Accreditation, Quality Assurance, QA, Standards, Review, or Site Visit alone; the reviewed institution names its folders identically",
+      "a bounded download session that pulled a standards edition, a template, and a sample self-study together; “A session should never be treated as proof of topic”",
+      "missing EXIF, or dense OCR text, as proof that an image of a review document is a portal screenshot; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [
+    "self-study received",
+    "evaluation team report",
+    "team chair",
+    "conflict of interest disclosure",
+    "criteria for review",
+    "draft statement",
+    "due-process response",
+    "commission action",
+    "reaffirmation",
+    "show cause",
+    "substantive change",
+    "site visit itinerary",
+    "evidence room index",
+    "interim report due"
+  ],
+  "work_types": [
+    "standards or criteria edition, interpretation, policy manual, or accreditation handbook published by the reviewing body",
+    "eligibility or candidacy application received from an institution, with staff screening and referral record",
+    "self-study or self-evaluation report received, with its exhibit set and evidence index",
+    "annual, interim, or mid-cycle institutional data submission received on the body's reporting instrument",
+    "peer-reviewer recruitment, training, assignment, and conflict-of-interest or recusal record",
+    "site-visit or evaluation-visit logistics: itinerary, interview schedule, evidence-room index, exit-meeting notes",
+    "draft team report or draft statement written against the standards numbering, under embargo",
+    "institutional response to draft findings, and the reviewing body's disposition of that response",
+    "final team report or final statement, and the recommendation transmitted to the deciding commission",
+    "commission, council, or board action record and the decision letter issued to the institution",
+    "monitoring, interim-report, follow-up-visit, probation, show-cause, or withdrawal case record after a decision",
+    "substantive-change, new-programme, new-site, or teach-out review received and decided",
+    "complaint or third-party comment against an institution, with intake, jurisdiction screen, and closure",
+    "public disclosure of accreditation status, directory entry, or published decision summary",
+    "the reviewing body's own recognition or accountability file toward a recogniser or ministry"
+  ],
+  "grouping_reasons": [
+    "one review cycle for one named institution or programme: an exact, repeated cycle or case reference tying the self-study, exhibits, reviewer assignments, visit record, draft findings, institutional response, final report, and commission action into one packet",
+    "a draft-and-final version family for the same findings document, recognized by the shared criterion numbering and the response window between them, not by filename similarity",
+    "an exhibit or evidence-index family: a received self-study plus the numbered exhibits its own index enumerates, grouped without copying the self-study's institution or cycle labels onto each exhibit",
+    "a reporting-year family: many institutions' annual data submissions received on the same instrument in the same year, grouped by the instrument and the collection, never by the institutions named inside them",
+    "a standards edition and the interpretations, worksheets, and reviewer training material that cite that edition by its own version marker",
+    "GROUPING IS NOT ACTIVATION: a sparse exhibit such as a bare enrolment table may join a cycle packet through an exact reference without this template activating from that file's own bytes, and membership must not write institution, cycle, or decision facts onto it"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema fieldless, and a template cannot branch on undeclared fields. The prose shape this row would recommend if fields were ever ratified differs from the government default in one specific way: the default recommends authority-side function first, then a bounded proceeding, then work type, whereas here the function is constant across the entire corpus (the holder does one thing) and the organizing anchor is the reviewed institution or programme together with its review cycle, with work type — self-study, visit, findings, decision — beneath. The reviewing body's own name must never become a dimension, because it is invariant across every file the holder keeps. A reviewer's name must never become a dimension: named people are never-alone evidence and a reviewer-named branch discloses assignment. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — a single cycle spans years from self-study to commission action and a year-first order would tear it apart. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "audio_video",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Self-Study Report - Riverbend State University - RECEIVED 2026-01-15.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page carries a portal submission identifier and a received date stamp added by a system other than the authoring institution",
+        "transmittal sheet names a staff liaison and a team chair assignment for the submitting institution",
+        "body sections are numbered against a named standards edition and cross-reference an exhibit index",
+        "document properties name the institution as author while the wrapper pages do not"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder authored this document",
+        "that the institution is accredited, compliant, or in good standing",
+        "that the standards edition cited is the edition in force"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Self-Study - Riverbend State University - draft 7 tracked.docx",
+      "source_type": "text_document",
+      "observations": [
+        "tracked changes and comment threads from named staff of the institution itself",
+        "internal committee headings, gap lists, and to-do markers where evidence is still missing",
+        "no submission identifier, no received stamp, no reviewer assignment",
+        "same standards numbering as the received copy"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is assessor-side custody",
+        "that a review cycle is open",
+        "that the tracked comments reflect a reviewer's view"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Evaluation Team Report - DRAFT - Riverbend State University - EMBARGOED.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sections keyed one-to-one to the standards numbering, each with a finding paragraph",
+        "findings carry the body's severity labels and are attributed to the team, not to an individual",
+        "header marks the document as draft and not for release pending institutional response",
+        "team roster page lists evaluators with home institutions"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a draft finding is a decision, a sanction, or a compliance determination",
+        "that the embargo marking is a handling class",
+        "that the reviewers' home institutions are parties to the review"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Institutional Response to Draft Statement - Riverbend State University.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letter on the institution's letterhead addressed to the reviewing body, referencing the draft by its own identifier",
+        "point-by-point rebuttal keyed to the same criterion numbering as the draft",
+        "attached corrective evidence exhibits with their own numbering"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the response was accepted, sufficient, or dispositive",
+        "that the attached exhibits establish compliance"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Commission Action Letter - Riverbend State University - Reaffirmation with Interim Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issued on the reviewing body's letterhead over a commission or council signature",
+        "states an accreditation outcome and a next-review or reaffirmation date",
+        "requires an interim report by a stated date, keyed to specific criterion numbers",
+        "copied to a staff liaison and to the institution's chief executive"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the outcome remains current",
+        "that a required interim report was filed",
+        "that the same letter in an institution's own files belongs to this template"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Reviewer Conflict of Interest Disclosures - Riverbend Team - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one signed form per named evaluator declaring employment, consulting, degree, and family relationships to the reviewed institution",
+        "a recusal decision recorded by staff for one evaluator",
+        "team chair countersignature"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a declared relationship is a conflict, a violation, or a disqualification",
+        "that reviewer names may become a dimension or a group label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Site Visit Itinerary - Riverbend State University - 2026-03-09.docx",
+      "source_type": "text_document",
+      "observations": [
+        "half-hour interview blocks labelled by constituency: governing board, faculty senate, students, finance, assessment office",
+        "evidence-room location, escort assignments, and an exit-meeting slot",
+        "team-only working sessions marked closed"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that named interviewees said anything",
+        "that the visit occurred as scheduled"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Riverbend Site Visit - team calendar.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is the reviewing body's staff liaison; attendees are the assigned evaluators",
+        "event summaries repeat the exact cycle reference used on the transmittal sheet",
+        "locations are institution buildings"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "attendance, travel, or that the review took place",
+        "that attendee addresses establish reviewer identity as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Annual Institutional Data Report 2026 - all member institutions.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per institution with the body's own institution reference, plus enrolment, retention, completion, and finance-ratio columns",
+        "column headers match the body's published reporting instrument for the stated collection year",
+        "a validation tab flags rows that failed the instrument's own checks"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a compliance judgement, a ranking, or a risk score for any institution",
+        "that a failed validation is a finding",
+        "that a row's institution is under review"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Substantive Change Prospectus - Riverbend - new doctoral programme.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "received on the body's own prospectus form with its numbered prompts",
+        "staff analysis memo appended, keyed to the eligibility criteria",
+        "decision recommendation block left unsigned"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the change was approved",
+        "that the programme exists or enrols students"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Complaint against Riverbend State University - intake CMP-2026-0044.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named individual's narrative complaint with contact details",
+        "the body's intake reference, jurisdiction screen, and a note that the complaint concerns an individual grievance rather than standards compliance",
+        "referral-and-closure letter attached"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the complaint is true, substantiated, or actionable",
+        "that the complainant's identity may appear in a group summary or a branch label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Riverbend Exhibits 2026 - evidence room.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing numbered exhibits that match the received self-study's evidence index",
+        "mixed members: board minutes, audited financial statements, assessment reports, de-identified student work samples, a faculty roster",
+        "no top-level document establishing custody by itself"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "the facts of individual members from the manifest",
+        "that members may be unpacked and reclassified to improve confidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "WSCUC Standards of Accreditation 2023.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "published standards edition with numbered criteria for review",
+        "publisher is the accrediting body; no institution named, no findings, no addressee",
+        "downloaded copy with browser-added filename"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the holder is the publisher",
+        "that a review is open",
+        "that the accreditor's name in the filename activates this template"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Accreditation Readiness Assessment - Riverbend - prepared by Meridian Advisory.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "prepared-for and prepared-by blocks naming a consultancy and the institution",
+        "gap analysis slides keyed to the same standards numbering as a real team report",
+        "engagement scope, fee, and milestone slides at the end"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a consultancy's criterion-keyed gap analysis is a review finding",
+        "that this is assessor-side custody"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-03-09 at 09.14.22 - accreditation portal submission receipt.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in the capture metadata and the display dimensions",
+        "OCR recovers a portal submission identifier and an institution name",
+        "no addressee, no signature, no standards numbering"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "custody or holder role from the portal chrome alone",
+        "that OCR text of an identifier makes a cycle fact"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Reviewer Training Webinar - 2026 cohort.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "recording metadata from a webinar platform, with the body's own session title",
+        "spoken content walks through the standards numbering and the team-report template",
+        "participant list not included in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "attendance or reviewer identity",
+        "that training material is a review record for any institution"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Accreditation Files 2018-2024 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive; no readable manifest",
+        "filename is the only evidence available"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any institution, cycle, decision, or sensitivity result from the filename",
+        "that the archive should be cracked or unpacked to classify it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.education-institution-governance",
+      "signal": "The decisive shared fixture is `Self-Study Report - Riverbend State University`. The identical prose exists on both sides of the review: as the institution's authored draft under its governance office, and as the assessor's received submission. This template requires received-side apparatus — submission identifier, received stamp, reviewer or staff assignment, accreditor-side institution reference. Institution governance keeps the authoring apparatus: internal committee drafts, tracked changes by the institution's own staff, gap lists, and the decision letter as something received rather than issued. Neither side may claim the file from the accreditor's name, the standards numbering, or the word self-study.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.standards-body",
+      "signal": "The shared fixture is a numbered standards edition plus a criterion-keyed finding and a decision letter. Most real education accreditors are private membership associations, not organs of the state, so the same packet can read as either row. This template is the education-review situation: a reviewed institution or programme, a peer-review team of volunteers from other institutions, a cyclical reaffirmation term, and an institution-facing accreditation outcome. A standards body without an institutional review cycle — writing standards, certifying products or management systems, or accrediting companies — stays with nonprofit. Where the education accreditor is itself a private association, R1c must decide whether this row is misplaced on the government schema; see NJ-1.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.professional-regulator",
+      "signal": "The shared fixture is a criterion-keyed inspection report and a sanction letter. Programmatic accreditation of a professional programme and licensure of the professionals it graduates use nearly identical vocabulary. This template's subject is an institution or programme evaluated by peer volunteers on a fixed cycle against a published standards edition. A professional regulator's subject is a named individual practitioner — registration, fitness to practise, discipline — with staff investigators, and its case files are person-keyed. A file naming a person as the regulated party is not this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "The shared fixture is `Riverbend Exhibits 2026 - evidence room.zip` and the criterion-keyed finding document. An external audit of an organisation against a numbered framework produces the same shapes: evidence requests, fieldwork, findings by control number, management response, final report. This template requires a review conducted by a body against its own published education standards edition, on a cycle, deciding an accreditation status for an institution or programme. An audit engaged by the audited organisation, or performed by its internal audit function, is the organisation's operating record even when it rehearses accreditation criteria — the `Accreditation Readiness Assessment` prepared by a consultancy is the fixture that falls this way.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.school-district-administration",
+      "signal": "The shared fixture is a school inspection or evaluation report with numbered judgements. A district or inspectorate evaluating its own schools and an accreditor evaluating a member institution both produce visit records and rated findings. This template requires the reviewing body to sit outside the reviewed institution's line of management, applying a published standards edition on a voluntary or membership cycle. A district's evaluation of a school it operates is administration of its own system, not external accreditation.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a received self-study, exhibit set, embargoed draft finding, reviewer conflict disclosure, named complaint, or institution-level data submission has no accepted cycle group; these carry named people, unpublished judgements, and material received in confidence",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a published decision letter, certificate, directory entry, or status notice is readable and durable but carries no assessor-side workflow around it",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a standards edition, handbook, policy manual, sector report, or sample self-study is held for reading with no open review and no assessor-side custody evidence",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a criterion-keyed document is readable but the holder's side of the review is unresolved — an untracked self-study copy, a consultant readiness deck, a visit itinerary with no cycle reference",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an accreditation archive, portal export, or review-system binary cannot be read, and its filename is the only evidence",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a submission portal, reviewer dashboard, or decision page yields no accepted cycle through OCR",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "government.education-institution-governance",
+      "note": "Same review, two custodians. This row is the assessor: it receives the self-study, assigns reviewers, writes the findings, and issues the decision. The institution-governance row is the reviewed party: it authors the self-study, assembles exhibits, responds to draft findings, and receives the decision. The government schema declares no fields, so no key pair can be named; the split is expressed today through the received-versus-authored apparatus on the shared self-study fixture, and R1c should record it reciprocally on that row."
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "note": "Same accreditation status, two custodians. This row holds the decision as issued to an institution. A learner's copy of a transcript, diploma, or programme accreditation confirmation is the individual's credential record and must never activate this template, even when it names the accreditor. No field key pair can be named while the government schema is fieldless."
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The default posture is protected, and for a reason that is specific to this row rather than inherited: the same finding text is confidential as a draft and public as a final decision, and both states sit in one cycle packet under near-identical filenames. Beyond that, the packet holds material received in confidence from a reviewed institution (audited financials, assessment data, student work samples, personnel information), named peer reviewers whose assignment and recusals are themselves sensitive, named complainants, and unsuccessful or sanctioned outcomes. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” A published standards edition or a published decision summary can be low-risk bytes, but their presence must not lower the posture of the cycle packet they sit beside. Institution names must not be assumed public in branch labels: an open show-cause or probation case discloses a status the institution has not yet published.",
+  "open_question": "Whether this row belongs on the government schema at all. Most education accreditors in the United States and many quality-assurance agencies elsewhere are private membership associations rather than public bodies, which points at nonprofit.standards-body; state approval boards, ministries, and national inspectorates are public and point at government. The row currently sits on government and argues a mutex against nonprofit.standards-body in both directions; R1c should decide whether to keep it here, move it, or split assessor-side education review by the reviewer's own public-body status. See NJ-1 in the research memo."
+}

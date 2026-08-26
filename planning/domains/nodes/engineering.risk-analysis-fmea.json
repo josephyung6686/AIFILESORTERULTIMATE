@@ -1,0 +1,491 @@
+{
+  "id": "engineering.risk-analysis-fmea",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Prospective failure and hazard analysis",
+  "one_line": "The organisational situation in which a team enumerates, ranks and controls failures that have NOT happened — a failure-mode table with two ranking states per row, a guide-word grid against a plant node, a gate structure under one named top event, or a hazard log carried across revisions — each anchored to an identified design item or process step and to the revision it analyses. It is not the corporate risk register (organisational exposures), and it is not the investigation of a failure that already occurred. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps fields and dimension_order empty; the researched order and the field roles it depends on are stated conditionally for R1c.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_detection_signals": true,
+    "distinct_detection_signals_why": "Checkable against the schema row itself. `engineering.json`'s default template carries ten deterministic clauses — controlled drawing/title block, requirements structure, technical data package manifest, engineering change, BOM/product structure, analysis package comparing margins against requirements, verification matrix/test report, prototype build record, archive manifest, parent-folder context — and twelve file examples. Not one clause describes a failure-mode enumeration, and not one fixture is a risk analysis. The nearest, the analysis-package clause, keys on what engineering.json itself words as `calculated margins or performance against named requirements` (quoted from that sibling node, not from 00): a quantity computed for the intended condition. This row keys on the opposite object — a hypothesised failed condition that has not occurred, enumerated row by row and ranked. Four structures carry it and none is claimed by the default or by a sibling: (a) a failure-mode table with the function/failure-mode/effect/cause chain, prevention and detection controls held in SEPARATE columns, and a ranking triple that appears TWICE per row (as analysed, and re-evaluated after a recommended action) — two ranking states of one row is a structure no other engineering artifact has; (b) a guide-word column crossed with a process parameter against a named node or line reference, yielding deviation/cause/consequence/safeguard/recommendation columns; (c) a single named top event at the root of a logic-gate structure descending to basic events; (d) a hazard register whose rows carry stable hazard identifiers, a state slot and a residual classification maintained across revisions of the same file. This is the decisive difference from `engineering.bill-of-materials`, which refused: the schema default already owned a BOM clause AND the `BPA-210_Product-Structure.xlsx` fixture, so that row was the default. This row's structures are absent from the default, so it is not.",
+    "distinct_dimension_order": true,
+    "distinct_dimension_order_why": "The schema's researched default is project, then design_item, then lifecycle_stage, then engineering_artifact_type. This row drops lifecycle_stage, and the reason is evidential rather than aesthetic. A hazard log or an FMEA is deliberately a LIVING document: one file is opened at concept, revised at each design review, and closed at release, so its revisions are one continuous series that a lifecycle level would cut into gate folders. 00 states the defect for the analogous case — `putting year first scatters related work across calendar folders` — and the same scattering is what a gate level does to a single hazard log's revision history. `Hazard-Log_BPA-210.xlsx` is the fixture: one file, four gates, one series. Under PR-6 the machine-readable order stays empty for this row exactly as it does for the schema, so this leg is argued at the same standing the schema's own default has, not above it.",
+    "distinct_privacy_rules": "partial",
+    "distinct_privacy_rules_why": "Stated honestly rather than inflated. The sensitivity VALUE does not differ: the engineering schema is already potentially_sensitive and its sensitivity_why names safety analyses among proprietary design material. What differs is a rule the schema does not state, and it is a derivation rule, not a degree: in this material the FINDINGS are the harm, so no finding may become a name. A severity ranking, a top-event phrase, a failure-mode phrase or a hazard state must never become a folder level, a destination or a group label — a directory named for a catastrophic failure mode publishes the manufacturer's own worst case on the filesystem and repeats it in any proposal surface. Read across from 00's Protected Records rule, which requires that such material `must not cause filenames or content to be exposed in model prompts` (inference, by read-across; this row is not claiming to BE a protected record). The row rests on legs one and two; leg three adds a rule but does not by itself carry the node.",
+    "verdict_why": "CONNECTION.md's test is disjunctive — a template exists when signals, dimensions OR privacy differ. Two differ outright and one differs partially. Nothing was invented to keep the id: fields empty, proposed_fields empty, no new dimension, no new key, and the en-bloc question about value-named engineering rows is escalated rather than answered."
+  },
+  "fields": [],
+  "fields_note": "Empty by rule and by contract. PR-6 holds the engineering schema at zero declared fields, and a template may not copy its schema's list in any case. The legal set on a file this row recognises is whatever R1c ratifies of the engineering schema row's four proposals — design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline — plus canonical `project`, plus the universals. Every facts_legal line below names those roles and is therefore CONDITIONAL on that adjudication; if R1c declines a key, the corresponding lines change. Flagged rather than silently depended on.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Two keys were genuinely tempting and both were rejected. (1) A method key naming FMEA / FMECA / HAZOP / LOPA / FTA / ETA: this is a VALUE of engineering_artifact_type, and ALIGNMENT is explicit that work types are values and never nodes — minting a key so that one template can branch on its own sub-values would create a synonym for a key that already exists in proposal. (2) A hazard or failure-mode identifier: it is a within-content row identifier, it is not stable across analyses, and the moment it became a key the next question would be whether it may be a folder level — where the answer is no, for the reason in distinct_privacy_rules_why. Both are recorded as never_alone rules instead of as fields.",
+  "recognition": {
+    "deterministic": [
+      "a failure-mode table whose rows carry an item-or-function slot, a failure-mode slot, an effect slot and a cause slot, whose control columns separate prevention from detection, and whose ranking triple appears TWICE on the same row — once as analysed and once re-evaluated after a recommended action. The two-state row is the signal; the word FMEA in a title is not",
+      "a header or preamble block that binds the analysis to an identified design item OR to a named process step AND to the design or process revision being analysed. This anchor is what separates the structure from a corporate register, which scores objects that have no technical revision",
+      "a guide-word column crossed with a process parameter against a named node, line or equipment reference, producing deviation, cause, consequence, safeguard and recommendation columns in one row set",
+      "a single named undesired top event at the root of a logic-gate structure descending through intermediate events to basic events, or an initiating event branching to named outcome states; the graph shape plus the named root is the signal, not the presence of probability numbers",
+      "a hazard register whose rows carry stable hazard identifiers, a hazard state or status slot, a mitigation or control reference and a residual-risk classification, and whose revision history shows the same identifiers carried forward across revisions of one file",
+      "an action-tracking structure whose rows carry a recommended action, a responsible owner, a due date and a post-action re-evaluation that references the same row identifier as the analysis it came from",
+      "an archive manifest exposing several of the above under one item or one safety-analysis baseline, read without extraction; 00 requires that `Compressed archives should yield their manifests without extraction`",
+      "parent-folder context naming an item, plant unit or programme may raise plausibility only after one of the structures above is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a scored table's scored objects are technical failure modes of an item or process step, or organisational exposures of a company — the column names are frequently identical and only the objects in the rows discriminate",
+      "whether a document analysing failures is prospective (hypothesised, not yet occurred) or retrospective (an investigation of an occurrence), when neither an occurrence identifier nor a hypothetical framing is in a labelled slot",
+      "whether a workshop's unlabelled minutes record a failure-and-hazard analysis session or an ordinary design review, when no worksheet rows were transcribed into the file",
+      "whether a document titled with a method name is an analysis OF something or a procedure describing HOW the organisation performs that method — the latter is a management-system document",
+      "whether a guide-word worksheet's subject is a designed system being defined or a specific installed plant governed by a contract",
+      "whether an analysis's detection-control column is merely citing a verification activity or whether the file is in fact the verification report itself"
+    ],
+    "never_alone": [
+      "the word risk, hazard, failure, criticality, severity, mitigation, FMEA, FMECA, HAZOP, LOPA, FTA or safety alone. Every one of these appears in corporate registers, information-security assessments, insurance files, clinical documents and project plans",
+      "a scored table alone. Scoring is the most widely copied table shape in office work; without technical failure objects and a revision anchor it is not this row",
+      "a numeric ranking, priority or criticality value alone. It is a value inside content, never a fact of the item, never a destination and never a folder level",
+      "a complete set of correct column headers with no populated data rows. `FMEA_Template_Blank.xlsx` trips exactly this: the structure is perfect and there is no analysed item, so nothing may be concluded and the file falls through",
+      "a published method or standard name alone. It is a value inside the analysis, in the same way a regulation number is — read across from the engineering sibling rows that already refuse sector and regulation names as activators",
+      "a consultancy, laboratory, certification body or client name alone. 00 states the role-ambiguity defect directly: `A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.` A named safety consultancy is weaker still — it says who wrote the file, not what the file is",
+      "a root-cause or corrective-action structure carrying an occurrence identifier — a returned serial number, a lot number, a complaint reference or an incident date. That is a failure that HAS happened and belongs to manufacturing.failure-analysis",
+      "a P&ID or drawing number alone. A HAZOP worksheet REFERENCES a line; the drawing itself is engineering.process-plant-design's evidence",
+      "an extension or source_type alone. 00 requires the extension be treated as `a routing signal rather than an assumption about meaning`",
+      "absence of EXIF, or a screenshot-shaped image, alone. It does not prove a captured worksheet, and 00 warns directly that the system `should not infer a purpose from their filename alone`"
+    ]
+  },
+  "proposed_context_terms": [
+    "failure mode",
+    "failure effect",
+    "potential cause",
+    "prevention control",
+    "detection control",
+    "severity",
+    "occurrence",
+    "detection",
+    "action priority",
+    "recommended action",
+    "guide word",
+    "deviation",
+    "safeguard",
+    "top event",
+    "basic event",
+    "residual risk",
+    "hazard log",
+    "hazard identifier"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context SHAPE for course codes only and lists none of these; nothing here is attributed to it. They are offered because the discriminating structures above are made of labelled column headers, and a term list is the cheap half of recognising a column header. R2 owns any pattern; this row writes no regex, no score and no threshold.",
+  "work_types": [
+    "design FMEA",
+    "process FMEA",
+    "system or functional FMEA",
+    "FMECA with criticality ranking",
+    "HAZOP worksheet",
+    "layer-of-protection analysis",
+    "fault tree analysis",
+    "event tree analysis",
+    "preliminary hazard analysis",
+    "functional hazard assessment",
+    "hazard log or hazard tracking register",
+    "what-if or checklist hazard study",
+    "risk-analysis action tracking record",
+    "risk-analysis workshop record"
+  ],
+  "work_types_note": "These are VALUES of the engineering schema's artifact-type role, never nodes. Listing them is the honest evidence for this row's own defence: `risk analysis or design FMEA` is a single member of engineering.json's work_types[], and if this row were nothing but that member it would be refused as bill-of-materials was. It is not. The member names one artifact; the situation researched here is plural in artifact and singular in relation — a worksheet, a gate diagram, a living register and a workshop record all carry the same prospective-failure relation, and no one of them is the row. R1c must still settle the en-bloc question in NJ-FMEA-1.",
+  "grouping_reasons": [
+    "one identified design item's or process step's prospective analyses — worksheet, tree, hazard log — together with the actions they generated and the re-evaluations that closed them",
+    "one hazard identifier followed from identification through mitigation to closure across the several analyses and revisions that touch it",
+    "one analysis workshop's record and the worksheet revision it produced, held together by date and participants without either file donating facts to the other",
+    "a sparse action-item email may join an accepted analysis neighbourhood without acquiring design_item or revision facts; 00 stops a group whose members carry `irreconcilable course, institution, project, term, or purpose facts`, and the graph assembles context rather than copying labels onto sparse evidence"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty in machine-readable form because PR-6 leaves the engineering schema with no declared destination-eligible fields, exactly as engineering.json's own default order is empty. Subject to R1c, the researched order is project, then design_item, then engineering_artifact_type. It differs from the schema default by DROPPING lifecycle_stage, because a hazard log or FMEA is a living document whose revisions run across every gate and a lifecycle level cuts one continuous series into gate folders — the same defect 00 names when it says `putting year first scatters related work across calendar folders`. The design item comes before the artifact type because 00 requires that `a parent dimension should provide the context required to understand the child`: a severity ranking or a top-event name is unreadable until the analysed item is known, and dangerous to name at all. Two optional branches. (a) Where the analysed object is a PROCESS rather than a designed item, design_item cannot open at all and the level must be omitted rather than filled with a line or cell name — see NJ-FMEA-2. (b) The artifact-type leaf branches on the sub-values in work_types[] and may be flattened when a corpus holds only one method. 00 is explicit that `the user can reverse, remove, add, or flatten dimensions`; this is a recommendation, not a filesystem. A ranking value, a hazard identifier and a failure-mode phrase are never levels under any branch.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".xls",
+      ".csv",
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".eml",
+      ".zip",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header block above the table names the analysed assembly and the design revision it analyses, and names a cross-functional team",
+        "one row per function-and-failure-mode pair, with separate columns for prevention control and detection control",
+        "a severity/occurrence/detection triple appears twice on each row, once as analysed and once re-evaluated after the recommended action",
+        "an action column carries an owner and a completion date"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline",
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a ranking or priority value as a fact of the assembly, or as any level of a destination",
+        "a failure-mode phrase as a folder or group name",
+        "that the published method name in the filename creates a method node; it is a value inside the analysis"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PFMEA_Line-3_Bushing-Press_Rev4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the same two-state ranking structure, but the row objects are process steps rather than functions of a part",
+        "a linked control-plan reference and a process-route revision appear in the header block",
+        "the analysed item is named only as an operation on a line, not as a design item"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "revision_or_baseline",
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item from a line or station name — a process step is not a design item, and inventing one to open the recommended level would fabricate a fact",
+        "that the linked control plan's own facts belong to this file"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "HAZOP_Unit-200_Node-12_Worksheet.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a node header naming a plant unit and a line reference on a drawing the file does not contain",
+        "a guide-word column crossed with a process parameter, producing deviation, cause, consequence, safeguard and recommendation columns",
+        "a study date and a chairman/scribe attribution"
+      ],
+      "facts_legal": [
+        "engineering_artifact_type",
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item from the referenced drawing number — the drawing is engineering.process-plant-design's evidence, and a reference is not ownership",
+        "a consequence phrase as a folder or group name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FTA_Loss-of-Braking_TopEvent.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one named undesired event at the root of a diagram, descending through logic gates to basic events",
+        "basic events carry probability figures and a cut-set list appears on a later page",
+        "page one binds the tree to an item identifier and a revision"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any probability figure as a threshold, a score, or a fact of the item",
+        "the top-event phrase as a destination — it is the single most harmful string in the file to write onto a filesystem"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hazard-Log_BPA-210.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry stable hazard identifiers, an open/controlled/closed state slot, a mitigation reference and a residual classification",
+        "a revision history sheet shows the same identifiers carried forward across four dated revisions",
+        "the four revisions correspond to four different design reviews named in the sheet"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline",
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a single lifecycle_stage — this file is the fixture proving the level must be dropped; it spans four gates and picking one would be a fabricated fact",
+        "a hazard identifier or hazard state as a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FMEA-Workshop_2026-03-12_Notes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose minutes: attendees, a date, and paragraphs discussing how a bushing could seize and what would be noticed",
+        "no table, no column headers, no rankings, no item revision in any labelled slot",
+        "one sentence names an assembly in passing"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item or revision from a passing mention in prose",
+        "that discussion of failure is a failure analysis; the labelled-form pair to this file is DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx, and only that one carries the structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-03-14 at 11.02.17.png",
+      "source_type": "ocr",
+      "observations": [
+        "a screen capture of part of a failure-mode worksheet; four columns and six rows are legible and the header block is cropped away",
+        "no EXIF capture metadata",
+        "the visible ranking columns are legible but the analysed item is not on screen"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item or revision — the anchoring header block is exactly the part that is cropped",
+        "screenshot status from the absence of EXIF, which 00 does not permit as proof",
+        "that OCR of a ranking column makes the ranking a fact"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Safety-Analysis-Package_BPA-210_RevC.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction lists a DFMEA workbook, a fault tree PDF, a hazard log and a signed cover sheet",
+        "the archive name carries an item identifier and a baseline letter",
+        "member names repeat the item identifier"
+      ],
+      "facts_legal": [
+        "design_item",
+        "engineering_artifact_type",
+        "revision_or_baseline"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "facts read from member CONTENT — 00 requires the manifest be yielded without extraction, so member names are the evidence and member interiors are not",
+        "that the signed cover sheet's signatory is a destination; authorship is never a destination"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Risk-Register-Q1-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a scored table with likelihood, impact, a computed score, an owner and a mitigation status — column-for-column as risk-shaped as a DFMEA",
+        "the scored objects in the rows are supplier insolvency, key-person departure and a schedule slip",
+        "no item identifier, no process step, no design or process revision anywhere in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "activation of this row — this is the collision fixture; every numeric risk signal fires and the scored objects are organisational exposures, not failure modes of a thing",
+        "a comparison of this file's score scale against any analysis's ranking triple"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "8D_Report_Field-Return-4471.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a failure is described, root causes are listed, and the report cites the assembly's DFMEA by name",
+        "a returned-part serial number, a customer complaint reference and an occurrence date appear in labelled slots",
+        "containment and corrective actions carry owners and dates"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "activation of this row — the tense discriminates: an occurrence identifier means the failure HAS happened, which is manufacturing.failure-analysis",
+        "design_item facts for this row from the DFMEA it cites; a citation is not an anchor"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FMEA_Template_Blank.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "every column header of a correct failure-mode worksheet is present, including both ranking triples",
+        "zero populated data rows; the header block's item and revision cells are empty",
+        "a company logo sits in the sheet header"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "activation from a perfect column structure with no analysed item — a template is a form, not an analysis",
+        "an organisation fact from the logo; a company name alone is never-alone evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Control-Plan_Line-3_Rev2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry a process step, a product or process characteristic, a specification, a measurement method, a sample plan and a reaction plan",
+        "the header names the same line and revision as the PFMEA fixture",
+        "no failure-mode column, no cause column, no ranking of any kind"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "activation of this row from the shared line-and-revision header — a reaction plan is a control, not a ranked failure enumeration",
+        "that sharing a header with a PFMEA makes it part of the analysis"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE_ DFMEA action 14 - severity downgrade.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled mail slots: sender, recipients, subject, sent date, thread identifier",
+        "the body asserts that one row's severity should be lowered and names an action number",
+        "no worksheet is attached and no item revision is stated"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a ranking change as a fact of any item — the mail carries a claim ABOUT an analysis, not the analysis",
+        "design_item from the subject line's action number, which is a within-content row identifier"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.risk-register",
+      "why": "Fixture bytes Risk-Register-Q1-2026.xlsx and DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx. That row authored this boundary one-way toward this one and left the reciprocal owing; this is it, and it agrees on the discriminator without restating it loosely. Direction one: an organisational exposure scored on likelihood and impact, carrying a treatment and an internal owner, with no technical object and no revision anchor, is business_operations.risk-register — Risk-Register-Q1-2026.xlsx never activates here however risk-shaped it looks. Direction two: a part, function or process step scored into a ranking triple against a design or process revision anchor is this row — the DFMEA never activates there however scored it looks. The column vocabulary is not the discriminator, because it is frequently identical; the OBJECT IN THE ROW is.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.failure-analysis",
+      "why": "Fixture bytes 8D_Report_Field-Return-4471.pdf. The discriminator is tense, and it is decidable from labelled slots. Direction one: a failure that has OCCURRED, carrying an occurrence identifier — a returned serial, a lot, a complaint reference or an incident date — is manufacturing.failure-analysis, even when the report enumerates failure modes and cites the DFMEA by name. Direction two: a failure that is HYPOTHESISED, carrying no occurrence identifier and instead a ranked enumeration against a revision anchor, is this row, even when the analysis was triggered by a field return. The two documents routinely reference each other; a citation is not an anchor in either direction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.safety-case",
+      "why": "Fixture bytes HAZOP_Unit-200_Node-12_Worksheet.docx. Direction one: a structured argument that a system is acceptably safe, assembling and CITING analyses beneath a claim-and-evidence structure, is manufacturing.safety-case. Direction two: the worksheet the safety case cites — guide-word grid, node reference, per-row consequences — is this row. The worksheet does not become a safety case by being cited, and the safety case does not become an analysis by containing one.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "why": "Fixture bytes a CAPA record carrying a risk-assessment section. Direction one: a nonconformance with a disposition and a corrective-action loop closed against an occurrence is manufacturing.nonconformance-capa, and its embedded risk grading is a section, not a document. Direction two: a standalone ranked enumeration against a revision anchor is this row even when a CAPA triggered it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.process-plant-design",
+      "why": "Fixture bytes the P&ID that HAZOP_Unit-200_Node-12_Worksheet.docx names in its node header. Direction one: the drawing itself, with its line numbers, equipment tags and revision block, is engineering.process-plant-design. Direction two: the worksheet that references a line number and analyses deviations on it is this row. A drawing number in a worksheet is a reference and must not yield a design_item fact here — that is written into the fixture's must_not_conclude.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "why": "Fixture bytes an analysis whose detection-control column names a test procedure. Direction one: a report linking requirement identifiers to method, configuration-under-test and pass/fail evidence is engineering.verification-validation. Direction two: an enumeration of hypothesised failures whose detection column merely CITES that test is this row. Verification asks whether the intended condition was met; this row asks how the unintended condition arises.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "why": "Fixture bytes an ECR whose justification section quotes an FMEA action. Direction one: a structure identifying an affected item with current and replacement revisions plus disposition is engineering.change-order. Direction two: the analysis that generated the action is this row. The action-tracking rows here must not be read as change dispositions.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "why": "Fixture bytes a procedure document titled with a method name — how the organisation shall conduct failure-mode analyses. Direction one: a procedure governing HOW a method is performed, with no analysed item, is a management-system document. Direction two: an analysis OF an identified item or process is this row. FMEA_Template_Blank.xlsx sits on the management-system side of the same seam: a form, not an analysis.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "why": "Fixture bytes a functional hazard assessment produced under a named certification basis. Direction one: where the discriminating relation is an approved product joined to a regulation and an approving authority, the certification row owns it. Direction two: where the discriminating relation is the ranked failure enumeration itself, this row owns it and the certification basis is a value inside it, not a second structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "why": "Fixture bytes an analysis package comparing calculated margins against named requirements. Direction one: a computed quantity for the INTENDED condition, however safety-motivated, is engineering.simulation-analysis and is the schema default's own analysis clause. Direction two: an enumeration of hypothesised failed conditions with ranking or classification is this row. A stress margin is not a failure mode.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing",
+      "why": "Fixture bytes PFMEA_Line-3_Bushing-Press_Rev4.xlsx. One file can truthfully carry the prospective-failure relation on engineering evidence AND a process-route and control-plan relation on manufacturing evidence, each independently present in labelled slots. Neither side is inferred from the other, and this is the case engineering.json already declares at schema level.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "why": "Fixture bytes a design review deck that both records governed project decisions and reproduces a hazard log's open items. Both relations are explicit in the same file; this is 00's `A file may validly belong to more than one accepted group` case rather than a collision, and it is distinct from the risk-register collision, where the two claims are mutually exclusive on the same rows.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The default landing for this row's near-misses, and the honest one: a table, a diagram or a set of minutes that is plainly technical and plainly about failure, but whose analysed item, tense or anchor cannot be established from its own evidence. FMEA-Workshop notes, the cropped screenshot's parent case and FMEA_Template_Blank.xlsx all land here.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For a standalone analysis, certificate or assessment with durable meaning and no reachable item, project or accepted group — including the neighbour-owned fixtures when their own rows do not fire either.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A cropped capture of a worksheet, where the anchoring header block is exactly what the crop removed, is a screenshot with no reachable relationship rather than weak evidence of an analysis.",
+      "provenance": "design",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected safety-analysis packages and proprietary analysis-tool binaries retain basic metadata without any purpose being inferred from the filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is the interesting part. The split this material most wants is the ANALYSED item against the ANALYSING organisation: a HAZOP chaired by an external safety consultancy puts two organisation names on page one in different roles, exactly the ambiguity 00 identifies for a university name. There is no canonical producer-side key to split against, and minting one so that a single template can disambiguate a letterhead is the move that produced thousands of private field names in the overnight pass. The consultancy name is instead written into never_alone, and the ambiguity is carried in must_not_conclude on the worksheet fixture.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Same value as the engineering schema, which already names safety analyses among proprietary design material, plus one derivation rule the schema does not state. In this material the findings ARE the harm: a top-event phrase, a failure-mode phrase, a severity ranking or a hazard state must never become a folder level, a destination or a group label, because a directory or a proposal card carrying it publishes the manufacturer's own worst case. A process hazard study additionally enumerates how to cause a release, which is security-relevant in a way a component drawing is not, and this material is the archetypal product-liability discovery document. No handling class is assigned; 00's Protected Records rule that such material `must not cause filenames or content to be exposed in model prompts` is read across as the shape of the rule, not claimed as this row's classification.",
+  "open_question": "NEEDS-JOSEPH NJ-FMEA-1: this row is one verbatim member of engineering.json's work_types[] (`risk analysis or design FMEA`), and engineering.bill-of-materials refused on exactly that ground while engineering.pcb-layout survived it. This row argues it belongs with pcb-layout, on a checkable asymmetry: the schema default owns a BOM deterministic clause AND a BOM fixture, and owns NO failure-mode clause and NO risk-analysis fixture. That argument must be adjudicated en bloc with NJ-BOM-1 rather than row by row. Alternatives: (a) keep the value-named rows whose structures are absent from the default and refuse the rest; (b) demote all of them to browse-only values feeding the artifact-type field, which is a P6 values table and not a roster; (c) redefine each as a situation, which this row has done and which is the reason it survives. NJ-FMEA-2: a process FMEA and a HAZOP analyse a PROCESS STEP or a PLANT NODE, and no proposed key holds that role — design_item denotes a designed configuration item. Alternatives: widen design_item to any analysed object, which loads it with a second meaning; omit the level for process-object analyses, which is what this row recommends today and which leaves a real half of the material one level shallower; or mint an analysed-object key, which one template must not do to the shared vocabulary. NJ-FMEA-3: which residual owns a plant hazard study when this row does not fire. Review Later is recommended and is what the row encodes, but Protected Records is arguable on the security-relevance argument above, and if Joseph accepts that argument it changes not just a residual name but whether this material may appear in model prompts at all. Stated, not decided."
+}
