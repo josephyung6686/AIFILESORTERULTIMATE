@@ -1066,3 +1066,67 @@ owed=[x['domain_id'] for x in n
       or not os.path.exists('planning/domains/nodes/'+x['domain_id']+'.research.md')]
 print(len(owed),'owed (counts memo-less partials)')"
 ```
+
+## SESSION END — stopped at Joseph's mark, 2026-08-26
+
+Shard 2 was stopped once it reached **35 of its 40** rows (a watcher polled for the 35th file, so
+the stop landed on a completion boundary). All four shards are now ended. Nothing is running.
+
+### Verified corpus state
+
+| | Count |
+|---|---:|
+| Roster rows | 358 |
+| **Complete (JSON + memo)** | **283** |
+| JSON-only partials (agent killed mid-row) | 8 |
+| Owed (no files) | 67 |
+
+Session movement: **183 → 283 complete rows** (+100).
+
+**Owed by family:** manufacturing 15 · law_practice 15 · retail_hospitality 14 · nonprofit 9 ·
+resource_operations 8 (CODEX's) · logistics 5 · creative 1.
+
+### ⚠ Eight JSON-only partials — untrusted drafts, NOT finished rows
+
+```text
+creative.book-manuscript          law_practice.appeals
+hr.training-development           law_practice.corporate-secretarial
+manufacturing.production-record   law_practice.estates-administration
+manufacturing.supplier-qualification
+nonprofit.advocacy-campaign
+```
+
+They are committed so the tokens are not lost, **not because they are done**. `28-AUTOPILOT.md` §4
+applies: verify line-by-line, repair, complete, own. The §0 resume query in
+`26-research-dispatch-state.md` now selects on **both** files, so these are counted as owed.
+
+### Gates, re-read at session end
+
+- `check.py` — 574 legacy entries, 566 in-file / 0 cross-file. **Unchanged baseline**; the legacy
+  slices are superseded by the roster, not repaired.
+- `check_edges.py` — **1,979 findings** (up from 1,239, because 100 more rows landed and
+  reciprocity is only judged when both ends exist). Largest: 905 one-way `collides_with`,
+  427 `why`-instead-of-`signal`, 245 one-way `also_holds_with`, 196 `also_holds_with` on templates,
+  88 cross-kind collisions, 32 genuinely empty collision signals (`hr.dei-program`,
+  `law_practice.opinions-advice`, `.pleadings`, `.court-filing-record`, `.appeals`).
+- The 32 empty signals are the one finding that is **not** a rename — those rows record no
+  discriminating evidence at all and need re-argument, unlike the 427 key drifts.
+
+### Commits this session
+
+`a1376d0` claim 166 ids · `de1c6c9` edge gate + audit findings · `cc54db6` repair tool + plan ·
+`9cdaeab` defer 39 rows · `6f551ad` second cut + partials · `df41425` land rows · plus the final
+row commit above. Node files were committed **by explicit file list**, only when quiescent 45-60s,
+with every staged JSON parse-checked first.
+
+### Next session — do these in order
+
+1. `python3 planning/domains/check_edges.py` — re-read, do not trust the numbers above.
+2. `python3 planning/domains/fix_edges.py --apply` — the deterministic renames (`why`→`signal`,
+   `domain_id`→`domain`). Safe now: nothing is running. Then re-run the gate to confirm both
+   KEY_DRIFT categories go to zero.
+3. Finish the **67 owed rows** + the **8 partials** (deferred lists are in this log; recompute with
+   the §0 query rather than trusting them).
+4. **R1c** for the judgement repairs (one-way edges, template-borne `also_holds_with`, cross-kind
+   collisions, the 32 empty signals, the creative-trio and household-property overlaps).
+5. Re-run both gates **and** the two auditors on the repaired corpus, then the review panel + index.

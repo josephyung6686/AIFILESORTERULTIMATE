@@ -4,7 +4,9 @@ Date: 2026-08-24 (supersedes the 2026-08-22 revision)
 Status: **R1b complete. J-IND roster expansion complete. Industry gist swarm in progress — 147 of 358 rows landed, 211 owed.**
 Live progress log, newest entry at the bottom: [`27-dispatch-run-log.md`](27-dispatch-run-log.md) — **read it first.** It records every wave, kill, salvage, and process slip.
 Source of truth: [`00-database-agent-product-design.md`](00-database-agent-product-design.md) · contract: [`domains/CONNECTION.md`](domains/CONNECTION.md) · roster: [`domains/roster.json`](domains/roster.json)
-Standing brief every swarm agent reads: [`domains/dispatch/GIST-BRIEF.md`](domains/dispatch/GIST-BRIEF.md)
+Standing brief every swarm agent reads: [`domains/dispatch/RESEARCH-BRIEF.md`](domains/dispatch/RESEARCH-BRIEF.md)
+(the old `GIST-BRIEF.md` pointer was stale — that file does not exist; the brief was renamed when
+J-DEPTH overruled the gist clause. `DEEPEN-ADDENDUM.md` sits beside it, for deepening passes only.)
 Ratifications: [`overnight/council/DECISION-BRIEF.md`](overnight/council/DECISION-BRIEF.md) — D1–D6 (2026-08-21) plus J-IND (2026-08-22).
 
 ---
@@ -18,9 +20,18 @@ hand-written list — that error already cost five rows of a family once:
 python3 -c "
 import json,os,collections
 r=json.load(open('planning/domains/roster.json')); n=r['nodes'] if isinstance(r,dict) else r
-todo=[x['domain_id'] for x in n if not os.path.exists('planning/domains/nodes/'+x['domain_id']+'.json')]
+N='planning/domains/nodes/'
+todo=[x['domain_id'] for x in n
+      if not os.path.exists(N+x['domain_id']+'.json')
+      or not os.path.exists(N+x['domain_id']+'.research.md')]
 print(len(todo),'owed'); print(collections.Counter(x.split('.')[0] for x in todo))"
 ```
+
+**The memo clause is not optional (added 2026-08-26).** A killed agent writes its `.json` first and
+its `.research.md` second, so a row can have JSON and no memo. The earlier query keyed on `.json`
+alone, which made those rows look finished — they would be skipped forever, carrying unverified,
+unargued JSON into R1c. Six such partials exist right now (listed in the run log). Selecting on
+**both** files is what makes the resume honest.
 
 Then dispatch 3–4 agents, each owning ~9–11 sibling rows of ONE schema, each pointed at
 `domains/dispatch/GIST-BRIEF.md` plus row-specific warnings (name the rows you expect to fail the
