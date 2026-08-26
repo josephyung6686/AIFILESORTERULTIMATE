@@ -268,6 +268,7 @@ def validate_fact_proposal(
     dossier: Dossier,
     citations: Sequence[Citation],
     evidence_resolver: Callable[[str], object],
+    apply_consequence: bool,
 ) -> P8Verdict | ValidationUnavailable:
     """Run Site A's four §3.6 checks and hand the consequence to P6.
 
@@ -278,6 +279,13 @@ def validate_fact_proposal(
     `citations` are the model's citations with their spans intact. P6's
     `Proposal` carries bare observation keys, and a key alone cannot say whether
     the model quoted the release or invented the quotation.
+
+    `apply_consequence` has no default. A live call appends P6's consequence; a
+    replay re-validates the same stored bytes and must not, because
+    `facts.unresolved.write_unresolved` is always an INSERT and never
+    de-duplicated -- replaying an abstention wrote a second row saying the model
+    had declined twice for one thing it declined once. The verdict is identical
+    either way, which is what makes the comparison a replay.
     """
     missing = _missing(dependencies)
     if missing:
@@ -286,6 +294,14 @@ def validate_fact_proposal(
         return ValidationUnavailable(missing=("dossier",))
     if not callable(evidence_resolver):
         return ValidationUnavailable(missing=("evidence_resolver",))
+    if dossier.subject_ref != request.file_id:
+        # The dossier is the model's closed world; the `FactRequest` decides
+        # where the consequence lands. Nothing checked that they name the same
+        # file, so a dossier describing one file wrote a fact onto another,
+        # cited to observations that file never had.
+        return ValidationUnavailable(missing=("subject_ref",))
+    if apply_consequence is not True and apply_consequence is not False:
+        return ValidationUnavailable(missing=("apply_consequence",))
 
     if proposal.unknown:
         p8 = _verdict(
@@ -302,11 +318,12 @@ def validate_fact_proposal(
         if isinstance(p8, ValidationUnavailable):
             return p8
 
-    apply_verdict(
-        conn, request=request, proposal=proposal,
-        verdict=p6_verdict_from_p8(p8),
-        proposal_state=proposal_state_from_p8(p8),
-        model_identifier=model_identifier,
-        prompt_fingerprint=prompt_fingerprint,
-    )
+    if apply_consequence:
+        apply_verdict(
+            conn, request=request, proposal=proposal,
+            verdict=p6_verdict_from_p8(p8),
+            proposal_state=proposal_state_from_p8(p8),
+            model_identifier=model_identifier,
+            prompt_fingerprint=prompt_fingerprint,
+        )
     return p8

@@ -174,6 +174,7 @@ def _released_dossier(request, *, dossier_id=DOSSIER):
             for o in request.citable_observations),
         allowed=tuple(request.allowlist),
         dossier_id=dossier_id,
+        subject_ref=request.file_id,
     )
 
 
@@ -195,7 +196,7 @@ def _quoting(proposal, dossier):
 
 
 def _validate(conn, request, proposal, *, dependencies=None, dossier=None,
-              citations=None, resolver=None, **kwargs):
+              citations=None, resolver=None, apply_consequence=True, **kwargs):
     if dossier is None:
         dossier = _released_dossier(request)
     if citations is None:
@@ -210,6 +211,7 @@ def _validate(conn, request, proposal, *, dependencies=None, dossier=None,
         citations=citations,
         evidence_resolver=resolver if resolver is not None
         else (lambda key: "the store still holds it"),
+        apply_consequence=apply_consequence,
         **kwargs,
     )
 
@@ -342,6 +344,7 @@ def test_none_dependencies_is_unavailable(subject_file, p6_conn):
         dossier=_released_dossier(request),
         citations=_quoting(proposal, _released_dossier(request)),
         evidence_resolver=lambda key: "the store still holds it",
+        apply_consequence=True,
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("normalize", "contradicts")
@@ -814,7 +817,8 @@ def test_validate_fact_proposal_requires_the_dossier_it_judged(p6_conn, subject_
     pass."""
     parameters = inspect.signature(validate_fact_proposal).parameters
     assert "dossier_id" not in parameters
-    for name in ("dossier", "citations", "evidence_resolver"):
+    for name in ("dossier", "citations", "evidence_resolver",
+                 "apply_consequence"):
         assert parameters[name].kind is inspect.Parameter.KEYWORD_ONLY, name
         assert parameters[name].default is inspect.Parameter.empty, name
 
@@ -823,6 +827,7 @@ def test_validate_fact_proposal_requires_the_dossier_it_judged(p6_conn, subject_
         p6_conn, request, _proposal(subject_file), dependencies=_deps(),
         model_identifier=MODEL, prompt_fingerprint=PROMPT, policy_version=POLICY,
         dossier=None, citations=(), evidence_resolver=lambda key: "x",
+        apply_consequence=True,
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("dossier",)
@@ -840,14 +845,14 @@ def test_validate_fact_proposal_requires_the_dossier_it_judged(p6_conn, subject_
 
 
 def _site_a_dossier(*, evidence_items, released_evidence, allowed=("subject",),
-                    dossier_id=DOSSIER):
+                    dossier_id=DOSSIER, subject_ref="file-1"):
     from llm_harness.records import Dossier
     from llm_harness.vocabulary import A_FACT, REDUCTION_NONE, REMAINS_AMBIGUOUS
 
     return Dossier(
         dossier_id=dossier_id,
         call_site=A_FACT,
-        subject_ref="file-1",
+        subject_ref=subject_ref,
         eligibility_reason=REMAINS_AMBIGUOUS,
         plan_version=None,
         policy_version=POLICY,
@@ -920,7 +925,7 @@ def _dispatch_site_a(conn, dossier, response_bytes, request):
         evidence_resolver=lambda key: "BUSIB 4300",
         contradicts=_never_contradicts,
         model_id=MODEL, prompt_fingerprint=PROMPT, dossier_builder="fixture",
-        release_audit_id=17, policy_version=POLICY,
+        release_audit_id=17, policy_version=POLICY, apply_consequence=True,
     )
 
 
@@ -947,6 +952,7 @@ def test_site_a_rejects_a_citation_to_an_observation_p7_withheld(
     dossier = _site_a_dossier(
         evidence_items=(_item(released),),
         released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
     )
     verdict = _only_verdict(_dispatch_site_a(
         p6_conn, dossier, _claim_bytes(withheld, "Prof. Jane Roe"), request))
@@ -971,6 +977,7 @@ def test_site_a_rejects_a_span_that_is_not_in_the_released_value(
     dossier = _site_a_dossier(
         evidence_items=(_item(released),),
         released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
     )
     verdict = _only_verdict(_dispatch_site_a(
         p6_conn, dossier, _claim_bytes(released, "ECON 1105"), request))
@@ -996,6 +1003,7 @@ def test_site_a_span_matching_source_is_the_release_and_not_the_store(
     dossier = _site_a_dossier(
         evidence_items=(_item(released),),
         released_evidence=(_release(released, "[REDACTED] 4300"),),
+        subject_ref=file_id,
     )
     quoting_the_store = _only_verdict(_dispatch_site_a(
         p6_conn, dossier, _claim_bytes(released, "BUSIB 4300"), request))
@@ -1020,6 +1028,7 @@ def test_site_a_records_a_real_span_result_and_not_a_copy_of_resolved(
     dossier = _site_a_dossier(
         evidence_items=(_item(released),),
         released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
     )
     verdict = _only_verdict(_dispatch_site_a(
         p6_conn, dossier, _claim_bytes(released, "ECON 1105"), request))
@@ -1039,6 +1048,7 @@ def test_site_a_still_writes_the_fact_when_the_citation_is_grounded(
     dossier = _site_a_dossier(
         evidence_items=(_item(released),),
         released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
     )
     verdict = _only_verdict(_dispatch_site_a(
         p6_conn, dossier, _claim_bytes(released, "BUSIB 4300"), request))
@@ -1089,3 +1099,111 @@ def test_a_citation_that_is_not_a_p8_record_is_unavailable(p6_conn, two_observat
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("citations",)
+
+
+# --- the dossier and the P6 request must describe the same file ------------------
+
+
+def test_a_dossier_for_one_file_cannot_write_a_fact_onto_another(
+    p6_conn, two_observations, tmp_path,
+):
+    """The model's closed world is the dossier. The consequence lands wherever
+    the `FactRequest` points, and nothing checked that they agree -- so a dossier
+    describing one file wrote a fact onto a different file, cited to observations
+    the second file never had.
+    """
+    file_id, content_hash, released, _withheld = two_observations
+    other_id, other_hash = _record(
+        p6_conn, tmp_path, name="Other.pdf", body=b"ECON 1105 Syllabus")
+    assert other_id != file_id
+
+    request = build_request(
+        p6_conn, file_id=other_id, content_hash=other_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
+    )
+    assert dossier.subject_ref != request.file_id
+
+    result = _validate(
+        p6_conn, request,
+        Proposal(field_key="subject", value="BUSIB 4300",
+                 citations=(released,), unknown=False),
+        dossier=dossier,
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("subject_ref",)
+    assert facts_for_file(p6_conn, other_id, other_hash) == []
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+    assert _reasons(p6_conn, request) == []
+
+
+def test_a_dossier_whose_subject_is_the_request_file_is_validated(
+    p6_conn, two_observations,
+):
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
+    )
+    verdict = _validate(
+        p6_conn, request,
+        Proposal(field_key="subject", value="BUSIB 4300",
+                 citations=(released,), unknown=False),
+        dossier=dossier,
+    )
+    assert verdict.outcome == ACCEPT_DIRECT
+
+
+# --- replay validates; it does not append a second P6 consequence ---------------
+
+
+def test_replay_validates_without_appending_a_second_p6_consequence(
+    p6_conn, two_observations,
+):
+    """`write_unresolved` is always an INSERT, never de-duplicated. Re-validating
+    the same stored bytes wrote a second `unresolved` row saying the model had
+    declined twice, for one thing it declined once."""
+    file_id, content_hash, released, _withheld = two_observations
+    request = build_request(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    dossier = _site_a_dossier(
+        evidence_items=(_item(released),),
+        released_evidence=(_release(released, "BUSIB 4300"),),
+        subject_ref=file_id,
+    )
+    unknown = Proposal(
+        field_key="subject", value=None, citations=(), unknown=True)
+
+    live = _validate(p6_conn, request, unknown, dossier=dossier)
+    assert live.outcome == ABSTAIN
+    assert _reasons(p6_conn, request) == ["model_returned_unknown"]
+
+    replayed = validate_fact_proposal(
+        p6_conn, request, unknown, dependencies=_deps(),
+        model_identifier=MODEL, prompt_fingerprint=PROMPT,
+        policy_version=POLICY, dossier=dossier, citations=(),
+        evidence_resolver=lambda key: "the store still holds it",
+        apply_consequence=False,
+    )
+    assert replayed.outcome == ABSTAIN
+    assert replayed.verdict_id == live.verdict_id
+    assert _reasons(p6_conn, request) == ["model_returned_unknown"]
+
+
+def test_applying_the_consequence_is_an_explicit_decision(p6_conn, subject_file):
+    """No default. A caller that does not say which it is gets a TypeError, not a
+    silent P6 write."""
+    parameters = inspect.signature(validate_fact_proposal).parameters
+    assert parameters["apply_consequence"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameters["apply_consequence"].default is inspect.Parameter.empty

@@ -106,6 +106,7 @@ def _dispatch(dossier, response_bytes, *, conn=None, site_dependencies=None, **o
         dossier_builder="fixture",
         release_audit_id=17,
         policy_version="policy-1",
+        apply_consequence=True,
     )
     values.update(overrides)
     return dispatch(

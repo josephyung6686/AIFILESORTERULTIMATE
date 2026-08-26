@@ -206,6 +206,10 @@ def _model_call_request(*, file_id: str = "file-1",
 
 def _request(*, file_id: str = "file-1", fingerprint: str | None = None,
              key: str = "obs-key-1") -> DossierRequest:
+    """`subject_ref` is the file the dossier describes. Where the call carries a
+    Site A bundle, it must be the file that bundle's `FactRequest` was built for:
+    P8 refuses to write P6's consequence onto a file the model never saw.
+    """
     return DossierRequest(
         call_site=A_FACT,
         subject_ref=file_id,
@@ -214,6 +218,23 @@ def _request(*, file_id: str = "file-1", fingerprint: str | None = None,
         conflicts=(),
         model_call_request=_model_call_request(
             file_id=file_id, fingerprint=fingerprint, key=key),
+        plan_version=None,
+        evidence_snapshot_id="snap-1",
+        budget_context="scan-1",
+    )
+
+
+def _shard(subject_ref: str, *, target: str, fingerprint: str | None = None,
+           key: str = "obs-key-1") -> DossierRequest:
+    """One shard of `subject_ref`'s evidence, addressed at a different unit."""
+    return DossierRequest(
+        call_site=A_FACT,
+        subject_ref=subject_ref,
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        evidence_items=(make_evidence_item(evidence_ref=key),),
+        conflicts=(),
+        model_call_request=_model_call_request(
+            file_id=target, fingerprint=fingerprint, key=key),
         plan_version=None,
         evidence_snapshot_id="snap-1",
         budget_context="scan-1",
@@ -348,7 +369,14 @@ class RecordingGate:
                 release_id=release_id,
                 audit_id=17 + len(self.released),
                 policy_version=POLICY_VERSION,
-                materialised_items=(_materialised(observation_key=self.key),),
+                # A shard is a subset of the evidence, so two shards of one
+                # subject do not show the model the same material. Varying the
+                # zone by target keeps the fixture honest about that; identical
+                # material would make two shards one dossier by content address.
+                materialised_items=(_materialised(
+                    observation_key=self.key,
+                    zone="body:" + "+".join(request.target.file_ids),
+                ),),
                 redaction_manifest=RedactionManifest(entries=()),
                 model_target=request.model_target,
             )
@@ -402,7 +430,7 @@ def test_released_issues_once_validates_and_persists(harness_conn, subject):
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    request = _request(fingerprint=digest, key=key)
+    request = _request(file_id=subject[0], fingerprint=digest, key=key)
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=_direct_bytes(key))
     result = _run(
@@ -670,7 +698,7 @@ def test_retry_is_disabled_on_call_failed_and_on_schema_invalid(harness_conn, su
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    request = _request(fingerprint=digest, key=key)
+    request = _request(file_id=subject[0], fingerprint=digest, key=key)
     failing = Recorder(error=RuntimeError("once"))
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     failed = _run(
@@ -703,7 +731,7 @@ def test_initially_fitting_call_records_none_and_releases_once(harness_conn, sub
     key = subject[2]
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
-    request = _request(fingerprint=prompt_fingerprint(prompt), key=key)
+    request = _request(file_id=subject[0], fingerprint=prompt_fingerprint(prompt), key=key)
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     result = _run(
@@ -734,7 +762,7 @@ def test_oversized_intermediate_forms_spend_nothing_until_a_fitting_rung(harness
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    request = _request(fingerprint=digest, key=key)
+    request = _request(file_id=subject[0], fingerprint=digest, key=key)
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     result = _run(
@@ -788,10 +816,13 @@ def test_each_fitting_split_shard_gets_a_distinct_request_release_reservation_an
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    parent = _request(fingerprint=digest, key=key)
-    shard_a = _request(file_id="file-a", fingerprint=digest, key=key)
-    shard_b = _request(file_id="file-b", fingerprint=digest, key=key)
-    deferred = _request(file_id="file-deferred", fingerprint=digest, key=key)
+    parent = _request(file_id=subject[0], fingerprint=digest, key=key)
+    # A split shard is a subset of ONE subject's evidence, not a second subject:
+    # `CallDependencies` carries one Site A authority, and a shard naming another
+    # file would be validated against a `FactRequest` that never described it.
+    shard_a = _shard(subject[0], target="file-a", fingerprint=digest, key=key)
+    shard_b = _shard(subject[0], target="file-b", fingerprint=digest, key=key)
+    deferred = _shard(subject[0], target="file-deferred", fingerprint=digest, key=key)
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     result = _run(
@@ -881,7 +912,7 @@ def test_d14_links_events_with_released_audit_id_and_spends_released_release_id(
     key = subject[2]
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
-    request = _request(fingerprint=prompt_fingerprint(prompt), key=key)
+    request = _request(file_id=subject[0], fingerprint=prompt_fingerprint(prompt), key=key)
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     _run(
@@ -985,7 +1016,7 @@ def test_a_failed_p8_verdict_write_does_not_leave_a_p6_fact_behind(
     key = subject[2]
     bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
-    request = _request(fingerprint=prompt_fingerprint(prompt), key=key)
+    request = _request(file_id=subject[0], fingerprint=prompt_fingerprint(prompt), key=key)
     gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
 
     def explode(*_a, **_k):
@@ -1011,3 +1042,38 @@ def test_a_failed_p8_verdict_write_does_not_leave_a_p6_fact_behind(
     assert harness_conn.execute(
         "SELECT count(*) AS c FROM llm_verdict"
     ).fetchone()["c"] == 0
+
+
+def test_a_post_release_verdict_carries_the_policy_the_release_authorised(
+    harness_conn, subject,
+):
+    """`deps.policy_version` is a caller-injected string nothing cross-checks.
+    `dossier.policy_version` is `released.policy_version` -- the version P7
+    actually authorised under. Sites B-E already took the dossier's; Site A took
+    the caller's, and the two agreed in the suite only by coincidence.
+
+    `transport._require_binding` cannot catch the difference: `build_call_payload`
+    is fed `released.policy_version`, so that comparison is tautological.
+    """
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    request = _request(
+        file_id=subject[0], fingerprint=prompt_fingerprint(prompt), key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
+    verdict = _run(
+        harness_conn, request,
+        gate=gate,
+        model_client=ModelClient(model_target=CLOUD, invoke=Recorder(
+            reply=_direct_bytes(key))),
+        prompt=prompt,
+        deps=_deps(site_dependencies=bundle, policy_version="STALE-POLICY"),
+    )
+    assert isinstance(verdict, P8Verdict)
+    assert gate.released[0].policy_version == POLICY_VERSION
+    assert verdict.policy_version == POLICY_VERSION
+    assert verdict.policy_version != "STALE-POLICY"
+    assert harness_conn.execute(
+        "SELECT policy_version FROM llm_verdict WHERE dossier_id = ?",
+        (verdict.dossier_id,),
+    ).fetchone()["policy_version"] == POLICY_VERSION

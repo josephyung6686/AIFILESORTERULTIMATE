@@ -182,6 +182,7 @@ def _validate(conn, request, proposal, *, dependencies=None):
         dossier=dossier,
         citations=_quoting(proposal, dossier),
         evidence_resolver=lambda key: "the store still holds it",
+        apply_consequence=True,
     )
 
 

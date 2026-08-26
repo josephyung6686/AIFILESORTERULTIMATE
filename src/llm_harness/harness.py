@@ -303,7 +303,8 @@ def _validate_and_record(
         prompt_fingerprint=result.prompt_fingerprint,
         dossier_builder=DOSSIER_BUILDER,
         release_audit_id=released.audit_id,
-        policy_version=deps.policy_version,
+        policy_version=dossier.policy_version,
+        apply_consequence=True,
     )
     if isinstance(checked, ValidationUnavailable):
         return checked

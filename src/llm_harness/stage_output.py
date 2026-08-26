@@ -145,7 +145,9 @@ def replay_recorded_response(
     """Re-validate stored response bytes against the current evidence snapshot.
 
     Loads `llm_response.response_bytes`. Does not call a model client. Does not
-    return a previously stored verdict.
+    return a previously stored verdict, and does not append a second consequence
+    to another part's store: Site A's `apply_verdict` writes P6's fact or its
+    `unresolved` row, and `write_unresolved` is always an INSERT.
     """
     row = conn.execute(
         "SELECT response_bytes, model_id, prompt_fingerprint, release_audit_id "
@@ -167,4 +169,5 @@ def replay_recorded_response(
         dossier_builder=dossier_builder,
         release_audit_id=row["release_audit_id"],
         policy_version=policy_version,
+        apply_consequence=False,
     )

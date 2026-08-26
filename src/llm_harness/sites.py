@@ -173,6 +173,7 @@ def _fact_site(
     dossier_builder: str,
     release_audit_id: int | None,
     policy_version: str,
+    apply_consequence: bool,
 ):
     if conn is None:
         return ValidationUnavailable(missing=("conn",))
@@ -202,6 +203,7 @@ def _fact_site(
         dossier=dossier,
         citations=citations,
         evidence_resolver=evidence_resolver,
+        apply_consequence=apply_consequence,
     )
     if isinstance(verdict, ValidationUnavailable):
         return verdict
@@ -221,8 +223,16 @@ def dispatch(
     dossier_builder: str,
     release_audit_id: int | None,
     policy_version: str,
+    apply_consequence: bool,
 ):
-    """Validate a response at the site the dossier names. One mapping, P8's own."""
+    """Validate a response at the site the dossier names. One mapping, P8's own.
+
+    `apply_consequence` has no default and separates a live call from a replay.
+    Only Site A appends to another part's store: `apply_verdict` writes P6's fact
+    or its `unresolved` row, and `write_unresolved` is always an INSERT. Replay
+    re-validates stored bytes and must produce the same verdict without a second
+    consequence. Sites B-E write nothing outside P8 and ignore it.
+    """
     if not isinstance(site_dependencies, SiteDependencies):
         return ValidationUnavailable(missing=("site_dependencies",))
 
@@ -247,6 +257,7 @@ def dispatch(
             dossier_builder=dossier_builder,
             release_audit_id=release_audit_id,
             policy_version=policy_version,
+            apply_consequence=apply_consequence,
         )
     if site == B_GROUP:
         return validate_group_response(dossier, response_bytes, **common)

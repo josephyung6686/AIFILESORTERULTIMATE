@@ -13,6 +13,7 @@ from llm_harness.stage_output import (
 from llm_harness.store import record_dossier, record_response
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import (
+    ABSTAIN,
     ACCEPT_DIRECT,
     CITATION_NOT_FOUND,
     DIRECT_ANCHOR,
@@ -44,6 +45,11 @@ def _direct_bytes(key: str) -> bytes:
     """A stored response citing a real P4 observation key (M14: `sha256:` prefixed)."""
     return DIRECT_BYTES.replace(b"obs-key-1", key.encode("ascii"))
 
+
+UNKNOWN_BYTES = (
+    b'{"claims":[{"claim_ref":"c1","payload":{"field":"school"},'
+    b'"unknown":{"insufficiency_statement":"no labeled school"}}]}'
+)
 
 PROMPT_FP = "fp-p8-replay"
 MODEL_ID = "fixture-model"
@@ -99,7 +105,7 @@ def subject(replay_conn, tmp_path):
     return record_subject(replay_conn, tmp_path)
 
 
-def _dossier(key: str = "obs-key-1"):
+def _dossier(key: str = "obs-key-1", *, subject_ref: str = "file-1"):
     """A reference AND what P7 released under it.
 
     An `evidence_items` entry is the reference the model is allowed to cite; the
@@ -108,6 +114,7 @@ def _dossier(key: str = "obs-key-1"):
     is ungrounded -- which is what Site A now says.
     """
     return make_dossier(
+        subject_ref=subject_ref,
         evidence_items=(
             EvidenceItem(
                 evidence_ref=key,
@@ -160,7 +167,7 @@ def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn, subje
         model_target=ModelTarget(locality="local", model_id=MODEL_ID, provider="fixture"),
         invoke=trap,
     )
-    dossier = _dossier(key)
+    dossier = _dossier(key, subject_ref=subject[0])
     record_dossier(replay_conn, dossier, observed_at=FIXED_CLOCK)
     record_response(
         replay_conn, dossier_id=dossier.dossier_id, response_bytes=_direct_bytes(key),
@@ -204,7 +211,7 @@ def test_replay_does_not_trust_cached_validation(replay_conn, subject):
         model_target=ModelTarget(locality="local", model_id=MODEL_ID, provider="fixture"),
         invoke=trap,
     )
-    dossier = _dossier(key)
+    dossier = _dossier(key, subject_ref=subject[0])
     record_dossier(replay_conn, dossier, observed_at=FIXED_CLOCK)
     record_response(
         replay_conn, dossier_id=dossier.dossier_id, response_bytes=_direct_bytes(key),
@@ -225,11 +232,13 @@ def test_replay_does_not_trust_cached_validation(replay_conn, subject):
         (dossier.dossier_id,),
     ).fetchone()
     assert stored_outcome is None
-    empty = make_fact_bundle(replay_conn, ("missing-file", "missing-hash", key))
+    # Same dossier, same stored bytes, same P6 authority -- only the store has
+    # moved: the observation the response cites no longer resolves. A replay that
+    # trusted its earlier verdict would still say `accept_direct`.
     second, report = replay_recorded_response(
         replay_conn, dossier,
         evidence_resolver=_resolver(None, key),
-        site_dependencies=empty,
+        site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
         policy_version="policy-1",
@@ -239,3 +248,44 @@ def test_replay_does_not_trust_cached_validation(replay_conn, subject):
     assert second[0].reasons == (CITATION_NOT_FOUND,)
     assert report.claims_rejected == 1
     assert first[0].outcome != second[0].outcome
+
+
+def test_site_a_replay_appends_no_second_p6_consequence(replay_conn, subject):
+    """The one boundary replay must not cross.
+
+    `facts.unresolved.write_unresolved` is "Always an INSERT, never an update and
+    never de-duplicated". Site A's `apply_verdict` is the only place P8 writes
+    into another part's store, and replay drove it unconditionally: re-validating
+    one stored abstention left P6 saying the model had declined twice.
+    """
+    from facts.unresolved import unresolved_for_file
+
+    file_id, content_hash, key = subject
+    bundle = make_fact_bundle(replay_conn, subject)
+    dossier = _dossier(key, subject_ref=file_id)
+    record_dossier(replay_conn, dossier, observed_at=FIXED_CLOCK)
+    record_response(
+        replay_conn, dossier_id=dossier.dossier_id,
+        response_bytes=UNKNOWN_BYTES,
+        model_id=MODEL_ID, prompt_fingerprint=PROMPT_FP, release_audit_id=17,
+        observed_at=FIXED_CLOCK,
+    )
+
+    def replay():
+        return replay_recorded_response(
+            replay_conn, dossier,
+            evidence_resolver=_resolver(RELEASED_MATERIAL, key),
+            site_dependencies=bundle,
+            contradicts=_never_contradicts,
+            dossier_builder="fixture",
+            policy_version="policy-1",
+        )
+
+    first, _ = replay()
+    second, _ = replay()
+    third, _ = replay()
+    assert [v.outcome for v in first] == [ABSTAIN]
+    assert [v.outcome for v in second] == [ABSTAIN]
+    assert first[0].verdict_id == third[0].verdict_id
+    assert [row["reason"] for row in unresolved_for_file(
+        replay_conn, file_id, content_hash)] == []
