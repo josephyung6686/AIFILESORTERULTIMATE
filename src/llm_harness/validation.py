@@ -131,7 +131,7 @@ def _check_citation(
     citation: Citation,
     dossier: Dossier,
     evidence_resolver: Callable[[str], object],
-) -> tuple[CheckedCitation, str | None] | ValidationUnavailable:
+) -> tuple[CheckedCitation, str | None]:
     """Two checks, two sources. SPEC: `CITATION_SPAN_MISMATCH` compares the cited
     span against *"the released dossier's excerpt -- what the model actually saw"*,
     while `CITATION_NOT_FOUND` *"resolves the reference against the store"*.
@@ -194,10 +194,7 @@ def check_citations(
     checked: list[CheckedCitation] = []
     reasons: list[str] = []
     for citation in citations:
-        result = _check_citation(citation, dossier, evidence_resolver)
-        if isinstance(result, ValidationUnavailable):
-            return result
-        item, reason = result
+        item, reason = _check_citation(citation, dossier, evidence_resolver)
         checked.append(item)
         if reason is not None:
             reasons.append(reason)

@@ -347,3 +347,21 @@ def test_a_claim_keeps_its_spans_on_the_way_to_site_a():
     proposal, citations = parsed
     assert proposal.citations == (KEY,)
     assert [item.cited_span for item in citations] == [REDACTED]
+
+
+def test_the_citation_check_has_no_unreachable_unavailable_branch():
+    """`_check_citation` declared `| ValidationUnavailable` and never returned one,
+    so every caller carried a branch that could not run. A handling path with no
+    reachable cause is a claim about behaviour that is not there, and a reader
+    checking whether the check can fail closed would find a lie."""
+    import inspect
+
+    from llm_harness.validation import _check_citation, check_citations
+
+    assert "ValidationUnavailable" not in str(
+        inspect.signature(_check_citation).return_annotation)
+    assert "ValidationUnavailable" not in inspect.getsource(_check_citation)
+    # `check_citations` keeps the union: it is the shared entry point, and a
+    # missing injected authority reaches it from the site validators.
+    assert "ValidationUnavailable" in str(
+        inspect.signature(check_citations).return_annotation)
