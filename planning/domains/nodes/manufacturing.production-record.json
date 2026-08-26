@@ -1,0 +1,400 @@
+{
+  "id": "manufacturing.production-record",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Production and batch records",
+  "one_line": "The execution instance of one released definition: the traveller, route card, job packet or batch production record that follows a single production order or batch through a routed operation sequence and accumulates actual values, operator signoffs, consumed material, yield and scrap against a plan. Its anchor is neither the product nor the form name but the executed order/batch itself. Placeholder row on the fieldless manufacturing schema; it declares no field rows under PR-6 and serialises no dimension_order.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "charge_against_the_row": "Stated at full strength before any defence, because it is nearly fatal. (a) DOCUMENT-TYPE WORD: `traveller`, `route card`, `router` and `batch record` are names of a FORM. A row named after a form is one of the recorded failure modes. (b) WORK_TYPE VALUE: the manufacturing schema's own `work_types[]` opens with the value `production order, traveller, router or batch production record`. A row that is verbatim value #1 of its schema's enum is the 574's original mistake in its purest form. (c) DUPLICATE OF THE DEFAULT TEMPLATE: the schema anchor's first deterministic signal already reads `a batch-production or traveller structure with a labelled product/part slot, batch or lot slot, planned-versus-actual quantities, sequential operation rows, operator/date signoffs, and release status`. That is this row's signal, already written on the schema. (d) LIFECYCLE STAGE: sitting between `manufacturing.production-planning` and `manufacturing.inspection-record`, this is the `executed` stage of a shop order, and a row per lifecycle stage is a failure mode. (e) NEVER-ALONE EVIDENCE: a lot token, a job number and a part number are each individually forbidden as sole proof. (f) DEFINED BY ABSENCE: 'the production record that is not an inspection, calibration, NCR, maintenance or HSE record' is a residual carved out of eighteen siblings, not a filing world.",
+    "signals_differ": "Defeated, but only on evidence the schema default provably cannot see, and (c) is conceded in part. A fieldless anchor schema is written as the UNION of its children's structures, so every one of the nineteen manufacturing templates will find some ancestor of its signal on the schema row; if that alone refused, the schema could carry no templates at all. The test is therefore whether this row's signal SET discriminates a situation the union cannot resolve. Three signals here are not on the schema row and are not derivable from it. FIRST, the PARTIAL-EXECUTION FRONTIER: a sequential operation table in which a contiguous PREFIX of rows carries operator/date/quantity values and the remaining suffix is structurally identical but empty. No other manufacturing record has a mid-state; an inspection report, a calibration certificate and a maintenance work order are each complete or absent. This shape is what makes a live traveller recognisable and it is what makes it dangerous to treat the blank rows as missing data. SECOND, the RECONCILIATION TRIPLE: issued quantity, good quantity and scrap/rework quantity closing against each other under one signature, with the arithmetic itself present in the bytes. The schema row names `planned-versus-actual quantities` as a pair; the closing triple with a reconciliation signoff is specific to the executed order and is what separates a batch record from a schedule that also shows planned and actual columns. THIRD, the INSTANCE-VERSUS-TYPE SPLIT: the same operation text, the same parameter table and the same product appear in `manufacturing.work-instruction` under a document revision and effective date, and here under an order or batch identifier with actual values written into those same slots. The discriminating evidence is not the text but whether the parameter cells are populated and bound to an instance identifier. The schema union cannot make that call because it holds both structures.",
+    "dimensions_differ": "Defeated on a structural fact about the anchor. The manufacturing schema deliberately declines to serialise one order and holds a THREE-WAY BRANCH in prose: product/lot/record-type for production and quality, site/asset/record-type for maintenance and calibration, quality-event/record-type for NCR and CAPA. A branch-shaped default cannot be resolved to a single ordered list by `destination_dimensions`, so the schema has no default template to duplicate here; templates exist precisely to resolve the branch. This row resolves it, and then differs from the branch it resolves by DROPPING its terminal level. `record_type` is near-constant inside this row - every member is the production record - so a record-type level would generate single-child folders under every lot. The researched recommendation is therefore product then executed order or batch, with site optional above product only in a genuinely multi-site corpus, and a serial level below the order only where the corpus is serialised. It is not time-first: 00 states that `For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.` A traveller carries a start date, an operation date per row, a release date and a scan date, and ordering by any of them would scatter one order across calendar folders. Serialised as `[]` because none of the keys involved is canonical yet.",
+    "privacy_differs": "Weakly, and this row does not rest on it - stated plainly rather than inflated into a third leg. Sensitivity stays `potentially_sensitive`, the same as the schema, and no handling class is assigned. The one genuine difference in kind is a concentration rather than a category: the traveller is the only manufacturing record that carries a named worker or clock number on nearly EVERY row, and it carries the executed process recipe - times, temperatures, pressures, feeds, tooling, actual yields - in the same bytes. It is the intersection of worker-identifying data and the trade secret, which is why an operator or shift name must remain a search and privacy observation and must never be promoted to a destination dimension, and why the recognition posture prefers the header and one operation row over the whole document when an excerpt must leave the machine."
+  },
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "work_order",
+      "type": "string",
+      "example": "WO-2026-4471",
+      "why_no_existing_key": "The schema anchor proposes `batch_lot` for the material output of a transformation. That key cannot carry this row's anchor in the discrete case: a make-to-order machine shop routes a JOB that produces serial numbers and no lot at all, and a process plant can split one lot across several orders or merge several orders into one lot. The executed order is the level at which the traveller exists, is signed and is closed, and it is the level at which the schema's own `work_types` value `production order, traveller, router or batch production record` is instantiated. This key should hold a labelled order, job or batch-record identifier read from an explicit slot, never a bare number scraped from a filename.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE because one executed order is the coherent packet a person actually wants together - traveller pages, kitting slip, in-process checks, deviation and release. It is not authorship and not an organisation name.",
+      "reliability_ceiling": "validated",
+      "validation_rule_family": "identifier pattern plus manufacturing execution context - an order-shaped token confirmed only by co-occurring routed-operation or signoff structure, never by the token alone",
+      "provenance": "proposal",
+      "adjudication_note": "R1c may reject this in favour of widening the anchor's `batch_lot` to mean 'execution instance' rather than 'material lot'. This row states the gap and does not assume the answer. See NJ-PROD-1."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a routed operation table bound to one instance identifier: sequential operation or step numbers, a work-centre or machine per row, and per-row actual slots for operator, date/time and quantity, where the instance identifier appears in a labelled header slot rather than only in the filename",
+      "a partial-execution frontier - a contiguous prefix of operation rows carrying operator, date or quantity values while the structurally identical remaining rows are empty; this is a live traveller mid-route and the empty rows are not missing data",
+      "a reconciliation triple closing under one signature: quantity issued or kitted, quantity good or yielded, and quantity scrapped or reworked, with the closing arithmetic present in the bytes",
+      "a batch production record structure joining a materials-issued list with lot references, step-by-step process parameters whose cells carry ACTUAL values beside their specified ranges, in-process check entries, and a final QA release or rejection block against one batch identifier",
+      "a device-history or build record listing serial numbers produced under one order, each with a build date, station or operator, so the serials are children of the order rather than an independent asset population",
+      "an operation-level machine export whose rows key on one order or batch identifier and carry start/stop timestamps, cycle counts, good/reject counts and a station identifier",
+      "a materials issue, kitting or picking slip whose header names the consuming order and whose rows name component part numbers, issued lots and quantities consumed",
+      "a rework, reprocess or line-clearance entry attached to an operation of an identified order, carrying an authorisation slot and a return-to-route step",
+      "an archive whose manifest links one order or batch identifier across traveller, kitting, in-process check and release members; the archive is inspected without being unpacked to disk"
+    ],
+    "needs_llm": [
+      "a phone photograph or flatbed scan of a paper route card carried on the shop floor, where the grid, the signoff boxes and the handwriting survive visually but the column labels do not survive OCR, and the model must decide whether the visible frontier is an execution state or an ordinary blank form",
+      "a blank or nearly blank traveller template - the same grid with no instance identifier and no actual values, which is a work instruction or a form and not an execution record",
+      "an unlabelled shift notebook page whose rows could be operation signoffs on one job, a line log across many jobs, or a laboratory experiment sequence",
+      "a spreadsheet whose columns could be a production schedule, an executed traveller extract, or a project task list, where the deciding difference is whether the actual columns are populated and bound to an instance",
+      "a mixed job packet where the embedded procedure text, the in-process check table and the deviation note each belong to a different sibling row and only the header binds them",
+      "a foreign-language or heavily abbreviated route card where the operation vocabulary is present but unrecognised"
+    ],
+    "never_alone": [
+      "a bare order- or lot-shaped token such as `4471` or `L240817-03`. 00 forbids a bare 4-digit number as proof, and a job number is the same shape as an invoice, ticket, purchase-order or support-case number - this is exactly what a file named `4471.pdf` in a folder called Jobs would trip",
+      "the words `Traveller`, `Route Card`, `Router`, `Batch Record` or `Job Packet` in a filename or parent folder. These are document-type words and this row is not named after them; `Router` additionally names a network device and a woodworking tool, so `Router setup.pdf` is a plausible false positive from three unrelated worlds",
+      "a part or product number alone. The same token appears on an engineering drawing, a purchase order, an inspection report and a packing list",
+      "a printed process-parameter table alone with no populated actual cells and no instance identifier - that is `manufacturing.work-instruction`, and it is the single most convincing false positive in this domain",
+      "an operator, shift, plant or company name alone. An organisation or person name is never-alone evidence and can never activate this row by itself",
+      "a signoff, initial or pass/fail column alone; inspection reports, training records, maintenance work orders and HSE checklists all contain one",
+      "a file extension alone, and a bounded download session as topic",
+      "a date sequence alone. A serial dated operational record with shift and downtime columns is equally a construction site diary until an order, batch or line reference appears"
+    ]
+  },
+  "work_types": [
+    "traveller, route card, router or job packet",
+    "batch production record or master batch record execution copy",
+    "device history record or per-unit build record",
+    "materials issue, kitting or line-side picking slip",
+    "in-process operation log or step signoff sheet",
+    "yield, scrap and rework reconciliation",
+    "line clearance, changeover or cleaning record executed against one order",
+    "rework or reprocess order",
+    "serial or build list produced under one order",
+    "operation-level machine or MES execution export",
+    "production hold, release or closure record for one order"
+  ],
+  "grouping_reasons": [
+    "one executed order or batch across traveller pages, kitting slip, in-process checks, deviation note and release block",
+    "one batch across the batch production record and the lot-genealogy sheet that consumes into it",
+    "one order across the paper original, its phone photograph and its later flatbed scan as a duplicate/version family",
+    "serial numbers grouped as children of the order that produced them rather than as an independent asset population",
+    "a sparse scan page such as `Page 2.pdf` or `IMG_4472.jpg` joins the order neighbourhood for review without the order fact being copied onto it"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: `work_order` is a proposal on this row, `product`, `site` and `batch_lot` are proposals on the schema anchor, and none is canonical. The researched recommendation held as prose is product, then executed order or batch, with `site` optional above product only in a genuinely multi-site corpus and a serial level below the order only where the corpus is serialised. It deliberately DROPS the `record_type` level that the schema anchor's production branch ends in, because record type is near-constant inside this row and would generate a single-child folder under every order. Not time-first: 00 states that \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders,\" and a traveller carries start date, per-operation dates, release date and scan date, so any of them as the first level would scatter one order. The user may reverse, remove or flatten this once facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": ["pdf", "docx", "xlsx", "csv", "jpg", "png", "tif", "eml", "xml", "json", "zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Traveller WO-2026-4471 AX-410 valve body.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled header slots Work Order, Part Number, Rev, Order Qty 250, Due 2026-08-22",
+        "operation rows 10 through 70 with work centre and description columns",
+        "operations 10 to 40 carry operator initials, dates and quantity-good entries; 50 to 70 are structurally identical and empty",
+        "footer reconciliation block Good / Scrap / Rework with two of three cells filled"
+      ],
+      "facts_legal": ["work_order", "product", "batch_lot where a lot slot is populated", "site where a plant slot is populated"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the empty operation rows mean the order was cancelled or the data is missing",
+        "that the part number alone establishes an engineering design item",
+        "an operator identity as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPR_AX410_L240817-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "batch identifier and product in a labelled header",
+        "materials-issued table naming component lots and quantities consumed",
+        "process steps where each specified parameter range is followed by a written actual value and an initial",
+        "in-process check entries interleaved with steps",
+        "final yield reconciliation and a QA release block with signature and date"
+      ],
+      "facts_legal": ["batch_lot", "product", "work_order where an order slot is populated", "site"],
+      "must_not_conclude": [
+        "that the QA release block makes this an inspection record",
+        "that the embedded procedure text makes this a work instruction",
+        "a disposition, release validity or regulatory conclusion"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a printed grid on a clipboard, taken at an angle under shop lighting",
+        "OCR recovers the tokens WO-2026-4471, OP 30, and several handwritten initials; column headers do not survive",
+        "visible ruled rows with a filled upper region and a blank lower region"
+      ],
+      "facts_legal": ["work_order only if the OCR token is confirmed by the surviving routed-operation structure"],
+      "must_not_conclude": [
+        "the order fact from the recovered token alone",
+        "a screenshot origin from missing or unusual metadata",
+        "a product fact that OCR did not actually recover"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Job 4471 serial list.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Serial, Build Date, Station, Operator",
+        "a repeated order reference in a header row or a constant column",
+        "row count consistent with the order quantity"
+      ],
+      "facts_legal": ["work_order", "product"],
+      "must_not_conclude": [
+        "that the serialised units constitute a controlled asset population",
+        "an asset fact for each serial",
+        "a customer or shipment fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Setup sheet OP30 AX-410 rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same product, the same operation number and the same parameter table as the traveller",
+        "a document number, revision C, an effective date and an approver block",
+        "every parameter cell holds a SPECIFIED range and none holds an actual value",
+        "no order, batch or serial identifier anywhere in the document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a work_order or batch_lot fact",
+        "that shared operation text with a traveller establishes membership in an order packet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Production schedule week 34 Plant 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of order numbers with product, planned quantity, planned start and planned finish, work centre and priority",
+        "no operator, no signoff, no actual quantity and no scrap column",
+        "many orders in one file rather than one order across many rows"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a work_order fact for this row from a column of order numbers",
+        "that a planned-versus-actual pair exists where only planned values are present"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Final inspection AX410 lot L240817-03.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Characteristic, Specification, Measured, Pass/Fail, Instrument, Inspector, Date",
+        "one lot identifier repeated as a constant",
+        "no operation sequence and no routing"
+      ],
+      "facts_legal": ["batch_lot as a shared reference only"],
+      "must_not_conclude": [
+        "a work_order fact",
+        "that a lot shared with a traveller makes this file part of the traveller"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Prototype build log DVT unit 003.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a sequential build narrative with dates, a unit number and bench measurements",
+        "a design revision reference that is not released",
+        "deviations recorded as build notes rather than against a disposition"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a work_order fact from a unit number",
+        "that a sequential dated build record is a production traveller"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Line 2 shift log 2026-08-17.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "timestamped rows for output count, scrap, downtime reason, changeover and shift",
+        "one identified line as the constant; order numbers appear only as passing references, several per shift",
+        "no routed operation sequence"
+      ],
+      "facts_legal": ["site", "product where a single product runs the shift"],
+      "must_not_conclude": [
+        "a work_order fact from the order references that pass through the shift",
+        "that a line-primary record is an order-primary record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Lot L240817-03 hold released.eml",
+      "source_type": "email",
+      "observations": [
+        "subject names an exact lot identifier",
+        "body states a hold has been lifted; no routed structure",
+        "attachment named for a release form"
+      ],
+      "facts_legal": ["batch_lot from the exact labelled reference, pending the attachment"],
+      "must_not_conclude": [
+        "a work_order fact",
+        "a release status as an authoritative outcome",
+        "that the mail body's assertion overrides a stronger direct fact in the batch record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Order packet WO-2026-4471.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists traveller pages, a kitting slip, an in-process check sheet, a deviation note and a release page",
+        "every member filename repeats the same order identifier",
+        "the archive is read for type, contained paths, filenames, extensions, count and size without being unpacked to disk"
+      ],
+      "facts_legal": ["work_order", "product"],
+      "must_not_conclude": [
+        "member-level facts that the manifest does not evidence",
+        "that a deviation member converts the packet into a nonconformance file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "MES_ops_export_2026-08.json",
+      "source_type": "code_structured",
+      "observations": [
+        "records keyed on order identifier with nested operation objects",
+        "start and stop timestamps, station identifier, good and reject counts per operation",
+        "no human signature slot"
+      ],
+      "facts_legal": ["work_order", "product", "site"],
+      "must_not_conclude": [
+        "an operator identity where only a station identifier exists",
+        "a schema activation from the .json extension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.production-planning",
+      "signal": "Shared fixture: `Production schedule week 34 Plant 2.xlsx` and the header block of `Traveller WO-2026-4471 AX-410 valve body.pdf`. Both carry the same order number, product, planned quantity and due date. Planning owns the order BEFORE and ABOVE execution - many orders in one artefact, planned dates and quantities, capacity and sequence, no actuals. This row owns the same order once per-operation actual values and signoffs are written onto it, one order per artefact. Reciprocally, the planned quantity and due date printed in this row's traveller header are not reclaimed by planning; they are the plan side of the reconciliation and stay here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "signal": "Shared fixture: `Setup sheet OP30 AX-410 rev C.pdf`, whose parameter table is byte-for-byte the table embedded in `BPR_AX410_L240817-03.pdf`. Work instruction owns the TYPE-level artefact: a document number, a revision, an effective date, an approver, and parameter cells holding specified ranges only. This row owns the INSTANCE where those same cells carry actual values under an order or batch identifier. Reciprocally, the procedure text reproduced verbatim inside this row's batch record does not make the packet a work instruction, and a revision reference in a traveller header does not move it there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "Shared fixture: `Final inspection AX410 lot L240817-03.csv` beside the in-process check entries inside `BPR_AX410_L240817-03.pdf`. Inspection owns a characteristic / specification / measured / disposition table standing on its own against a lot or unit, with instrument and inspector slots. This row owns check values recorded as operation rows inside the execution record. Reciprocally, an in-process check embedded in a traveller is not extracted into an inspection record, and a standalone inspection report sharing the lot token is not absorbed into the order packet without an order reference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "signal": "Shared fixture: `Prototype build log DVT unit 003.docx`. That row already authored this seam from its side and states that this row owns `EXECUTION OF A RELEASED DEFINITION at batch or lot scale`, and that `a lot or batch number joined to acceptance limits and an inspector disposition ... belongs to manufacturing.production-record even when it cites this row's revision`. The reciprocal from here: a sequential dated build record against an UNRELEASED revision, with bench measurements and no production order, routing or release, is theirs even when it looks exactly like a traveller of quantity one.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.print-production",
+      "signal": "Shared fixture: `Press run record Job 88214 - 4c cover.pdf`. That row already authored this seam and states that `generic shop-floor production records belong to manufacturing`. The reciprocal from here: a press run record with make-ready, plate, ink-sequence and proof-approval slots tied to a print job is theirs; a route card with operation rows, a reconciliation triple and no artwork or proof anchor is this row's even when the product happens to be printed matter.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "Shared fixture: `Site diary 2026-08-17 Riverside.pdf` beside `Line 2 shift log 2026-08-17.xlsx`. That row already authored this seam and names the discriminator as `a batch, line, or work-order reference supports the manufacturing row; a site address, weather and trades support this row`. The reciprocal from here is the same test read in the other direction, with the added caution that a plant address and a headcount column are not enough on this side either: without an order, batch or line anchor, a serial dated operational record does not activate this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "why": "One traveller page can carry both on disjoint slots: the routed operation rows and reconciliation are this row's evidence, while a labelled nonconformance identifier with a requirement-versus-observed condition, containment and disposition raised at that operation is the NCR row's evidence in the same bytes. Neither copies the other's anchor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "why": "A released-order packet may contain the execution record and shipment custody evidence together. Each schema activates from its own slots; the order or lot fact is never copied onto a sparse packing list merely because the files group.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "why": "A traveller header that names a change effectivity, or a deviation note that requests a design change, carries manufacturing execution evidence and engineering definition evidence in one file. Actual quantities and signoffs support this row; from/to revisions and design rationale support engineering.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone route card, setup sheet or run sheet with durable purpose but no confirmed order, batch or product anchor remains an independent record rather than being forced into an order packet.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A job-complete notification, goods-receipt note or release acknowledgement that proves only that a transaction occurred, with no routed or reconciliation structure, belongs in the receipt/confirmation residual.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A photographed or OCR-poor route card whose instance identifier and execution frontier cannot be read should abstain rather than manufacture an order fact from a recovered token.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single shop-floor photograph that shows a clipboard, a machine display or a defect but yields no readable instance identifier is an image, not an execution record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A proprietary MES or machine binary export, or a password-protected order archive, can be represented without inferring its purpose from its filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The execution record concentrates two different sensitivities in the same bytes: the executed process recipe - actual times, temperatures, feeds, tooling, yields and scrap rates - is commonly the trade secret, and the per-row operator initials, names and clock numbers make it the densest named-worker record in the manufacturing corpus. Yield and scrap figures are also commercially damaging in isolation. The row assigns no handling class; that is P7's. Operator and shift identity remain search and privacy observations and are never promoted to destination dimensions, and where an excerpt must leave the machine the header plus one operation row is preferred over the whole document.",
+  "open_question": "NJ-PROD-1: is the execution anchor a new `work_order` key, or should the schema anchor's proposed `batch_lot` be widened from 'material lot' to 'execution instance' so that discrete jobs and process batches share one key? A third option is that R1c mints a general `case`-shaped key and manufacturing, quality and maintenance all bind to it. NJ-PROD-2: the roster has no line-log or shift-log row, so `Line 2 shift log 2026-08-17.xlsx` currently has no template home - does it fall to the schema default, to Independent Records, or does R1c widen this row to cover line-primary execution records? This row deliberately excludes it rather than annexing coverage it did not argue. NJ-PROD-3: should serial numbers under an order be a dimension level below the order, or facts on members only? Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}
