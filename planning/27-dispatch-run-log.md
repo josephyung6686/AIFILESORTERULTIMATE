@@ -976,3 +976,55 @@ writing into a file an agent still owns is the collision `29-DOMAIN-OWNERSHIP.md
 
 Reciprocity counts move as rows land (a collision into an unwritten row is owed, not one-way), so
 step 3 must re-run the gate rather than work from the numbers logged above.
+
+## Deferred to the next batch — Joseph's credit cut, 2026-08-26
+
+Shards 1 and 3 were ended to stop **39 unrun rows** from spending credits. Shards 0 and 2 were
+left running and were not touched. Killed agents' finished files persist (agents write each file
+the moment it is ready) — verified: **zero memo-without-JSON partials**, so nothing is a half-row.
+
+Do not work from this list — recompute from the roster (`26-research-dispatch-state.md` §0).
+It is recorded only so the size of the cut is auditable:
+
+```text
+  law_practice.contract-negotiation
+  law_practice.criminal-defence
+  law_practice.depositions-testimony
+  law_practice.due-diligence
+  law_practice.expert-materials
+  law_practice.hearing-transcripts
+  law_practice.investigation
+  law_practice.legal-research
+  law_practice.motions-and-briefs
+  law_practice.orders-and-judgments
+  law_practice.precedent-bank
+  law_practice.regulatory-submission
+  law_practice.time-and-billing
+  law_practice.trial-preparation
+  logistics.driver-compliance
+  logistics.last-mile-pod
+  logistics.shipment
+  manufacturing.asset-register
+  manufacturing.energy-audit
+  manufacturing.failure-analysis
+  manufacturing.hse-incident
+  manufacturing.maintenance-work-order
+  manufacturing.production-planning
+  manufacturing.quality-management-system
+  manufacturing.spare-parts
+  manufacturing.tooling-fixture
+  manufacturing.work-instruction
+  nonprofit.fundraising-donor
+  nonprofit.grant-reporting
+  nonprofit.political-campaign
+  nonprofit.standards-body
+  nonprofit.volunteer-management
+  retail_hospitality.catering-contract
+  retail_hospitality.event-production
+  retail_hospitality.guest-feedback
+  retail_hospitality.pos-reporting
+  retail_hospitality.product-catalogue
+  retail_hospitality.stocktake
+  retail_hospitality.supplier-order
+```
+
