@@ -50,6 +50,10 @@ CONFIG_PARAMETERS = frozenset({
     "contradicts",
     "evidence_resolver",
     "site_validator",
+    "site_dependencies",
+    "fact_request",
+    "fact_dependencies",
+    "policy_version",
     "schema_validator",
     "model_client",
     "prompt",
@@ -96,26 +100,6 @@ INVENTED_AUTHORITIES = frozenset({
     "produce_placement", "place_file", "PlacementProducer",
 })
 
-DEPENDENCY_TYPES = (
-    CallDependencies,
-    FactValidationDependencies,
-    PlacementDependencies,
-    ResidualDependencies,
-    TemplateDependencies,
-)
-
-PUBLIC_CALLABLES = (
-    run_call,
-    issue,
-    validate_response,
-    validate_fact_proposal,
-    validate_group_response,
-    validate_placement_response,
-    validate_residual_response,
-    validate_template_response,
-    plan_reduction,
-    assess_call,
-)
 
 
 def modules() -> list[pathlib.Path]:
@@ -127,6 +111,44 @@ def imported_modules():
     for info in pkgutil.iter_modules(llm_harness.__path__):
         found.append(importlib.import_module(f"llm_harness.{info.name}"))
     return found
+
+
+#: The registries below were hand-listed, which meant a new public callable or a
+#: new dependency bundle simply got no no-invention check. `sites.dispatch`,
+#: `dossier.build_dossier`, `SiteDependencies` and `FactSiteDependencies` were all
+#: added by the live-composition repair and were all missing from the old lists.
+#: They are derived now, so the sweep cannot fall behind the package.
+
+def _p8_functions():
+    """Every public function P8 defines, in the module that defines it."""
+    found = {}
+    for module in imported_modules():
+        for name, member in vars(module).items():
+            if name.startswith("_") or not inspect.isfunction(member):
+                continue
+            if getattr(member, "__module__", None) != module.__name__:
+                continue  # a re-export, counted where it is defined
+            found[f"{module.__name__}.{name}"] = member
+    return found
+
+
+def _p8_dependency_types():
+    """Every frozen authority bundle. The naming rule is the registry."""
+    found = {}
+    for module in imported_modules():
+        for name, member in vars(module).items():
+            if not (inspect.isclass(member) and dataclasses.is_dataclass(member)):
+                continue
+            if getattr(member, "__module__", None) != module.__name__:
+                continue
+            if name.endswith("Dependencies"):
+                found[name] = member
+    return found
+
+
+DEPENDENCY_TYPES = tuple(_p8_dependency_types().values())
+
+PUBLIC_CALLABLES = tuple(_p8_functions().values())
 
 
 def _docstrings(tree: ast.AST) -> set[int]:
@@ -337,3 +359,42 @@ def test_no_module_holds_a_numeric_threshold_or_gazetteer():
     assert holders == [], holders
     assert gazetteers == [], gazetteers
     assert RESIDUAL_ACTIONS  # identity home is vocabulary; used, not reinvented
+
+
+def test_every_dependency_bundle_and_public_callable_is_swept():
+    """R6: the sweep is derived from the package, and covers what it used to list.
+
+    A hand-maintained registry is one contract in two places, and the second copy
+    is the one that goes stale. These names were the old list; the derived sweep
+    must still contain every one of them, and it must also have found the ones the
+    repair added.
+    """
+    dependencies = _p8_dependency_types()
+    for name in (
+        "CallDependencies", "FactValidationDependencies", "PlacementDependencies",
+        "ResidualDependencies", "TemplateDependencies",
+    ):
+        assert name in dependencies, name
+    assert "SiteDependencies" in dependencies
+
+    callables = _p8_functions()
+    for name in (
+        "llm_harness.harness.run_call",
+        "llm_harness.transport.issue",
+        "llm_harness.validation.validate_response",
+        "llm_harness.fact_validation.validate_fact_proposal",
+        "llm_harness.group_validation.validate_group_response",
+        "llm_harness.placement_validation.validate_placement_response",
+        "llm_harness.placement_validation.validate_residual_response",
+        "llm_harness.template_validation.validate_template_response",
+        "llm_harness.budgets.plan_reduction",
+        "llm_harness.eligibility.assess_call",
+    ):
+        assert name in callables, name
+    for name in (
+        "llm_harness.sites.dispatch",
+        "llm_harness.dossier.build_dossier",
+        "llm_harness.dossier.canonical_dossier_bytes",
+        "llm_harness.stage_output.replay_recorded_response",
+    ):
+        assert name in callables, f"the repair added {name} and the sweep missed it"
