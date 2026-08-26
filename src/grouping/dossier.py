@@ -50,11 +50,6 @@ from grouping.records import (
 )
 from grouping.vocabulary import CONTEXT_SUPPORTED, DIRECT_ANCHOR
 
-#: The most characters an excerpt carries. §4.4 asks for short observation-addressed
-#: spans: the key is the reference and the text is there to be read beside it. A
-#: whole file never appears, however small the file happens to be.
-EXCERPT_CHARACTER_LIMIT: int = 240
-
 #: What P3 records when it cannot name a format. P9 asserts nothing about a file
 #: it cannot describe.
 UNCLASSIFIED_DOCUMENT_TYPE: str = "unclassified"
@@ -99,7 +94,9 @@ def _file_row(conn: sqlite3.Connection, file_id: str) -> sqlite3.Row | None:
     ).fetchone()
 
 
-def _excerpts_for(conn: sqlite3.Connection, keys: Sequence[str]) -> tuple[Excerpt, ...]:
+def _excerpts_for(
+    conn: sqlite3.Connection, keys: Sequence[str], *, limit: int,
+) -> tuple[Excerpt, ...]:
     """One short excerpt per cited observation key, in the order cited.
 
     A key that resolves to nothing is skipped rather than carried. P8 verifies a
@@ -115,7 +112,7 @@ def _excerpts_for(conn: sqlite3.Connection, keys: Sequence[str]) -> tuple[Excerp
         found.append(Excerpt(
             observation_key=key,
             location=observation.location.zone,
-            text=observation.raw_value[:EXCERPT_CHARACTER_LIMIT],
+            text=observation.raw_value[:limit],
         ))
     return tuple(found)
 
@@ -212,7 +209,11 @@ def assemble_group_dossier(
             ),
             basis=DIRECT_ANCHOR if is_anchor else CONTEXT_SUPPORTED,
             key_facts=facts,
-            excerpts=_excerpts_for(conn, [fact.observation_key for fact in facts]),
+            excerpts=_excerpts_for(
+                conn, [fact.observation_key for fact in facts],
+                # How short a short excerpt is decides how much of a file
+                # reaches a model. That is a policy, and it arrives injected.
+                limit=limits.max_excerpt_characters),
             why_retrieved=None if is_anchor else _why_retrieved(graph, file_id),
         )
         (anchors if is_anchor else candidates).append(item)

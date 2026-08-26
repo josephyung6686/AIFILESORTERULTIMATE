@@ -48,7 +48,7 @@ def _limits(**overrides) -> GroupingLimits:
         max_candidate_members=10,
         max_dossier_tokens=4000,
         generic_hub_frequency=3,
-        minimum_independent_anchors=1,
+        minimum_independent_anchors=1, max_excerpt_characters=240,
     )
     values.update(overrides)
     return GroupingLimits(**values)

@@ -87,7 +87,7 @@ def _limits() -> GroupingLimits:
     return GroupingLimits(
         max_retrieved_neighbors=50, max_graph_nodes=10, max_candidate_members=10,
         max_dossier_tokens=4000, generic_hub_frequency=9,
-        minimum_independent_anchors=1)
+        minimum_independent_anchors=1, max_excerpt_characters=240)
 
 
 @pytest.fixture()

@@ -6,10 +6,11 @@ fifth key and no default: a fallback number would be P9 authoring a policy that
 belongs to configuration, and the failure mode it hides is the worst kind —
 running with a limit nobody chose and no error to say so.
 
-The two open-question values (`generic_hub_frequency`,
-`minimum_independent_anchors`) have no ceiling key yet and are mandatory injected
-arguments. They are the same rule with a different mechanism: absent means
-refuse, not guess.
+The three open-question values (`generic_hub_frequency`,
+`minimum_independent_anchors`, `max_excerpt_characters`) have no ceiling key yet
+and are mandatory injected arguments. They are the same rule with a different
+mechanism: absent means refuse, not guess. How short a "short excerpt" is decides
+how much of a file reaches a model, so it is a policy and not a constant.
 """
 from __future__ import annotations
 
@@ -41,6 +42,7 @@ class GroupingLimits:
     max_dossier_tokens: int
     generic_hub_frequency: int
     minimum_independent_anchors: int
+    max_excerpt_characters: int
 
 
 def _positive(value: object, *, source: str) -> int:
@@ -58,6 +60,7 @@ def grouping_limits(
     *,
     generic_hub_frequency: int,
     minimum_independent_anchors: int,
+    max_excerpt_characters: int,
 ) -> GroupingLimits:
     """P9's limits for this database. Every one is read or injected; none defaults."""
     read = {
@@ -71,5 +74,8 @@ def grouping_limits(
         ),
         minimum_independent_anchors=_positive(
             minimum_independent_anchors, source="minimum_independent_anchors",
+        ),
+        max_excerpt_characters=_positive(
+            max_excerpt_characters, source="max_excerpt_characters",
         ),
     )

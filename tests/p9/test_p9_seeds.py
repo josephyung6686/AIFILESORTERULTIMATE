@@ -239,7 +239,8 @@ def test_p9_spells_no_domain_field_name(seed_conn):
 
 
 def _limits(conn, **overrides) -> GroupingLimits:
-    values = dict(generic_hub_frequency=25, minimum_independent_anchors=2)
+    values = dict(generic_hub_frequency=25, minimum_independent_anchors=2,
+                  max_excerpt_characters=240)
     values.update(overrides)
     return grouping_limits(conn, **values)
 

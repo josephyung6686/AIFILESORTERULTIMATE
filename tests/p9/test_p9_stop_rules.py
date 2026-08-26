@@ -52,7 +52,7 @@ def _limits(**overrides) -> GroupingLimits:
     values = dict(
         max_retrieved_neighbors=50, max_graph_nodes=10, max_candidate_members=10,
         max_dossier_tokens=4000, generic_hub_frequency=3,
-        minimum_independent_anchors=1,
+        minimum_independent_anchors=1, max_excerpt_characters=240,
     )
     values.update(overrides)
     return GroupingLimits(**values)
@@ -154,7 +154,7 @@ def test_sr1_is_zero_anchors_and_not_the_support_bar(learning_conn):
     strict = _limits(minimum_independent_anchors=2)
     assert _evaluate(learning_conn, graph, limits=strict) is None
     assert meets_support_bar(graph, limits=strict, seed_anchors=False) is False
-    assert meets_support_bar(graph, limits=_limits(minimum_independent_anchors=1),
+    assert meets_support_bar(graph, limits=_limits(minimum_independent_anchors=1, max_excerpt_characters=240),
                              seed_anchors=False) is True
     assert meets_support_bar(graph, limits=strict, seed_anchors=True) is True
 

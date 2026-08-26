@@ -168,6 +168,7 @@ def _seed(conn, file_id: str, *, field_key: str = "subject",
 def _limits(conn):
     return grouping_limits(
         conn, generic_hub_frequency=25, minimum_independent_anchors=2,
+        max_excerpt_characters=240,
     )
 
 
