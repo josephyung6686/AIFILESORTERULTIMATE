@@ -18,7 +18,14 @@ from llm_harness.vocabulary import (
     DIRECT_ANCHOR,
     REJECT,
 )
-from p8.conftest import FIXED_CLOCK, make_dossier, make_verdict
+from p8.conftest import (
+    FIXED_CLOCK,
+    RELEASED_MATERIAL,
+    make_dossier,
+    make_fact_bundle,
+    make_verdict,
+    record_subject,
+)
 from privacy.release import ModelTarget
 
 from database_agent.db import create_schema
@@ -32,7 +39,11 @@ DIRECT_BYTES = (
     b'"citations":[{"evidence_ref":"obs-key-1","cited_span":"Columbia University",'
     b'"why_it_supports":"names the school"}]}]}'
 )
-RELEASED_MATERIAL = "Columbia University — redacted dossier excerpt"
+def _direct_bytes(key: str) -> bytes:
+    """A stored response citing a real P4 observation key (M14: `sha256:` prefixed)."""
+    return DIRECT_BYTES.replace(b"obs-key-1", key.encode("ascii"))
+
+
 PROMPT_FP = "fp-p8-replay"
 MODEL_ID = "fixture-model"
 
@@ -49,16 +60,12 @@ def _axes():
     )
 
 
-def _resolver(released: str | None):
+def _resolver(released: str | None, key: str = "obs-key-1"):
     def resolve(observation_key: str) -> str | None:
-        if observation_key == "obs-key-1":
+        if observation_key == key:
             return released
         return None
     return resolve
-
-
-def _noop_site(*_a, **_k):
-    return None
 
 
 def _never_contradicts(*_a, **_k):
@@ -76,18 +83,26 @@ class _Trap:
 
 @pytest.fixture()
 def replay_conn(conn):
+    from facts.fields import create_fields
+
     create_schema(conn)
     create_evidence_schema(conn)
     create_llm_schema(conn)
     create_eval_schema(conn)
+    create_fields(conn)
     return conn
 
 
-def _dossier():
+@pytest.fixture()
+def subject(replay_conn, tmp_path):
+    return record_subject(replay_conn, tmp_path)
+
+
+def _dossier(key: str = "obs-key-1"):
     return make_dossier(
         evidence_items=(
             EvidenceItem(
-                evidence_ref="obs-key-1",
+                evidence_ref=key,
                 kind="excerpt",
                 location="body",
                 excerpt_span=(0, 4),
@@ -122,16 +137,18 @@ def test_fixture_records_version_tuple_then_starts_run_then_emits(replay_conn):
     assert "policy_version" not in stored
 
 
-def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn):
+def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn, subject):
+    key = subject[2]
+    bundle = make_fact_bundle(replay_conn, subject)
     trap = _Trap()
     client = ModelClient(
         model_target=ModelTarget(locality="local", model_id=MODEL_ID, provider="fixture"),
         invoke=trap,
     )
-    dossier = _dossier()
+    dossier = _dossier(key)
     record_dossier(replay_conn, dossier, observed_at=FIXED_CLOCK)
     record_response(
-        replay_conn, dossier_id=dossier.dossier_id, response_bytes=DIRECT_BYTES,
+        replay_conn, dossier_id=dossier.dossier_id, response_bytes=_direct_bytes(key),
         model_id=MODEL_ID, prompt_fingerprint=PROMPT_FP, release_audit_id=17,
         observed_at=FIXED_CLOCK,
     )
@@ -144,10 +161,11 @@ def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn):
     )
     verdicts, report = replay_recorded_response(
         replay_conn, dossier,
-        evidence_resolver=_resolver(RELEASED_MATERIAL),
-        site_validator=_noop_site,
+        evidence_resolver=_resolver(RELEASED_MATERIAL, key),
+        site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
+        policy_version="policy-1",
     )
     assert trap.calls == []
     assert client.invoke is trap
@@ -163,25 +181,28 @@ def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn):
     assert trap.calls == []
 
 
-def test_replay_does_not_trust_cached_validation(replay_conn):
+def test_replay_does_not_trust_cached_validation(replay_conn, subject):
+    key = subject[2]
+    bundle = make_fact_bundle(replay_conn, subject)
     trap = _Trap()
     ModelClient(
         model_target=ModelTarget(locality="local", model_id=MODEL_ID, provider="fixture"),
         invoke=trap,
     )
-    dossier = _dossier()
+    dossier = _dossier(key)
     record_dossier(replay_conn, dossier, observed_at=FIXED_CLOCK)
     record_response(
-        replay_conn, dossier_id=dossier.dossier_id, response_bytes=DIRECT_BYTES,
+        replay_conn, dossier_id=dossier.dossier_id, response_bytes=_direct_bytes(key),
         model_id=MODEL_ID, prompt_fingerprint=PROMPT_FP, release_audit_id=17,
         observed_at=FIXED_CLOCK,
     )
     first, _ = replay_recorded_response(
         replay_conn, dossier,
-        evidence_resolver=_resolver(RELEASED_MATERIAL),
-        site_validator=_noop_site,
+        evidence_resolver=_resolver(RELEASED_MATERIAL, key),
+        site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
+        policy_version="policy-1",
     )
     assert first[0].outcome == ACCEPT_DIRECT
     stored_outcome = replay_conn.execute(
@@ -189,12 +210,14 @@ def test_replay_does_not_trust_cached_validation(replay_conn):
         (dossier.dossier_id,),
     ).fetchone()
     assert stored_outcome is None
+    empty = make_fact_bundle(replay_conn, ("missing-file", "missing-hash", key))
     second, report = replay_recorded_response(
         replay_conn, dossier,
-        evidence_resolver=_resolver(None),
-        site_validator=_noop_site,
+        evidence_resolver=_resolver(None, key),
+        site_dependencies=empty,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
+        policy_version="policy-1",
     )
     assert trap.calls == []
     assert second[0].outcome == REJECT

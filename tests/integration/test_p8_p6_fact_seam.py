@@ -32,6 +32,7 @@ CLOCK = "2026-08-19T12:00:00+00:00"
 MODEL = "test-model-1"
 PROMPT = "sha256:prompt-fingerprint"
 POLICY = "policy-1"
+DOSSIER = "dossier-address-1"
 
 
 def _signals(*schema_ids: str) -> ActivationSignals:
@@ -118,6 +119,7 @@ def _validate(conn, request, proposal, *, dependencies=None):
         model_identifier=MODEL,
         prompt_fingerprint=PROMPT,
         policy_version=POLICY,
+        dossier_id=DOSSIER,
     )
 
 

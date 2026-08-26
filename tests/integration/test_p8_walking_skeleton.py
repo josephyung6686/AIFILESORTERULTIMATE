@@ -29,7 +29,11 @@ from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
 from llm_harness.stage_output import emit_stage_output, record_p8_version_tuple
 from llm_harness.store import record_dossier, record_grounding_report, record_verdict
 from llm_harness.transport import ModelClient, issue
-from llm_harness.validation import validate_response
+from llm_harness.sites import (
+    FactSiteDependencies,
+    SiteDependencies,
+    dispatch,
+)
 from llm_harness.vocabulary import (
     A_FACT,
     ACCEPT_DIRECT,
@@ -149,15 +153,32 @@ def test_p7_release_then_p8_validate_then_p6_fact_then_p2_envelope(skeleton_conn
         release_id=decision.release_id,
     )
     record_dossier(conn, dossier, observed_at=egress.OBSERVED_AT)
-    checked = validate_response(
-        dossier, result.response_bytes,
+    import hashlib
+    digest = hashlib.sha256(b"hash-skeleton").hexdigest()
+    fact_request = build_request(
+        conn, file_id=file_id, content_hash=digest,
+        activation_signals=seam._signals("academic"),
+        normalizers={"subject": str.strip},
+    )
+    checked = dispatch(
+        conn, dossier, result.response_bytes,
+        site_dependencies=SiteDependencies(
+            fact=FactSiteDependencies(
+                fact_request=fact_request,
+                fact_dependencies=FactValidationDependencies(
+                    normalize=seam._fixture_normalize,
+                    contradicts=seam._fixture_contradicts,
+                ),
+            ),
+            placement=None, residual=None, template=None,
+        ),
         evidence_resolver=lambda obs: CITED if obs == key else None,
-        site_validator=lambda *_a, **_k: None,
         contradicts=lambda *_a, **_k: False,
         model_id=result.model_id,
         prompt_fingerprint=fingerprint,
         dossier_builder="p8-skeleton",
         release_audit_id=decision.audit_id,
+        policy_version=policy.policy_version,
     )
     verdicts, report = checked
     assert verdicts[0].outcome == ACCEPT_DIRECT
@@ -174,28 +195,7 @@ def test_p7_release_then_p8_validate_then_p6_fact_then_p2_envelope(skeleton_conn
     ).fetchone()["event_id"]
     assert after[len(before)] < issued_id
 
-    import hashlib
-    digest = hashlib.sha256(b"hash-skeleton").hexdigest()
-    fact_request = build_request(
-        conn, file_id=file_id, content_hash=digest,
-        activation_signals=seam._signals("academic"),
-        normalizers={"subject": str.strip},
-    )
-    p8 = validate_fact_proposal(
-        conn, fact_request,
-        Proposal(
-            field_key="subject", value="Columbia University",
-            citations=(key,), unknown=False,
-        ),
-        dependencies=FactValidationDependencies(
-            normalize=seam._fixture_normalize,
-            contradicts=seam._fixture_contradicts,
-        ),
-        model_identifier=result.model_id,
-        prompt_fingerprint=fingerprint,
-        policy_version=policy.policy_version,
-    )
-    assert p8.outcome == ACCEPT_DIRECT
+    # One dispatch, one P6 consequence: there is no second Site A path.
     rows = [
         row for row in facts_for_file(conn, file_id, digest)
         if row["field_key"] == "subject"

@@ -24,6 +24,7 @@ from llm_harness.budgets import (
 from llm_harness.dossier import build_dossier, canonical_dossier_bytes
 from llm_harness.eligibility import Eligible, assess_call
 from llm_harness.placement_validation import record_cd_verdict
+from llm_harness.sites import SiteDependencies, dispatch
 from llm_harness.records import (
     CallFailed,
     DossierRequest,
@@ -46,7 +47,6 @@ from llm_harness.validation import (
     DOSSIER_BUILDER,
     report_for_call_failure,
     report_for_pre_call_terminal,
-    validate_response,
 )
 from llm_harness.vocabulary import (
     A_FACT,
@@ -76,7 +76,8 @@ _SCOPE_BY_SITE = {
 
 _BOOL_FLAGS = frozenset({"unreduced_fits", "summarized_fits", "anchors_fit"})
 _NONE_OK = frozenset({"split_shard_fits", "split_shards", "estimated_cost", "actual_cost"})
-_CALLABLES = frozenset({"evidence_resolver", "site_validator", "contradicts"})
+_CALLABLES = frozenset({"evidence_resolver", "contradicts"})
+_TYPED = {"site_dependencies": SiteDependencies}
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +89,7 @@ class CallDependencies:
     learning_scope: str | None
     learning_subject_id: str | None
     evidence_resolver: object
-    site_validator: object
+    site_dependencies: SiteDependencies | None
     contradicts: object
     unreduced_fits: object
     summarized_fits: object
@@ -112,6 +113,10 @@ def _missing_from_deps(deps: object) -> tuple[str, ...]:
             continue
         if item.name in _CALLABLES:
             if not callable(value):
+                missing.append(item.name)
+            continue
+        if item.name in _TYPED:
+            if not isinstance(value, _TYPED[item.name]):
                 missing.append(item.name)
             continue
         if item.name in _NONE_OK:
@@ -264,16 +269,18 @@ def _issue_and_validate(
         return result
     if not isinstance(result, ModelResponse):
         return ValidationUnavailable(missing=("model_response",))
-    checked = validate_response(
+    checked = dispatch(
+        conn,
         dossier,
         result.response_bytes,
+        site_dependencies=deps.site_dependencies,
         evidence_resolver=deps.evidence_resolver,
-        site_validator=deps.site_validator,
         contradicts=deps.contradicts,
         model_id=result.model_id,
         prompt_fingerprint=result.prompt_fingerprint,
         dossier_builder=DOSSIER_BUILDER,
         release_audit_id=released.audit_id,
+        policy_version=deps.policy_version,
     )
     if isinstance(checked, ValidationUnavailable):
         return checked

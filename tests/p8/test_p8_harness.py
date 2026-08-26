@@ -11,6 +11,14 @@ import pytest
 
 import llm_harness
 from database_agent.db import create_schema
+from database_agent.files_table import get_file, record_file
+from evidence_shape.location import Location, Segment
+from evidence_shape.observation import Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import record_observation, record_run
+from facts.domains import ActivationSignal, ActivationSignals
+from facts.fields import create_fields
+from facts.llm_seam import build_request
 from evidence_shape.canonical import canonical_json
 from evidence_shape.schema import create_evidence_schema
 from llm_harness.authorship import COMPONENT_VERSION
@@ -28,7 +36,9 @@ from llm_harness.records import (
     ValidationUnavailable,
     build_call_payload,
 )
+from llm_harness.fact_validation import FactValidationDependencies
 from llm_harness.schema import create_llm_schema
+from llm_harness.sites import FactSiteDependencies, SiteDependencies
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import (
     A_FACT,
@@ -79,8 +89,13 @@ DIRECT_BYTES = (
     b'"citations":[{"evidence_ref":"obs-key-1","cited_span":"Columbia University",'
     b'"why_it_supports":"names the school"}]}]}'
 )
+
+
+def _direct_bytes(key: str) -> bytes:
+    """`DIRECT_BYTES` against a real P4 observation key."""
+    return DIRECT_BYTES.replace(b"obs-key-1", key.encode("ascii"))
 UNKNOWN_BYTES = (
-    b'{"claims":[{"claim_ref":"c1","payload":{},'
+    b'{"claims":[{"claim_ref":"c1","payload":{"field":"school"},'
     b'"unknown":{"insufficiency_statement":"no labeled school"}}]}'
 )
 MALFORMED_BYTES = b"{not-json"
@@ -93,7 +108,59 @@ def harness_conn(conn):
     create_privacy_schema(conn)
     create_llm_schema(conn)
     create_budget_schema(conn)
+    create_fields(conn)
     return conn
+
+
+@pytest.fixture()
+def subject(harness_conn, tmp_path):
+    """A real P1 file with a real P4 observation, so Site A can reach P6."""
+    path = tmp_path / "Syllabus.pdf"
+    body = b"BUSIB 4300 Syllabus, Spring 2026"
+    path.write_bytes(body)
+    file_id = record_file(
+        harness_conn, path, filename="Syllabus.pdf",
+        normalized_filename="syllabus.pdf", extension=".pdf",
+        observed_size=len(body),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Downloads", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(harness_conn, file_id)["content_hash"]
+    record_run(harness_conn, ExtractionRun(
+        run_id="r-1", file_id=file_id, content_hash=content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=FIXED_CLOCK, finished_at=FIXED_CLOCK))
+    observation = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document",
+        raw_value=RELEASED_MATERIAL,
+        location=Location("heading", (Segment("field", label="heading"),)),
+        occurrence_count=1, observed_at=FIXED_CLOCK, reliability="possible",
+        run_id="r-1", context_before="Syllabus - ")
+    record_observation(harness_conn, observation)
+    return file_id, content_hash, observation.observation_key
+
+
+def _fact_bundle(conn, subject):
+    """Site A's real authorities: P6's own FactRequest plus the C-5 oracles."""
+    file_id, content_hash, _ = subject
+    return SiteDependencies(
+        fact=FactSiteDependencies(
+            fact_request=build_request(
+                conn, file_id=file_id, content_hash=content_hash,
+                activation_signals=ActivationSignals(signals=(
+                    ActivationSignal(schema_id="academic", activates=lambda rows: True),
+                )),
+                normalizers={"subject": lambda raw: raw},
+            ),
+            fact_dependencies=FactValidationDependencies(
+                normalize=lambda field, raw: raw,
+                contradicts=lambda proposal, row: False,
+            ),
+        ),
+        placement=None, residual=None, template=None,
+    )
 
 
 def _prompt() -> PromptDefinition:
@@ -121,13 +188,14 @@ def _policy() -> Policy:
 
 
 def _model_call_request(*, file_id: str = "file-1",
-                        fingerprint: str | None = None) -> ModelCallRequest:
+                        fingerprint: str | None = None,
+                        key: str = "obs-key-1") -> ModelCallRequest:
     return ModelCallRequest(
         stage="grouping",
         target=Target(file_ids=(file_id,)),
         model_target=CLOUD,
         requested_items=(
-            Excerpt(observation_key="obs-key-1", span=TextSpan(0, 19),
+            Excerpt(observation_key=key, span=TextSpan(0, 19),
                     reason="names the school"),
         ),
         prompt_template_id="template.grouping",
@@ -136,14 +204,16 @@ def _model_call_request(*, file_id: str = "file-1",
     )
 
 
-def _request(*, file_id: str = "file-1", fingerprint: str | None = None) -> DossierRequest:
+def _request(*, file_id: str = "file-1", fingerprint: str | None = None,
+             key: str = "obs-key-1") -> DossierRequest:
     return DossierRequest(
         call_site=A_FACT,
         subject_ref=file_id,
         eligibility_reason=REMAINS_AMBIGUOUS,
-        evidence_items=(make_evidence_item(),),
+        evidence_items=(make_evidence_item(evidence_ref=key),),
         conflicts=(),
-        model_call_request=_model_call_request(file_id=file_id, fingerprint=fingerprint),
+        model_call_request=_model_call_request(
+            file_id=file_id, fingerprint=fingerprint, key=key),
         plan_version=None,
         evidence_snapshot_id="snap-1",
         budget_context="scan-1",
@@ -204,7 +274,9 @@ def _deps(**overrides):
         learning_scope="file",
         learning_subject_id="file-1",
         evidence_resolver=lambda key: RELEASED_MATERIAL if key == "obs-key-1" else None,
-        site_validator=lambda *_a, **_k: None,
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None, template=None,
+        ),
         contradicts=lambda *_a, **_k: False,
         unreduced_fits=True,
         summarized_fits=False,
@@ -245,10 +317,12 @@ def _count(conn, table: str) -> int:
 class RecordingGate:
     """Fake P7 gate. `.release(request)` is enough except NeedsConsent identity."""
 
-    def __init__(self, conn, *, prompt: PromptDefinition, decision) -> None:
+    def __init__(self, conn, *, prompt: PromptDefinition, decision,
+                 key: str = "obs-key-1") -> None:
         self.conn = conn
         self.prompt = prompt
         self.decision = decision
+        self.key = key
         self.requests: list[ModelCallRequest] = []
         self.released: list[Released] = []
 
@@ -269,7 +343,7 @@ class RecordingGate:
                 release_id=release_id,
                 audit_id=17 + len(self.released),
                 policy_version=POLICY_VERSION,
-                materialised_items=(_materialised(),),
+                materialised_items=(_materialised(observation_key=self.key),),
                 redaction_manifest=RedactionManifest(entries=()),
                 model_target=request.model_target,
             )
@@ -318,18 +392,20 @@ def test_run_call_signature_matches_the_orchestration_boundary():
         assert parameters[name].default is inspect.Parameter.empty, name
 
 
-def test_released_issues_once_validates_and_persists(harness_conn):
+def test_released_issues_once_validates_and_persists(harness_conn, subject):
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    request = _request(fingerprint=digest)
-    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
-    recorder = Recorder(reply=DIRECT_BYTES)
+    request = _request(fingerprint=digest, key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
+    recorder = Recorder(reply=_direct_bytes(key))
     result = _run(
         harness_conn, request,
         gate=gate,
         model_client=ModelClient(model_target=CLOUD, invoke=recorder),
         prompt=prompt,
-        deps=_deps(),
+        deps=_deps(site_dependencies=bundle),
     )
     assert isinstance(result, P8Verdict)
     assert result.outcome == ACCEPT_DIRECT
@@ -583,31 +659,33 @@ def test_model_error_persists_failure_report_and_invents_neither_response_nor_ve
     assert _events(harness_conn, "invented_failure") == []
 
 
-def test_retry_is_disabled_on_call_failed_and_on_schema_invalid(harness_conn):
+def test_retry_is_disabled_on_call_failed_and_on_schema_invalid(harness_conn, subject):
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    request = _request(fingerprint=digest)
+    request = _request(fingerprint=digest, key=key)
     failing = Recorder(error=RuntimeError("once"))
-    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     failed = _run(
         harness_conn, request,
         gate=gate,
         model_client=ModelClient(model_target=CLOUD, invoke=failing),
         prompt=prompt,
-        deps=_deps(),
+        deps=_deps(site_dependencies=bundle),
     )
     assert isinstance(failed, CallFailed)
     assert len(failing.calls) == 1
     assert len(gate.released) == 1
 
-    second_gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    second_gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     invalid = Recorder(reply=MALFORMED_BYTES)
     verdict = _run(
-        harness_conn, _request(file_id="file-2", fingerprint=digest),
+        harness_conn, _request(file_id="file-2", fingerprint=digest, key=key),
         gate=second_gate,
         model_client=ModelClient(model_target=CLOUD, invoke=invalid),
         prompt=prompt,
-        deps=_deps(learning_subject_id="file-2", scan_budget=_budget(files=2000)),
+        deps=_deps(site_dependencies=bundle, learning_subject_id="file-2", scan_budget=_budget(files=2000)),
     )
     assert isinstance(verdict, P8Verdict)
     assert SCHEMA_INVALID in verdict.reasons
@@ -615,17 +693,19 @@ def test_retry_is_disabled_on_call_failed_and_on_schema_invalid(harness_conn):
     assert len(second_gate.released) == 1
 
 
-def test_initially_fitting_call_records_none_and_releases_once(harness_conn):
+def test_initially_fitting_call_records_none_and_releases_once(harness_conn, subject):
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
-    request = _request(fingerprint=prompt_fingerprint(prompt))
-    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    request = _request(fingerprint=prompt_fingerprint(prompt), key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     result = _run(
         harness_conn, request,
         gate=gate,
         model_client=ModelClient(model_target=CLOUD, invoke=recorder),
         prompt=prompt,
-        deps=_deps(
+        deps=_deps(site_dependencies=bundle, 
             unreduced_fits=True,
             summarized_fits=True,
             anchors_fit=True,
@@ -643,18 +723,20 @@ def test_initially_fitting_call_records_none_and_releases_once(harness_conn):
     ).fetchone()["calls_reserved"] == 1
 
 
-def test_oversized_intermediate_forms_spend_nothing_until_a_fitting_rung(harness_conn):
+def test_oversized_intermediate_forms_spend_nothing_until_a_fitting_rung(harness_conn, subject):
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    request = _request(fingerprint=digest)
-    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    request = _request(fingerprint=digest, key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     result = _run(
         harness_conn, request,
         gate=gate,
         model_client=ModelClient(model_target=CLOUD, invoke=recorder),
         prompt=prompt,
-        deps=_deps(
+        deps=_deps(site_dependencies=bundle, 
             unreduced_fits=False,
             summarized_fits=True,
             anchors_fit=True,
@@ -668,14 +750,14 @@ def test_oversized_intermediate_forms_spend_nothing_until_a_fitting_rung(harness
         "SELECT reduction_rung FROM llm_dossier"
     ).fetchone()["reduction_rung"] == SUMMARIZED_FACTS
 
-    anchors_gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    anchors_gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     anchors_recorder = Recorder(reply=UNKNOWN_BYTES)
     _run(
-        harness_conn, _request(file_id="file-anchors", fingerprint=digest),
+        harness_conn, _request(file_id="file-anchors", fingerprint=digest, key=key),
         gate=anchors_gate,
         model_client=ModelClient(model_target=CLOUD, invoke=anchors_recorder),
         prompt=prompt,
-        deps=_deps(
+        deps=_deps(site_dependencies=bundle, 
             learning_subject_id="file-anchors",
             unreduced_fits=False,
             summarized_fits=False,
@@ -694,15 +776,17 @@ def test_oversized_intermediate_forms_spend_nothing_until_a_fitting_rung(harness
 
 
 def test_each_fitting_split_shard_gets_a_distinct_request_release_reservation_and_call(
-    harness_conn,
+    harness_conn, subject,
 ):
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
     digest = prompt_fingerprint(prompt)
-    parent = _request(fingerprint=digest)
-    shard_a = _request(file_id="file-a", fingerprint=digest)
-    shard_b = _request(file_id="file-b", fingerprint=digest)
-    deferred = _request(file_id="file-deferred", fingerprint=digest)
-    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    parent = _request(fingerprint=digest, key=key)
+    shard_a = _request(file_id="file-a", fingerprint=digest, key=key)
+    shard_b = _request(file_id="file-b", fingerprint=digest, key=key)
+    deferred = _request(file_id="file-deferred", fingerprint=digest, key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     result = _run(
         harness_conn, parent,
@@ -710,6 +794,7 @@ def test_each_fitting_split_shard_gets_a_distinct_request_release_reservation_an
         model_client=ModelClient(model_target=CLOUD, invoke=recorder),
         prompt=prompt,
         deps=_deps(
+            site_dependencies=bundle,
             unreduced_fits=False,
             summarized_fits=False,
             anchors_fit=False,
@@ -785,18 +870,20 @@ def test_deferred_split_emits_pre_call_abstention_and_spends_nothing(harness_con
 
 
 def test_d14_links_events_with_released_audit_id_and_spends_released_release_id(
-    harness_conn,
+    harness_conn, subject,
 ):
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
     prompt = _prompt()
-    request = _request(fingerprint=prompt_fingerprint(prompt))
-    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    request = _request(fingerprint=prompt_fingerprint(prompt), key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
     recorder = Recorder(reply=UNKNOWN_BYTES)
     _run(
         harness_conn, request,
         gate=gate,
         model_client=ModelClient(model_target=CLOUD, invoke=recorder),
         prompt=prompt,
-        deps=_deps(),
+        deps=_deps(site_dependencies=bundle),
     )
     granted = gate.released[0]
     issued = _events(harness_conn, "model_call_issued")[0]

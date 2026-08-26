@@ -22,7 +22,7 @@ from eval_harness.stage_output import record_stage_output
 from evidence_shape.canonical import canonical_json
 
 from llm_harness.records import CallFailed, Dossier, P8Verdict, Refusal
-from llm_harness.validation import validate_response
+from llm_harness.sites import dispatch
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -137,9 +137,10 @@ def replay_recorded_response(
     dossier: Dossier,
     *,
     evidence_resolver,
-    site_validator,
+    site_dependencies,
     contradicts,
     dossier_builder: str,
+    policy_version: str,
 ):
     """Re-validate stored response bytes against the current evidence snapshot.
 
@@ -154,14 +155,16 @@ def replay_recorded_response(
     ).fetchone()
     if row is None:
         raise KeyError(f"no stored response for dossier {dossier.dossier_id!r}")
-    return validate_response(
+    return dispatch(
+        conn,
         dossier,
         bytes(row["response_bytes"]),
+        site_dependencies=site_dependencies,
         evidence_resolver=evidence_resolver,
-        site_validator=site_validator,
         contradicts=contradicts,
         model_id=row["model_id"],
         prompt_fingerprint=row["prompt_fingerprint"],
         dossier_builder=dossier_builder,
         release_audit_id=row["release_audit_id"],
+        policy_version=policy_version,
     )

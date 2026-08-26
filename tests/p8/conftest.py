@@ -191,3 +191,80 @@ def make_abstention(**overrides) -> PreCallAbstention:
     )
     values.update(overrides)
     return PreCallAbstention(**values)
+
+
+# --- a real Site A bundle -------------------------------------------------------
+#
+# R3 removed the injectable `site_validator`, so any test that reaches Site A now
+# needs P6's own `FactRequest` over a real P1 file and P4 observation. One
+# definition, used by `tests/p8` and `tests/integration` alike.
+
+RELEASED_MATERIAL = "Columbia University - redacted dossier excerpt"
+
+
+def record_subject(conn, tmp_path, *, released: str = RELEASED_MATERIAL):
+    """A real P1 file with one real P4 observation. Returns the P6 identity triple."""
+    import json
+
+    from database_agent.files_table import get_file, record_file
+    from evidence_shape.location import Location, Segment
+    from evidence_shape.observation import Observation
+    from evidence_shape.runs import ExtractionRun
+    from evidence_shape.store import record_observation, record_run
+
+    path = tmp_path / "Syllabus.pdf"
+    body = b"BUSIB 4300 Syllabus, Spring 2026"
+    path.write_bytes(body)
+    file_id = record_file(
+        conn, path, filename="Syllabus.pdf", normalized_filename="syllabus.pdf",
+        extension=".pdf", observed_size=len(body),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Downloads", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    record_run(conn, ExtractionRun(
+        run_id="r-1", file_id=file_id, content_hash=content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=FIXED_CLOCK, finished_at=FIXED_CLOCK))
+    observation = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=released,
+        location=Location("heading", (Segment("field", label="heading"),)),
+        occurrence_count=1, observed_at=FIXED_CLOCK, reliability="possible",
+        run_id="r-1", context_before="Syllabus - ")
+    record_observation(conn, observation)
+    return file_id, content_hash, observation.observation_key
+
+
+def make_fact_bundle(conn, subject):
+    """Site A's real authorities: P6's own FactRequest plus the C-5 oracles."""
+    from facts.domains import ActivationSignal, ActivationSignals
+    from facts.llm_seam import build_request
+    from llm_harness.fact_validation import FactValidationDependencies
+    from llm_harness.sites import FactSiteDependencies, SiteDependencies
+
+    file_id, content_hash, _ = subject
+    return SiteDependencies(
+        fact=FactSiteDependencies(
+            fact_request=build_request(
+                conn, file_id=file_id, content_hash=content_hash,
+                activation_signals=ActivationSignals(signals=(
+                    ActivationSignal(schema_id="academic", activates=lambda rows: True),
+                )),
+                normalizers={"school": lambda raw: raw},
+            ),
+            fact_dependencies=FactValidationDependencies(
+                normalize=lambda field, raw: raw,
+                contradicts=lambda proposal, row: False,
+            ),
+        ),
+        placement=None, residual=None, template=None,
+    )
+
+
+def empty_site_dependencies():
+    """No site authorities at all. Reaching a site with this is unavailable."""
+    from llm_harness.sites import SiteDependencies
+
+    return SiteDependencies(fact=None, placement=None, residual=None, template=None)

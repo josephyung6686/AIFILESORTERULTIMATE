@@ -57,6 +57,7 @@ CLOCK = "2026-08-19T12:00:00+00:00"
 MODEL = "test-model-1"
 PROMPT = "sha256:prompt-fingerprint"
 POLICY = "policy-1"
+DOSSIER = "dossier-address-1"
 SRC = (
     Path(__file__).resolve().parents[2]
     / "src"
@@ -159,6 +160,7 @@ def _proposal(subject_file, *, field_key="subject", value="BUSIB 4300",
 
 
 def _validate(conn, request, proposal, *, dependencies=None, **kwargs):
+    kwargs.setdefault("dossier_id", DOSSIER)
     return validate_fact_proposal(
         conn, request, proposal,
         dependencies=dependencies if dependencies is not None else _deps(),
@@ -294,6 +296,7 @@ def test_none_dependencies_is_unavailable(subject_file, p6_conn):
         model_identifier=MODEL,
         prompt_fingerprint=PROMPT,
         policy_version=POLICY,
+        dossier_id=DOSSIER,
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("normalize", "contradicts")
@@ -724,3 +727,39 @@ def test_contradicts_none_is_not_treated_as_no_conflict(subject_file, p6_conn):
         if row["field_key"] == "subject"
     ]
     assert [row["canonical_value"] for row in subjects] == ["BUSIB 4300"]
+
+
+# --- R3: a Site A verdict is addressed to the dossier it judged ------------------
+
+
+def test_site_a_verdict_carries_the_dossier_id_not_the_file_id(p6_conn, subject_file):
+    """SPEC's verdict record is `verdict_id, dossier_id, claim_ref`.
+
+    `dossier_id=request.file_id` put a P6 file id in a P8 dossier address field, so
+    a verdict could not say which dossier it judged and two dossiers over one file
+    were indistinguishable.
+    """
+    request = _request(p6_conn, subject_file)
+    verdict = _validate(
+        p6_conn, request, _proposal(subject_file), dossier_id="dossier-address-1",
+    )
+    assert verdict.dossier_id == "dossier-address-1"
+    assert verdict.dossier_id != request.file_id
+
+
+def test_two_dossiers_over_one_file_do_not_collide_on_verdict_id(p6_conn, subject_file):
+    """`verdict_id` is a PRIMARY KEY; `file_id:field_key` repeats on re-validation."""
+    request = _request(p6_conn, subject_file)
+    first = _validate(
+        p6_conn, request, _proposal(subject_file), dossier_id="dossier-address-1",
+    )
+    second = _validate(
+        p6_conn, request, _proposal(subject_file), dossier_id="dossier-address-2",
+    )
+    assert first.verdict_id != second.verdict_id
+
+
+def test_validate_fact_proposal_requires_a_dossier_id(p6_conn, subject_file):
+    parameters = inspect.signature(validate_fact_proposal).parameters
+    assert parameters["dossier_id"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameters["dossier_id"].default is inspect.Parameter.empty

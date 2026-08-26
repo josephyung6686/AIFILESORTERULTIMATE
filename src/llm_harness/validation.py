@@ -202,7 +202,7 @@ def _make_verdict(
     )
 
 
-def _schema_invalid_verdict(dossier: Dossier, claim_ref: str = "schema") -> P8Verdict:
+def schema_invalid_verdict(dossier: Dossier, claim_ref: str = "schema") -> P8Verdict:
     return _make_verdict(
         dossier=dossier,
         claim_ref=claim_ref,
@@ -214,7 +214,7 @@ def _schema_invalid_verdict(dossier: Dossier, claim_ref: str = "schema") -> P8Ve
     )
 
 
-def _report_from_verdicts(
+def report_from_verdicts(
     dossier: Dossier,
     verdicts: Sequence[P8Verdict],
     *,
@@ -298,21 +298,21 @@ def _validate_claim(
 ) -> P8Verdict | ValidationUnavailable:
     claim_ref = f"claim-{index}"
     if not isinstance(raw, Mapping):
-        return _schema_invalid_verdict(dossier, claim_ref)
+        return schema_invalid_verdict(dossier, claim_ref)
     if raw.get("claim_ref"):
         claim_ref = str(raw["claim_ref"])
     payload = raw.get("payload")
     if payload is None:
         payload = {}
     if not isinstance(payload, Mapping):
-        return _schema_invalid_verdict(dossier, claim_ref)
+        return schema_invalid_verdict(dossier, claim_ref)
 
     unknown_raw = raw.get("unknown")
     citations_raw = raw.get("citations")
     has_unknown = unknown_raw is not None
     if has_unknown:
         if not isinstance(unknown_raw, Mapping):
-            return _schema_invalid_verdict(dossier, claim_ref)
+            return schema_invalid_verdict(dossier, claim_ref)
         try:
             unknown = Unknown(
                 insufficiency_statement=str(
@@ -320,12 +320,12 @@ def _validate_claim(
                 ),
             )
         except (MalformedRecord, TypeError, ValueError):
-            return _schema_invalid_verdict(dossier, claim_ref)
+            return schema_invalid_verdict(dossier, claim_ref)
         del unknown
         if isinstance(citations_raw, Sequence) and not isinstance(
             citations_raw, (str, bytes),
         ) and len(citations_raw) > 0:
-            return _schema_invalid_verdict(dossier, claim_ref)
+            return schema_invalid_verdict(dossier, claim_ref)
         return _make_verdict(
             dossier=dossier,
             claim_ref=claim_ref,
@@ -347,13 +347,13 @@ def _validate_claim(
             citations_checked=(),
         )
     if not isinstance(citations_raw, Sequence) or isinstance(citations_raw, (str, bytes)):
-        return _schema_invalid_verdict(dossier, claim_ref)
+        return schema_invalid_verdict(dossier, claim_ref)
 
     citations: list[Citation] = []
     for item in citations_raw:
         parsed = _parse_citation(item)
         if parsed is None:
-            return _schema_invalid_verdict(dossier, claim_ref)
+            return schema_invalid_verdict(dossier, claim_ref)
         citations.append(parsed)
     if not citations:
         return _make_verdict(
@@ -449,7 +449,7 @@ def validate_response(
     def _finished(verdicts: Sequence[P8Verdict]):
         return (
             tuple(verdicts),
-            _report_from_verdicts(
+            report_from_verdicts(
                 dossier,
                 verdicts,
                 model_id=model_id,
@@ -462,10 +462,10 @@ def validate_response(
     try:
         parsed = json.loads(response_bytes)
     except (ValueError, TypeError, UnicodeDecodeError):
-        return _finished((_schema_invalid_verdict(dossier),))
+        return _finished((schema_invalid_verdict(dossier),))
 
     if not isinstance(parsed, Mapping) or not isinstance(parsed.get("claims"), list):
-        return _finished((_schema_invalid_verdict(dossier),))
+        return _finished((schema_invalid_verdict(dossier),))
 
     verdicts: list[P8Verdict] = []
     for index, raw in enumerate(parsed["claims"]):

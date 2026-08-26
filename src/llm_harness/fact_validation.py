@@ -138,10 +138,11 @@ def _verdict(
     reasons: Sequence[str],
     citations_checked: Sequence[CheckedCitation],
     policy_version: str,
+    dossier_id: str,
 ) -> P8Verdict:
     return P8Verdict(
-        verdict_id=f"{request.file_id}:{proposal.field_key}",
-        dossier_id=request.file_id,
+        verdict_id=f"{dossier_id}:{proposal.field_key}",
+        dossier_id=dossier_id,
         claim_ref=proposal.field_key,
         outcome=outcome,
         disposition=_DISPOSITION[outcome],
@@ -162,6 +163,7 @@ def _run_checks(
     dependencies: FactValidationDependencies,
     *,
     policy_version: str,
+    dossier_id: str,
 ) -> P8Verdict | ValidationUnavailable:
     allowlist = _freeze_str_sequence(request.allowlist, name="allowlist")
     if isinstance(allowlist, ValidationUnavailable):
@@ -185,12 +187,14 @@ def _run_checks(
             request, proposal, outcome=REJECT,
             reasons=(FIELD_NOT_IN_ACTIVE_SCHEMA,),
             citations_checked=checked, policy_version=policy_version,
+            dossier_id=dossier_id,
         )
     if not citations or any(key not in citable_keys for key in citations):
         return _verdict(
             request, proposal, outcome=REJECT,
             reasons=(CITATION_NOT_FOUND,),
             citations_checked=checked, policy_version=policy_version,
+            dossier_id=dossier_id,
         )
     raw_value = proposal.value
     if not isinstance(raw_value, str) or (
@@ -199,6 +203,7 @@ def _run_checks(
             request, proposal, outcome=REJECT,
             reasons=(VALUE_NOT_NORMALIZABLE,),
             citations_checked=checked, policy_version=policy_version,
+            dossier_id=dossier_id,
         )
     for row in existing:
         conflict = _require_bool(
@@ -210,10 +215,12 @@ def _run_checks(
                 request, proposal, outcome=REJECT,
                 reasons=(CONTRADICTED_BY_STRONGER,),
                 citations_checked=checked, policy_version=policy_version,
+                dossier_id=dossier_id,
             )
     return _verdict(
         request, proposal, outcome=ACCEPT_DIRECT,
         reasons=(), citations_checked=checked, policy_version=policy_version,
+        dossier_id=dossier_id,
     )
 
 
@@ -226,6 +233,7 @@ def validate_fact_proposal(
     model_identifier: str,
     prompt_fingerprint: str,
     policy_version: str,
+    dossier_id: str,
 ) -> P8Verdict | ValidationUnavailable:
     """Run Site A's four §3.6 checks and hand the consequence to P6.
 
@@ -241,10 +249,12 @@ def validate_fact_proposal(
         p8 = _verdict(
             request, proposal, outcome=ABSTAIN, reasons=(),
             citations_checked=(), policy_version=policy_version,
+            dossier_id=dossier_id,
         )
     else:
         p8 = _run_checks(
             request, proposal, dependencies, policy_version=policy_version,
+            dossier_id=dossier_id,
         )
         if isinstance(p8, ValidationUnavailable):
             return p8
