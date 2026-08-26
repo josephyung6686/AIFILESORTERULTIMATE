@@ -899,3 +899,54 @@ appears to have written over the stray partial this team left; that contested fi
 
 ## STOPPING HERE at Joseph's instruction. Next session: see `28-AUTOPILOT.md` §0 (two-team rules)
 then §2 (the loop). Remaining: ~199 templates, then R1c, the review panel, and the index.
+
+## Audit + edge gate — 2026-08-26 (orchestrator, mid-dispatch)
+
+Two auditors (overlap, design-fidelity) ran against the landed corpus. **Both returned FAIL:**
+31 findings, 17 critical/major. A new mechanical gate, `planning/domains/check_edges.py`, was
+written to turn the judgement findings into counted, repeatable checks. **These are R1c's repair
+list — no node file was edited by the orchestrator.**
+
+Structural gate (`check.py`-style, run first): **214 rows, 0 defects** — JSON parses, no dangling
+edge ids, residual names valid, source_types valid, fields canonical-or-proposed, no invented edge
+keys. The defects below are all *edge semantics*, which no gate was checking.
+
+`python3 planning/domains/check_edges.py` — current reading:
+
+| Finding | Count | Rows | What it means |
+|---|---:|---:|---|
+| `collides_with` one-way | 632 | 179 | §5 makes collisions reciprocal; B never names A back. Matches the historic 44%-reciprocity defect of the 574. |
+| `KEY_DRIFT_signal` | 279 | 58 | The discriminator is spelled `why`, not `signal` (`_CONTRACT.md` §72 shape). **The argument text exists** — this is a rename, not a missing discriminator. |
+| `also_holds_with` one-way | 147 | 53 | Same reciprocity rule, co-activation side. |
+| `also_holds_on_template` | 92 | 35 | §5 restricts `also_holds_with` to **schema ↔ schema only**; 35 template rows carry it. |
+| `collides_kind_mismatch` | 59 | 30 | §5: collisions join **same-kind pairs**; schema↔template edges cannot be evaluated. |
+| `KEY_DRIFT_target` | 29 | 6 | Target spelled `domain_id`/other, not `domain`. Concentrated in `creative.*`. |
+
+### Corrections to the auditors' own claims — verified, not accepted
+
+- The overlap auditor reported **"111 `collides_with` with `signal: null`"** as its one CRITICAL.
+  **That over-calls it.** Those rows carry the discriminating argument under the key `why`; the
+  evidence-item reasoning is present and often good. The true defect is **key drift** (279), which
+  is a mechanical rename for R1c, not 111 rows of missing argument. Fixing the label matters:
+  the CRITICAL as written would have sent R1c to re-research rows that are already argued.
+- The orchestrator's first gate ran with `domain_id` as canonical and reported 1,535 target-key
+  drifts. `_CONTRACT.md`'s own example shape is `{"domain", "signal", "design_cite"}`, so **`domain`
+  is correct and that finding was the gate's bug, not the corpus's.** Corrected reading is 29.
+
+### Judgement findings worth keeping (from the auditors, not mechanical)
+
+- `creative.film-production` / `shoot-day-media` / `post-production` compete for the same call
+  sheets and `.prproj` files with **no edge between any pair**, and all three sit on the field-less
+  creative schema so `dimension_order` cannot discriminate. Recommended split: shoot-day-media owns
+  capture-day media, post-production owns the edit/master chain, film-production narrows to the
+  production spine or is refused as the schema's default template.
+- `finance.household-property` positively claims files that are the flagship examples of five
+  `construction_property` rows; eleven rows collide *into* it and it names none of them back.
+  Recommended discriminator: the owner's retained copy vs the professional's working copy.
+
+### Standing note for R1c
+
+`check_edges.py` is deliberately separate from `check.py` (which still does not scan `nodes/` —
+extending it is R1c's task). Two teams were writing when it was authored, so it only reads.
+Reciprocity is judged **only where both rows are on disk**, so the counts will move as the
+remaining rows land; re-run it rather than quoting these numbers.
