@@ -71,6 +71,9 @@ KEY = "sha256:" + "c" * 64
 
 @pytest.fixture()
 def store_conn(conn):
+    from database_agent.db import create_schema
+
+    create_schema(conn)
     create_grouping_schema(conn)
     return conn
 
@@ -149,7 +152,7 @@ def test_a_direct_anchor_membership_round_trips_with_its_anchoring_support(store
 def test_edges_round_trip_and_keep_their_suppression_flag(store_conn):
     edges = (_edge("edge-1"), _edge("edge-2", to_file_id="file-3",
                                     hub_suppressed=True, weight=0.5))
-    record_edges(store_conn, GROUP, edges)
+    record_edges(store_conn, GROUP, edges, created_at=T0)
     stored = edges_for_group(store_conn, GROUP)
     assert stored == edges
     assert [item.hub_suppressed for item in stored] == [False, True]

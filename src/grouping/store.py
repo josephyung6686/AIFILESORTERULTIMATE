@@ -24,6 +24,7 @@ from collections.abc import Sequence
 from dataclasses import fields, is_dataclass
 
 from database_agent.db import transaction
+from database_agent.events import append_event
 from evidence_shape.canonical import canonical_json
 
 from grouping.records import (
@@ -38,6 +39,11 @@ from grouping.records import (
     Support,
     TypedEdge,
 )
+
+
+#: §8.2 names three P9 event types. This is the one for an edge; the other two
+#: are the P8 seam's membership proposal and the review receiver's user decision.
+GRAPH_EDGE_CREATION: str = "graph-edge creation"
 
 
 class RecordAbsent(LookupError):
@@ -269,14 +275,24 @@ def memberships_for_group(
 
 
 def record_edges(
-    conn: sqlite3.Connection, group_id: str, edges: Sequence[TypedEdge],
+    conn: sqlite3.Connection, group_id: str, edges: Sequence[TypedEdge], *,
+    created_at: str,
 ) -> tuple[str, ...]:
-    """Every edge of one graph, in one transaction. `group_id` is the caller's
-    context and is not stored: an edge relates two file VERSIONS and outlives the
-    group that first drew it."""
+    """Every edge of one graph, in one transaction, each with its §8.2 event.
+
+    `group_id` is the caller's context and is not stored: an edge relates two file
+    VERSIONS and outlives the group that first drew it.
+
+    An edge id is content-derived, so a replay re-derives the same edge and the
+    event is appended only for one that is genuinely new -- two creation events
+    for one edge would say it was created twice.
+    """
     del group_id
     with transaction(conn):
         for edge in edges:
+            already = conn.execute(
+                "SELECT edge_id FROM group_edges WHERE edge_id = ?",
+                (edge.edge_id,)).fetchone()
             conn.execute(
                 "INSERT OR IGNORE INTO group_edges ("
                 "edge_id, from_file_id, to_file_id, edge_type, evidence_ref, "
@@ -290,6 +306,21 @@ def record_edges(
                     edge.created_at, None, edge.superseded_by, None,
                 ),
             )
+            if already is None:
+                append_event(
+                    conn,
+                    event_type=GRAPH_EDGE_CREATION,
+                    file_id=edge.to_file_id,
+                    content_hash=None,
+                    subsystem="P9",
+                    component_version="p9",
+                    observed_at=created_at,
+                    explanation=(
+                        f"{edge.edge_id} is a {edge.edge_type} edge from "
+                        f"{edge.from_file_id} to {edge.to_file_id}, resting on "
+                        f"{edge.evidence_ref}"
+                    ),
+                )
     return tuple(edge.edge_id for edge in edges)
 
 
