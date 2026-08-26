@@ -76,6 +76,19 @@ OUTLIER_FLAGS: tuple[str, ...] = (
     ENGINE_FLAGGED, MODEL_FLAGGED, BOTH_FLAGGED, NOT_FLAGGED,
 )
 
+# --- a borrowed value, named because it collides ---------------------------------
+#
+# P1 stores `scan_state = "included"` to mean "this file is in the corpus". P9's
+# `INCLUDED` above means "this member is in the group". Same spelling, different
+# concepts, different owners — the `support_kind` / `basis` collision one layer up.
+#
+# P1 and P3 publish no named constant for it: in all of `src/` the string appears
+# only as a literal at call sites. P9 gives it one home rather than a second
+# literal, and a name that cannot be mistaken for the membership decision.
+
+P1_INCLUDED_SCAN_STATE: str = "included"
+
+
 # --- retrieval channels ---------------------------------------------------------
 #
 # `support_kind`, NOT `basis`. Six channels; a membership carries one or more.

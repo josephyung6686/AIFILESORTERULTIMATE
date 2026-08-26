@@ -43,6 +43,7 @@ from grouping.config import ConfigurationRequired, GroupingLimits
 from grouping.seeds import ANCHOR_STATES, Seed
 from grouping.vocabulary import (
     BOUNDED_SESSION,
+    P1_INCLUDED_SCAN_STATE,
     COMPATIBLE_DOCUMENT_TYPE,
     DUPLICATE_OR_VERSION_LINK,
     EXISTING_RELATED_FOLDER,
@@ -60,10 +61,6 @@ DEFAULT_CHANNEL_ORDER: tuple[str, ...] = (
     BOUNDED_SESSION,
     MUTUAL_SEMANTIC_RETRIEVAL,
 )
-
-#: P1's own scan state for a file that is in the corpus. Anything else is out.
-INCLUDED_SCAN_STATE = "included"
-
 
 @dataclass(frozen=True)
 class EmbeddingIdentity:
@@ -122,7 +119,7 @@ def _corpus(conn: sqlite3.Connection, *, seed: Seed) -> list[_Candidate]:
     rows = conn.execute(
         "SELECT file_id, content_hash, directory_position, detected_format "
         "FROM files WHERE scan_state = ? ORDER BY content_hash, file_id",
-        (INCLUDED_SCAN_STATE,),
+        (P1_INCLUDED_SCAN_STATE,),
     ).fetchall()
     return [
         _Candidate(
