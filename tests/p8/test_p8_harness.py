@@ -51,6 +51,7 @@ from llm_harness.vocabulary import (
     PRESERVED_ANCHORS,
     PRIVACY_GATE_REFUSED,
     REDUCTION_NONE,
+    REJECT,
     REMAINS_AMBIGUOUS,
     SCHEMA_INVALID,
     SEVERAL_LEGAL_NODES_PLAUSIBLE,
@@ -1267,3 +1268,72 @@ def test_two_different_answers_to_one_dossier_are_two_verdicts(harness_conn, sub
     assert _count(harness_conn, "llm_dossier") == 1
     assert _count(harness_conn, "llm_verdict") == 2
     assert _reservations(harness_conn) == [("settled", "1"), ("settled", "1")]
+
+
+def test_a_pre_call_row_is_not_addressed_as_if_it_had_a_dossier(harness_conn):
+    """`dossier_id=request.subject_ref` put a P1 file id in a P8 address field.
+    A pre-call terminal has no dossier -- that is what pre-call means -- and the
+    rows joined to no `llm_dossier` row while looking as though they should."""
+    prompt = _prompt()
+    request = _request(fingerprint=prompt_fingerprint(prompt))
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    verdict = _run(
+        harness_conn, request,
+        gate=gate,
+        model_client=ModelClient(model_target=CLOUD, invoke=Recorder(reply=b"{}")),
+        prompt=prompt,
+        deps=_deps(unreduced_fits=False, summarized_fits=False, anchors_fit=False,
+                   split_shard_fits=(), split_shards=()),
+    )
+    assert isinstance(verdict, P8Verdict)
+    assert verdict.dossier_id != request.subject_ref
+    assert verdict.dossier_id.startswith("pre-call:")
+    assert request.subject_ref in verdict.dossier_id
+    for table in ("llm_pre_call_abstention", "llm_grounding_report"):
+        stored = harness_conn.execute(
+            f"SELECT dossier_id FROM {table}").fetchone()["dossier_id"]
+        assert stored == verdict.dossier_id, table
+        assert harness_conn.execute(
+            "SELECT count(*) AS c FROM llm_dossier WHERE dossier_id = ?",
+            (stored,),
+        ).fetchone()["c"] == 0, table
+
+
+def test_the_returned_verdict_is_the_worst_of_the_shards_not_the_last(
+    harness_conn, subject,
+):
+    """`return verdicts[-1]` reported by position. A response whose first shard
+    was rejected and whose second was accepted returned `accept_direct`, and
+    `emit_stage_output` maps one result onto one P2 envelope -- so the P2 row read
+    `produced` for a call that had a rejection in it."""
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    digest = prompt_fingerprint(prompt)
+    replies = [MALFORMED_BYTES, _direct_bytes(key)]
+
+    class Sequenced:
+        def __call__(self, payload: bytes) -> bytes:
+            return replies.pop(0)
+
+    verdict = _run(
+        harness_conn,
+        _request(file_id=subject[0], fingerprint=digest, key=key),
+        gate=RecordingGate(harness_conn, prompt=prompt, decision="released", key=key),
+        model_client=ModelClient(model_target=CLOUD, invoke=Sequenced()),
+        prompt=prompt,
+        deps=_deps(
+            site_dependencies=bundle,
+            unreduced_fits=False, summarized_fits=False, anchors_fit=False,
+            split_shard_fits=(True, True),
+            split_shards=(
+                _shard(subject[0], target="file-a", fingerprint=digest, key=key),
+                _shard(subject[0], target="file-b", fingerprint=digest, key=key),
+            ),
+            scan_budget=_budget(files=3000, cost="20"),
+        ),
+    )
+    assert isinstance(verdict, P8Verdict)
+    assert verdict.outcome == REJECT
+    assert SCHEMA_INVALID in verdict.reasons
+    assert _count(harness_conn, "llm_verdict") == 2

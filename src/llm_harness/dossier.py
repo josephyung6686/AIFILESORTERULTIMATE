@@ -25,6 +25,7 @@ from llm_harness.records import (
     Dossier,
     DossierRequest,
     EvidenceItem,
+    MalformedRecord,
     PromptDefinition,
     ReleasedEvidence,
     ValidationUnavailable,
@@ -79,6 +80,24 @@ def _released_body(item: ReleasedEvidence) -> dict:
     }
 
 
+def _as_text(raw: bytes, *, name: str) -> str:
+    """An injected authority, as the model sees it.
+
+    These were emitted as hex into what this module calls the exact bytes the
+    model is shown. Hex is right in `prompt_fingerprint`, where `canonical_json`
+    cannot encode raw bytes; in the model-visible body it renders the two
+    authorities meant to constrain the answer unreadable to the model. P8 authors
+    neither and does not repair them: bytes that are not text cannot constrain
+    anything, and that is a caller contract failure, not a fallback.
+    """
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise MalformedRecord(
+            f"{name} is shown to the model and must be text it can read"
+        ) from exc
+
+
 def _body(
     *,
     call_site: str,
@@ -108,8 +127,10 @@ def _body(
         "policy_version": policy_version,
         "reduction_rung": reduction_rung,
         "released_evidence": [_released_body(item) for item in released_evidence],
-        "response_schema": prompt.response_schema_bytes.hex(),
-        "shaping_policy": prompt.shaping_policy_bytes.hex(),
+        "response_schema": _as_text(
+            prompt.response_schema_bytes, name="response_schema_bytes"),
+        "shaping_policy": _as_text(
+            prompt.shaping_policy_bytes, name="shaping_policy_bytes"),
         "subject_ref": subject_ref,
     }).encode("utf-8")
 

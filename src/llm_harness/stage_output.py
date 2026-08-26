@@ -152,7 +152,10 @@ def replay_recorded_response(
     row = conn.execute(
         "SELECT response_bytes, model_id, prompt_fingerprint, release_audit_id "
         "FROM llm_response WHERE dossier_id = ? "
-        "ORDER BY observed_at DESC, response_id DESC",
+        # `response_id` is a uuid4, so under an injected fixed clock -- which is
+        # how every test and every replay run is driven -- "the latest response"
+        # was decided by random hex. `rowid` is insertion order.
+        "ORDER BY observed_at DESC, rowid DESC",
         (dossier.dossier_id,),
     ).fetchone()
     if row is None:

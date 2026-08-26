@@ -41,6 +41,17 @@ OUTCOMES: tuple[str, ...] = (
     ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED, WEAK, REJECT, ABSTAIN,
 )
 
+#: Worst first. `run_call` returns ONE verdict for a call that may have produced
+#: several -- one per shard, one per claim -- and `emit_stage_output` maps that
+#: one result onto one P2 envelope. Returning the LAST one reported by position:
+#: a call whose first shard was rejected and whose second was accepted read
+#: `accept_direct`, and the P2 row read `produced`. A caller who is told
+#: `accept_direct` must be able to take it as true of the whole call.
+OUTCOME_SEVERITY: tuple[str, ...] = (
+    REJECT, ABSTAIN, WEAK, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT,
+)
+
+
 RETURN_CONFIRMED_GROUP: str = "return_to_confirmed_domain_group"
 RETURN_ACCEPTED_PACKET: str = "return_to_accepted_graph_or_purpose_packet"
 CHOOSE_RESIDUAL_DESTINATION: str = "choose_approved_residual_destination"
@@ -154,6 +165,17 @@ SITES_REQUIRING_PLAN_VERSION: frozenset[str] = frozenset(
 SITES_REQUIRING_EVIDENCE_SNAPSHOT: frozenset[str] = frozenset(
     {C_PLACEMENT, D_RESIDUAL}
 )
+
+#: The namespace a pre-call terminal is addressed in. A terminal reached before a
+#: dossier exists has no dossier address, and writing the subject ref into the
+#: `dossier_id` column made a P1 file id look like one -- a row that joins to no
+#: `llm_dossier` row while appearing to promise it does.
+PRE_CALL_NAMESPACE: str = "pre-call"
+
+
+def pre_call_address(call_site: str, subject_ref: str) -> str:
+    """An address that cannot be mistaken for, or joined to, a dossier."""
+    return f"{PRE_CALL_NAMESPACE}:{call_site}:{subject_ref}"
 
 # ---------------------------------------------------------------------------
 # Reason-code registry (SPEC spellings). Named constant == string value.

@@ -148,17 +148,16 @@ def build_call_payload(
     policy_version: str,
     release_id: str,
     dossier_id: str,
-    prompt_fingerprint: str | None = None,
 ) -> CallPayload:
     """Sole public factory. Always assembles model-visible bytes from the two sources.
 
-    The stored fingerprint is computed from `prompt_definition`; a caller-supplied
-    value cannot bind a digest that does not match the definition.
+    The stored fingerprint is computed from `prompt_definition`. It used to accept
+    a `prompt_fingerprint` and silently discard it, which is the same footgun as
+    honouring it: a caller passing a real digest got neither an error nor an
+    effect. There is one source, and it is the definition.
     """
     from llm_harness.fingerprint import prompt_fingerprint as fingerprint_of
 
-    # Caller-supplied fingerprints are ignored; the digest is always the definition's.
-    _ = prompt_fingerprint
     return CallPayload(
         prompt_definition=prompt_definition,
         canonical_dossier_bytes=canonical_dossier_bytes,

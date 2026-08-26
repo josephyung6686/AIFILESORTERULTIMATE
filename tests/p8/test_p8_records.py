@@ -239,7 +239,6 @@ def test_build_call_payload_assembles_model_visible_bytes_from_sources():
         prompt,
         dossier_bytes,
         model_target=_model_target(),
-        prompt_fingerprint="fp-injected",
         policy_version="policy-1",
         release_id="rel-1",
         dossier_id="dossier-address-1",

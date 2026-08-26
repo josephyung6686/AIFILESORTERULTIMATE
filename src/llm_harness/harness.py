@@ -50,6 +50,8 @@ from llm_harness.validation import (
     report_for_pre_call_terminal,
 )
 from llm_harness.vocabulary import (
+    OUTCOME_SEVERITY,
+    pre_call_address,
     SITES_REQUIRING_EVIDENCE_SNAPSHOT,
     A_FACT,
     ABSTAIN,
@@ -166,9 +168,10 @@ def _missing_request_inputs(request: DossierRequest) -> tuple[str, ...]:
 def _pre_call_verdict(
     request: DossierRequest, terminal: PreCallAbstention, *, policy_version: str,
 ) -> P8Verdict:
+    address = pre_call_address(request.call_site, request.subject_ref)
     return P8Verdict(
-        verdict_id=f"{request.subject_ref}:pre-call",
-        dossier_id=request.subject_ref,
+        verdict_id=f"{address}:{terminal.reason}",
+        dossier_id=address,
         claim_ref="pre-call",
         outcome=ABSTAIN,
         disposition=ABSTAIN,
@@ -394,7 +397,7 @@ def run_call(
             policy_version=deps.policy_version,
         )
 
-    last: P8Verdict | None = None
+    produced: list[P8Verdict] = []
     for unit in _units(request, deps, reduction.rung):
         try:
             reservation = reserve_call(
@@ -410,7 +413,8 @@ def run_call(
                 conn, unit, exhausted, observed_at=observed_at(),
                 policy_version=deps.policy_version,
             )
-            return last if last is not None else persisted
+            produced.append(persisted)
+            break
 
         try:
             decision = gate.release(unit.model_call_request)
@@ -452,7 +456,8 @@ def run_call(
             return issued
         if isinstance(issued, ValidationUnavailable):
             return issued
-        last = issued
-    if last is None:
+        produced.append(issued)
+    if not produced:
         return ValidationUnavailable(missing=("fitting_shard",))
-    return last
+    # One call, one returned verdict, chosen by severity and not by position.
+    return min(produced, key=lambda verdict: OUTCOME_SEVERITY.index(verdict.outcome))

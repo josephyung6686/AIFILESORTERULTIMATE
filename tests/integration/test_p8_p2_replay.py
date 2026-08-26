@@ -290,3 +290,45 @@ def test_site_a_replay_appends_no_second_p6_consequence(replay_conn, subject):
     assert first[0].verdict_id == third[0].verdict_id
     assert [row["reason"] for row in unresolved_for_file(
         replay_conn, file_id, content_hash)] == []
+
+
+def test_replay_reads_the_latest_response_under_a_fixed_clock(
+    replay_conn, subject, monkeypatch,
+):
+    """`response_id` is a uuid4. Ordering by it under an injected fixed clock --
+    which is how every test and every replay run is driven -- made "the latest
+    response" a coin toss, so a replay could re-validate an older response than
+    the caller meant.
+
+    The ids here descend as the rows are inserted, so the two orderings disagree
+    every time rather than half the time.
+    """
+    from llm_harness import store
+
+    file_id, _content_hash, key = subject
+    bundle = make_fact_bundle(replay_conn, subject)
+    dossier = _dossier(key, subject_ref=file_id)
+    record_dossier(replay_conn, dossier, observed_at=FIXED_CLOCK)
+
+    descending = iter(["response-9", "response-1"])
+    monkeypatch.setattr(store, "_new_id", lambda: next(descending))
+    for response_bytes in (UNKNOWN_BYTES, _direct_bytes(key)):
+        record_response(
+            replay_conn, dossier_id=dossier.dossier_id,
+            response_bytes=response_bytes, model_id=MODEL_ID,
+            prompt_fingerprint=PROMPT_FP, release_audit_id=17,
+            release_id="release-fixture", observed_at=FIXED_CLOCK,
+        )
+    assert [row["response_id"] for row in replay_conn.execute(
+        "SELECT response_id FROM llm_response ORDER BY rowid"
+    )] == ["response-9", "response-1"]
+
+    verdicts, _report = replay_recorded_response(
+        replay_conn, dossier,
+        evidence_resolver=_resolver(RELEASED_MATERIAL, key),
+        site_dependencies=bundle,
+        contradicts=_never_contradicts,
+        dossier_builder="fixture",
+        policy_version="policy-1",
+    )
+    assert [v.outcome for v in verdicts] == [ACCEPT_DIRECT]

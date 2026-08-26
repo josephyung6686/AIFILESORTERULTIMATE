@@ -70,6 +70,9 @@ from llm_harness.vocabulary import (
 )
 
 SPAN = "span-1"
+#: The metadata field name a metadata citation names. Never the same string as
+#: SPAN: the span branch and the address branch must be told apart by a test.
+ADDRESS = "address-1"
 OBS = "obs-1"
 PLAN_V1 = "plan-v1"
 SNAP_1 = "snap-1"
@@ -119,11 +122,18 @@ def _member(file_id: str, *, basis: str = DIRECT_ANCHOR) -> EvidenceItem:
 
 
 def _released_for(items: tuple[EvidenceItem, ...]) -> tuple[ReleasedEvidence, ...]:
-    """What P7 released for these witnesses. Structural members release nothing."""
+    """What P7 released for these witnesses. Structural members release nothing.
+
+    `address` and `value` carry DIFFERENT fixture text on purpose. `_check_citation`
+    compares the span against the value and the metadata field name against the
+    address; with one constant in both slots, a test passing through either branch
+    would pass identically through the other, for exactly the comparison this
+    fixture exists to exercise.
+    """
     return tuple(
         ReleasedEvidence(
             observation_key=item.evidence_ref,
-            address=SPAN,
+            address=ADDRESS,
             value=SPAN,
             zone="body",
             context_before=None,

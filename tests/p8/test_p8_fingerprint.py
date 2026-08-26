@@ -216,7 +216,23 @@ def test_factory_cannot_accept_inconsistent_preassembled_bytes():
 
 
 def test_factory_cannot_bind_a_fingerprint_that_does_not_match_the_definition():
+    """There is one source for the digest, and it is the definition.
+
+    The factory used to accept a `prompt_fingerprint` and discard it, which is
+    the same footgun as honouring it: a caller passing a real digest got neither
+    an error nor an effect. Refusing the argument is the refusal.
+    """
     definition = _prompt()
+    with pytest.raises(TypeError):
+        build_call_payload(
+            definition,
+            b"DOSSIER",
+            model_target=_model_target(),
+            policy_version="policy-1",
+            release_id="rel-1",
+            dossier_id="dossier-address-1",
+            prompt_fingerprint="not-the-digest",
+        )
     payload = build_call_payload(
         definition,
         b"DOSSIER",
@@ -224,10 +240,8 @@ def test_factory_cannot_bind_a_fingerprint_that_does_not_match_the_definition():
         policy_version="policy-1",
         release_id="rel-1",
         dossier_id="dossier-address-1",
-        prompt_fingerprint="not-the-digest",
     )
     assert payload.prompt_fingerprint == prompt_fingerprint(definition)
-    assert payload.prompt_fingerprint != "not-the-digest"
 
 
 def test_dossier_content_address_is_a_digest_of_model_visible_payload():
@@ -258,21 +272,19 @@ def test_dossier_content_address_changes_when_any_model_visible_byte_changes():
     assert _address(allowed_schema_bytes=b'{"type":"array"}') != baseline
 
 
-def test_dossier_content_address_excludes_release_and_audit_capability_values():
-    baseline = _address()
-    assert _address(release_id="rel-1", audit_id=17) == baseline
-    assert _address(release_id="rel-other", audit_id=99) == baseline
+def test_no_capability_or_snapshot_value_can_reach_the_address_at_all():
+    """`release_id`, `audit_id` and `evidence_snapshot_id` were parameters here,
+    accepted and immediately `del`'d. A signature that documents an exclusion
+    reads as though the value has some effect on something, and no caller in
+    `src/` or `tests/` ever passed one. The address takes what it hashes and
+    nothing else."""
     parameters = inspect.signature(dossier_content_address).parameters
-    assert parameters["release_id"].kind is inspect.Parameter.KEYWORD_ONLY
-    assert parameters["audit_id"].kind is inspect.Parameter.KEYWORD_ONLY
-
-
-def test_evidence_snapshot_id_is_stored_separately_and_does_not_enter_the_address():
-    parameters = inspect.signature(dossier_content_address).parameters
-    assert "evidence_snapshot_id" in parameters
-    assert parameters["evidence_snapshot_id"].kind is inspect.Parameter.KEYWORD_ONLY
-    assert _address(evidence_snapshot_id="snap-1") == _address(evidence_snapshot_id="snap-2")
-    assert _address(evidence_snapshot_id="snap-1") == _address()
+    assert set(parameters) == {
+        "released_material", "allowed_vocabulary", "allowed_schema_bytes",
+    }
+    for excluded in ("release_id", "audit_id", "evidence_snapshot_id"):
+        with pytest.raises(TypeError):
+            _address(**{excluded: "anything"})
 
 
 def test_dossier_content_address_rejects_bare_string_allowed_vocabulary():

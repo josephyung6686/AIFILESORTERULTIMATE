@@ -43,6 +43,7 @@ from llm_harness.records import (
     ValidationUnavailable,
 )
 from llm_harness.vocabulary import (
+    pre_call_address,
     A_FACT,
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -529,7 +530,7 @@ def report_for_pre_call_terminal(
         reasons_histogram={reason: 1},
         reduction_rung=rung,
         release_audit_id=None,
-        dossier_id=request.subject_ref,
+        dossier_id=pre_call_address(request.call_site, request.subject_ref),
     )
 
 

@@ -52,17 +52,15 @@ def dossier_content_address(
     *,
     allowed_vocabulary: Sequence[str],
     allowed_schema_bytes: bytes,
-    evidence_snapshot_id: str | None = None,
-    release_id: str | None = None,
-    audit_id: int | None = None,
 ) -> str:
     """SHA-256 hex digest of the canonical model-visible dossier payload.
 
     Hashed: released material plus allowed schema/vocabulary. Not hashed:
-    `release_id`, `audit_id`, and `evidence_snapshot_id`. Snapshot identity is
-    a separate argument for later revalidation; it is not part of the address.
+    `release_id`, `audit_id`, or `evidence_snapshot_id`. Those three were once
+    parameters here, accepted and immediately discarded -- a signature that
+    documents an exclusion reads as though the value has some effect, and no
+    caller ever passed one.
     """
-    del evidence_snapshot_id, release_id, audit_id
     payload = canonical_json({
         "allowed_schema_bytes": allowed_schema_bytes.hex(),
         "allowed_vocabulary": _as_str_list(

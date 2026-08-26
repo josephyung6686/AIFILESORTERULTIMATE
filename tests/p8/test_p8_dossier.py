@@ -264,8 +264,8 @@ def test_canonical_bytes_carry_the_builders_conflicts():
 
 def test_canonical_bytes_carry_the_authored_schema_and_shaping_policy():
     body = _body()
-    assert body["response_schema"] == b'{"type":"object"}'.hex()
-    assert body["shaping_policy"] == b'{"policy":"authored"}'.hex()
+    assert body["response_schema"] == '{"type":"object"}'
+    assert body["shaping_policy"] == '{"policy":"authored"}'
 
 
 # --- the address ----------------------------------------------------------------
@@ -398,3 +398,31 @@ def test_only_the_dossier_module_and_the_fixtures_construct_a_dossier():
         "a second dossier writer can address a dossier differently from "
         f"build_dossier: {offenders}"
     )
+
+
+def test_the_injected_authorities_reach_the_model_as_text_not_hex():
+    """`_body` is the exact bytes the model is shown. `response_schema_bytes` and
+    `shaping_policy_bytes` are the two injected authorities meant to constrain the
+    model's answer, and hex renders both unreadable to it. Hex is right for the
+    fingerprint, where `canonical_json` cannot encode raw bytes; it is wrong here.
+    """
+    prompt = _prompt(
+        response_schema_bytes=b'{"type":"object","required":["claims"]}',
+        shaping_policy_bytes=b'{"policy":"one claim per field"}',
+    )
+    raw = canonical_dossier_bytes(_build(prompt=prompt), prompt).decode("utf-8")
+    body = json.loads(raw)
+    assert body["response_schema"] == '{"type":"object","required":["claims"]}'
+    assert body["shaping_policy"] == '{"policy":"one claim per field"}'
+    assert prompt.response_schema_bytes.hex() not in raw
+    assert prompt.shaping_policy_bytes.hex() not in raw
+
+
+def test_an_authority_the_model_cannot_read_is_refused():
+    """P8 authors neither, and shows the model whatever it is handed. Bytes that
+    are not text are not something the model can be constrained by."""
+    from llm_harness.records import MalformedRecord
+
+    prompt = _prompt(response_schema_bytes=b"\xff\xfe not text")
+    with pytest.raises(MalformedRecord):
+        canonical_dossier_bytes(_build(prompt=prompt), prompt)
