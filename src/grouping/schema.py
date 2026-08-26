@@ -151,6 +151,46 @@ CREATE TABLE IF NOT EXISTS group_acceptance (
     created_at             TEXT NOT NULL,
     {_SUPERSEDE}
 );
+-- SS8.2 in SQL. A revision inserts and links; the supersession columns are the
+-- only ones a later write may touch, so a writer that tried to correct a record
+-- in place fails rather than losing the original.
+CREATE TRIGGER IF NOT EXISTS groups_no_delete
+BEFORE DELETE ON groups
+BEGIN SELECT RAISE(ABORT, 'a group is superseded, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS groups_never_overwritten
+BEFORE UPDATE OF group_id, seed_ref, seed_kind, proposed_basis, anchor_facts,
+                 pre_model_signals, anchor_count, coherence_verdict,
+                 coherence_citations, group_category, display_label, label_source,
+                 conflicts, stop_rule_hits, state, sensitivity_state, dossier_id,
+                 llm_response_ref, validation_verdict_ref, created_by, created_at
+    ON groups
+BEGIN SELECT RAISE(ABORT, 'a group is superseded, never overwritten'); END;
+
+CREATE TRIGGER IF NOT EXISTS memberships_no_delete
+BEFORE DELETE ON memberships
+BEGIN SELECT RAISE(ABORT, 'a membership is superseded, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS memberships_never_overwritten
+BEFORE UPDATE OF membership_id, group_id, file_id, content_hash, basis, decision,
+                 decision_source, support, insufficient_evidence,
+                 insufficiency_statement, conflicts, outlier_flag,
+                 validation_verdict_ref, created_at
+    ON memberships
+BEGIN SELECT RAISE(ABORT, 'a membership is superseded, never overwritten'); END;
+
+CREATE TRIGGER IF NOT EXISTS group_edges_no_delete
+BEFORE DELETE ON group_edges
+BEGIN SELECT RAISE(ABORT, 'an edge is superseded, never removed'); END;
+
+CREATE TRIGGER IF NOT EXISTS group_acceptance_no_delete
+BEFORE DELETE ON group_acceptance
+BEGIN SELECT RAISE(ABORT, 'an acceptance is superseded, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS group_acceptance_never_overwritten
+BEFORE UPDATE OF acceptance_id, plan_version_id, group_id, membership_id,
+                 acceptance, review_state, user_edited_label, aliases,
+                 review_decision_ref, decided_by, created_at
+    ON group_acceptance
+BEGIN SELECT RAISE(ABORT, 'an acceptance is superseded, never overwritten'); END;
+
 CREATE INDEX IF NOT EXISTS group_acceptance_plan
     ON group_acceptance (plan_version_id, group_id);
 CREATE UNIQUE INDEX IF NOT EXISTS one_current_group_acceptance
