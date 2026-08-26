@@ -105,20 +105,6 @@ _ZERO_COUNTS = dict(
 )
 
 
-def _released_view(resolved: object) -> Mapping[str, object] | None:
-    if isinstance(resolved, str):
-        return {"text": resolved, "metadata": {}}
-    if isinstance(resolved, Mapping) and "text" in resolved:
-        text = resolved["text"]
-        if not isinstance(text, str):
-            return None
-        metadata = resolved.get("metadata")
-        if not isinstance(metadata, Mapping):
-            metadata = {}
-        return {"text": text, "metadata": metadata}
-    return None
-
-
 def _parse_citation(raw: object) -> Citation | None:
     if not isinstance(raw, Mapping):
         return None
@@ -144,29 +130,39 @@ def _check_citation(
     dossier: Dossier,
     evidence_resolver: Callable[[str], object],
 ) -> tuple[CheckedCitation, str | None] | ValidationUnavailable:
+    """Two checks, two sources. SPEC: `CITATION_SPAN_MISMATCH` compares the cited
+    span against *"the released dossier's excerpt -- what the model actually saw"*,
+    while `CITATION_NOT_FOUND` *"resolves the reference against the store"*.
+
+    P4's value is never the span-matching source. With redaction on, the stored
+    text is the raw value and the model was shown the redacted one; matching
+    against the store would accept a quotation the model could not have read and
+    reject the one it did.
+    """
     refs = {item.evidence_ref for item in dossier.evidence_items}
     if citation.evidence_ref not in refs:
         return (
             CheckedCitation(citation.evidence_ref, False, False),
             CITATION_NOT_IN_DOSSIER,
         )
-    resolved = evidence_resolver(citation.evidence_ref)
-    if resolved is None:
+    released = {
+        item.observation_key: item for item in dossier.released_evidence
+    }.get(citation.evidence_ref)
+    if released is None:
+        # In the dossier as a reference, but nothing about it was released.
+        return (
+            CheckedCitation(citation.evidence_ref, False, False),
+            CITATION_NOT_IN_DOSSIER,
+        )
+    if evidence_resolver(citation.evidence_ref) is None:
         return (
             CheckedCitation(citation.evidence_ref, False, False),
             CITATION_NOT_FOUND,
         )
-    view = _released_view(resolved)
-    if view is None:
-        return ValidationUnavailable(missing=("evidence_resolver",))
-    text = view["text"]
-    if not isinstance(text, str):
-        return ValidationUnavailable(missing=("evidence_resolver",))
     if citation.cited_span is not None:
-        matched = citation.cited_span in text
+        matched = citation.cited_span in released.value
     else:
-        metadata = view["metadata"]
-        matched = isinstance(metadata, Mapping) and citation.metadata_field_name in metadata
+        matched = citation.metadata_field_name == released.address
     if not matched:
         return (
             CheckedCitation(citation.evidence_ref, True, False),

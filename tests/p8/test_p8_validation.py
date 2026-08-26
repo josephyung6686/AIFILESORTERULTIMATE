@@ -10,6 +10,7 @@ import llm_harness
 from evidence_shape.canonical import canonical_json
 from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.records import (
+    ReleasedEvidence,
     Conflict,
     Dossier,
     EvidenceItem,
@@ -82,7 +83,25 @@ def _evidence(basis: str = DIRECT_ANCHOR, ref: str = "obs-key-1") -> EvidenceIte
     )
 
 
-def _dossier(*, basis: str = DIRECT_ANCHOR, extra_items=()) -> Dossier:
+def _released(ref: str = "obs-key-1", *,
+              value: str = RELEASED_MATERIAL) -> ReleasedEvidence:
+    return ReleasedEvidence(
+        observation_key=ref,
+        address="0:4",
+        value=value,
+        zone="body",
+        context_before=None,
+        context_after=None,
+        context_truncated=False,
+    )
+
+
+def _dossier(*, basis: str = DIRECT_ANCHOR, extra_items=(),
+             released_evidence=None) -> Dossier:
+    if released_evidence is None:
+        released_evidence = (_released(),) + tuple(
+            _released(item.evidence_ref) for item in extra_items
+        )
     return Dossier(
         dossier_id="dossier-1",
         call_site=A_FACT,
@@ -93,7 +112,7 @@ def _dossier(*, basis: str = DIRECT_ANCHOR, extra_items=()) -> Dossier:
         allowed_vocabulary=("school",),
         evidence_items=(_evidence(basis=basis),) + tuple(extra_items),
         conflicts=(Conflict(conflict_id="c1", kind="stronger_fact"),),
-        released_evidence=(),
+        released_evidence=tuple(released_evidence),
         max_dossier_tokens=4000,
         reduction_rung=REDUCTION_NONE,
         release_id="rel-1",
@@ -296,13 +315,15 @@ def test_contradicts_none_does_not_fall_back_to_resolver_attribute():
     assert result.missing == ("contradicts",)
 
 
-def test_empty_released_text_does_not_fall_through_to_released_key():
+def test_an_empty_released_value_matches_nothing_whatever_the_store_returns():
+    """R4: the released value is the span source. An empty release grounds nothing."""
     def resolve(observation_key: str) -> Mapping[str, object] | None:
         if observation_key == "obs-key-1":
-            return {"text": "", "released": "Columbia University extra secret"}
+            return {"text": "Columbia University", "released": "extra secret"}
         return None
 
-    verdicts, report = _validate(_dossier(), DIRECT_BYTES, evidence_resolver=resolve)
+    dossier = _dossier(released_evidence=(_released(value=""),))
+    verdicts, report = _validate(dossier, DIRECT_BYTES, evidence_resolver=resolve)
     assert verdicts[0].outcome != ACCEPT_DIRECT
     assert verdicts[0].outcome == "reject"
     assert CITATION_SPAN_MISMATCH in verdicts[0].reasons
@@ -310,7 +331,8 @@ def test_empty_released_text_does_not_fall_through_to_released_key():
     assert verdicts[0].citations_checked[0].span_matched is False
 
 
-def test_non_str_resolver_material_is_not_coerced_for_span_match():
+def test_raw_store_material_cannot_rescue_a_span_the_release_does_not_carry():
+    """R4: whatever shape the store answers in, it answers presence only."""
     class RawRow:
         def __str__(self) -> str:
             return "RAW SECRET TEXT Columbia University confidential"
@@ -320,8 +342,9 @@ def test_non_str_resolver_material_is_not_coerced_for_span_match():
             return RawRow()
         return None
 
-    result = validate_response(
-        _dossier(),
+    dossier = _dossier(released_evidence=(_released(value="[REDACTED] excerpt"),))
+    verdicts, _report = validate_response(
+        dossier,
         DIRECT_BYTES,
         evidence_resolver=resolve,
         site_validator=_noop_site,
@@ -331,8 +354,8 @@ def test_non_str_resolver_material_is_not_coerced_for_span_match():
         dossier_builder="fixture",
         release_audit_id=17,
     )
-    assert isinstance(result, ValidationUnavailable)
-    assert "evidence_resolver" in result.missing
+    assert verdicts[0].outcome == "reject"
+    assert verdicts[0].reasons == (CITATION_SPAN_MISMATCH,)
 
 
 def test_numeric_cited_span_is_schema_invalid():
