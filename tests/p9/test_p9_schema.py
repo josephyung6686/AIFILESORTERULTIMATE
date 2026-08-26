@@ -337,3 +337,145 @@ def test_no_record_stores_a_verdict_enum_of_its_own():
             assert field.name != "outcome", cls
             assert field.name != "verdict", cls
     assert "validation_verdict_ref" in _field_names(Membership)
+
+
+# --- the candidate group dossier ------------------------------------------------
+#
+# The actual input to the LLM. It must not contain every file in full: "a large,
+# noisy prompt encourages the model to find patterns that are not real" (§4.4).
+
+
+def _excerpt(**overrides):
+    from grouping.records import Excerpt
+
+    values = dict(
+        observation_key="sha256:obs-1",
+        location="heading",
+        text="PHYS1401 Syllabus",
+    )
+    values.update(overrides)
+    return Excerpt(**values)
+
+
+def _dossier_file(**overrides):
+    from grouping.records import DossierFile
+
+    values = dict(
+        file_id="lecture-08",
+        content_hash="hash-lecture",
+        document_type="lecture",
+        basis=DIRECT_ANCHOR,
+        key_facts=(
+            AnchorFact(
+                field="course_code", value="PHYS1401", file_ids=("lecture-08",),
+                reliability_state="validated", observation_key="sha256:obs-1",
+            ),
+        ),
+        excerpts=(_excerpt(),),
+        why_retrieved=None,
+    )
+    values.update(overrides)
+    return DossierFile(**values)
+
+
+def _candidate_dossier(**overrides):
+    from grouping.records import (
+        BudgetSummary,
+        CandidateGroupDossier,
+        Omissions,
+        PrivacySummary,
+    )
+
+    values = dict(
+        dossier_id="d1",
+        group_id="g1",
+        proposed_basis="PHYS1401 course materials",
+        anchor_files=(_dossier_file(),),
+        candidate_files=(
+            _dossier_file(
+                file_id="hw-3", content_hash="hash-hw", document_type="homework",
+                basis=CONTEXT_SUPPORTED, key_facts=(),
+                why_retrieved="mutual-semantic-retrieval via e1",
+            ),
+        ),
+        typed_edges=(),
+        key_facts=(),
+        excerpts=(_excerpt(),),
+        conflicts=(),
+        engine_flagged_outliers=(),
+        omissions=Omissions(
+            budget_cap_dropped=(), privacy_redacted=(), neighbourhood_capped=(),
+        ),
+        privacy=PrivacySummary(
+            handling_classes=("public_low",), redactions_applied=0,
+            release_decision_ref=None,
+        ),
+        budget=BudgetSummary(
+            token_ceiling=4000, neighbour_cap=25, files_dropped=0,
+        ),
+        dossier_fingerprint="sha256:fingerprint",
+        created_at="2026-08-26T00:00:00Z",
+    )
+    values.update(overrides)
+    return CandidateGroupDossier(**values)
+
+
+def test_anchor_and_candidate_files_are_separate_arrays():
+    """§4.4: the dossier explicitly distinguishes direct evidence from context."""
+    dossier = _candidate_dossier()
+    assert {item.basis for item in dossier.anchor_files} == {DIRECT_ANCHOR}
+    assert [item.file_id for item in dossier.candidate_files] == ["hw-3"]
+    assert dossier.candidate_files[0].basis == CONTEXT_SUPPORTED
+    names = {field.name for field in dataclasses.fields(type(dossier))}
+    assert "files" not in names
+    assert "members" not in names
+
+
+def test_an_anchor_file_may_not_be_context_supported():
+    with pytest.raises(MalformedGroupRecord):
+        _candidate_dossier(anchor_files=(_dossier_file(basis=CONTEXT_SUPPORTED),))
+
+
+def test_a_candidate_file_says_which_channel_retrieved_it():
+    with pytest.raises(MalformedGroupRecord):
+        _candidate_dossier(
+            candidate_files=(
+                _dossier_file(basis=CONTEXT_SUPPORTED, why_retrieved=None),
+            ),
+        )
+
+
+def test_the_same_file_cannot_be_both_an_anchor_and_a_candidate():
+    with pytest.raises(MalformedGroupRecord):
+        _candidate_dossier(
+            candidate_files=(
+                _dossier_file(basis=CONTEXT_SUPPORTED, why_retrieved="edge e1"),
+            ),
+        )
+
+
+def test_every_excerpt_names_the_observation_it_came_from():
+    """P8 cannot verify a citation whose span resolves to nothing (§4.8)."""
+    with pytest.raises(MalformedGroupRecord):
+        _candidate_dossier(excerpts=(_excerpt(observation_key=""),))
+
+
+def test_a_dossier_with_no_anchor_file_is_refused():
+    """SR1: no valid anchor means no supported group, so no dossier either."""
+    with pytest.raises(MalformedGroupRecord):
+        _candidate_dossier(anchor_files=())
+
+
+def test_the_dossier_carries_its_own_omissions_privacy_and_budget():
+    dossier = _candidate_dossier()
+    names = {field.name for field in dataclasses.fields(type(dossier))}
+    for required in ("omissions", "privacy", "budget", "dossier_fingerprint"):
+        assert required in names, required
+
+
+def test_the_dossier_names_no_destination_and_no_folder():
+    from grouping.records import CandidateGroupDossier
+
+    names = {field.name for field in dataclasses.fields(CandidateGroupDossier)}
+    for banned in ("destination", "node", "path", "folder", "tree", "label"):
+        assert not any(banned in name for name in names), banned

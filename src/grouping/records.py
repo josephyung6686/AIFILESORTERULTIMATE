@@ -368,3 +368,150 @@ class GroupAcceptance:
         check(self.review_state, REVIEW_STATES, name="review_state")
         check(self.decided_by, DECIDED_BY, name="decided_by")
         _freeze(self, "aliases")
+
+
+# --- the candidate group dossier ------------------------------------------------
+#
+# The actual input to the LLM. It must not contain every file in full: "a large,
+# noisy prompt encourages the model to find patterns that are not real" (§4.4).
+#
+# P9 assembles this. P8 materialises its own `Dossier` after P7 releases; the two
+# are different records and P9 never constructs the second.
+
+
+@dataclass(frozen=True)
+class Excerpt:
+    """A SHORT span, with the observation it came from.
+
+    An excerpt whose key resolves to nothing cannot be verified by P8, and a key
+    that survives an extractor upgrade is what lets a rejected dossier still
+    resolve as a negative example afterwards.
+    """
+
+    observation_key: str
+    location: str
+    text: str
+
+    def __post_init__(self) -> None:
+        _require(self.observation_key, name="observation_key")
+        _require(self.location, name="location")
+        _require(self.text, name="text")
+
+
+@dataclass(frozen=True)
+class DossierFile:
+    """One file in the dossier, on one side of the direct/context line."""
+
+    file_id: str
+    content_hash: str
+    document_type: str
+    basis: str
+    key_facts: tuple[AnchorFact, ...]
+    excerpts: tuple[Excerpt, ...]
+    why_retrieved: str | None
+
+    def __post_init__(self) -> None:
+        for name in ("file_id", "content_hash", "document_type"):
+            _require(getattr(self, name), name=name)
+        check(self.basis, MEMBERSHIP_BASES, name="basis")
+        _freeze(self, "key_facts")
+        _freeze(self, "excerpts")
+
+
+@dataclass(frozen=True)
+class Omissions:
+    """What was withheld, and why. Silence about a dropped file is the failure."""
+
+    budget_cap_dropped: tuple[str, ...]
+    privacy_redacted: tuple[str, ...]
+    neighbourhood_capped: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        for name in ("budget_cap_dropped", "privacy_redacted",
+                     "neighbourhood_capped"):
+            _freeze(self, name)
+
+
+@dataclass(frozen=True)
+class PrivacySummary:
+    handling_classes: tuple[str, ...]
+    redactions_applied: int
+    release_decision_ref: str | None
+
+    def __post_init__(self) -> None:
+        _freeze(self, "handling_classes")
+        if not isinstance(self.redactions_applied, int) or (
+                self.redactions_applied < 0):
+            raise MalformedGroupRecord("redactions_applied is a non-negative count")
+
+
+@dataclass(frozen=True)
+class BudgetSummary:
+    token_ceiling: int
+    neighbour_cap: int
+    files_dropped: int
+
+    def __post_init__(self) -> None:
+        for name in ("token_ceiling", "neighbour_cap", "files_dropped"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or value < 0:
+                raise MalformedGroupRecord(f"{name} is a non-negative count")
+
+
+@dataclass(frozen=True)
+class CandidateGroupDossier:
+    dossier_id: str
+    group_id: str
+    proposed_basis: str
+    anchor_files: tuple[DossierFile, ...]
+    candidate_files: tuple[DossierFile, ...]
+    typed_edges: tuple[TypedEdge, ...]
+    key_facts: tuple[AnchorFact, ...]
+    excerpts: tuple[Excerpt, ...]
+    conflicts: tuple[Conflict, ...]
+    engine_flagged_outliers: tuple[str, ...]
+    omissions: Omissions
+    privacy: PrivacySummary
+    budget: BudgetSummary
+    dossier_fingerprint: str
+    created_at: str
+
+    def __post_init__(self) -> None:
+        for name in ("dossier_id", "group_id", "proposed_basis",
+                     "dossier_fingerprint", "created_at"):
+            _require(getattr(self, name), name=name)
+        for name in ("anchor_files", "candidate_files", "typed_edges", "key_facts",
+                     "excerpts", "conflicts", "engine_flagged_outliers"):
+            _freeze(self, name)
+
+        # The two arrays are never merged: the model must be able to call a group
+        # coherent while still marking particular members uncertain, and it can
+        # only do that if direct evidence and inferred context arrive apart.
+        if not self.anchor_files:
+            raise MalformedGroupRecord(
+                "a dossier with no anchor file has no direct evidence to judge; "
+                "SR1 stops before this record is built"
+            )
+        for item in self.anchor_files:
+            if item.basis != DIRECT_ANCHOR:
+                raise MalformedGroupRecord(
+                    "an anchor file carries direct evidence by definition; a "
+                    "context-supported file belongs in candidate_files"
+                )
+        for item in self.candidate_files:
+            if item.basis == DIRECT_ANCHOR:
+                raise MalformedGroupRecord(
+                    "a direct-anchor file belongs in anchor_files"
+                )
+            if not item.why_retrieved:
+                raise MalformedGroupRecord(
+                    "a candidate file says which channel retrieved it; without that "
+                    "a reviewer cannot tell a shared fact from a semantic guess"
+                )
+        anchors = {item.file_id for item in self.anchor_files}
+        both = anchors & {item.file_id for item in self.candidate_files}
+        if both:
+            raise MalformedGroupRecord(
+                f"{sorted(both)} appear as both anchor and candidate; one file is "
+                "on one side of the direct/context line"
+            )
