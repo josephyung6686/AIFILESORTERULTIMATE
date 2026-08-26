@@ -148,6 +148,13 @@ SITES_REQUIRING_PLAN_VERSION: frozenset[str] = frozenset(
     {C_PLACEMENT, D_RESIDUAL, E_TEMPLATE}
 )
 
+#: `record_cd_verdict` refuses a C or D verdict without one. Named here so the
+#: requirement can be checked before a call is reserved rather than after it is
+#: paid for.
+SITES_REQUIRING_EVIDENCE_SNAPSHOT: frozenset[str] = frozenset(
+    {C_PLACEMENT, D_RESIDUAL}
+)
+
 # ---------------------------------------------------------------------------
 # Reason-code registry (SPEC spellings). Named constant == string value.
 # ---------------------------------------------------------------------------

@@ -17,10 +17,11 @@ Live evaluation and replay both route through `dispatch`.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from facts.llm_seam import FactRequest, Proposal
 
@@ -210,6 +211,28 @@ def _fact_site(
     return finished((verdict,))
 
 
+def _addressed_to_the_response(result, response_bytes: bytes):
+    """A verdict judges one claim of one RESPONSE against one dossier.
+
+    `verdict_id` was `dossier_id:claim_ref`, which is the identity of a question
+    rather than of an answer. `llm_verdict.verdict_id` is a PRIMARY KEY, so a
+    second call over the same dossier -- a re-scan of an unchanged file, two
+    shards showing identical material -- collided on the insert and crashed out
+    of `run_call` with the reservation already taken.
+
+    `dispatch` is the only place that holds both the verdicts and the bytes they
+    judged, so the response's address is added here and nowhere else.
+    """
+    if isinstance(result, ValidationUnavailable):
+        return result
+    verdicts, report = result
+    digest = hashlib.sha256(response_bytes).hexdigest()[:16]
+    return tuple(
+        replace(verdict, verdict_id=f"{verdict.verdict_id}@{digest}")
+        for verdict in verdicts
+    ), report
+
+
 def dispatch(
     conn: sqlite3.Connection | None,
     dossier: Dossier,
@@ -249,7 +272,7 @@ def dispatch(
     if site == A_FACT:
         if site_dependencies.fact is None:
             return ValidationUnavailable(missing=("fact_dependencies",))
-        return _fact_site(
+        return _addressed_to_the_response(_fact_site(
             conn, dossier, response_bytes, site_dependencies.fact,
             evidence_resolver=evidence_resolver,
             model_id=model_id,
@@ -258,28 +281,31 @@ def dispatch(
             release_audit_id=release_audit_id,
             policy_version=policy_version,
             apply_consequence=apply_consequence,
-        )
+        ), response_bytes)
     if site == B_GROUP:
-        return validate_group_response(dossier, response_bytes, **common)
+        return _addressed_to_the_response(
+            validate_group_response(dossier, response_bytes, **common),
+            response_bytes,
+        )
     if site == C_PLACEMENT:
         if site_dependencies.placement is None:
             return ValidationUnavailable(missing=("placement_dependencies",))
-        return validate_placement_response(
+        return _addressed_to_the_response(validate_placement_response(
             dossier, response_bytes,
             dependencies=site_dependencies.placement, **common,
-        )
+        ), response_bytes)
     if site == D_RESIDUAL:
         if site_dependencies.residual is None:
             return ValidationUnavailable(missing=("residual_dependencies",))
-        return validate_residual_response(
+        return _addressed_to_the_response(validate_residual_response(
             dossier, response_bytes,
             dependencies=site_dependencies.residual, **common,
-        )
+        ), response_bytes)
     if site == E_TEMPLATE:
         if site_dependencies.template is None:
             return ValidationUnavailable(missing=("template_dependencies",))
-        return validate_template_response(
+        return _addressed_to_the_response(validate_template_response(
             dossier, response_bytes,
             dependencies=site_dependencies.template, **common,
-        )
+        ), response_bytes)
     return ValidationUnavailable(missing=("site_validator",))

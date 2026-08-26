@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
 import inspect
 import json
 from decimal import Decimal
@@ -45,12 +46,14 @@ from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_DIRECT,
     BUDGET_EXHAUSTED,
+    C_PLACEMENT,
     DEFERRED,
     PRESERVED_ANCHORS,
     PRIVACY_GATE_REFUSED,
     REDUCTION_NONE,
     REMAINS_AMBIGUOUS,
     SCHEMA_INVALID,
+    SEVERAL_LEGAL_NODES_PLAUSIBLE,
     SPLIT,
     SUMMARIZED_FACTS,
 )
@@ -1077,3 +1080,190 @@ def test_a_post_release_verdict_carries_the_policy_the_release_authorised(
         "SELECT policy_version FROM llm_verdict WHERE dossier_id = ?",
         (verdict.dossier_id,),
     ).fetchone()["policy_version"] == POLICY_VERSION
+
+
+# --- a repeat, a raise, and a misconfiguration must not leak the budget ---------
+
+
+def _reservations(conn):
+    return [
+        (row["status"], row["actual_cost"])
+        for row in conn.execute(
+            "SELECT status, actual_cost FROM llm_budget_reservation ORDER BY rowid")
+    ]
+
+
+def test_an_identical_second_call_is_one_dossier_two_responses(harness_conn, subject):
+    """`dossier_id` is the address of the model-visible bytes, and identical bytes
+    are the same dossier. `record_dossier` was a bare INSERT against a PRIMARY
+    KEY, so the second identical call raised `IntegrityError` out of the public
+    entry point -- after the release was minted and the reservation taken, and
+    before either could be settled. The reservation stayed `reserved` forever,
+    holding a call and its estimated cost against the scan budget.
+    """
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    digest = prompt_fingerprint(prompt)
+
+    def call():
+        return _run(
+            harness_conn,
+            _request(file_id=subject[0], fingerprint=digest, key=key),
+            gate=RecordingGate(
+                harness_conn, prompt=prompt, decision="released", key=key),
+            model_client=ModelClient(
+                model_target=CLOUD, invoke=Recorder(reply=_direct_bytes(key))),
+            prompt=prompt,
+            deps=_deps(site_dependencies=bundle, scan_budget=_budget(files=3000)),
+        )
+
+    first = call()
+    second = call()
+    assert isinstance(first, P8Verdict)
+    assert isinstance(second, P8Verdict)
+    assert first.dossier_id == second.dossier_id
+    assert _count(harness_conn, "llm_dossier") == 1
+    assert _count(harness_conn, "llm_response") == 2
+    assert _reservations(harness_conn) == [("settled", "1"), ("settled", "1")]
+
+
+def test_the_dossier_row_carries_no_release_capability(harness_conn):
+    """A release is a single-use capability, not part of the content it paid for.
+
+    Keeping it on the content-addressed row made two calls over identical bytes
+    two conflicting rows. The release that paid for one call is recorded on that
+    call's own row.
+    """
+    columns = {
+        row["name"]
+        for row in harness_conn.execute("PRAGMA table_info(llm_dossier)")
+    }
+    assert "release_id" not in columns
+    for table in ("llm_response", "llm_call_failure"):
+        assert "release_id" in {
+            row["name"] for row in harness_conn.execute(
+                f"PRAGMA table_info({table})")
+        }, table
+
+
+def test_a_raise_after_the_reservation_releases_it(harness_conn, subject):
+    """Only the gate's own terminal decisions released the reservation. Every
+    other raise between `reserve_call` and `settle_call` removed a call and its
+    estimated cost from the scan budget permanently."""
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+
+    class Exploding:
+        def __call__(self, payload: bytes) -> bytes:
+            raise KeyboardInterrupt("something outside P8's vocabulary")
+
+    with pytest.raises(KeyboardInterrupt):
+        _run(
+            harness_conn,
+            _request(file_id=subject[0], fingerprint=prompt_fingerprint(prompt),
+                     key=key),
+            gate=RecordingGate(
+                harness_conn, prompt=prompt, decision="released", key=key),
+            model_client=ModelClient(model_target=CLOUD, invoke=Exploding()),
+            prompt=prompt,
+            deps=_deps(site_dependencies=bundle),
+        )
+    assert _reservations(harness_conn) == [("released", None)]
+
+
+def test_a_cd_request_with_no_evidence_snapshot_spends_nothing(harness_conn):
+    """`record_cd_verdict` requires `evidence_snapshot_id`, and raised only after
+    the release was consumed, the model was called and the response was stored --
+    a call paid for that produced no verdict and no report. The requirement is
+    checked before anything is reserved."""
+    prompt = dataclasses.replace(_prompt(), call_site=C_PLACEMENT)
+    request = DossierRequest(
+        call_site=C_PLACEMENT,
+        subject_ref="file-1",
+        eligibility_reason=SEVERAL_LEGAL_NODES_PLAUSIBLE,
+        evidence_items=(make_evidence_item(),),
+        conflicts=(),
+        model_call_request=_model_call_request(
+            fingerprint=prompt_fingerprint(prompt)),
+        plan_version="plan-1",
+        evidence_snapshot_id=None,
+        budget_context="scan-1",
+    )
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released")
+    recorder = Recorder(reply=b'{"claims":[]}')
+    result = _run(
+        harness_conn, request,
+        gate=gate,
+        model_client=ModelClient(model_target=CLOUD, invoke=recorder),
+        prompt=prompt,
+        deps=_deps(),
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("evidence_snapshot_id",)
+    assert gate.requests == []
+    assert recorder.calls == []
+    assert _reservations(harness_conn) == []
+
+
+def test_a_failed_calls_report_joins_to_the_dossier_it_describes(harness_conn, subject):
+    """`CallFailed.request_identity` was the `release_id`, so the grounding report
+    for a failed call joined to neither the dossier nor the failure row."""
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    result = _run(
+        harness_conn,
+        _request(file_id=subject[0], fingerprint=prompt_fingerprint(prompt), key=key),
+        gate=RecordingGate(harness_conn, prompt=prompt, decision="released", key=key),
+        model_client=ModelClient(
+            model_target=CLOUD, invoke=Recorder(error=RuntimeError("boom"))),
+        prompt=prompt,
+        deps=_deps(site_dependencies=bundle),
+    )
+    assert isinstance(result, CallFailed)
+    dossier_id = harness_conn.execute(
+        "SELECT dossier_id FROM llm_dossier").fetchone()["dossier_id"]
+    assert result.request_identity == dossier_id
+    assert harness_conn.execute(
+        "SELECT dossier_id FROM llm_call_failure").fetchone()["dossier_id"] == dossier_id
+    assert harness_conn.execute(
+        "SELECT dossier_id FROM llm_grounding_report"
+    ).fetchone()["dossier_id"] == dossier_id
+
+
+def test_two_different_answers_to_one_dossier_are_two_verdicts(harness_conn, subject):
+    """A verdict judges one claim of one RESPONSE against one dossier.
+
+    `verdict_id` was `dossier_id:claim_ref` -- the identity of a question, not of
+    an answer -- so a second call over the same dossier that got a different
+    answer collided on a PRIMARY KEY. A model is not a function; the same bytes
+    in do not oblige the same bytes out.
+    """
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    digest = prompt_fingerprint(prompt)
+
+    def call(reply):
+        return _run(
+            harness_conn,
+            _request(file_id=subject[0], fingerprint=digest, key=key),
+            gate=RecordingGate(
+                harness_conn, prompt=prompt, decision="released", key=key),
+            model_client=ModelClient(
+                model_target=CLOUD, invoke=Recorder(reply=reply)),
+            prompt=prompt,
+            deps=_deps(site_dependencies=bundle, scan_budget=_budget(files=3000)),
+        )
+
+    accepted = call(_direct_bytes(key))
+    abstained = call(UNKNOWN_BYTES)
+    assert accepted.outcome == ACCEPT_DIRECT
+    assert abstained.outcome == ABSTAIN
+    assert accepted.dossier_id == abstained.dossier_id
+    assert accepted.verdict_id != abstained.verdict_id
+    assert _count(harness_conn, "llm_dossier") == 1
+    assert _count(harness_conn, "llm_verdict") == 2
+    assert _reservations(harness_conn) == [("settled", "1"), ("settled", "1")]

@@ -50,6 +50,7 @@ from llm_harness.validation import (
     report_for_pre_call_terminal,
 )
 from llm_harness.vocabulary import (
+    SITES_REQUIRING_EVIDENCE_SNAPSHOT,
     A_FACT,
     ABSTAIN,
     B_GROUP,
@@ -146,6 +147,20 @@ def _missing_configuration(
         return tuple(missing)
     missing.extend(_missing_from_deps(validation_dependencies))
     return tuple(missing)
+
+
+def _missing_request_inputs(request: DossierRequest) -> tuple[str, ...]:
+    """What the call site itself requires of the request, checked before the spend.
+
+    `record_cd_verdict` requires `evidence_snapshot_id` at C and D and raised only
+    after the release was consumed, the model was called and the response was
+    stored: a call paid for that produced no verdict and no report. Nothing in
+    `DossierRequest.__post_init__` requires it, because A and B do not.
+    """
+    if request.call_site in SITES_REQUIRING_EVIDENCE_SNAPSHOT and (
+            not request.evidence_snapshot_id):
+        return ("evidence_snapshot_id",)
+    return ()
 
 
 def _pre_call_verdict(
@@ -341,6 +356,9 @@ def run_call(
     )
     if missing:
         return ValidationUnavailable(missing=missing)
+    missing = _missing_request_inputs(request)
+    if missing:
+        return ValidationUnavailable(missing=missing)
 
     deps = validation_dependencies
     eligibility = assess_call(
@@ -412,14 +430,23 @@ def run_call(
             release_reservation(conn, reservation)
             return ValidationUnavailable(missing=("release_decision",))
 
-        issued = _issue_and_validate(
-            conn, unit, decision,
-            prompt=prompt,
-            model_client=model_client,
-            deps=deps,
-            reduction_rung=reduction.rung,
-            observed_at=observed_at(),
-        )
+        try:
+            issued = _issue_and_validate(
+                conn, unit, decision,
+                prompt=prompt,
+                model_client=model_client,
+                deps=deps,
+                reduction_rung=reduction.rung,
+                observed_at=observed_at(),
+            )
+        except BaseException:
+            # Only the gate's own terminal decisions released the reservation.
+            # Every other raise between `reserve_call` and `settle_call` --
+            # a binding mismatch, an open transaction, a malformed record, an
+            # interrupt -- removed a call and its estimated cost from the scan
+            # budget permanently, with nothing left holding the reservation id.
+            release_reservation(conn, reservation)
+            raise
         settle_call(conn, reservation, actual_cost=deps.actual_cost)
         if isinstance(issued, CallFailed):
             return issued

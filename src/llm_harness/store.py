@@ -23,7 +23,13 @@ from llm_harness.authorship import (
     VERDICT_SUPERSEDED,
     event_defaults,
 )
-from llm_harness.records import GroundingReport, P8Verdict, PreCallAbstention, Refusal
+from llm_harness.records import (
+    GroundingReport,
+    MalformedRecord,
+    P8Verdict,
+    PreCallAbstention,
+    Refusal,
+)
 
 
 def _jsonable(value: object) -> object:
@@ -78,16 +84,60 @@ def _append(conn: sqlite3.Connection, *, event_type: str, observed_at: str,
 
 
 def record_dossier(conn: sqlite3.Connection, dossier, *, observed_at: str) -> str:
-    """Insert one dossier row. Appends no event."""
+    """Record one dossier by its content address. Appends no event.
+
+    `dossier_id` is the address of the model-visible bytes, so identical bytes
+    are the same dossier and recording them twice is not a second row -- it was a
+    bare INSERT against a PRIMARY KEY, and the second identical call raised
+    `IntegrityError` out of `run_call` with a reservation already taken and no
+    path left to settle it.
+
+    An address whose stored content differs from the content offered under it is
+    a different failure entirely, and never a silent overwrite: the row is
+    append-only by trigger and this refuses before reaching it.
+    """
+    # The stored payload is the content, and the content alone. `Dossier` carries
+    # `release_id` because one call needs it; the row is addressed by content and
+    # two calls over identical content are one row, so the capability that paid
+    # for either of them is not part of it.
+    body = {
+        name: value for name, value in _jsonable(dossier).items()
+        if name != "release_id"
+    }
+    payload = canonical_json(body)
+    row = conn.execute(
+        "SELECT call_site, subject_ref, eligibility_reason, plan_version, "
+        "policy_version, reduction_rung, payload FROM llm_dossier "
+        "WHERE dossier_id = ?",
+        (dossier.dossier_id,),
+    ).fetchone()
+    if row is not None:
+        stored = (
+            row["call_site"], row["subject_ref"], row["eligibility_reason"],
+            row["plan_version"], row["policy_version"], row["reduction_rung"],
+            row["payload"],
+        )
+        offered = (
+            dossier.call_site, dossier.subject_ref, dossier.eligibility_reason,
+            dossier.plan_version, dossier.policy_version, dossier.reduction_rung,
+            payload,
+        )
+        if stored != offered:
+            raise MalformedRecord(
+                f"dossier {dossier.dossier_id} is already recorded with different "
+                "content; a content address that disagrees with its content is "
+                "not something P8 resolves by overwriting"
+            )
+        return dossier.dossier_id
     conn.execute(
         "INSERT INTO llm_dossier ("
         "dossier_id, call_site, subject_ref, eligibility_reason, plan_version, "
-        "policy_version, reduction_rung, release_id, payload, observed_at"
-        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "policy_version, reduction_rung, payload, observed_at"
+        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             dossier.dossier_id, dossier.call_site, dossier.subject_ref,
             dossier.eligibility_reason, dossier.plan_version, dossier.policy_version,
-            dossier.reduction_rung, dossier.release_id, _payload(dossier), observed_at,
+            dossier.reduction_rung, payload, observed_at,
         ),
     )
     return dossier.dossier_id
@@ -95,19 +145,26 @@ def record_dossier(conn: sqlite3.Connection, dossier, *, observed_at: str) -> st
 
 def record_response(conn: sqlite3.Connection, *, dossier_id: str, response_bytes: bytes,
                     model_id: str, prompt_fingerprint: str, release_audit_id: int,
-                    observed_at: str) -> str:
-    """Store raw response bytes and append `model_response_received`."""
+                    release_id: str, observed_at: str) -> str:
+    """Store raw response bytes and append `model_response_received`.
+
+    `release_id` is the single-use capability that paid for THIS call. It lives
+    here and not on the dossier: the dossier is the content, and two calls over
+    identical content are one dossier and two releases.
+    """
     response_bytes = _require_response_bytes(response_bytes)
+    if not release_id:
+        raise MalformedRecord("a recorded response names the release that paid for it")
     response_id = _new_id()
     with transaction(conn):
         conn.execute(
             "INSERT INTO llm_response ("
             "response_id, dossier_id, response_bytes, model_id, prompt_fingerprint, "
-            "release_audit_id, observed_at"
-            ") VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "release_audit_id, release_id, observed_at"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 response_id, dossier_id, response_bytes, model_id,
-                prompt_fingerprint, release_audit_id, observed_at,
+                prompt_fingerprint, release_audit_id, release_id, observed_at,
             ),
         )
         _append(
@@ -137,19 +194,35 @@ def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
     cannot name its model is not provenance. `release_audit_id` is stored as
     `audit_id` in the explanation -- the join back to P7's ledger.
     """
+    payload = _payload(verdict)
     with transaction(conn):
-        conn.execute(
-            "INSERT INTO llm_verdict ("
-            "verdict_id, dossier_id, claim_ref, outcome, disposition, "
-            "validator_version, policy_version, plan_version, payload, observed_at"
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                verdict.verdict_id, verdict.dossier_id, verdict.claim_ref,
-                verdict.outcome, verdict.disposition, verdict.validator_version,
-                verdict.policy_version, verdict.plan_version, _payload(verdict),
-                observed_at,
-            ),
-        )
+        stored = conn.execute(
+            "SELECT payload FROM llm_verdict WHERE verdict_id = ?",
+            (verdict.verdict_id,),
+        ).fetchone()
+        if stored is None:
+            conn.execute(
+                "INSERT INTO llm_verdict ("
+                "verdict_id, dossier_id, claim_ref, outcome, disposition, "
+                "validator_version, policy_version, plan_version, payload, observed_at"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    verdict.verdict_id, verdict.dossier_id, verdict.claim_ref,
+                    verdict.outcome, verdict.disposition, verdict.validator_version,
+                    verdict.policy_version, verdict.plan_version, payload,
+                    observed_at,
+                ),
+            )
+        elif stored["payload"] != payload:
+            # Same dossier, same response, same claim, a different conclusion --
+            # only reachable if the validator or an injected authority changed.
+            # That is a supersession (SS 8.2), and `supersede_verdict` has no
+            # production caller yet; it is not an overwrite, and never silently.
+            raise MalformedRecord(
+                f"verdict {verdict.verdict_id} is already recorded with a "
+                "different conclusion; a re-judgement supersedes, and P8 has no "
+                "caller for that yet"
+            )
         _append(
             conn,
             event_type=VALIDATION_VERDICT,
@@ -288,13 +361,18 @@ def record_pre_call_abstention(conn: sqlite3.Connection, abstention: PreCallAbst
 
 def record_call_failure(conn: sqlite3.Connection, *, dossier_id: str,
                         failure_class: str, explanation: str,
-                        observed_at: str) -> str:
-    """Terminal row on an already-issued call. Appends no event."""
+                        release_id: str, observed_at: str) -> str:
+    """Terminal row on an already-issued call. Appends no event.
+
+    A failed call still spent a release, and the row says which one.
+    """
+    if not release_id:
+        raise MalformedRecord("a call failure names the release that was spent")
     failure_id = _new_id()
     conn.execute(
         "INSERT INTO llm_call_failure ("
-        "failure_id, dossier_id, failure_class, explanation, observed_at"
-        ") VALUES (?, ?, ?, ?, ?)",
-        (failure_id, dossier_id, failure_class, explanation, observed_at),
+        "failure_id, dossier_id, failure_class, explanation, release_id, observed_at"
+        ") VALUES (?, ?, ?, ?, ?, ?)",
+        (failure_id, dossier_id, failure_class, explanation, release_id, observed_at),
     )
     return failure_id

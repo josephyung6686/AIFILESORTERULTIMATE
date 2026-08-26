@@ -172,7 +172,7 @@ def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn, subje
     record_response(
         replay_conn, dossier_id=dossier.dossier_id, response_bytes=_direct_bytes(key),
         model_id=MODEL_ID, prompt_fingerprint=PROMPT_FP, release_audit_id=17,
-        observed_at=FIXED_CLOCK,
+        release_id="release-fixture", observed_at=FIXED_CLOCK,
     )
     ref = record_p8_version_tuple(replay_conn, **_axes())
     run_id = start_run(
@@ -216,7 +216,7 @@ def test_replay_does_not_trust_cached_validation(replay_conn, subject):
     record_response(
         replay_conn, dossier_id=dossier.dossier_id, response_bytes=_direct_bytes(key),
         model_id=MODEL_ID, prompt_fingerprint=PROMPT_FP, release_audit_id=17,
-        observed_at=FIXED_CLOCK,
+        release_id="release-fixture", observed_at=FIXED_CLOCK,
     )
     first, _ = replay_recorded_response(
         replay_conn, dossier,
@@ -269,6 +269,7 @@ def test_site_a_replay_appends_no_second_p6_consequence(replay_conn, subject):
         response_bytes=UNKNOWN_BYTES,
         model_id=MODEL_ID, prompt_fingerprint=PROMPT_FP, release_audit_id=17,
         observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
 
     def replay():

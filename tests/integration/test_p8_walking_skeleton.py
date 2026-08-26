@@ -208,20 +208,25 @@ def test_one_run_call_walks_p7_to_p8_to_p6_to_p2(walk):
     assert verdict.outcome == ACCEPT_DIRECT, verdict.reasons
     assert len(recorder.calls) == 1
 
-    # The dossier is addressed by content and is what the model saw.
+    # The dossier is addressed by content and is what the model saw. The release
+    # that paid for this call is on the call's own row, not on the content.
     row = conn.execute(
-        "SELECT dossier_id, release_id, payload FROM llm_dossier"
+        "SELECT dossier_id, payload FROM llm_dossier"
     ).fetchone()
-    assert row["dossier_id"] != row["release_id"]
+    release_id = conn.execute(
+        "SELECT release_id FROM llm_response WHERE dossier_id = ?",
+        (row["dossier_id"],),
+    ).fetchone()["release_id"]
+    assert row["dossier_id"] != release_id
     assert verdict.dossier_id == row["dossier_id"]
     # R4 end to end: the model was shown P7's redacted value, and only that.
     assert RELEASED_VALUE.encode("utf-8") in recorder.calls[0]
     assert RAW_EXCERPT.encode("utf-8") not in recorder.calls[0]
     assert SKELETON_TEXT.encode("utf-8") not in recorder.calls[0]
-    assert row["release_id"].encode("utf-8") not in recorder.calls[0]
+    assert release_id.encode("utf-8") not in recorder.calls[0]
 
     # P7's release was spent exactly once, by P8's transport.
-    assert _spent(conn, row["release_id"]) is not None
+    assert _spent(conn, release_id) is not None
 
     # P6 holds the consequence. `run_call` reached it through the dispatcher.
     facts = [

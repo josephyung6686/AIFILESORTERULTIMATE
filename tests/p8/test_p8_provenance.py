@@ -87,6 +87,7 @@ def test_record_response_writes_fingerprint_keyword_and_audit_model_explanation(
         prompt_fingerprint="fp-canonical",
         release_audit_id=17,
         observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     rows = _events(p8_conn)
     assert len(rows) == 1
@@ -191,6 +192,7 @@ def test_silent_writers_append_no_p8_event(p8_conn):
     store.record_call_failure(
         p8_conn, dossier_id="dossier-1", failure_class="transport",
         explanation="client raised", observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     assert _events(p8_conn) == []
 
@@ -201,6 +203,7 @@ def test_store_does_not_emit_model_call_issued(p8_conn):
         p8_conn, dossier_id="dossier-1", response_bytes=b"{}",
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
         release_audit_id=17, observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     issued = [
         row["event_type"] for row in p8_conn.execute(

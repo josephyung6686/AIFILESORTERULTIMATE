@@ -37,12 +37,10 @@ CREATE TABLE IF NOT EXISTS llm_dossier (
     plan_version      TEXT,
     policy_version    TEXT NOT NULL,
     reduction_rung    TEXT NOT NULL,
-    release_id        TEXT NOT NULL,
     payload           TEXT NOT NULL,
     observed_at       TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS llm_dossier_policy ON llm_dossier (policy_version);
-CREATE INDEX IF NOT EXISTS llm_dossier_release ON llm_dossier (release_id);
 CREATE TRIGGER IF NOT EXISTS llm_dossier_no_delete
 BEFORE DELETE ON llm_dossier
 BEGIN SELECT RAISE(ABORT, 'a dossier is append-only, never removed'); END;
@@ -59,9 +57,11 @@ CREATE TABLE IF NOT EXISTS llm_response (
     model_id           TEXT NOT NULL,
     prompt_fingerprint TEXT NOT NULL,
     release_audit_id   INTEGER NOT NULL,
+    release_id         TEXT NOT NULL,
     observed_at        TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS llm_response_dossier ON llm_response (dossier_id);
+CREATE INDEX IF NOT EXISTS llm_response_release ON llm_response (release_id);
 CREATE INDEX IF NOT EXISTS llm_response_fingerprint ON llm_response (prompt_fingerprint);
 CREATE TRIGGER IF NOT EXISTS llm_response_no_delete
 BEFORE DELETE ON llm_response
@@ -188,9 +188,11 @@ CREATE TABLE IF NOT EXISTS llm_call_failure (
     dossier_id    TEXT NOT NULL,
     failure_class TEXT NOT NULL,
     explanation   TEXT NOT NULL,
+    release_id    TEXT NOT NULL,
     observed_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS llm_call_failure_dossier ON llm_call_failure (dossier_id);
+CREATE INDEX IF NOT EXISTS llm_call_failure_release ON llm_call_failure (release_id);
 CREATE TRIGGER IF NOT EXISTS llm_call_failure_no_delete
 BEFORE DELETE ON llm_call_failure
 BEGIN SELECT RAISE(ABORT, 'a call failure is append-only, never removed'); END;

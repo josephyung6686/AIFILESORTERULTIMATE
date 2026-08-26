@@ -16,6 +16,7 @@ from llm_harness.vocabulary import (
 from privacy.consent import ConsentRequirement
 from privacy.release import NeedsConsent
 
+from llm_harness.records import MalformedRecord
 from p8.conftest import (
     BUDGET_TABLES,
     FIXED_CLOCK,
@@ -73,12 +74,17 @@ def test_create_llm_schema_is_idempotent(p8_conn):
 
 def test_identity_and_version_columns_are_present_and_indexed(p8_conn):
     assert {
-        "dossier_id", "policy_version", "release_id", "observed_at", "payload",
+        "dossier_id", "policy_version", "observed_at", "payload",
     } <= _columns(p8_conn, "llm_dossier")
+    # A release is a single-use capability, not part of the content it paid for.
+    # On the content-addressed row it made two calls over identical bytes two
+    # conflicting rows; it belongs on the per-call rows.
+    assert "release_id" not in _columns(p8_conn, "llm_dossier")
     assert {
         "dossier_id", "response_bytes", "model_id", "prompt_fingerprint",
-        "release_audit_id", "observed_at",
+        "release_audit_id", "release_id", "observed_at",
     } <= _columns(p8_conn, "llm_response")
+    assert "release_id" in _columns(p8_conn, "llm_call_failure")
     assert {
         "verdict_id", "dossier_id", "validator_version", "policy_version",
         "observed_at", "payload",
@@ -111,10 +117,9 @@ def test_record_dossier_stores_canonical_payload_and_appends_no_event(
     payload = json.loads(row["payload"])
     assert payload["dossier_id"] == dossier.dossier_id
     assert payload["policy_version"] == dossier.policy_version
-    assert payload["release_id"] == dossier.release_id
+    assert "release_id" not in payload
     assert row["dossier_id"] == dossier.dossier_id
     assert row["policy_version"] == dossier.policy_version
-    assert row["release_id"] == dossier.release_id
     assert row["observed_at"] == FIXED_CLOCK
     assert events == []
 
@@ -132,6 +137,7 @@ def test_record_response_preserves_raw_bytes_and_appends_one_received_event(
         prompt_fingerprint="fp-canonical",
         release_audit_id=17,
         observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     row = p8_conn.execute(
         "SELECT response_bytes, model_id, prompt_fingerprint, release_audit_id "
@@ -156,6 +162,7 @@ def test_record_response_rejects_non_bytes(p8_conn, monkeypatch):
             prompt_fingerprint="fp-canonical",
             release_audit_id=17,
             observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
         )
     assert p8_conn.execute("SELECT count(*) AS c FROM llm_response").fetchone()["c"] == 0
     assert events == []
@@ -287,6 +294,7 @@ def test_update_of_payload_columns_is_refused_and_supersede_columns_stay_writabl
         p8_conn, dossier_id=dossier.dossier_id, response_bytes=b"abc",
         model_id="m", prompt_fingerprint="fp", release_audit_id=1,
         observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     with pytest.raises(sqlite3.IntegrityError):
         p8_conn.execute(
@@ -386,6 +394,7 @@ def test_record_call_failure_is_a_row_only(p8_conn, monkeypatch):
         failure_class="transport",
         explanation="client raised",
         observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     row = p8_conn.execute(
         "SELECT failure_class, explanation FROM llm_call_failure WHERE failure_id = ?",
@@ -459,6 +468,7 @@ def test_writer_event_matrix_is_exact_and_has_no_sixth_event(p8_conn, monkeypatc
         p8_conn, dossier_id="dossier-1", response_bytes=b"{}",
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
         release_audit_id=17, observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     store.record_verdict(p8_conn, make_verdict(), model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
     store.record_verdict(
@@ -488,6 +498,7 @@ def test_writer_event_matrix_is_exact_and_has_no_sixth_event(p8_conn, monkeypatc
     store.record_call_failure(
         p8_conn, dossier_id="dossier-1", failure_class="timeout",
         explanation="deadline", observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
     )
     types = [event["event_type"] for event in events]
     assert types == [
@@ -512,6 +523,7 @@ def _seed_one_row(conn, table: str) -> None:
             conn, dossier_id="dossier-1", response_bytes=b"x",
             model_id="m", prompt_fingerprint="fp", release_audit_id=1,
             observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
         )
     elif table == "llm_verdict":
         store.record_verdict(conn, make_verdict(), model_id="fixture-model", prompt_fingerprint="fp-fixture", release_audit_id=1, observed_at=FIXED_CLOCK)
@@ -546,6 +558,49 @@ def _seed_one_row(conn, table: str) -> None:
         store.record_call_failure(
             conn, dossier_id="dossier-1", failure_class="x",
             explanation="y", observed_at=FIXED_CLOCK,
+        release_id="release-fixture",
         )
     else:
         raise AssertionError(table)
+
+
+def test_an_address_that_disagrees_with_its_content_is_refused(p8_conn):
+    """`dossier_id` is the address of the bytes. Two different contents under one
+    address is a hash collision or a builder bug, and neither is resolved by
+    letting the later write win -- the row is append-only by trigger, and this
+    refuses before reaching it."""
+    import dataclasses
+
+    dossier = make_dossier()
+    store.record_dossier(p8_conn, dossier, observed_at=FIXED_CLOCK)
+    impostor = dataclasses.replace(dossier, subject_ref="a-different-file")
+    assert impostor.dossier_id == dossier.dossier_id
+    with pytest.raises(MalformedRecord):
+        store.record_dossier(p8_conn, impostor, observed_at=FIXED_CLOCK)
+    assert p8_conn.execute(
+        "SELECT subject_ref FROM llm_dossier WHERE dossier_id = ?",
+        (dossier.dossier_id,),
+    ).fetchone()["subject_ref"] == dossier.subject_ref
+
+
+def test_a_second_conclusion_over_one_response_is_refused_not_overwritten(p8_conn):
+    """Same dossier, same response, same claim, a different conclusion. Only
+    reachable if the validator or an injected authority changed, and that is a
+    supersession, never a silent overwrite."""
+    import dataclasses
+
+    verdict = make_verdict()
+    store.record_verdict(
+        p8_conn, verdict, model_id="m", prompt_fingerprint="fp",
+        release_audit_id=1, observed_at=FIXED_CLOCK,
+    )
+    changed = dataclasses.replace(verdict, validator_version="9.9.9")
+    with pytest.raises(MalformedRecord):
+        store.record_verdict(
+            p8_conn, changed, model_id="m", prompt_fingerprint="fp",
+            release_audit_id=1, observed_at=FIXED_CLOCK,
+        )
+    assert p8_conn.execute(
+        "SELECT validator_version FROM llm_verdict WHERE verdict_id = ?",
+        (verdict.verdict_id,),
+    ).fetchone()["validator_version"] == verdict.validator_version

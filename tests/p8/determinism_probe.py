@@ -109,6 +109,7 @@ def run_probe() -> dict:
         prompt_fingerprint=fingerprint,
         release_audit_id=17,
         observed_at=OBSERVED_AT,
+        release_id="release-fixture",
     )
 
     # Replay reads the stored bytes back and routes them through the same

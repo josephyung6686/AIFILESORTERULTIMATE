@@ -119,8 +119,14 @@ def _record_issued(conn: sqlite3.Connection, *, released: Released,
 
 def _failed(released: Released, payload: CallPayload, *,
             explanation: str) -> CallFailed:
+    """The identity is the dossier's address, not the capability that paid.
+
+    `report_for_call_failure` writes `request_identity` into
+    `llm_grounding_report.dossier_id`, so a `release_id` there produced a report
+    that joined to neither the dossier it describes nor the failure row.
+    """
     return CallFailed(
-        request_identity=payload.release_id,
+        request_identity=payload.dossier_id,
         release_id=released.release_id,
         audit_id=released.audit_id,
         explanation=explanation,
@@ -168,7 +174,8 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
         explanation = _client_exception_explanation(exc)
         record_call_failure(
             conn, dossier_id=payload.dossier_id, failure_class="client_raised",
-            explanation=explanation, observed_at=_now(),
+            explanation=explanation, release_id=payload.release_id,
+            observed_at=_now(),
         )
         return _failed(released, payload, explanation=explanation)
     if not isinstance(raw, (bytes, bytearray, memoryview)):
@@ -177,7 +184,8 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
         )
         record_call_failure(
             conn, dossier_id=payload.dossier_id, failure_class="malformed_bytes",
-            explanation=explanation, observed_at=_now(),
+            explanation=explanation, release_id=payload.release_id,
+            observed_at=_now(),
         )
         return _failed(released, payload, explanation=explanation)
     response_bytes = bytes(raw)
@@ -188,6 +196,7 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
         model_id=payload.model_target.model_id,
         prompt_fingerprint=fingerprint,
         release_audit_id=released.audit_id,
+        release_id=released.release_id,
         observed_at=_now(),
     )
     return ModelResponse(
@@ -195,6 +204,6 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
         model_id=payload.model_target.model_id,
         prompt_fingerprint=fingerprint,
         release_audit_id=released.audit_id,
-        response_id=response_id,
         release_id=released.release_id,
+        response_id=response_id,
     )
