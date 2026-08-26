@@ -66,9 +66,33 @@ Audit and contract documents, in the order they were written:
 | `30-p8-p9-connection-contract.md` | the P8↔P9 seam |
 | `31-DOMAIN-AUDIT.md` | domain map + cohesion audit |
 
-**What Joseph asked for and has NOT been done yet:** a full **P1→P8/P9 connection audit** before
-building further — "make sure everything is connected properly." Use graphify for reference
-(`graphify query "<symbol>"`; the graph is rebuilt on every commit by a hook).
+**P1→P8 CONNECTION AUDIT — DONE 2026-08-26. Result: connected, 0 breaks.**
+
+Audited against `30-p8-p9-connection-contract.md`'s seam ledger, which is the authority.
+
+- **All 8 built seams resolve** by import — every named producer and consumer symbol exists
+  (P7→P8 ×2, P6→P8, P8→P6, P8→P2, P1→P8 ×2, P4→P8). The 3 remaining rows are P9, which does not
+  exist; the contract correctly prefixes those symbols `eventual`.
+- **Every seam the contract names an integration-test owner for has one, and they pass** —
+  `test_p8_p7_egress.py`, `test_p8_p6_fact_seam.py`, `test_p8_p2_replay.py`, plus
+  `test_p1_p7_live_assembly.py`, `test_p8_walking_skeleton.py`, `test_production_p1_p7.py`.
+  **34 integration tests green.**
+- **Invariant 1 holds — single egress.** `model_client.invoke` appears at exactly ONE site in all
+  of `src/`: `llm_harness/transport.py:166`. `8edf835` added a product-wide test enforcing it.
+- **Invariant 4 holds — D14.** `privacy/gate.py:510` writes `release_id=None` on the audit row.
+- **`src/production.py` composes P1–P7 only, and P8's absence is deliberate**, stated in its own
+  docstring: *"whether an LLM stage exists is a decision already frozen inside each supplied P6
+  resolver."* P8 is an island in `src/` on purpose — reached through the P6 seam, not wired into
+  the production composition root.
+
+**Caveat, and it is the one that has bitten this project before:** this audit verifies that names
+resolve and that the owned integration tests pass. It does **not** prove every signature matches at
+every call site — a consumer can call a producer with a parameter it does not have and the *name*
+still resolves. That defect class has appeared here twice (`set_policy(author=)`, and the P8
+provenance placeholders closed this session). A signature-level sweep across seam call sites is the
+natural next hardening step.
+
+Use graphify for reference (`graphify query "<symbol>"`; the graph is rebuilt on every commit).
 
 ### Track B — the domain research dispatch (`28-AUTOPILOT.md`)
 
@@ -88,7 +112,8 @@ building further — "make sure everything is connected properly." Use graphify 
 
 ## 3. Known open work, highest value first
 
-1. **P1→P8 connection audit** — Joseph's explicit ask, not started.
+1. ~~P1→P8 connection audit~~ — **DONE, 0 breaks** (see Track A). Follow-up: a signature-level
+   sweep across seam call sites, which name-resolution cannot cover.
 2. **191 unwritten roster rows** (of 358). Do not call the forest complete before 358/358.
 3. **R1c merge gate** (`planning/prompts/01c-merge-and-gate.md`) — only after every row is present.
    It audits the whole forest.
