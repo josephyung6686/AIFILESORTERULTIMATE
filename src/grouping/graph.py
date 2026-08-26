@@ -35,6 +35,7 @@ from grouping.vocabulary import (
     DUPLICATE,
     DUPLICATE_OR_VERSION_LINK,
     EXISTING_RELATED_FOLDER,
+    GROUP_PROPOSAL_CLASS,
     MUTUAL_SEMANTIC_RETRIEVAL,
     NO_GROUP,
     SHARED_VALIDATED_FACT,
@@ -210,12 +211,6 @@ ConflictsFor = Callable[[Sequence[str]], Sequence[Conflict]]
 
 #: The rejection polarity P1 stores. Matching it is what "already rejected" means.
 _REJECT: str = "reject"
-
-#: SR6's equivalence class for a whole group. A membership rejection uses a
-#: different one, and one file the user pushed out of a group is not a rejection
-#: of the group.
-GROUP_PROPOSAL_CLASS: str = "group"
-
 
 def _standing_reject(
     conn: sqlite3.Connection, *, group_id: str, basis_key: str,

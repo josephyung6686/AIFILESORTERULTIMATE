@@ -198,6 +198,21 @@ REVIEW_STATES: tuple[str, ...] = (
 DECIDED_BY: tuple[str, ...] = (USER, RULES, VALIDATOR)
 
 
+# --- SR6's equivalence classes ---------------------------------------------------
+#
+# What "the same proposal" means, for the two things a user can reject. Spelled
+# once: P8's `suppressed_by_learning`, P9's SR6 and P9's review receiver all match
+# on these, and two spellings would mean a rejection the user made and a rejection
+# the stop rule looks for that never meet.
+
+GROUP_PROPOSAL_CLASS: str = "group"
+MEMBERSHIP_PROPOSAL_CLASS: str = "membership"
+
+PROPOSAL_CLASSES: tuple[str, ...] = (
+    GROUP_PROPOSAL_CLASS, MEMBERSHIP_PROPOSAL_CLASS,
+)
+
+
 class OutOfVocabulary(ValueError):
     """A value outside a closed P9 set. Not a fallback; a load error."""
 

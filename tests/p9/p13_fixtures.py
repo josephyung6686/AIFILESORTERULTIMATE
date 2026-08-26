@@ -26,6 +26,12 @@ REVIEW_ACTIONS: tuple[str, ...] = (
 )
 
 
+#: The surface a group review happens on. P9 accepts actions from this one and
+#: refuses any other: a node or template action reaching P9's receiver would be
+#: P9 recording a decision about something it does not own.
+GROUP_PLAN_SURFACE: str = "group_plan"
+
+
 @dataclass(frozen=True)
 class ReviewActionFixture:
     """One recorded user decision, as P9 expects to receive it.
@@ -34,6 +40,11 @@ class ReviewActionFixture:
     per subject with a shared `basis`, not as a single action over a set: the
     design permits bulk review only for equivalent low-risk proposals, and a
     collapsed action could not say which of them a later reversal applies to.
+
+    `correction_scope`, `user_id` and `presented_state_ref` are carried and never
+    inferred. P1's learning store is scoped, and a receiver that guessed `corpus`
+    would teach the engine from one file that every file like it belongs there --
+    the §8.7 failure the scope exists to prevent.
     """
 
     action: str
@@ -43,6 +54,10 @@ class ReviewActionFixture:
     basis: str
     user_edited_label: str | None
     decided_at: str
+    user_id: str
+    correction_scope: str
+    presented_state_ref: str
+    surface: str = GROUP_PLAN_SURFACE
 
     def __post_init__(self) -> None:
         if self.action not in REVIEW_ACTIONS:
@@ -50,7 +65,8 @@ class ReviewActionFixture:
                 f"{self.action!r} is not one of P13's {len(REVIEW_ACTIONS)} review "
                 "actions"
             )
-        for name in ("plan_version_id", "group_id", "basis", "decided_at"):
+        for name in ("plan_version_id", "group_id", "basis", "decided_at",
+                     "user_id", "correction_scope", "presented_state_ref"):
             if not getattr(self, name):
                 raise ValueError(f"{name} is required on a review action")
 
@@ -64,6 +80,9 @@ def accept_group(**overrides) -> ReviewActionFixture:
         basis="user reviewed the evidence and accepted the group",
         user_edited_label=None,
         decided_at="2026-08-26T00:00:00Z",
+        user_id="user-1",
+        correction_scope="group",
+        presented_state_ref="presented-1",
     )
     values.update(overrides)
     return ReviewActionFixture(**values)
@@ -88,6 +107,7 @@ def exclude_member(**overrides) -> ReviewActionFixture:
         action="exclude-from-packet",
         membership_id="fixture-membership",
         basis="this transcript belongs to a different application",
+        correction_scope="file",
     )
     values.update(overrides)
     return accept_group(**values)
