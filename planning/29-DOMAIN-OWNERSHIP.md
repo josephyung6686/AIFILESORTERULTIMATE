@@ -43,10 +43,10 @@ creative.film-production | CODEX | complete
 creative.shoot-day-media | CODEX | complete
 creative.post-production | CODEX | complete
 creative.motion-graphics | CODEX | complete
-creative.3d-asset | CODEX | active
-creative.game-art-asset | CODEX | active
-creative.music-session | CODEX | active
-creative.podcast-episode | CODEX | active
+creative.3d-asset | CODEX | complete
+creative.game-art-asset | CODEX | complete
+creative.music-session | CODEX | complete
+creative.podcast-episode | CODEX | complete
 creative.commissioned-shoot | CODEX | active
 creative.film-production | CODEX | active
 creative.shoot-day-media | CODEX | active
