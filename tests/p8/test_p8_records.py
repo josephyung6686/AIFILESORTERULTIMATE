@@ -796,3 +796,20 @@ def test_evidence_item_rejects_unknown_reliability_state_as_malformed_record():
             reliability_state="invented",
             basis=DIRECT_ANCHOR,
         )
+
+
+@pytest.mark.parametrize("blank", ["validator_version", "policy_version"])
+def test_a_terminal_measurement_without_its_versions_is_refused(blank):
+    """The fields exist; empty ones would be the same absence wearing a type.
+    An `abstained` or `error` P2 row with a blank version is a measurement
+    nobody can attribute to a validator build or a policy."""
+    for record, base in (
+        (Refusal, dict(denied=_denied())),
+        (CallFailed, dict(
+            request_identity="dossier-1", release_id="rel-1", audit_id=17,
+            explanation="boom")),
+    ):
+        values = dict(base, validator_version="P8/0.1.0", policy_version="policy-1")
+        values[blank] = ""
+        with pytest.raises(MalformedRecord):
+            record(**values)
