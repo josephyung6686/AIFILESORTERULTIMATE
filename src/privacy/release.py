@@ -31,10 +31,10 @@ if TYPE_CHECKING:  # pragma: no cover - annotations only; no run-time edge
     from privacy.denial import RemedyOption
     from privacy.items import RequestedItem
     from privacy.redaction import RedactionManifest
-    from privacy.resolve import Materialised
 
 __all__ = [
-    "LOCALITIES", "ModelTarget", "Target", "ModelCallRequest", "Released", "Denied",
+    "LOCALITIES", "ModelTarget", "Target", "ModelCallRequest", "ReleasedItem",
+    "Released", "Denied",
     "NeedsConsent", "ReleaseDecision", "REQUEST_FIELDS", "RELEASED_FIELDS",
     "DENIED_FIELDS", "NEEDS_CONSENT_FIELDS", "DECISION_TYPES", "DECISION_ORDER",
     "FORBIDDEN_PARAMETER_NAMES", "RELEASE_PARAMETERS", "MalformedRequest",
@@ -156,6 +156,28 @@ REQUEST_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(ModelCallRequest)
 
 
 @dataclass(frozen=True, slots=True)
+class ReleasedItem:
+    """One item as the MODEL sees it. SPEC §6: "post-redaction values only".
+
+    There is deliberately no `context_before` and no `context_after`. The context
+    is the raw text on either side of the requested span, and §8.4 puts "complete
+    extracted text" in the always-local set. `resolve.Materialised` keeps all
+    three -- it is the pre-redaction record, the classifier is given the context
+    before a redaction decision is made, and `RedactionEntry` records it in the
+    LOCAL audit manifest. A released item has no place to put them, which is the
+    property rather than a discipline about it: for as long as this type was
+    `Materialised`, an 8-character requested span released every character of its
+    61-character unit, the value redacted and the account number beside it not.
+    """
+
+    observation_key: str
+    span: str
+    value: str
+    zone: str
+    unit_length: int | None
+
+
+@dataclass(frozen=True, slots=True)
 class Released:
     """SPEC §6's SIX fields. Single-use and bound; the ledger is Task 12's.
 
@@ -168,7 +190,7 @@ class Released:
     release_id: str
     audit_id: int
     policy_version: str
-    materialised_items: tuple[Materialised, ...]
+    materialised_items: tuple[ReleasedItem, ...]
     redaction_manifest: RedactionManifest
     model_target: ModelTarget
 

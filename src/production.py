@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from database_agent.db import create_schema
 from eval_harness.store import create_eval_schema
@@ -60,6 +60,12 @@ class P1P7Authorities:
     policy_settings: Mapping[str, Any]
     file_entry_body: Callable[[Mapping[str, Any]], Mapping[str, str]]
     p7_component_version: str
+    #: §8.5's hand-labelled expected side, carried to `_assemble_bundle` and applied
+    #: before the seal. Empty by default: an unlabelled scan captures a bundle with
+    #: no expectations, which is a corpus snapshot rather than a reference corpus.
+    #: P2 SPEC's Deferred table: "P2 publishes `bundle_expectation`; it does not
+    #: fill it" -- and neither does this module.
+    bundle_expectations: Sequence[Mapping[str, Any]] = ()
 
     def __post_init__(self) -> None:
         if self.classify is None:
@@ -142,7 +148,8 @@ def compose_p1_p7(
             resolve_with_ocr=resolve(authorities.ocr_resolver),
             classify=authorities.classify,
             classification_store=classification_store,
-            p7_component_version=authorities.p7_component_version)
+            p7_component_version=authorities.p7_component_version,
+            bundle_expectations=authorities.bundle_expectations)
 
     return run
 

@@ -280,6 +280,45 @@ SITE_D_REASON_CODES: tuple[str, ...] = (
 )
 
 
+SCOPE_SCHEMA_FIELD: str = "schema-field"
+SCOPE_TEMPLATE_LOCAL: str = "template-local"
+
+#: The tier a Site-E proposal declares per dimension. `schema-field` is a claim
+#: that the name is in the dossier's own closure and is fact-backed;
+#: `template-local` is a display label with a semantic role and a citation, and
+#: no P6 field behind it. The tier is a PAYLOAD key, not a `Dossier` field: it is
+#: what the model asserts, so the assertion can be checked against the closure
+#: rather than inferred from it.
+DIMENSION_SCOPES: tuple[str, ...] = (SCOPE_SCHEMA_FIELD, SCOPE_TEMPLATE_LOCAL)
+
+FRAGMENT_NOT_PUBLISHED: str = "FRAGMENT_NOT_PUBLISHED"
+FRAGMENT_PUBLICATION_ATTEMPTED: str = "FRAGMENT_PUBLICATION_ATTEMPTED"
+
+SITE_E_REASON_CODES: tuple[str, ...] = (
+    FRAGMENT_NOT_PUBLISHED,
+    FRAGMENT_PUBLICATION_ATTEMPTED,
+)
+
+#: Payload keys that mean the response is trying to PUBLISH shared organization
+#: logic rather than reference it. A Site-E proposal may name a published
+#: fragment by exact id and version and may add template-local dimensions; it may
+#: not create a canonical fragment, because sharing logic is a human review
+#: decision made once and not a side effect of one branch's model call.
+#:
+#: The list lives here, beside `FRAGMENT_PUBLICATION_ATTEMPTED`, because reading
+#: a model response is P8's and the scanner and the reason it returns belong
+#: together. P10 owns the catalogue publication would write into and IMPORTS
+#: this, the way it imports every other P8 vocabulary.
+FORBIDDEN_PUBLISHING_KEYS: tuple[str, ...] = (
+    "fragment_definitions",
+    "new_fragments",
+    "publish_fragment",
+    "canonical_fragments",
+    "definitions",
+    "applicabilities",
+)
+
+
 def _unique(*groups: tuple[str, ...]) -> tuple[str, ...]:
     seen: list[str] = []
     for group in groups:
@@ -295,6 +334,7 @@ ALL_REASON_CODES: tuple[str, ...] = _unique(
     SITE_B_REASON_CODES,
     SITE_C_REASON_CODES,
     SITE_D_REASON_CODES,
+    SITE_E_REASON_CODES,
 )
 
 PRE_CALL_REASON_CODES: tuple[str, ...] = (

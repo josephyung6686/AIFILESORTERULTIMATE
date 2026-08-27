@@ -186,3 +186,130 @@ def test_the_module_starts_no_thread_and_no_timer():
     for forbidden in ("threading", "Thread", "Timer", "asyncio", "multiprocessing",
                       "signal.", "atexit"):
         assert forbidden not in source, forbidden
+
+
+def _recording_stat(monkeypatch) -> list[str]:
+    """Record every path this module stats. `_stat` is the ONLY place it stats,
+    so "did not stat" is exactly "did not call this" (P3 SPEC:39)."""
+    seen: list[str] = []
+    original = SessionWatch._stat
+    monkeypatch.setattr(
+        SessionWatch, "_stat",
+        staticmethod(lambda path: seen.append(str(path)) or original(path)))
+    return seen
+
+
+def _recording_walk(monkeypatch) -> list[str]:
+    """Record every directory tree this module opens. Listing a bundle's entries IS
+    the descent SPEC:39 forbids, and it happens before any stat would."""
+    walked: list[str] = []
+    original = os.walk
+    monkeypatch.setattr(
+        os, "walk",
+        lambda top, *a, **k: walked.append(str(top)) or original(top, *a, **k))
+    return walked
+
+
+def test_the_watch_does_not_stat_inside_a_protected_container(scanned, corpus: Path,
+                                                              monkeypatch):
+    # P3 SPEC:39 -- P3 "does not descend into one, does not stat its contents".
+    interior = corpus / "Numbers.app" / "Contents" / "sheet.numbers"
+    interior.parent.mkdir(parents=True)
+    interior.write_bytes(b"private")
+
+    seen = _recording_stat(monkeypatch)
+
+    watch = SessionWatch(scanned)
+    watch.open([corpus])
+    assert not [p for p in seen if "Numbers.app" in p], seen
+    watch.close()
+
+
+def test_a_change_inside_a_protected_container_authors_no_detection(scanned,
+                                                                    corpus: Path):
+    interior = corpus / "Numbers.app" / "Contents" / "sheet.numbers"
+    interior.parent.mkdir(parents=True)
+    interior.write_bytes(b"private")
+
+    watch = SessionWatch(scanned)
+    watch.open([corpus])
+    interior.write_bytes(b"private, and longer")
+    watch.poll()
+    assert _detections(scanned) == []
+    watch.close()
+
+
+def test_notify_refuses_an_interior_path_a_platform_adapter_hands_it(scanned,
+                                                                     corpus: Path):
+    # SPEC:46-47 -- the verdict carries "the container's own path and nothing
+    # derived from inside it". `events` is append-only, so a row written here is
+    # unrecoverable. `notify` needs its own guard because a real FSEvents adapter
+    # calls it directly and never goes through `open` or `poll`.
+    #
+    # The bundle is created AFTER `open` on purpose. Had it existed before, `open`
+    # would have recorded its stat and `notify`'s own `before == after` return
+    # would swallow the call -- the test would then pass with no guard at all.
+    # This is also the shape an adapter actually delivers: a path `open` never saw.
+    watch = SessionWatch(scanned)
+    watch.open([corpus])
+
+    interior = corpus / "Numbers.app" / "Contents" / "sheet.numbers"
+    interior.parent.mkdir(parents=True)
+    interior.write_bytes(b"private")
+    watch.notify(interior)                     # it appeared
+    assert _detections(scanned) == []
+
+    interior.write_bytes(b"private, and longer")
+    watch.notify(interior)                     # and then it changed
+    assert _detections(scanned) == []
+    watch.close()
+
+
+def test_a_watched_root_inside_a_protected_container_is_skipped_whole(scanned,
+                                                                      corpus: Path,
+                                                                      monkeypatch):
+    # A root that is itself inside a bundle is not reachable by pruning `dirnames`:
+    # `os.walk` never offers the root to the prune. Both entry points must refuse
+    # it up front, so this asserts on the WALK, not on the detections -- a detection
+    # assertion alone would be satisfied by `notify`'s guard after the read.
+    inner = corpus / "Numbers.app" / "Contents"
+    inner.mkdir(parents=True)
+    (inner / "sheet.numbers").write_bytes(b"private")
+
+    walked = _recording_walk(monkeypatch)
+    seen = _recording_stat(monkeypatch)
+
+    watch = SessionWatch(scanned)
+    watch.open([inner])          # the user selected a path inside a bundle
+    assert walked == [], walked
+    (inner / "sheet.numbers").write_bytes(b"private, and longer")
+    watch.poll()
+    assert walked == [], walked
+    assert seen == [], seen
+    assert _detections(scanned) == []
+    watch.close()
+
+
+def test_the_caller_can_add_protected_members_but_cannot_remove_one(scanned,
+                                                                    corpus: Path):
+    # `exclusion.is_protected_container` documents `extra` as ADD-only. The watch
+    # must not become the override 11-ops-runtime.md 4b says does not exist.
+    (corpus / "Vault").mkdir()
+    (corpus / "Vault" / "secret.txt").write_bytes(b"x")
+    (corpus / "Numbers.app").mkdir()
+    (corpus / "Numbers.app" / "inside.txt").write_bytes(b"y")
+
+    watch = SessionWatch(scanned, is_protected=lambda path: path.name == "Vault")
+    watch.open([corpus])
+    (corpus / "Vault" / "secret.txt").write_bytes(b"xx")
+    (corpus / "Numbers.app" / "inside.txt").write_bytes(b"yy")
+    watch.poll()
+    assert _detections(scanned) == []
+    watch.close()
+
+    unprotecting = SessionWatch(scanned, is_protected=lambda path: False)
+    unprotecting.open([corpus])
+    (corpus / "Numbers.app" / "inside.txt").write_bytes(b"yyy")
+    unprotecting.poll()
+    assert _detections(scanned) == []      # `.app` is not switchable off
+    unprotecting.close()

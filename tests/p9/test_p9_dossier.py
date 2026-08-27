@@ -76,7 +76,7 @@ def _record(conn, tmp_path, *, name, body, detected_format="pdf"):
     return file_id, get_file(conn, file_id)["content_hash"]
 
 
-def _observe(conn, *, file_id, content_hash, raw, run_id):
+def _observe(conn, *, file_id, content_hash, raw, run_id, text_span=None):
     record_run(conn, ExtractionRun(
         run_id=run_id, file_id=file_id, content_hash=content_hash,
         extractor_name="pdf.text", extractor_version="1.0.0",
@@ -85,7 +85,8 @@ def _observe(conn, *, file_id, content_hash, raw, run_id):
     observation = Observation(
         file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
         extractor_version="1.0.0", source_type="text_document", raw_value=raw,
-        location=Location("heading", (Segment("field", label="heading"),)),
+        location=Location("heading", (Segment("field", label="heading"),),
+                          text_span=text_span),
         occurrence_count=1, observed_at=T0, reliability="direct", run_id=run_id)
     record_observation(conn, observation)
     return observation.observation_key
@@ -434,3 +435,67 @@ def test_a_conflict_is_carried_and_never_invented(dossier_conn, corpus):
     dossier = _assemble(dossier_conn, corpus, conflicts=(conflict,))
     assert dossier.conflicts == (conflict,)
     assert _assemble(dossier_conn, corpus).conflicts == ()
+
+
+# --- the span P9 asks P7 to release ----------------------------------------------
+
+
+def _request_for(dossier):
+    from privacy.release import ModelTarget
+
+    from grouping.p8_seam import build_dossier_request
+
+    return build_dossier_request(
+        dossier,
+        model_target=ModelTarget(
+            locality="local", model_id="m", provider="p"),
+        prompt_template_id="template.grouping",
+        prompt_fingerprint="sha256:fp",
+        max_dossier_tokens=4000)
+
+
+def test_p9_asks_for_the_whole_citation_when_the_observation_carries_no_span(
+    dossier_conn, corpus,
+):
+    """`privacy/items.py:116`: an `Excerpt.span` of `None` is SS2.3's cell and
+    SS2.8's EXIF field -- "the address is the whole citation", a valid reference and
+    not a missing value.
+
+    `build_dossier_request` sent `TextSpan(0, len(excerpt.text))` regardless, so
+    for an observation with no span P7 refused the whole call:
+    `UnresolvableSpan: requested span TextSpan(start=0, end=19) disagrees with the
+    live location's span None ... consent records the exact requested reference and
+    never repairs one`. The corpus here is that case: every observation's location
+    carries `text_span=None`.
+    """
+    request = _request_for(_assemble(dossier_conn, corpus))
+
+    assert request.model_call_request.requested_items
+    for item in request.model_call_request.requested_items:
+        assert item.span is None, item
+
+
+def test_p9_asks_for_exactly_the_span_the_observation_carries(
+    dossier_conn, tmp_path,
+):
+    """The other half: a bounded observation must be requested at ITS bounds, not
+    at `(0, len(text))`. The two agree only when the span starts at 0 and the
+    excerpt is not truncated, which is why the synthesised value looked right."""
+    from evidence_shape.location import TextSpan
+
+    span = TextSpan(9, 17)
+    made = {}
+    for index, name in enumerate(("Syllabus.pdf", "Lecture.pdf", "Homework.pdf")):
+        file_id, content_hash = _record(
+            dossier_conn, tmp_path, name=name,
+            body=f"PHYS1401 {name}".encode("utf-8"))
+        made[name] = (file_id, content_hash, _observe(
+            dossier_conn, file_id=file_id, content_hash=content_hash,
+            raw=f"PHYS1401 stated in {name}", run_id=f"r-span-{index}",
+            text_span=span))
+
+    request = _request_for(_assemble(dossier_conn, made))
+
+    spans = [item.span for item in request.model_call_request.requested_items]
+    assert spans, "the request carried no items"
+    assert set(spans) == {span}, spans

@@ -352,6 +352,10 @@ def _excerpt(**overrides):
         observation_key="sha256:obs-1",
         location="heading",
         text="PHYS1401 Syllabus",
+        # The observation's own span. Required rather than defaulted: `None` is a
+        # real value here ("the whole citation"), so a default would make
+        # "nobody supplied one" indistinguishable from "the whole citation".
+        text_span=(0, 17),
     )
     values.update(overrides)
     return Excerpt(**values)

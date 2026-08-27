@@ -18,7 +18,8 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 
 from eval_harness.run import VERSION_TUPLE_FIELDS, record_version_tuple
-from eval_harness.stage_output import record_stage_output
+from eval_harness.stage_output import DimensionValue, record_stage_output
+from eval_harness.vocabulary import check_dimension
 from evidence_shape.canonical import canonical_json
 
 from llm_harness.records import CallFailed, Dossier, P8Verdict, Refusal
@@ -32,6 +33,11 @@ from llm_harness.vocabulary import (
     WEAK,
 )
 from privacy.release import NeedsConsent
+
+#: §8.5's `llm_grounding` dimension -- NOT this module's stage id. P8's stage is
+#: `llm_interpretation`; each of the two raises under the other's checker. Checked
+#: at import, so a P2 rename is a startup failure rather than a silent no-op.
+DIMENSION: str = check_dimension("llm_grounding")
 
 _QUALITY_OUTCOMES = frozenset({
     ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED, WEAK, REJECT,
@@ -91,6 +97,40 @@ def _envelope(result: object) -> tuple[str, str]:
     )
 
 
+def _grounding_value(result: object, outcome: str) -> dict | None:
+    """§8.5's `llm_grounding` question, answered from the verdict P8 actually reached.
+
+    "Did every cited excerpt exist?" is `citations_checked`: each `CheckedCitation`
+    carries `resolved` (the citation named something in the dossier) and
+    `span_matched` (the excerpt was where the model said it was). The tallies are
+    counted from that tuple, so a call whose citations resolved to nothing cannot
+    read like one whose citations all held.
+
+    `result.outcome` rides along because P8 maps four quality outcomes onto the one
+    P2 outcome `produced` (`_QUALITY_OUTCOMES`): without it a `reject` -- which is
+    P8's word for a grounding failure -- and an `accept_direct` over the same
+    citation tallies would be the same measurement.
+
+    NULL for everything else. "Did the model return unknown rather than guessing?"
+    is answered by the row's OUTCOME, which is `abstained`; §8.6 forbids reporting a
+    degraded or absent measurement as a good one, and a NULL value is P2's way of
+    saying nothing was measured while the row still says the stage ran.
+
+    No threshold and no score: SPEC Open question 2 is open and this module does not
+    answer it. What counts as enough resolved citations is the label's business, and
+    the label is `bundle_expectation.expected_value`.
+    """
+    if outcome != "produced":
+        return None
+    checked = result.citations_checked
+    return {
+        "outcome": result.outcome,
+        "citations_checked": len(checked),
+        "citations_resolved": sum(1 for item in checked if item.resolved),
+        "citations_span_matched": sum(1 for item in checked if item.span_matched),
+    }
+
+
 def emit_stage_output(
     conn: sqlite3.Connection, *, run_id: str, subject_ref: str,
     result: P8Verdict | Refusal | CallFailed,
@@ -129,6 +169,18 @@ def emit_stage_output(
         version_tuple_ref=version_tuple_ref,
         inputs=inputs,
         budget_state=budget_state,
+        # §8.5 is decomposed BY STAGE, and that decomposition is only real if the
+        # stage hands over the row `assertions.assert_run` reads. Omitting this
+        # left `stage_dimension_value` empty, and `verdict_for` scores an absent
+        # row `not_run` -- §8.5's word for the stage that did not run at all.
+        # One row always, including for an abstention, a deferral and a failure:
+        # an absent row would report each of those as a stage that never ran.
+        dimension_values=(DimensionValue(
+            dimension=DIMENSION,
+            subject_ref=subject_ref,
+            outcome=outcome,
+            value=_grounding_value(result, outcome),
+        ),),
     )
 
 

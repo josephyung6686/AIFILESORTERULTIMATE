@@ -14,6 +14,7 @@ from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.store import record_observation, record_run
 
+from facts.discount import MetadataScreen
 from facts.file_facts import facts_for_file
 from facts.rules import (
     ACADEMIC_CONTEXT_TERMS, MalformedRule, Rule, apply_rules, context_check,
@@ -21,6 +22,14 @@ from facts.rules import (
 from facts.unresolved import unresolved_for_file
 
 CLOCK = "2026-08-22T00:00:00Z"
+
+#: Task 6's §2.2/§2.3 screen, injected EMPTY and injected VISIBLY. These tests hold no
+#: tool-producer catalogue and no metadata property list, so nothing here is suppressed
+#: or demoted -- but the producer takes the screen with no default (F8), so "this test
+#: injects an empty catalogue" is written at every call site instead of being a silence
+#: that let `python-docx` through. `tests/p6/test_p6_discount.py` is where a POPULATED
+#: screen is driven end to end.
+NO_CATALOGUE = MetadataScreen()
 
 #: §3.10's catalogue is Deferred beyond the three named date patterns, and a
 #: course-code pattern is not among them -- so the pattern is the test's, injected on
@@ -156,7 +165,7 @@ def test_a_course_code_with_no_academic_context_produces_no_fact(p6_conn, tmp_pa
     _observe(p6_conn, run_id="r-plain", file_id=file_id, content_hash=content_hash,
              raw="BUSIB 4300", context_before="Order ", context_after=" shipped")
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(_course_rule(),)) == ()
+                       rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
     rows = unresolved_for_file(p6_conn, file_id, content_hash, field_key="subject")
     assert [r["reason"] for r in rows] == ["context_check_failed"]
@@ -180,7 +189,7 @@ def test_p4s_fixture_1_verbatim_does_produce_one_validated_fact(p6_conn, tmp_pat
     assert observation.context_before[0] == "S"
 
     written = apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                          rules=(_course_rule(),))
+                          rules=(_course_rule(),), screen=NO_CATALOGUE)
     assert len(written) == 1
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert [(r["field_key"], r["canonical_value"], r["reliability_state"])
@@ -198,7 +207,7 @@ def test_the_fact_cites_an_observation_key_and_leaves_the_raw_value_alone(
                            content_hash=content_hash, raw="BUSIB 4300",
                            context_before="Syllabus — ")
     apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                rules=(_course_rule(),))
+                rules=(_course_rule(),), screen=NO_CATALOGUE)
     refs = json.loads(facts_for_file(p6_conn, file_id, content_hash)[0]["evidence_refs"])
     assert refs == [observation.observation_key]
     assert all(ref.startswith("sha256:") for ref in refs)
@@ -216,7 +225,7 @@ def test_every_one_of_the_five_terms_satisfies_the_check_on_its_own(
                  content_hash=content_hash, raw="BUSIB 4300",
                  context_after=f" ({term.title()})")
         assert len(apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                               rules=(_course_rule(),))) == 1
+                               rules=(_course_rule(),), screen=NO_CATALOGUE)) == 1
 
 
 def test_a_term_outside_the_five_does_not_satisfy_the_check(p6_conn, tmp_path):
@@ -229,7 +238,7 @@ def test_a_term_outside_the_five_does_not_satisfy_the_check(p6_conn, tmp_path):
                  content_hash=content_hash, raw="BUSIB 4300",
                  context_before=f"{near_miss} ")
         assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                           rules=(_course_rule(),)) == ()
+                           rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
         assert [r["reason"] for r in unresolved_for_file(
             p6_conn, file_id, content_hash)] == ["context_check_failed"]
 
@@ -245,7 +254,7 @@ def test_a_failed_check_on_a_truncated_record_is_context_truncated(
              raw="BUSIB 4300", context_before="...ourse outline for ",
              context_after=" and the", context_truncated=True)
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(_course_rule(),)) == ()
+                       rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
     rows = unresolved_for_file(p6_conn, file_id, content_hash, field_key="subject")
     assert [r["reason"] for r in rows] == ["context_truncated"]
     assert unresolved_for_file(p6_conn, file_id, content_hash,
@@ -261,7 +270,7 @@ def test_a_truncated_record_whose_check_passes_still_produces_the_fact(
              raw="BUSIB 4300", context_before="...Syllabus — ",
              context_truncated=True)
     assert len(apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                           rules=(_course_rule(),))) == 1
+                           rules=(_course_rule(),), screen=NO_CATALOGUE)) == 1
     assert unresolved_for_file(p6_conn, file_id, content_hash) == []
 
 
@@ -276,7 +285,7 @@ def test_a_pattern_that_does_not_match_writes_no_row_at_all(p6_conn, tmp_path):
              raw="a paragraph about nothing in particular",
              context_before="Syllabus — ")
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(_course_rule(),)) == ()
+                       rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
     assert unresolved_for_file(p6_conn, file_id, content_hash) == []
 
@@ -293,7 +302,7 @@ def test_a03s_zip_code_produces_no_subject_fact(p6_conn, tmp_path):
              context_after=" by Friday.")
     assert COURSE_CODE.search("MA 02139") is not None
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(_course_rule(),)) == ()
+                       rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
     assert [r["reason"] for r in unresolved_for_file(
         p6_conn, file_id, content_hash)] == ["context_check_failed"]
@@ -308,7 +317,7 @@ def test_a03s_device_model_produces_no_subject_fact(p6_conn, tmp_path):
              context_before="Receipt for one ", context_after=" laptop.")
     assert COURSE_CODE.search("XPS 13") is not None
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(_course_rule(),)) == ()
+                       rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
     assert [r["reason"] for r in unresolved_for_file(
         p6_conn, file_id, content_hash)] == ["context_check_failed"]
@@ -329,7 +338,7 @@ def test_rules_do_not_read_another_versions_observations(p6_conn, tmp_path):
         occurrence_count=1, observed_at=CLOCK, reliability="possible",
         run_id="r-other", context_before="Syllabus — "))
     apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                rules=(_course_rule(),))
+                rules=(_course_rule(),), screen=NO_CATALOGUE)
     values = {r["canonical_value"]
               for r in facts_for_file(p6_conn, file_id, content_hash)}
     assert values == {"BUSIB 4300"}
@@ -346,7 +355,7 @@ def test_the_outcome_does_not_depend_on_p4s_insertion_order(p6_conn, tmp_path):
                      content_hash=content_hash, raw=raw,
                      context_before="Syllabus — ")
         apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                    rules=(_course_rule(),))
+                    rules=(_course_rule(),), screen=NO_CATALOGUE)
         return sorted(r["canonical_value"]
                       for r in facts_for_file(p6_conn, file_id, content_hash))
 
@@ -365,7 +374,7 @@ def test_several_rules_over_one_observation_each_write_their_own_row(
                       required_context_terms=("proceedings", "conference"),
                       field_key="venue")
     apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                rules=(_course_rule(), venue_rule))
+                rules=(_course_rule(), venue_rule), screen=NO_CATALOGUE)
     assert [r["field_key"] for r in facts_for_file(
         p6_conn, file_id, content_hash)] == ["subject"]
     assert [(r["field_key"], r["reason"]) for r in unresolved_for_file(

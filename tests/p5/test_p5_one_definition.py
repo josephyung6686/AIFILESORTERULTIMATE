@@ -28,11 +28,18 @@ from evidence_shape.observation import (
 )
 from evidence_shape.runs import config_fingerprint
 
+import extractors as extractors_package
 import extractors.shape as shape
 
 from test_p5_shape import an_observation
 
 SHAPE_SOURCE = pathlib.Path(shape.__file__)
+
+#: Derived from the IMPORTED package, never from the process cwd. This guard was
+#: written against `Path("src/extractors")`, which globs nothing when pytest is run
+#: from anywhere but the repository root -- `not offenders` over an empty list is a
+#: pass, so it reported clean while `src/extractors/` imported whatever it liked.
+EXTRACTORS_DIR = pathlib.Path(extractors_package.__file__).parent
 
 
 def _tree() -> ast.Module:
@@ -204,3 +211,49 @@ def test_p5_gates_the_fields_it_owns_and_derives_that_list_from_p4():
     for name in shape.BUILDER_NON_EMPTY_FIELDS:
         with pytest.raises(MalformedObservation):
             an_observation(**{name: ""})
+
+
+# --- the P5/readers direction: one dependency edge, and it points one way -----------
+
+#: The libraries P5's SPEC says it "adds no third-party runtime dependency" on, plus
+#: the package that holds them. `objc` is pyobjc's own top-level name.
+FORBIDDEN_IN_EXTRACTORS: tuple[str, ...] = ("readers", "pdfminer", "Vision", "Quartz",
+                                            "objc")
+
+
+def test_extractors_never_import_the_deployment_layer():
+    """The direction that keeps P5 stdlib-only.
+
+    `src/readers/` depends on `src/extractors/` for the shapes it fills; the reverse
+    would put pdfminer and pyobjc inside a part whose SPEC says it *"adds no
+    third-party runtime dependency"*, and every P5 test would start needing a PDF
+    library installed.
+
+    It lives HERE, not in `tests/readers/`, for the reason this file exists: a guard
+    behind `importorskip("pdfminer")` does not run on a machine without pdfminer,
+    which is exactly the machine the rule protects.
+    """
+    offenders = []
+    for module in sorted(EXTRACTORS_DIR.glob("*.py")):
+        tree = ast.parse(module.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                    FORBIDDEN_IN_EXTRACTORS):
+                offenders.append(f"{module.name}: from {node.module}")
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name.split(".")[0] in set(FORBIDDEN_IN_EXTRACTORS):
+                        offenders.append(f"{module.name}: import {alias.name}")
+    assert not offenders, offenders
+
+
+def test_the_guard_reads_the_package_it_names_and_not_the_process_cwd():
+    """The defect that made the guard above vacuous, refused directly.
+
+    `Path("src/extractors")` resolves against wherever pytest was invoked. From any
+    other directory it globs nothing and `assert not offenders` is a pass over an
+    empty list -- which is how an import could have sat in `src/extractors/` unseen.
+    """
+    assert EXTRACTORS_DIR.is_absolute()
+    assert sorted(p.name for p in EXTRACTORS_DIR.glob("*.py"))
+    assert EXTRACTORS_DIR.name == "extractors"

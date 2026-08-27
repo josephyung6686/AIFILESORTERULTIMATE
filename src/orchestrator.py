@@ -31,13 +31,13 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from database_agent.files_table import get_file as _get_file_row, set_extraction_status
 
 from eval_harness.bundle import (
-    add_extraction_output, add_extraction_run, add_file_entry, add_text_unit,
-    canonical_json, open_bundle, seal_bundle,
+    add_expectation, add_extraction_output, add_extraction_run, add_file_entry,
+    add_text_unit, canonical_json, open_bundle, seal_bundle,
 )
 
 from evidence_shape.store import (
@@ -221,8 +221,26 @@ def _assemble_bundle(
         conn: sqlite3.Connection, *, scan_run_id: str, roster: list[str],
         corpus_form: str, policy_settings: Mapping[str, Any],
         file_entry_body: Callable[[Mapping[str, Any]], Mapping[str, str]],
-        handling_class_for: Callable[[Mapping[str, Any]], str | None] | None) -> str:
-    """Build P2's immutable envelope from the current selected corpus."""
+        handling_class_for: Callable[[Mapping[str, Any]], str | None] | None,
+        expectations: Sequence[Mapping[str, Any]] = ()) -> str:
+    """Build P2's immutable envelope from the current selected corpus.
+
+    `expectations` is the hand-authored expected side of §8.5's assertions, applied
+    BEFORE the seal because P2's SPEC §3 says a bundle is immutable once CREATED and
+    lists `bundle_expectation[]` among its contents -- there is no lawful moment at
+    which a created bundle lacks its labels and later gains them. Without this the
+    only code that builds a real bundle sealed first, so P2 SPEC Done-means 1 -- a
+    bundle built "with every field in §8.5's contents list present" -- could not be
+    met by any real run, and `assert_run` over one could only ever write zero
+    assertions.
+
+    Nothing here authors a label: each mapping is passed verbatim to P2's own
+    `add_expectation`, which owns the validation. P2 SPEC's Deferred table is
+    explicit that "the corpus selection, the labelling, and the per-subject expected
+    values are hand work. P2 publishes `bundle_expectation`; it does not fill it."
+    Each mapping names its own `subject_ref`, so §8.7's scope discipline holds: this
+    is a sequence of per-subject labels, never one label widened over many subjects.
+    """
     bundle_id = open_bundle(
         conn, corpus_form=corpus_form, source_scan_ref=scan_run_id,
         pinned_plan_id=None, pinned_plan_version=None,
@@ -265,6 +283,8 @@ def _assemble_bundle(
                     extractor_version=run.extractor_version,
                     observation_key=observation.observation_key,
                     payload=canonical_json(observation.to_mapping()))
+    for expectation in expectations:
+        add_expectation(conn, bundle_id, **expectation)
     seal_bundle(conn, bundle_id)
     return bundle_id
 
@@ -500,7 +520,8 @@ def run_p1_p7(
         resolve_with_ocr: FactPass,
         classify: ClassificationProducer,
         classification_store: ClassificationStore,
-        p7_component_version: str) -> P1P7Run:
+        p7_component_version: str,
+        bundle_expectations: Sequence[Mapping[str, Any]] = ()) -> P1P7Run:
     """Run the live local pipeline without inventing any domain authority.
 
     The caller supplies both fact passes, the persisted targeted-OCR predicate and
@@ -705,7 +726,8 @@ def run_p1_p7(
         conn, scan_run_id=scan_run_id, roster=roster, corpus_form=corpus_form,
         policy_settings=policy_settings, file_entry_body=file_entry_body,
         handling_class_for=lambda row: resolve_class(classification_store.current(
-            row["file_id"], row["content_hash"])))
+            row["file_id"], row["content_hash"])),
+        expectations=bundle_expectations)
     return P1P7Run(
         scan_run_id=scan_run_id, bundle_id=bundle_id,
         run_ids=tuple(written), fact_results=tuple(fact_results),

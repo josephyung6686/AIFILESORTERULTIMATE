@@ -59,10 +59,22 @@ _REGISTERED: dict[str, str | None] = {
     "review presentation": None,
     "review action routed": None,
     "apply review approval": None,
-    # P11's eight typed specializations of "placement recommendation" belong here
-    # and are ABSENT ON PURPOSE: P11's SPEC declares them as prose descriptions and
-    # publishes no identifiers. P1 does not coin a name another part owns. When P11
-    # prints the eight, add them here with base="placement recommendation".
+    # P11 SPEC, Cross-cutting answers -> Provenance. Nine typed specializations of
+    # the reserved name `placement recommendation`. The base is a rollup for §8.2's
+    # "current and historical placement proposals"; it is not a claim that building
+    # an index entry is a recommendation. SPEC:689 is one bullet carrying two state
+    # changes -- a set surfaced and a set decided -- and §7.6 gates model spend on
+    # the second, so they are two names and the count is nine, not the eight the
+    # bullet list reads as.
+    "placement_index_entry_built": "placement recommendation",
+    "candidate_destination_retrieval": "placement recommendation",
+    "placement_recommendation_emitted": "placement recommendation",
+    "group_plan_emitted": "placement recommendation",
+    "residual_set_surfaced": "placement recommendation",
+    "residual_set_decision_recorded": "placement recommendation",
+    "residual_recommendation_emitted": "placement recommendation",
+    "return_to_placement_issued": "placement recommendation",
+    "placement_review_decision": "placement recommendation",
 }
 
 # Rule 1, checked once at import: a collision is an import error, not a run-time

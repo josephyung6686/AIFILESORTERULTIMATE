@@ -54,6 +54,7 @@ from database_agent.files_table import get_file as _get_file
 from evidence_shape.observation import Observation
 
 from facts.cache import pass_cache_key
+from facts.discount import MetadataScreen, field_permitted
 from facts.evidence import cite as _cite
 from facts.evidence import observations_for_version as _observations_for_version
 from facts.file_facts import write_fact as _write_fact
@@ -100,13 +101,20 @@ class DirectSlots:
 
 
 def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
-                 slots: DirectSlots) -> tuple[str, ...]:
+                 slots: DirectSlots, screen: MetadataScreen) -> tuple[str, ...]:
     """§3.5's direct facts for one version of one file. Returns the fact ids.
 
     Every reading a slot claims becomes a `direct` fact citing the observation it was
     read from. Readings that agree on a value are ONE fact with several citations
     (§3.1: "Every fact preserves where it came from" -- plural); that is not an answer
     to OQ6, which asks how many values a field may hold.
+
+    `screen` is §2.2/§2.3's injected catalogue and has NO DEFAULT, the same shape
+    `DirectSlots` uses and for the same reason (F8). A slot set that claims
+    `metadata:field=Producer` is exactly what `FactResolver`'s own docstring warns
+    about -- "without this call `python-docx` can become a `direct` fact" -- so the
+    screen is consulted before the reading is canonicalised, not after: a
+    canonicaliser is the caller's and must not be handed a value §2.2 has refused.
     """
     if _get_file(conn, file_id) is None:
         raise UnknownFile(
@@ -118,9 +126,15 @@ def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     grouped: dict[tuple[str, str], list[Observation]] = {}
     for slot in slots.slots:
         for one in _observations_for_version(conn, file_id, content_hash):
-            if slot.names(one.locator):
-                key = (slot.field_key, slot.canonical(one.raw_value))
-                grouped.setdefault(key, []).append(one)
+            if not slot.names(one.locator):
+                continue
+            if not field_permitted(
+                    one, slot.field_key,
+                    tool_producer_strings=screen.tool_producer_strings,
+                    metadata_property_names=screen.metadata_property_names):
+                continue
+            key = (slot.field_key, slot.canonical(one.raw_value))
+            grouped.setdefault(key, []).append(one)
 
     written: list[str] = []
     for (field_key, canonical_value) in sorted(grouped):

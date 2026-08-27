@@ -83,6 +83,10 @@ def _excerpt(*, content_hash: str, raw_value: str) -> Excerpt:
         ),
         location=ZONE,
         text=raw_value,
+        # From `fixture_location()`, the same locator the seeded observation gets,
+        # so a fixture excerpt addresses what a real one would.
+        text_span=(fixture_location().text_span.start,
+                   fixture_location().text_span.end),
     )
 
 
@@ -174,6 +178,15 @@ def course_dossier_fixture() -> CandidateGroupDossier:
         excerpts=tuple(
             excerpt for anchor in anchors for excerpt in anchor.excerpts
         ),
+        # Empty because a course group with no conflicting course code is the
+        # design's own coherent example (SS4.4) -- NOT because the builder had
+        # nowhere to get conflicts from, which is what `()` meant at the five
+        # production sites this fixture sits beside. The conflict-bearing shape is
+        # `application_dossier_fixture`, whose `target_institution` conflict is
+        # what lets P10 and P11 exercise Site B's check against a published
+        # fixture. `CONFLICT_FREE_BY_DESIGN` in `tests/p9/test_p9_fixtures.py`
+        # names this line for the guard, so a sixth bare `()` cannot appear here
+        # silently.
         conflicts=(),
         engine_flagged_outliers=(),
         omissions=Omissions(

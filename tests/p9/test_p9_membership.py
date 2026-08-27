@@ -433,3 +433,28 @@ def test_p9_never_runs_the_reduction_ladder():
                 if word in node.value.lower():
                     offenders.append(f"{node.lineno}:{word}")
     assert offenders == [], offenders
+
+
+# --- the builder's conflicts reach the membership --------------------------------
+
+
+def test_an_accepted_membership_carries_the_conflicts_naming_its_file(seam_conn):
+    """`Membership.conflicts` was hardcoded `()` here, so a file the builder knew
+    was in conflict became a member that claimed no conflict at all. The
+    application dossier names `essay-columbia` and `essay-duke` in one
+    `target_institution` conflict; `essay-columbia` is an anchor, so its
+    `accept_direct` membership must say so and `admissions-checklist`'s must not."""
+    from grouping.fixtures import application_dossier_fixture
+    from grouping.store import memberships_for_group
+
+    dossier = application_dossier_fixture()
+    _apply(seam_conn, _verdict(),
+           group=_group(group_id=dossier.group_id), dossier=dossier)
+
+    by_file = {
+        item.file_id: item
+        for item in memberships_for_group(seam_conn, dossier.group_id)
+    }
+    assert [c.kind for c in by_file["essay-columbia"].conflicts] == [
+        "target_institution"]
+    assert by_file["admissions-checklist"].conflicts == ()

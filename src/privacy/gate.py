@@ -63,9 +63,9 @@ from privacy.policy import current_policy
 from privacy.redaction import RedactionManifest, apply_redaction, span_address
 from privacy.release import (
     DECISION_ORDER, Denied, ModelCallRequest, NeedsConsent, NoPolicyInForce,
-    ReleaseDecision, Released,
+    ReleaseDecision, Released, ReleasedItem,
 )
-from privacy.resolve import Materialised, UnresolvableSpan, current_location, materialise
+from privacy.resolve import UnresolvableSpan, current_location, materialise
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
 # each of them a second spelling inside the one file that publishes both.
@@ -429,7 +429,7 @@ class Gate:
         return None
 
     def _postcheck_items(self, request: ModelCallRequest,
-                         resolved: Sequence[Materialised], *, protected: bool,
+                         resolved: Sequence[ReleasedItem], *, protected: bool,
                          sensitive_keys) -> Exception | None:
         """The one refusal that needs the resolved unit length."""
         lengths = {item.observation_key: item.unit_length for item in resolved}
@@ -465,10 +465,18 @@ class Gate:
         return current.file_id, (item.observation_key, span_address(location))
 
     def _materialise(self, text_items: Sequence[object]
-                     ) -> tuple[tuple[Materialised, ...], RedactionManifest]:
+                     ) -> tuple[tuple[ReleasedItem, ...], RedactionManifest]:
         """(observation_key, span) -> text -> redacted text. `resolve` is the only
-        module under `src/privacy/` that binds a P4 text materialiser (L2)."""
-        resolved: list[Materialised] = []
+        module under `src/privacy/` that binds a P4 text materialiser (L2).
+
+        `found` is the PRE-redaction record and carries M5's three context fields;
+        `apply_redaction` needs them for the local `RedactionEntry`, which travels
+        inside the audit event's explanation. The RELEASED item is a different
+        type and carries none of them: this built a `Materialised` with `value`
+        redacted and `context_before` / `context_after` copied raw off `found`,
+        so an 8-character requested span released its whole text unit.
+        """
+        resolved: list[ReleasedItem] = []
         entries = []
         for item in text_items:
             found = materialise(self._conn, item)
@@ -478,12 +486,9 @@ class Gate:
                 context_after=found.context_after,
                 context_truncated=found.context_truncated,
                 classifier=self._classifier, transform=self._transform)
-            resolved.append(Materialised(
+            resolved.append(ReleasedItem(
                 observation_key=found.observation_key, span=found.span, value=value,
-                zone=found.zone, context_before=found.context_before,
-                context_after=found.context_after,
-                context_truncated=found.context_truncated,
-                unit_length=found.unit_length))
+                zone=found.zone, unit_length=found.unit_length))
             entries.append(entry)
         return tuple(resolved), RedactionManifest(entries=tuple(entries))
 

@@ -39,6 +39,7 @@ from evidence_shape.canonical import canonical_json
 from evidence_shape.vocabulary import ANALYSIS_TIERS
 
 from facts.cache import pass_cache_key
+from facts.discount import MetadataScreen, field_permitted
 from facts.evidence import (
     analysis_tier_for_observation, cite, context_pair, observations_for_version,
 )
@@ -102,14 +103,26 @@ def context_check(before: str, after: str, terms: Iterable[str]) -> bool:
 
 
 def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
-                rules: Sequence[Rule]) -> tuple[str, ...]:
+                rules: Sequence[Rule],
+                screen: MetadataScreen) -> tuple[str, ...]:
     """Run every rule over every observation of one file version.
 
-    Three outcomes and they are not interchangeable:
+    `screen` is §2.2/§2.3's injected catalogue and has NO DEFAULT (F8). A rule is the
+    caller's, and a caller's rule that happens to match a generator string must not be
+    able to turn it into a conclusion: `python-docx` reached `subject` as a `validated`
+    fact for exactly as long as `field_permitted` had no production caller.
+
+    Four outcomes and they are not interchangeable:
 
     * the pattern does not match -- nothing at all. A rule that does not apply is not
       a refusal, and writing one would fill `unresolved` with every field every rule
       could theoretically have produced;
+    * the pattern matches a value §2.2 SUPPRESSES, or a value §2.3 DEMOTES in a field
+      that is not an authorship role -- nothing at all, and no second `unresolved`
+      row: `screen_metadata` already wrote the one row Done-means 22 asks for, and a
+      refusal recorded twice is counted twice (§8.5). The check sits BEFORE the
+      context check, because a suppressed value whose context also failed would
+      otherwise be recorded as a considered refusal it never was;
     * the pattern matches and the context check passes -- one `validated` fact citing
       that observation's key (M14);
     * the pattern matches and the context check fails -- one `unresolved` row, whose
@@ -124,6 +137,11 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         for rule in rules:
             match = rule.pattern.search(observation.raw_value)
             if match is None:
+                continue
+            if not field_permitted(
+                    observation, rule.field_key,
+                    tool_producer_strings=screen.tool_producer_strings,
+                    metadata_property_names=screen.metadata_property_names):
                 continue
             if not context_check(before, after, rule.required_context_terms):
                 write_unresolved(

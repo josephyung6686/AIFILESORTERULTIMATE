@@ -153,6 +153,25 @@ class LongTailResult:
     extraction: ExtractionResult
     sensitivity: tuple[SensitivitySignal, ...] = ()
 
+    def __post_init__(self) -> None:
+        """Every signal indexes into the batch beside it, checked HERE.
+
+        This is the only place a batch position and the batch it indexes into exist
+        side by side: `record_sensitivity_signals` sees the signals and P4's keys, not
+        the observations, and by then a database is open. A signal past the end used
+        to reach it and raise `IndexError`, which nothing catches, so an ordinary
+        email carrying one address in three header slots ended the scan.
+        """
+        held = len(self.extraction.observations)
+        beyond = [s.observation_index for s in self.sensitivity
+                  if not 0 <= s.observation_index < held]
+        if beyond:
+            raise ValueError(
+                f"sensitivity signals at batch positions {beyond} index outside a "
+                f"batch of {held}; `observation_index` is a position in THIS "
+                "extraction's observations (D10 collapses and renumbers them)"
+            )
+
 
 def _entry_segment(entry: LongTailEntry) -> dict:
     return segment(entry.kind, index=entry.index, label=entry.label)
@@ -299,21 +318,42 @@ def extract_long_tail(
                  sensitive_basis=found_basis, time_span=text.time_span)
 
     entries = len(document.entries) or 1
-    return LongTailResult(
-        extraction=ExtractionResult(
-            run=run(file_id=file_row["file_id"],
-                    content_hash=file_row["content_hash"],
-                    extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
-                    source_type=source_type, analysis_tier=ANALYSIS_TIER,
-                    config={"reader": "injected", "transcribe": transcribe},
-                    completeness="complete",
-                    coverage=coverage("entries", entries, entries),
-                    observation_count=len(observations), started_at=now,
-                    finished_at=now),
-            observations=tuple(observations),
-            text_units=tuple(units)),
-        sensitivity=tuple(signals),
-    )
+    extraction = ExtractionResult(
+        run=run(file_id=file_row["file_id"],
+                content_hash=file_row["content_hash"],
+                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=source_type, analysis_tier=ANALYSIS_TIER,
+                config={"reader": "injected", "transcribe": transcribe,
+                        "context_window": context_window},
+                completeness="complete",
+                coverage=coverage("entries", entries, entries),
+                observation_count=len(observations), started_at=now,
+                finished_at=now),
+        observations=tuple(observations),
+        text_units=tuple(units))
+
+    # D10 collapsed and renumbered. A signal's `observation_index` is a position in
+    # the SUBMITTED list, so it is mapped through before it leaves this function --
+    # after this point nothing remembers what the submitted list looked like.
+    #
+    # Two signals can land on one survivor: a From and a Reply-To carrying one
+    # address ARE one located value once collapsed, and so is an address quoted in a
+    # heading and again in the body. One located value gets one row -- the sensitivity
+    # table is UNIQUE on (run_id, observation_key) -- so the FIRST reason in document
+    # order is kept and the rest are dropped rather than written. There is one signal
+    # VALUE in section 2.9 and no vocabulary; the basis is the reason for it, and the
+    # first occurrence is the one `location` already addresses (D10).
+    remapped: list[SensitivitySignal] = []
+    landed: set[int] = set()
+    for signal in signals:
+        moved = extraction.collapsed_index[signal.observation_index]
+        if moved in landed:
+            continue
+        landed.add(moved)
+        remapped.append(SensitivitySignal(observation_index=moved,
+                                          signal=signal.signal, basis=signal.basis))
+
+    return LongTailResult(extraction=extraction, sensitivity=tuple(remapped))
 
 
 SENSITIVITY_DDL = """

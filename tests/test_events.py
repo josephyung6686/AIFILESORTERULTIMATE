@@ -88,10 +88,15 @@ def test_the_registered_table_matches_the_declaring_specs():
     p8 = {"model_call_issued", "model_response_received", "validation_verdict",
           "verdict_superseded", "call_refused"}
     p13 = {"review presentation", "review action routed", "apply review approval"}
-    assert len(p7) == 8 and len(p8) == 5 and len(p13) == 3
-    assert set(REGISTERED_EVENT_TYPES) == p7 | p8 | p13
-    # 19 + 8 + 5 + 3. Forty-three once P11's eight are spelled.
-    assert len(EVENT_TYPES) == 35
+    p11 = {"placement_index_entry_built", "candidate_destination_retrieval",
+           "placement_recommendation_emitted", "group_plan_emitted",
+           "residual_set_surfaced", "residual_set_decision_recorded",
+           "residual_recommendation_emitted", "return_to_placement_issued",
+           "placement_review_decision"}
+    assert len(p7) == 8 and len(p8) == 5 and len(p13) == 3 and len(p11) == 9
+    assert set(REGISTERED_EVENT_TYPES) == p7 | p8 | p13 | p11
+    # 19 + 8 + 5 + 3 + 9.
+    assert len(EVENT_TYPES) == 44
 
 
 def test_the_table_cannot_be_mutated_at_run_time():
@@ -135,14 +140,43 @@ def test_a_specialization_stores_its_reserved_base_type(conn):
         assert row["base_event_type"] == base
 
 
-def test_p11s_eight_specializations_are_declared_but_unspelled():
-    # P11's SPEC declares eight specializations of `placement recommendation` in
-    # prose and publishes no identifiers, so P1 has no name to register. Inventing
-    # one would be P1 authoring P11's vocabulary. This test is the standing record
-    # of that gap: it starts failing the day P11 prints the eight names, which is
-    # the day this plan's registry must gain them.
-    assert [n for n, b in EVENT_TYPES.items()
-            if b == "placement recommendation"] == []
+def test_p11s_nine_specializations_are_registered_under_one_base():
+    # The gap this replaces was P1's standing record that P11 had published no
+    # identifiers. It is closed by P11 printing them, not by P1 inventing one.
+    p11 = {n for n, b in EVENT_TYPES.items() if b == "placement recommendation"}
+    assert p11 == {
+        "placement_index_entry_built",
+        "candidate_destination_retrieval",
+        "placement_recommendation_emitted",
+        "group_plan_emitted",
+        "residual_set_surfaced",
+        "residual_set_decision_recorded",
+        "residual_recommendation_emitted",
+        "return_to_placement_issued",
+        "placement_review_decision",
+    }
+    assert len(p11) == 9
+
+
+def test_a_surfaced_residual_set_is_a_different_event_from_a_decided_one(conn):
+    # §7.6 gates model spend on a set decision, so a set that was shown and never
+    # decided must be distinguishable from one that was decided. A shared name
+    # could not say which happened.
+    create_schema(conn)
+    for name in ("residual_set_surfaced", "residual_set_decision_recorded"):
+        append_event(conn, **_minimal(event_type=name, subsystem="P11"))
+    rows = conn.execute(
+        "SELECT event_type, base_event_type FROM events ORDER BY event_id"
+    ).fetchall()
+    assert [r["event_type"] for r in rows] == [
+        "residual_set_surfaced", "residual_set_decision_recorded",
+    ]
+    assert {r["base_event_type"] for r in rows} == {"placement recommendation"}
+
+
+def test_p11_registers_no_name_that_shadows_a_reserved_one():
+    p11 = {n for n, b in EVENT_TYPES.items() if b == "placement recommendation"}
+    assert not p11 & RESERVED_EVENT_TYPES
 
 
 def test_two_parts_may_author_the_same_reserved_type(conn):

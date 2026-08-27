@@ -1334,3 +1334,113 @@ def test_the_returned_verdict_is_the_worst_of_the_shards_not_the_last(
     assert verdict.outcome == REJECT
     assert SCHEMA_INVALID in verdict.reasons
     assert _count(harness_conn, "llm_verdict") == 2
+
+
+def _two_claim_bytes(key: str, *, reject_first: bool) -> bytes:
+    """One response, two claims: one ungrounded, one direct.
+
+    The rejected claim quotes text no release contains, which is exactly the
+    case `vocabulary.py:45` names -- "one per shard, ONE PER CLAIM".
+    """
+    rejected = {
+        "claim_ref": "c-ungrounded",
+        "payload": {"field": "subject", "value": "Columbia"},
+        "citations": [{
+            "evidence_ref": key,
+            "cited_span": "cites text no release contains",
+            "why_it_supports": "quotes material P7 never released",
+        }],
+    }
+    accepted = {
+        "claim_ref": "c-grounded",
+        "payload": {"field": "school", "value": "Columbia"},
+        "citations": [{
+            "evidence_ref": key,
+            "cited_span": "Columbia University",
+            "why_it_supports": "names the school",
+        }],
+    }
+    claims = [rejected, accepted] if reject_first else [accepted, rejected]
+    return json.dumps({"claims": claims}).encode("utf-8")
+
+
+@pytest.mark.parametrize("reject_first", (True, False))
+def test_the_returned_verdict_is_the_worst_of_the_claims_not_the_last(
+    harness_conn, subject, reject_first,
+):
+    """`vocabulary.py:45` states the rule as "one per shard, ONE PER CLAIM" and
+    only the shard half shipped: `harness.py:348` returned `verdicts[-1]`. A
+    two-claim Site A response whose FIRST claim quoted unreleased text therefore
+    returned `accept_direct`, and `grouping.p8_seam.apply_p8_verdict` turns an
+    accepting outcome into an accepted `Membership`.
+
+    Both orderings are asserted: a model must not get to choose its own call
+    verdict by choosing the order it reports its claims in.
+    """
+    from llm_harness.vocabulary import CITATION_SPAN_MISMATCH
+
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    digest = prompt_fingerprint(prompt)
+    verdict = _run(
+        harness_conn,
+        _request(file_id=subject[0], fingerprint=digest, key=key),
+        gate=RecordingGate(harness_conn, prompt=prompt, decision="released", key=key),
+        model_client=ModelClient(
+            model_target=CLOUD,
+            invoke=Recorder(reply=_two_claim_bytes(key, reject_first=reject_first)),
+        ),
+        prompt=prompt,
+        deps=_deps(site_dependencies=bundle,
+                   allowed_vocabulary=("school", "subject")),
+    )
+    assert isinstance(verdict, P8Verdict)
+    assert verdict.outcome == REJECT
+    assert CITATION_SPAN_MISMATCH in verdict.reasons
+    assert _count(harness_conn, "llm_verdict") == 2
+
+
+def _severity_verdict(outcome: str) -> P8Verdict:
+    from llm_harness.vocabulary import REJECTED, SCOPE_FILE
+
+    return P8Verdict(
+        verdict_id="v-" + outcome,
+        dossier_id="dossier-1",
+        claim_ref="c-" + outcome,
+        outcome=outcome,
+        disposition=REJECTED,
+        reasons=(),
+        may_propose=False,
+        requires_review=True,
+        citations_checked=(),
+        scope=SCOPE_FILE,
+        validator_version=COMPONENT_VERSION,
+        policy_version=POLICY_VERSION,
+        plan_version=None,
+    )
+
+
+def test_the_worst_outcome_is_returned_whatever_its_position():
+    """The rule itself, independent of either call site."""
+    from llm_harness.harness import worst_outcome
+    from llm_harness.vocabulary import WEAK
+
+    for order in ((REJECT, ACCEPT_DIRECT), (ACCEPT_DIRECT, REJECT)):
+        chosen = worst_outcome([_severity_verdict(outcome) for outcome in order])
+        assert chosen.outcome == REJECT, order
+    assert worst_outcome(
+        [_severity_verdict(ACCEPT_DIRECT), _severity_verdict(WEAK)]
+    ).outcome == WEAK
+
+
+def test_both_reducers_use_the_one_rule():
+    """A rule written twice is a rule that can ship half-applied -- it did. The
+    shard reducer used severity and the claim reducer used `verdicts[-1]`, and
+    the fix that landed the first never reached the second."""
+    from llm_harness import harness
+
+    source = inspect.getsource(harness)
+    assert source.count("OUTCOME_SEVERITY.index") == 1
+    assert "verdicts[-1]" not in source
+    assert "produced[-1]" not in source

@@ -22,10 +22,19 @@ from facts import direct as direct_module
 from facts.direct import (
     DIRECT_ORIGIN, DIRECT_STATE, DirectSlot, DirectSlots, UnknownFile, direct_facts,
 )
+from facts.discount import MetadataScreen
 from facts.fields import FieldNotInCatalogue
 from facts.file_facts import facts_for_file
 from facts.unresolved import unresolved_for_file
 from facts.values import values_in_field
+
+#: Task 6's §2.2/§2.3 screen, injected EMPTY and injected VISIBLY. These tests hold no
+#: tool-producer catalogue and no metadata property list, so nothing here is suppressed
+#: or demoted -- but the producer takes the screen with no default (F8), so "this test
+#: injects an empty catalogue" is written at every call site instead of being a silence
+#: that let `python-docx` through. `tests/p6/test_p6_discount.py` is where a POPULATED
+#: screen is driven end to end.
+NO_CATALOGUE = MetadataScreen()
 
 CLOCK = "2026-08-19T12:00:00+00:00"
 
@@ -163,7 +172,7 @@ def test_an_exif_datetimeoriginal_observation_produces_a_direct_capture_date_fac
     # `capture date = 2026-07-17` is the file fact derived from it.
     file_id, content_hash, exif = photo
     written = direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                           slots=DirectSlots(slots=(EXIF_SLOT,)))
+                           slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
     assert len(written) == 1
 
     rows = facts_for_file(p6_conn, file_id, content_hash)
@@ -184,7 +193,7 @@ def test_the_exif_observation_is_readable_and_unchanged_after_resolution(
     # trigger makes this unfalsifiable; the assertion states the intent.
     file_id, content_hash, exif = photo
     direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                 slots=DirectSlots(slots=(EXIF_SLOT,)))
+                 slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
 
     still = observations_by_key(p6_conn, exif.observation_key)
     assert [one.raw_value for one in still] == [EXIF_RAW]
@@ -206,7 +215,7 @@ def test_a_filesystem_timestamp_is_direct(p6_conn, tmp_path):
              source_type="filesystem", analysis_tier="filesystem")
 
     direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                 slots=DirectSlots(slots=(CREATION_SLOT,)))
+                 slots=DirectSlots(slots=(CREATION_SLOT,)), screen=NO_CATALOGUE)
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert [(row["field_key"], row["reliability_state"]) for row in rows] == [
         ("creation_date", DIRECT_STATE)]
@@ -222,7 +231,7 @@ def test_the_same_date_string_in_body_text_produces_no_direct_fact(p6_conn, phot
                     reliability="possible")
 
     direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                 slots=DirectSlots(slots=(EXIF_SLOT,)))
+                 slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert len(rows) == 1
     assert json.loads(rows[0]["evidence_refs"]) == [exif.observation_key]
@@ -244,7 +253,8 @@ def test_a_filename_date_produces_no_direct_fact(p6_conn, tmp_path):
              reliability="possible")
 
     assert direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                        slots=DirectSlots(slots=(EXIF_SLOT, CREATION_SLOT))) == ()
+                        slots=DirectSlots(slots=(EXIF_SLOT, CREATION_SLOT)),
+                        screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
 
 
@@ -266,7 +276,7 @@ def test_the_slot_decides_and_not_the_observations_own_reliability(p6_conn, tmp_
              reliability="possible")
 
     direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                 slots=DirectSlots(slots=(CELL_SLOT,)))
+                 slots=DirectSlots(slots=(CELL_SLOT,)), screen=NO_CATALOGUE)
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert [(row["field_key"], row["reliability_state"]) for row in rows] == [
         ("application_cycle", DIRECT_STATE)]
@@ -284,7 +294,7 @@ def test_a_shipped_filesystem_mime_type_slot_fills_file_type(p6_conn, tmp_path):
              source_type="filesystem", analysis_tier="filesystem")
 
     direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                 slots=DirectSlots(slots=(FILE_TYPE_SLOT,)))
+                 slots=DirectSlots(slots=(FILE_TYPE_SLOT,)), screen=NO_CATALOGUE)
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert [(row["field_key"], row["reliability_state"]) for row in rows] == [
         ("file_type", DIRECT_STATE)]
@@ -306,7 +316,7 @@ def test_a_slot_naming_a_field_outside_the_catalogue_raises_and_creates_nothing(
 
     with pytest.raises(FieldNotInCatalogue):
         direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                     slots=DirectSlots(slots=(TITLE_SLOT,)))
+                     slots=DirectSlots(slots=(TITLE_SLOT,)), screen=NO_CATALOGUE)
     assert facts_for_file(p6_conn, file_id, content_hash) == []
 
 
@@ -323,7 +333,8 @@ def test_a_slot_that_matches_nothing_writes_no_fact_and_no_unresolved_row(
              raw="Columbia", zone="body", reliability="possible")
 
     assert direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                        slots=DirectSlots(slots=(EXIF_SLOT,))) == ()
+                        slots=DirectSlots(slots=(EXIF_SLOT,)),
+                        screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
     assert unresolved_for_file(p6_conn, file_id, content_hash) == []
 
@@ -347,7 +358,7 @@ def test_two_observations_of_one_value_make_one_fact_citing_both(p6_conn, tmp_pa
                       extractor="image.metadata", source_type="image")
 
     written = direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                           slots=DirectSlots(slots=(EXIF_SLOT,)))
+                           slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
     assert len(written) == 1
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert json.loads(rows[0]["evidence_refs"]) == sorted(
@@ -359,7 +370,7 @@ def test_every_evidence_ref_is_an_observation_key(p6_conn, photo):
     # this producer actually stores rather than trusting the writer's guard.
     file_id, content_hash, _ = photo
     direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                 slots=DirectSlots(slots=(EXIF_SLOT,)))
+                 slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
     refs = json.loads(facts_for_file(p6_conn, file_id, content_hash)[0]["evidence_refs"])
     assert refs and all(ref.startswith("sha256:") for ref in refs)
 
@@ -381,7 +392,7 @@ def test_a_prior_versions_observation_is_not_cited(p6_conn, tmp_path):
              extractor="image.exif", source_type="image")
 
     direct_facts(p6_conn, file_id=file_id, content_hash=second_hash,
-                 slots=DirectSlots(slots=(EXIF_SLOT,)))
+                 slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
     rows = facts_for_file(p6_conn, file_id, second_hash)
     assert [row["field_key"] for row in rows] == ["capture_date"]
     assert old.observation_key not in json.loads(rows[0]["evidence_refs"])
@@ -407,7 +418,7 @@ def test_the_result_does_not_depend_on_the_order_the_slots_were_declared(
                  extractor="filesystem.record", version="0.1.0",
                  source_type="filesystem", analysis_tier="filesystem")
         direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-                     slots=DirectSlots(slots=slots))
+                     slots=DirectSlots(slots=slots), screen=NO_CATALOGUE)
         return [row["field_key"]
                 for row in facts_for_file(p6_conn, file_id, content_hash)]
 
@@ -424,7 +435,7 @@ def test_a_file_p1_does_not_hold_raises_rather_than_writing_a_direct_fact(p6_con
     with pytest.raises(UnknownFile):
         direct_facts(p6_conn, file_id="file-that-p1-never-recorded",
                      content_hash="d" * 64,
-                     slots=DirectSlots(slots=(EXIF_SLOT,)))
+                     slots=DirectSlots(slots=(EXIF_SLOT,)), screen=NO_CATALOGUE)
 
 
 # --- the injection (F8) ----------------------------------------------------------

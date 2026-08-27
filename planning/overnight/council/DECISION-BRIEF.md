@@ -908,3 +908,42 @@ authored `collides_with` edges into it anyway.
 REMOVE the two competing `collides_with` claims** (`shipment` → `route-dispatch`,
 `last-mile-pod` → `route-dispatch`) rather than back-fill a reciprocal edge into route-dispatch.
 This is the audit's "adjudicate, do not back-fill" item, now adjudicated.
+
+### ⚠️ J-WIDE-2 CARRIES AN UNRESOLVED READING — flagged 2026-08-27 23:10, NOT yet ruled
+
+J-WIDE-2 assumes `00`:70 names **two** career orders. The corpus reads the same sentence a second
+way, and the alternative changes the answer materially. Both readings of the grep-verified span:
+
+> ...a Research template may define project → stage → artifact type; **a Career template may define
+> company → role or recruiting cycle → document type**; and a Photos template may define year → event.
+
+- **TWO ORDERS** (what J-WIDE-2 ratified): `company → role` **OR** `recruiting cycle → document type`.
+- **ONE ORDER, DISJUNCTIVE MIDDLE** (`career.recruiting.json`'s own `template.why`: *"00 writes that
+  level as a disjunction rather than a fixed field"*): `company → (role | recruiting cycle) → document type`.
+
+**The structural case favours the disjunctive reading.** Every other clause in that sentence is a
+single chain; career is the only one carrying an "or"; and the disjunctive parse makes career exactly
+parallel to its immediate neighbour — `target institution → application cycle → document type` vs
+`company → recruiting cycle → document type`. Same shape, same three roles.
+
+**Why this is not a parsing quibble.** Under the disjunctive reading **company is ALWAYS the parent**,
+so the fragmentation below is not one weak option the user may decline — it is unavoidable.
+
+**MEASURED (constructed 15-application hunt, ~51 files — an estimate, not a real corpus):**
+company-first puts **about 8 of 15 companies at one or two files**. With a role level each becomes a
+one-child chain: `Career/Ramp/Backend Engineer/Cover Letter/ramp-cover.pdf` — four levels, one file.
+`00`:99 (grep-verified) tells the interface to warn when a level produces **only one child**, when a
+split creates **a large number of tiny folders**, and to **recommend flattening** when a dimension
+does not materially improve retrieval. **Company-first trips all three at once.** Cycle-first fills
+every folder, produces no one-child level, and gives the company-less files (master résumé,
+references, portfolio) a home they simply do not have under company-first.
+
+**Joseph's call.** If the two-order reading stands, J-WIDE-2 is unchanged and the recommendation below
+applies. If the disjunctive reading was intended, Order B regains a company parent and the
+tiny-folder problem returns in full.
+
+**Refinement that holds under EITHER reading, and does not reopen J-WIDE-2:** offering both is
+compatible with one being the clear *recommended* default, and the recommended half should differ
+**by situation, not by user** — `career.recruiting` → cycle-first; `career.employment-records` →
+employer-first (3 employers over 8 years, ~18/~14/~6 files, zero tiny folders). They are not two
+tastes over one corpus; they are the natural orders of two corpora that the offer letter separates.

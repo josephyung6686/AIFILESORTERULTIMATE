@@ -85,7 +85,10 @@ def test_importing_privacy_authorship_registers_nothing():
     before = len(EVENT_TYPES)
     importlib.reload(authorship)
     from database_agent.events import EVENT_TYPES as after_table
-    assert len(after_table) == before == 35
+    # The claim is "reloading grew nothing", not a frozen size: P1 owns the table's
+    # count and pins it in `tests/test_events.py`. A second copy here went stale the
+    # day P11 registered its nine.
+    assert len(after_table) == before
     assert not [n for n, v in vars(authorship).items()
                 if callable(v) and n.lower().startswith("register")]
 

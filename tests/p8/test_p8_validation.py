@@ -90,9 +90,6 @@ def _released(ref: str = "obs-key-1", *,
         address="0:4",
         value=value,
         zone="body",
-        context_before=None,
-        context_after=None,
-        context_truncated=False,
     )
 
 

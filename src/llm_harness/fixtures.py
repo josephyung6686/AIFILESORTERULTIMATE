@@ -136,9 +136,6 @@ def _released_for(items: tuple[EvidenceItem, ...]) -> tuple[ReleasedEvidence, ..
             address=ADDRESS,
             value=SPAN,
             zone="body",
-            context_before=None,
-            context_after=None,
-            context_truncated=False,
         )
         for item in items if item.kind == "excerpt"
     )

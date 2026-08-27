@@ -17,6 +17,7 @@ image facts appear?") unanswered.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
 from extractors.shape import canonical_json
@@ -24,9 +25,33 @@ from extractors.shape import canonical_json
 #: One of section 8.5's ten attribution stages. P5 is the first.
 STAGE_ID = "extraction"
 
-#: `eval_harness.replay.StageResult`'s fields, as P5 fills them.
+#: One of section 8.5's ten measured DIMENSIONS, which is a different ten-item list
+#: that happens to share this spelling. Re-spelled rather than imported, for the same
+#: reason every P2 outcome below is: P5 imports no part of P2. The test side pins it
+#: against P2's live `DIMENSIONS`, exactly as it pins `STAGE_ID`.
+DIMENSION = "extraction"
+
+#: `eval_harness.replay.StageResult`'s six fields, as P5 fills them. The sixth is
+#: `values`, and P2 reads it structurally -- see `DimensionValue` below.
 ENVELOPE_FIELDS: tuple[str, ...] = ("subject_ref", "outcome", "payload", "inputs",
-                                    "budget_state")
+                                    "budget_state", "values")
+
+
+@dataclass(frozen=True)
+class DimensionValue:
+    """The four fields `eval_harness.stage_output.record_stage_output` reads off a
+    handed-over measurement, defined here rather than imported.
+
+    P6's `facts/stage_output.py` imports P2's class for this. P5 cannot: it produces
+    the envelope and P2 stores it, and `test_p5_imports_no_part_of_p2` holds P5's
+    only run-time dependency at P1. P2 reads these by attribute and never by type,
+    so the same four names are the whole contract -- the same way every P2 outcome
+    string in `OUTCOME_BY_COMPLETENESS` is re-spelled rather than imported.
+    """
+    dimension: str
+    subject_ref: str
+    outcome: str
+    value: Any
 
 #: P4's nine `completeness` values to P2's five outcomes.
 OUTCOME_BY_COMPLETENESS: dict[str, str] = {
@@ -53,16 +78,22 @@ def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
     `subject_ref` is the file id, which is what P2's `bundle_file_entry` keys a file
     by; `inputs` is the CONTENT HASH, because an extraction run's input is the file
     VERSION - section 3.4's "a rename is free and a content rewrite is expensive".
+
+    The DIMENSION value is keyed the other way round, on the content hash: section
+    8.2's identity for a file version is the hash, and it is what every `extraction`
+    expectation is written against. A `DimensionValue` carries its own subject_ref
+    for exactly this reason.
     """
     completeness = run["completeness"]
     if completeness not in OUTCOME_BY_COMPLETENESS:
         raise ValueError(
             f"{completeness!r} is not one of P4's nine `completeness` values"
         )
+    outcome = OUTCOME_BY_COMPLETENESS[completeness]
     return {
         "stage_id": STAGE_ID,
         "subject_ref": run["file_id"],
-        "outcome": OUTCOME_BY_COMPLETENESS[completeness],
+        "outcome": outcome,
         "payload": canonical_json({
             "extractor_name": run["extractor_name"],
             "extractor_version": run["extractor_version"],
@@ -76,7 +107,37 @@ def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
         "budget_state": ("ceiling_reached"
                          if completeness in CEILING_REACHED_COMPLETENESS
                          else "within_ceiling"),
+        "values": (DimensionValue(dimension=DIMENSION,
+                                  subject_ref=run["content_hash"],
+                                  outcome=outcome,
+                                  value=_measurement(run, outcome)),),
     }
+
+
+def _measurement(run: Mapping[str, Any], outcome: str) -> dict | None:
+    """Section 8.5's extraction question - "did the expected text, metadata, table
+    values, OCR text, or image facts appear?" - answered from the run that ran.
+
+    `observation_count` is how much appeared and `coverage` is how much of the file
+    it was drawn from. Both are P4's own numbers, counted by the extractor; nothing
+    here scores them. What counts as enough is the label's business, and the label is
+    P2's `bundle_expectation.expected_value`.
+
+    Coverage is not decoration: `complete`, `partial` and `capped` all map to
+    `produced`, and section 8.6 forbids a degraded result being reported as a good
+    one. Without coverage the three are one measurement.
+
+    NULL for every other outcome, which is a row saying the stage RAN and measured
+    nothing - not an absent row, which P2 reads as `not_run`. The two rows this
+    module's preamble flags as NEEDS JOSEPH, `metadata_only` and `unreadable`, land
+    here: they produce real metadata rows and leave section 8.5's question
+    unanswered, so they abstain and measure nothing. That is unchanged by this
+    function and is still unsettled.
+    """
+    if outcome != "produced":
+        return None
+    return {"observation_count": run["observation_count"],
+            "coverage": dict(run["coverage"])}
 
 
 def extractor_versions(runs: Iterable[Mapping[str, Any]]) -> dict[str, str]:

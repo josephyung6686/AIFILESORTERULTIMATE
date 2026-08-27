@@ -32,6 +32,15 @@ from privacy.binding import BindingMismatch, consume_release
 from privacy.release import ModelTarget, Released
 
 
+#: P7's Done-means 3 is a static property OF THE TRANSPORT, and this flag is how the
+#: instrument finds it: `tests/p7/test_p7_skeleton_step.py` scans `src/` for
+#: `IS_MODEL_TRANSPORT is True` and runs `privacy.transport_guard.assert_single_egress`
+#: over every module that sets it. This module is the one writer of `True`. Unset, the
+#: scan returned an empty list and the check that §8.4 turns on asserted against
+#: nothing.
+IS_MODEL_TRANSPORT: bool = True
+
+
 class TransportTransactionOpen(Exception):
     """issue refuses to join an already-open transaction."""
 

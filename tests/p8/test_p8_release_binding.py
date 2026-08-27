@@ -64,9 +64,6 @@ def _released(**overrides) -> ReleasedEvidence:
         address="0:19",
         value=REDACTED,
         zone="body",
-        context_before=None,
-        context_after=None,
-        context_truncated=False,
     )
     values.update(overrides)
     return ReleasedEvidence(**values)

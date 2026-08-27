@@ -8,8 +8,9 @@ import pytest
 from database_agent.db import create_schema
 
 from extractors.long_tail import (
-    LONG_TAIL_SOURCE_TYPES, LongTailEntry, LongTailFile, LongTailText, LongTailValue,
-    POTENTIALLY_SENSITIVE, UnauthorizedTranscription, DuplicateUnit,
+    LONG_TAIL_SOURCE_TYPES, LongTailEntry, LongTailFile, LongTailResult, LongTailText,
+    LongTailValue, POTENTIALLY_SENSITIVE, SensitivitySignal,
+    UnauthorizedTranscription, DuplicateUnit,
     extract_long_tail, record_sensitivity_signals, sensitivity_signals_for,
 )
 from extractors.reading import StructuredString
@@ -250,3 +251,108 @@ def test_no_extractor_is_reachable_inside_a_protected_container():
             read_long_tail=lambda path, *, transcribe: pytest.fail("reader reached"),
             find_structured_strings=lambda text: (),
             transcription_authorized=NEVER, now=FIXED_CLOCK, context_window=20)
+
+
+# --------------------------------------------------- D10 renumbers; the signal follows
+def a_repeated_address(*slots: str) -> LongTailFile:
+    """One message whose named header slots all carry the SAME address.
+
+    An ordinary `.eml`: `From` and `Reply-To` are the same person, and a `Cc` to
+    oneself makes three. Every slot emits at zone `metadata` with the same
+    `raw_value`, so D10 (`ExtractionResult.__post_init__`) merges them into one row.
+    `Subject` follows, which is what the signal used to land on.
+    """
+    return LongTailFile(
+        entries=(LongTailEntry(kind="entry", label="<msg-2@example.edu>"),),
+        values=tuple(LongTailValue(name=slot, value="same@example.com",
+                                   entry_ordinal=1, kind="address")
+                     for slot in slots)
+        + (LongTailValue(name="Subject", value="Quarterly review",
+                         entry_ordinal=1),))
+
+
+def test_a_signal_survives_the_collapse_of_a_duplicate_address(sink):
+    """D10 collapses on `(zone, raw_value)` and RENUMBERS. `long_tail` recorded the
+    signal against the PRE-collapse position, so an email whose From and Reply-To
+    share an address filed §2.9's sensitivity signal against the next observation --
+    the Subject, which is neither an address nor message content."""
+    result, _ = run_it(a_repeated_address("From", "Reply-To"), "email")
+
+    assert len(result.extraction.observations) == 2      # the two addresses merged
+    flagged = {result.extraction.observations[s.observation_index]["raw_value"]
+               for s in result.sensitivity}
+    assert flagged == {"same@example.com"}
+    assert "Quarterly review" not in flagged
+    # §8.5 reads this number through `stage_output.py`; the batch is what it counts.
+    assert result.extraction.run["observation_count"] == 2
+    sink.write(result.extraction)
+    sink.conforms()
+
+
+def test_three_copies_do_not_end_the_scan(conn):
+    """`record_sensitivity_signals` raises IndexError for a position past the
+    collapsed batch, and nothing catches it -- the scan ends on an ordinary email."""
+    create_schema(conn)
+    create_extraction_schema(conn)
+    result, _ = run_it(a_repeated_address("From", "Reply-To", "Cc"), "email")
+
+    keys = [f"k{i}" for i in range(len(result.extraction.observations))]
+    stored = record_sensitivity_signals(conn, run_id="run-1",
+                                        signals=result.sensitivity,
+                                        observation_keys=keys, now=FIXED_CLOCK)
+    assert stored == 1
+    rows = sensitivity_signals_for(conn, "run-1")
+    assert [r["observation_key"] for r in rows] == ["k0"]
+
+
+def test_a_signal_past_the_end_of_the_batch_is_refused_at_construction():
+    """The class of bug, refused where the two halves are held together.
+
+    A `LongTailResult` is the only place a batch position and the batch it indexes
+    into exist side by side, so it is the only place the claim is checkable before
+    `record_sensitivity_signals` is reached with a database open.
+    """
+    result, _ = run_it(an_email(), "email")
+    with pytest.raises(ValueError):
+        LongTailResult(
+            extraction=result.extraction,
+            sensitivity=(SensitivitySignal(
+                observation_index=len(result.extraction.observations),
+                signal=POTENTIALLY_SENSITIVE, basis="a position past the end"),))
+
+
+def test_one_located_value_gets_one_row_whatever_two_reasons_it_had(conn):
+    """An address quoted in a heading and again in the body is ONE observation once
+    D10 collapses, and the signal table is UNIQUE on (run_id, observation_key).
+
+    The two emissions carry different bases -- §2.9 calls a heading address an
+    address and a body address message content -- so keeping both reasons writes two
+    rows for one key and the INSERT raises. The first reason in document order is the
+    one kept, matching the occurrence `location` already addresses (D10).
+    """
+    create_schema(conn)
+    create_extraction_schema(conn)
+    quoted = LongTailFile(
+        entries=(LongTailEntry(kind="entry", label="<msg-3@example.edu>"),),
+        texts=(LongTailText(zone="heading", text="see admin@example.com",
+                            entry_ordinal=1, region=1),
+               LongTailText(zone="body", text="mail admin@example.com",
+                            entry_ordinal=1, region=2)))
+
+    def find_address(text: str):
+        at = text.find("admin@example.com")
+        return ((StructuredString(kind="email", start=at, end=at + 17),)
+                if at != -1 else ())
+
+    result, _ = run_it(quoted, "email", finder=find_address)
+
+    merged = [o for o in result.extraction.observations
+              if o["raw_value"] == "admin@example.com"]
+    assert len(merged) == 1 and merged[0]["location"]["zone"] == "link"
+    keys = [f"k{i}" for i in range(len(result.extraction.observations))]
+    stored = record_sensitivity_signals(conn, run_id="run-1",
+                                        signals=result.sensitivity,
+                                        observation_keys=keys, now=FIXED_CLOCK)
+    rows = sensitivity_signals_for(conn, "run-1")
+    assert stored == len(rows)
+    assert len({r["observation_key"] for r in rows}) == len(rows)

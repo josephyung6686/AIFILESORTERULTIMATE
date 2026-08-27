@@ -70,10 +70,17 @@ def _seed(**overrides) -> Seed:
 
 
 def _neighbor(file_id, channel, *, anchors=False, detail="subject=BUSIB 4300",
-              evidence_ref="sha256:edge-evidence") -> Neighbor:
+              evidence_ref="sha256:edge-evidence", bridge_entity=None) -> Neighbor:
+    """`bridge_entity` is passed only where the channel genuinely has one.
+
+    It defaults to `None` on purpose: giving every neighbour a bridge entity is
+    exactly the conflation that made the group's own basis a hub, and a helper
+    that supplied one by default would hide the fix it is here to guard.
+    """
     return Neighbor(
         file_id=file_id, content_hash=f"h-{file_id}", channel=channel,
         anchors=anchors, evidence_ref=evidence_ref, detail=detail,
+        bridge_entity=bridge_entity,
     )
 
 
@@ -148,13 +155,27 @@ def test_an_authority_returning_a_value_outside_the_two_is_refused():
 
 
 def test_the_edge_stores_its_evidence_and_its_bridge_entity_separately():
-    graph = _build(_hood(_neighbor(
-        "file-a", SHARED_VALIDATED_FACT, anchors=True,
-        evidence_ref="sha256:the-observation", detail="subject=BUSIB 4300")))
-    edge = graph.edges[0]
-    assert edge.evidence_ref == "sha256:the-observation"
-    assert edge.bridge_entity_ref == "subject=BUSIB 4300"
-    assert edge.evidence_ref != edge.bridge_entity_ref
+    """Three fields, three meanings. `evidence_ref` is what a later reader
+    resolves to prove the edge existed; `bridge_entity_ref` is the named third
+    thing the edge runs THROUGH; `detail` is prose describing why the channel
+    returned the file. The graph once read `detail` as the entity, which made the
+    group's own basis a hub as soon as enough files corroborated it."""
+    graph = _build(_hood(
+        _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref="sha256:the-observation",
+                  detail="subject=BUSIB 4300"),
+        _neighbor("file-b", EXISTING_RELATED_FOLDER, evidence_ref=None,
+                  detail="Downloads/Spring", bridge_entity="Downloads/Spring"),
+    ))
+    anchor = next(e for e in graph.edges if e.to_file_id == "file-a")
+    assert anchor.evidence_ref == "sha256:the-observation"
+    # The basis is not a bridge. It is what the group IS, not what joins it to
+    # something else, and counting it is counting corroboration.
+    assert anchor.bridge_entity_ref is None
+
+    folder = next(e for e in graph.edges if e.to_file_id == "file-b")
+    assert folder.bridge_entity_ref == "Downloads/Spring"
+    assert folder.evidence_ref != folder.bridge_entity_ref
 
 
 def test_a_channel_with_no_evidence_reference_is_addressed_by_the_edge_itself():
@@ -162,8 +183,8 @@ def test_a_channel_with_no_evidence_reference_is_addressed_by_the_edge_itself():
     An edge still has to be resolvable, so its own id is what a `Support` cites."""
     graph = _build(_hood(
         _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True),
-        _neighbor("file-b", EXISTING_RELATED_FOLDER,
-                  evidence_ref=None, detail="Downloads/Spring"),
+        _neighbor("file-b", EXISTING_RELATED_FOLDER, evidence_ref=None,
+                  detail="Downloads/Spring", bridge_entity="Downloads/Spring"),
     ))
     folder_edge = next(e for e in graph.edges if e.to_file_id == "file-b")
     assert folder_edge.evidence_ref == folder_edge.edge_id
@@ -199,7 +220,8 @@ def test_an_entity_bridging_at_or_above_the_frequency_is_suppressed():
     corpus and means nothing. The threshold is injected; P9 embeds no heuristic."""
     graph = _build(
         _hood(*[
-            _neighbor(f"file-{n}", COMPATIBLE_DOCUMENT_TYPE, detail="columbia.edu")
+            _neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                      detail="columbia.edu", bridge_entity="columbia.edu")
             for n in range(3)
         ], _neighbor("file-anchor", SHARED_VALIDATED_FACT, anchors=True)),
         limits=_limits(generic_hub_frequency=3),
@@ -215,7 +237,8 @@ def test_an_entity_bridging_at_or_above_the_frequency_is_suppressed():
 def test_an_entity_below_the_frequency_is_not_suppressed():
     graph = _build(
         _hood(*[
-            _neighbor(f"file-{n}", COMPATIBLE_DOCUMENT_TYPE, detail="columbia.edu")
+            _neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                      detail="columbia.edu", bridge_entity="columbia.edu")
             for n in range(2)
         ], _neighbor("file-anchor", SHARED_VALIDATED_FACT, anchors=True)),
         limits=_limits(generic_hub_frequency=3),

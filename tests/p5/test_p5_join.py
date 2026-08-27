@@ -115,6 +115,52 @@ def test_every_extractor_collapses_because_the_result_itself_does():
     assert columbia["occurrence_count"] == 2
 
 
+def _body_observation(raw: str):
+    from extractors.shape import location, observation
+    return observation(file_id="f1", content_hash="c" * 64,
+                       extractor_name="docx.text", extractor_version="0.1.0",
+                       source_type="text_document", raw_value=raw,
+                       location=location(zone="body"), observed_at="t",
+                       reliability="possible")
+
+
+def _submitted_run(count: int) -> dict:
+    """A run as an extractor builds one: the count is of the SUBMITTED list, because
+    that is the only list an extractor has when it calls `run(...)`."""
+    return {"run_id": "r", "observation_count": count}
+
+
+def _batch(count: int, *raws: str):
+    from extractors.sink import ExtractionResult
+    return ExtractionResult(run=_submitted_run(count),
+                            observations=tuple(_body_observation(r) for r in raws))
+
+
+def test_the_collapse_publishes_where_every_submitted_observation_went():
+    """The collapse RENUMBERS, and a caller that recorded a position into the
+    submitted list has no other way to follow it -- `long_tail`'s §2.9 sensitivity
+    signal filed against a neighbour for as long as this returned only survivors."""
+    result = _batch(3, "Columbia", "Columbia", "Yale")
+
+    assert result.collapsed_index == (0, 0, 1)
+    assert len(result.collapsed_index) == 3
+    assert max(result.collapsed_index) < len(result.observations)
+
+
+def test_the_identity_case_is_the_identity():
+    result = _batch(2, "Columbia", "Yale")
+    assert result.collapsed_index == (0, 1)
+
+
+def test_the_run_counts_the_batch_it_describes_not_the_list_submitted():
+    """`stage_output.py:73` copies `run["observation_count"]` straight into the P2
+    §8.5 payload, and every extractor computed it BEFORE D10 collapsed. A batch with
+    one repeated value reported a count its own batch cannot support, in every
+    format -- a heading repeated in a PDF, an identifier repeated in a spreadsheet."""
+    result = _batch(3, "Columbia", "Columbia", "Yale")
+    assert result.run["observation_count"] == len(result.observations) == 2
+
+
 # ---------------------------------------------------------------- break 5
 def a_pdf_result(document: Path):
     """One real extractor's output, so the join is exercised end to end and not

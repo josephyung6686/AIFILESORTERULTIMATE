@@ -308,6 +308,20 @@ def _issue_and_validate(
         )
 
 
+def worst_outcome(verdicts: Sequence[P8Verdict]) -> P8Verdict:
+    """The single verdict a call returns when it produced several.
+
+    `vocabulary.OUTCOME_SEVERITY` states the rule as "one per shard, one per
+    claim" and both halves are reduced here, by ONE function. They were two
+    expressions -- the shard reducer used severity and the claim reducer took the
+    last verdict by position -- and the fix that landed the first never reached
+    the second, so a two-claim response whose FIRST claim was rejected returned
+    `accept_direct`. A caller told `accept_direct` must be able to take it as
+    true of the whole call.
+    """
+    return min(verdicts, key=lambda verdict: OUTCOME_SEVERITY.index(verdict.outcome))
+
+
 def _validate_and_record(
     conn: sqlite3.Connection,
     request: DossierRequest,
@@ -345,7 +359,8 @@ def _validate_and_record(
     record_grounding_report(conn, report, observed_at=observed_at)
     if not verdicts:
         return ValidationUnavailable(missing=("claims",))
-    return verdicts[-1]
+    # One call, one returned verdict, chosen by severity and not by position.
+    return worst_outcome(verdicts)
 
 
 def run_call(
@@ -469,4 +484,4 @@ def run_call(
     if not produced:
         return ValidationUnavailable(missing=("fitting_shard",))
     # One call, one returned verdict, chosen by severity and not by position.
-    return min(produced, key=lambda verdict: OUTCOME_SEVERITY.index(verdict.outcome))
+    return worst_outcome(produced)

@@ -645,3 +645,77 @@ def test_the_branch_preview_counts_only_proposal_eligible_facts(p6_conn, tmp_pat
                              content_hash=rejected[1]) == []
     assert proposal_eligible(p6_conn, file_id=possible[0],
                              content_hash=possible[1]) == []
+
+
+# ---------------------------------------------- a replaced conclusion is not proposable
+
+def test_a_superseded_conclusion_is_not_proposal_eligible(syllabus, p6_conn):
+    """§3.13 makes `rejected` an exclusion from proposals; §8.2 keeps a superseded row
+    READABLE. A readable old row is not a folder the product still proposes — which
+    `values_with_counts` says in its own docstring 23 lines below and enforces in SQL,
+    and which `proposal_eligible` did not. The replaced conclusion reached P10's and
+    P11's folder-proposal read, so a tree was proposed from stale truth."""
+    ref = _observe(p6_conn, run_id="r-newer", file_id=syllabus["file_id"],
+                   content_hash=syllabus["content_hash"], raw="BUSIB 4301",
+                   label="heading")
+    newer = _fact(p6_conn, file_id=syllabus["file_id"],
+                  content_hash=syllabus["content_hash"], field_key="subject",
+                  value="BUSIB 4301", ref=ref, state=VALIDATED, origin=RULE)
+    supersede_fact(p6_conn, old_fact_id=syllabus["subject_id"], new_fact_id=newer,
+                   reason="a later pass read the heading")
+
+    args = {"file_id": syllabus["file_id"], "content_hash": syllabus["content_hash"]}
+    proposable = {row["fact_id"] for row in proposal_eligible(p6_conn, **args)}
+    assert syllabus["subject_id"] not in proposable
+    assert newer in proposable
+    # and §8.2's "still able to inspect the origin" is untouched by the narrowing
+    assert syllabus["subject_id"] in {row["fact_id"]
+                                      for row in facts_for(p6_conn, **args)}
+    assert syllabus["subject_id"] in {
+        row["fact_id"] for row in history(p6_conn, file_id=syllabus["file_id"],
+                                          field_key="subject")}
+
+
+def test_an_inactive_fact_is_not_proposal_eligible(syllabus, p6_conn):
+    """`active = 0` and a non-null `superseded_by` are both "this conclusion was
+    replaced". The state filter alone answered neither."""
+    ref = _observe(p6_conn, run_id="r-dead", file_id=syllabus["file_id"],
+                   content_hash=syllabus["content_hash"], raw="HIST 1000",
+                   label="heading")
+    value_id = ensure_value(p6_conn, field_key="subject", canonical_value="HIST 1000",
+                            first_evidence_ref=ref, origin=VALUE_ORIGINS[0])
+    inactive = write_fact(
+        p6_conn, file_id=syllabus["file_id"], content_hash=syllabus["content_hash"],
+        field_key="subject", value_id=value_id, reliability_state=VALIDATED,
+        origin=RULE, evidence_refs=(ref,),
+        cache_key=pass_cache_key(p6_conn, file_id=syllabus["file_id"],
+                                 content_hash=syllabus["content_hash"]),
+        active=False)
+
+    args = {"file_id": syllabus["file_id"], "content_hash": syllabus["content_hash"]}
+    assert inactive not in {row["fact_id"]
+                            for row in proposal_eligible(p6_conn, **args)}
+    assert inactive in {row["fact_id"] for row in facts_for(p6_conn, **args)}
+
+
+def test_the_two_reads_in_this_module_agree(syllabus, p6_conn):
+    """The defect `values_with_counts` was written to fix, from the other side: for one
+    field, the values a proposal may rest on are exactly the values the branch preview
+    counts. They disagreed about the same file in both directions."""
+    ref = _observe(p6_conn, run_id="r-agree", file_id=syllabus["file_id"],
+                   content_hash=syllabus["content_hash"], raw="BUSIB 4301",
+                   label="heading")
+    newer = _fact(p6_conn, file_id=syllabus["file_id"],
+                  content_hash=syllabus["content_hash"], field_key="subject",
+                  value="BUSIB 4301", ref=ref, state=VALIDATED, origin=RULE)
+    supersede_fact(p6_conn, old_fact_id=syllabus["subject_id"], new_fact_id=newer,
+                   reason="a later pass read the heading")
+
+    proposable = {row["canonical_value"]
+                  for row in proposal_eligible(
+                      p6_conn, file_id=syllabus["file_id"],
+                      content_hash=syllabus["content_hash"])
+                  if row["field_key"] == "subject"}
+    counted = {value for value, _count in values_with_counts(p6_conn,
+                                                             field_key="subject")}
+    assert proposable == counted

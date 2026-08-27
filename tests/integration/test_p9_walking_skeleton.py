@@ -16,6 +16,8 @@ last test in this file is the one that says the result names no destination.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 import json
 
 import pytest
@@ -36,6 +38,7 @@ from grouping.pipeline import NO_MODEL_CONFIGURED, GroupingKnowledge, group_subj
 from grouping.retrieval import RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import current_group, memberships_for_group
+from grouping.graph import meets_support_bar
 from grouping.vocabulary import (
     CANDIDATE,
     DIRECT_ANCHOR,
@@ -43,6 +46,7 @@ from grouping.vocabulary import (
     RULES,
     SHARED_VALIDATED_FACT,
     STRONGLY_IDENTIFIED_FILE,
+    SUPPORTED,
 )
 from privacy.classification import ClassificationRecord
 
@@ -135,7 +139,7 @@ def _walk(conn, subject, **overrides):
     file_id, content_hash, _key = subject
     values = dict(
         plan_version_id=PLAN, limits=_limits(), knowledge=_knowledge(),
-        user_seed_for=lambda f, h: None, p8_run_call=None,
+        user_seed_for=lambda f, h: None, p8_run_call=None, p8_authorities=None,
         embeddings=EmbeddingsOff(), created_at=T0)
     values.update(overrides)
     return group_subject(
@@ -161,7 +165,22 @@ def test_one_walk_goes_p1_to_p4_to_p6_to_p9_with_no_model_and_no_vectors(
 
     # A group of one, on its own direct evidence.
     assert result.group is not None
-    assert result.group.state == CANDIDATE
+    # `supported`, not `candidate`: this walk injects
+    # `minimum_independent_anchors=1` and the seed's own validated fact is one
+    # independent anchor, so SS4.9's bar is met. The assertion read `CANDIDATE`
+    # while `_group_for` hardcoded that state and no caller consulted
+    # `meets_support_bar`; a constant that could not be wrong proved nothing about
+    # the bar. The next two lines are what make this a check rather than a flip:
+    # this same graph under a bar of two does not meet it. (Asserted through the
+    # bar rather than through a second walk: the group store is append-only and
+    # refuses to re-record one group id with a different state.)
+    assert result.group.state == SUPPORTED
+    assert meets_support_bar(
+        result.graph, limits=_limits(), seed_anchors=True) is True
+    assert meets_support_bar(
+        result.graph,
+        limits=replace(_limits(), minimum_independent_anchors=2),
+        seed_anchors=True) is False
     assert result.group.created_by == RULES
     assert result.group.proposed_basis == f"subject={COURSE}"
     membership = result.memberships[0]

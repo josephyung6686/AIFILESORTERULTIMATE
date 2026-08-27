@@ -23,6 +23,7 @@ from pathlib import Path
 from database_agent.events import append_event
 
 from scan_agent.authorship import event_defaults
+from scan_agent.exclusion import is_protected_container
 
 #: The three §4 names. Recorded in the event's structured explanation (§8.2).
 CHANGE_MODIFIED = "size or modification time changed"
@@ -33,8 +34,12 @@ CHANGE_DISAPPEARED = "disappeared"
 class SessionWatch:
     """Open for one session (11 §3). Closing it ends the watch; nothing survives."""
 
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: sqlite3.Connection, *, is_protected=None):
         self._conn = conn
+        # `11-ops-runtime.md` §4b / P3 SPEC:39. `extra` can only ADD members: a
+        # predicate that returned False for a `.app` would be the override §4b says
+        # does not exist, and `is_protected_container` checks the suffix first.
+        self._is_protected = is_protected
         self._roots: tuple[Path, ...] = ()
         self._observed: dict[str, tuple[int, float] | None] = {}
         self._open = False
@@ -44,11 +49,31 @@ class SessionWatch:
         self._roots = tuple(Path(root) for root in roots)
         self._observed = {}
         for root in self._roots:
-            for current, _, names in os.walk(root):
+            # A root that IS inside a container cannot be reached by pruning
+            # `dirnames`: `os.walk` never offers its own top to the prune.
+            if self._protected(root):
+                continue
+            for current, _dirnames, names in self._walk(root):
                 for name in names:
                     path = Path(current) / name
                     self._observed[str(path)] = self._stat(path)
         self._open = True
+
+    def _protected(self, path) -> bool:
+        return is_protected_container(path, extra=self._is_protected)
+
+    def _walk(self, root: Path):
+        """`os.walk`, pruned at every protected container before it is entered.
+
+        The prune is an in-place assignment to `dirnames` because that is the only
+        thing `os.walk` reads back. Filtering the result instead would have already
+        descended, and descending IS the read §4b forbids — P3 "does not descend
+        into one, does not stat its contents" (P3 SPEC:39).
+        """
+        for current, dirnames, names in os.walk(root):
+            dirnames[:] = [name for name in dirnames
+                           if not self._protected(Path(current) / name)]
+            yield current, dirnames, names
 
     def close(self) -> None:
         """11 §4: "Closing the app ends the watch." No daemon, no thread, no timer."""
@@ -67,7 +92,9 @@ class SessionWatch:
         known = set(self._observed)
         live: set[str] = set()
         for root in self._roots:
-            for current, _, names in os.walk(root):
+            if self._protected(root):
+                continue
+            for current, _dirnames, names in self._walk(root):
                 for name in names:
                     live.add(str(Path(current) / name))
         for path in sorted(known | live):
@@ -82,6 +109,14 @@ class SessionWatch:
         if not self._open:
             return
         path = Path(path)
+        # FIRST, and before the roots test and before the stat below. A platform
+        # adapter calls `notify` directly, so `open`'s prune does not protect this
+        # entry point. The stat IS the read §4b forbids, and `append_event` would
+        # then write an interior path into the append-only `events` log, where it
+        # cannot be removed. SPEC:46-47: the record carries "the container's own
+        # path and nothing derived from inside it".
+        if self._protected(path):
+            return
         if not any(path == root or root in path.parents for root in self._roots):
             return
 

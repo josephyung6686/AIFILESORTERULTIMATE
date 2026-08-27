@@ -39,8 +39,9 @@ from llm_harness.vocabulary import (
 )
 from privacy.items import Excerpt
 from privacy.redaction import RedactionManifest
-from privacy.release import ModelCallRequest, ModelTarget, Released, Target
-from privacy.resolve import Materialised
+from privacy.release import (
+    ModelCallRequest, ModelTarget, Released, ReleasedItem, Target,
+)
 
 CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
 KEY = "obs-key-1"
@@ -104,19 +105,16 @@ def _request(**overrides) -> DossierRequest:
     return DossierRequest(**values)
 
 
-def _materialised(**overrides) -> Materialised:
+def _materialised(**overrides) -> ReleasedItem:
     values = dict(
         observation_key=KEY,
         span="0:18",
         value="Columbia University",
         zone="body",
-        context_before="attended ",
-        context_after=" in 2019",
-        context_truncated=False,
         unit_length=64,
     )
     values.update(overrides)
-    return Materialised(**values)
+    return ReleasedItem(**values)
 
 
 def _released(**overrides) -> Released:
@@ -188,9 +186,9 @@ def test_canonical_bytes_carry_the_full_released_item_not_a_joined_value():
     assert item["address"] == "0:18"
     assert item["value"] == "Columbia University"
     assert item["zone"] == "body"
-    assert item["context_before"] == "attended "
-    assert item["context_after"] == " in 2019"
-    assert item["context_truncated"] is False
+    # And nothing else. The released item carried the raw text on either side of
+    # the requested span; §8.4 keeps "complete extracted text" local.
+    assert set(item) == {"observation_key", "address", "value", "zone"}
 
 
 def test_the_materialised_dossier_retains_an_immutable_released_evidence_map():
@@ -201,9 +199,6 @@ def test_the_materialised_dossier_retains_an_immutable_released_evidence_map():
             address="0:18",
             value="Columbia University",
             zone="body",
-            context_before="attended ",
-            context_after=" in 2019",
-            context_truncated=False,
         ),
     )
     with pytest.raises(AttributeError):
@@ -298,14 +293,6 @@ def test_equivalent_released_content_under_two_release_ids_has_one_address():
         pytest.param(
             {"released": _released(materialised_items=(_materialised(zone="footer"),))},
             id="released-zone",
-        ),
-        pytest.param(
-            {
-                "released": _released(
-                    materialised_items=(_materialised(context_truncated=True),),
-                ),
-            },
-            id="truncation-flag",
         ),
         pytest.param({"allowed_vocabulary": ("school",)}, id="vocabulary"),
         pytest.param(

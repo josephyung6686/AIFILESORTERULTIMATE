@@ -522,3 +522,44 @@ def test_retrieval_reads_only_the_versioned_vector_store():
     names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
     assert "put_embedding" not in names
     assert "get_embedding" not in names
+
+
+# --- a description is not an entity ---------------------------------------------
+
+
+def test_only_the_folder_channel_publishes_a_bridge_entity(corpus, tmp_path):
+    """`detail` describes why a channel returned a file; `bridge_entity` names the
+    third thing the edge runs THROUGH. They were one field, and the graph read the
+    description as an entity -- so `subject=PHYS1401`, the string every
+    corroborating file carries, became a §4.3 hub and the suppression destroyed
+    the group with the most evidence.
+
+    A folder is a named thing that exists independently of the two files it joins,
+    which is what makes `~/Downloads` bridging half the corpus the case §4.3 is
+    about. The other five channels carry either the group's own basis or a
+    description of the relation, and neither is an entity.
+    """
+    seed_file = _file(corpus, tmp_path, "syllabus.pdf", folder="Coursework")
+    sharing = _file(corpus, tmp_path, "lecture.pdf", folder="Coursework")
+    _fact(corpus, seed_file, field_key="subject", value="PHYS1401", run_id="r-1")
+    _fact(corpus, sharing, field_key="subject", value="PHYS1401", run_id="r-2")
+    _fact(corpus, seed_file, field_key=DOWNLOAD_SESSION_FIELD, value="session-1",
+          reliability_state="possible", run_id="r-3")
+    _fact(corpus, sharing, field_key=DOWNLOAD_SESSION_FIELD, value="session-1",
+          reliability_state="possible", run_id="r-4")
+
+    result = _retrieve(corpus, _seed(corpus, seed_file))
+    with_entity = {
+        neighbour.channel for neighbour in result.neighbors
+        if neighbour.bridge_entity is not None
+    }
+    assert with_entity == {EXISTING_RELATED_FOLDER}, with_entity
+
+    folder = next(n for n in result.neighbors if n.channel == EXISTING_RELATED_FOLDER)
+    assert folder.bridge_entity == "Coursework"
+
+    # The basis is never the hub: it is what the group IS, and counting how many
+    # files state it is counting corroboration.
+    anchor = next(n for n in result.neighbors if n.channel == SHARED_VALIDATED_FACT)
+    assert anchor.detail == "subject=PHYS1401"
+    assert anchor.bridge_entity is None

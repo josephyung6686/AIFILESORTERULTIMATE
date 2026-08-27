@@ -39,7 +39,10 @@ def _deps(pair) -> TemplateDependencies:
         del payload
         return pair.schema_ok
 
-    return TemplateDependencies(schema_validator=schema_validator)
+    return TemplateDependencies(
+        schema_validator=schema_validator,
+        published_fragment=lambda fragment_id, fragment_version: True,
+    )
 
 
 def _validate(pair, *, dependencies=None, contradicts=_never_contradicts):
@@ -131,7 +134,10 @@ def test_omitted_schema_validator_is_unavailable():
 
 def test_injected_schema_failure_is_schema_invalid():
     pair = next(p for p in SITE_E_OUTCOME_PAIRS if p.name == "direct_accept")
-    failing = TemplateDependencies(schema_validator=lambda _payload: False)
+    failing = TemplateDependencies(
+        schema_validator=lambda _payload: False,
+        published_fragment=lambda fragment_id, fragment_version: True,
+    )
     verdicts, report = _validate(pair, dependencies=failing)
     assert verdicts[0].outcome == REJECT
     assert "SCHEMA_INVALID" in verdicts[0].reasons

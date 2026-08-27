@@ -4,7 +4,7 @@
 SPEC §1: the dossier is the only input to a model call, and it is closed-world.
 That is only true if the bytes carry everything the response is judged against —
 the envelope, the allowed vocabulary, what P7 actually released (address, value,
-zone, context, truncation), the builder's reference metadata, the conflicts, and
+zone), the builder's reference metadata, the conflicts, and
 the authored response schema and shaping policy.
 
 `dossier_id` is the content address of those bytes. It is deliberately NOT
@@ -49,9 +49,6 @@ def _released_evidence(released: Released) -> tuple[ReleasedEvidence, ...]:
             address=item.span,
             value=item.value,
             zone=item.zone,
-            context_before=item.context_before,
-            context_after=item.context_after,
-            context_truncated=item.context_truncated,
         )
         for item in released.materialised_items
     )
@@ -69,11 +66,15 @@ def _evidence_item_body(item: EvidenceItem) -> dict:
 
 
 def _released_body(item: ReleasedEvidence) -> dict:
+    """The model-visible bytes for one released item, and only what P7 released.
+
+    This wrote the raw text on either side of the requested span beside the
+    redacted value, so an 8-character span put its whole text unit in front of
+    the model. §8.4 keeps "complete extracted text" local; the local audit
+    manifest still carries it.
+    """
     return {
         "address": item.address,
-        "context_after": item.context_after,
-        "context_before": item.context_before,
-        "context_truncated": item.context_truncated,
         "observation_key": item.observation_key,
         "value": item.value,
         "zone": item.zone,

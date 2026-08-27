@@ -1740,3 +1740,60 @@ the schema default" means absorbed into nothing).
   photos, academic, applications, tax — because those are the four `00` wrote first, from a real
   corpus. The catalogue got *wider* by adding professions; a person's drive gets messy along **life
   events**, not SIC codes.
+
+## CAREER FIELD SET — proposed 2026-08-27 23:10 (J-WIDE-2 implementation)
+
+Read-only research pass. Nothing written into the corpus. Every `00` span below grep-verified by the
+researching agent AND independently re-verified by this session before recording.
+
+**Why career and not one of the thirteen:** career was invisible to the J-WIDE-1 dispatch, because
+that list was derived as "roster schemas the product's code does not recognise" — and career is
+already *inside* `SCHEMA_IDS`. Yet it declares zero fields and proposes zero, so it ships recognising
+résumés and offer letters with nowhere to put them. `00`:52 names it a full-support launch domain and
+`_CONTRACT` rule 10 says *"Career is owed before P10."*
+
+**Independently verified by this session:** `canonical_fields.json` contains **zero** occurrences of
+`employer`, `job`, `recruit` or `position` — not even as an alias. Career is unserved down to the
+alias level, so mints are unavoidable; the discipline is keeping them to four.
+
+| key | canonical | dest-eligible | note |
+|---|---|---|---|
+| `target_employer` | MINT | yes | the org a recruiting file is addressed TO; follows the live `target_*` family |
+| `employer` | MINT | yes | the org of record for a job actually HELD; already proposed by `career.employment-records` |
+| `job_title` | MINT | yes, **flatten by default** | `00`:70's "role"; spelled `job_title` because `role` collides with the `role_split` EDGE name (precedent: D6 chose `subject` over 00's prose word "course") |
+| `recruiting_cycle` | MINT | yes | `00`:70's own word, distinct from Applications' `application_cycle` which PR-1 pins to the admissions sentence |
+| `record_type` | **LIVE — role extension, no mint** | yes | career becomes its 4th domain after manufacturing/logistics/resource_operations; not a new precedent |
+
+**5 of 6 — inside `00`:48's cap.**
+
+**Role splits.** `employer` ↔ `target_employer` is a NEW pair, and the corpus already wrote its
+discriminator in `career.employment-records`' edge: candidacy language with a still-open process
+versus an executed signature block with a labelled effective-date slot. The offer letter genuinely
+carries BOTH facts and both should be recorded — `00`:48 licenses this ("One file may hold facts from
+more than one domain without losing information"). It also **corrects `career.employer-side-hiring`**,
+which authored `authored_by ↔ target_school` — a SCHOOL key standing in for a candidate, which that
+row itself called "the place where this template's vocabulary is visibly short by one key." 49's
+adjudicated `subject_of_record` fills it; career mints nothing. Stays destination-ineligible: a
+folder named for a candidate is a personnel file about a third party, barred by `00`:44.
+
+**Open questions for Joseph** (beyond the `00`:70 reading recorded in DECISION-BRIEF):
+1. `recruiting_cycle` vs `people_cycle` — **the charge was NOT defeated.** 49 §1.6 describes
+   `people_cycle` as "a named bounded process instance that is not a calendar period", which is what
+   a job hunt is. 49 attached a hard condition that `people_cycle` be adjudicated in one sitting with
+   the period cluster so the roster does not end with six bounded-period keys. `recruiting_cycle`
+   belongs in that sitting.
+2. `job_title` vs `role` — spelling departure from `00`'s prose word, with D6 precedent.
+3. Widen `record_type` to career, vs give the recruiting half `application_document_type`. Recommend
+   widening; the alternative splits one folder level across two keys.
+4. **Does `career.employer-side-hiring` belong to career at all?** `hr.json`'s own collision text:
+   "CAREER MUST NOT TAKE an employer-side roster, multi-employee cycle, or personnel case merely
+   because each member could be copied to an individual." Moving it to `hr` sheds career's hardest
+   privacy question in one move.
+5. **Does `career.portfolio-work-samples` belong to career?** If it stays, career must also reference
+   `artifact_type` and `project` — **taking career to SEVEN activated fields, over the cap.** Note the
+   shape of that evidence: the two `launch: full` rows fit comfortably in five while the placeholder
+   rows break the cap. That is a signal about roster shape, not just about career.
+
+**Not checked, recorded rather than padded:** the 51-file hunt inventory is a constructed estimate,
+not measured against a real corpus; the agent read 47 by section headings only; it did not check
+whether any other schema breaks if `record_type`'s role widens to a fourth domain.

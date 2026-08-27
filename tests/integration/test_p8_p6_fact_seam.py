@@ -145,8 +145,7 @@ def _released_dossier(request):
             ReleasedEvidence(
                 observation_key=o.observation_key,
                 address=f"0:{len(o.raw_value)}", value=o.raw_value,
-                zone="heading", context_before=None, context_after=None,
-                context_truncated=False,
+                zone="heading",
             )
             for o in request.citable_observations
         ),

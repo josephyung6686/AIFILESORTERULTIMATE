@@ -85,12 +85,27 @@ class RetrievalKnowledge:
 
 @dataclass(frozen=True)
 class Neighbor:
+    """One retrieved neighbour, and two fields that are not the same thing.
+
+    `detail` DESCRIBES why this channel returned this file, for a reader. It is
+    prose: `subject=PHYS1401`, `pdf ~ pdf`, `mutual >= 0.8`.
+
+    `bridge_entity` is the named third thing the edge RUNS THROUGH, and it is the
+    thing §4.3 suppresses once it bridges too much. It is `None` unless the
+    channel genuinely has one, because the two were once one field and the graph
+    promoted every description to an entity identity — which made the group's own
+    basis a "hub" as soon as enough files corroborated it, and destroyed the group
+    that had the most evidence. A description is not an entity, and the basis
+    value is never the hub.
+    """
+
     file_id: str
     content_hash: str
     channel: str
     anchors: bool
     evidence_ref: str | None
     detail: str | None
+    bridge_entity: str | None = None
 
 
 @dataclass(frozen=True)
@@ -249,7 +264,16 @@ def _compatible_document_neighbors(
 def _related_folder_neighbors(
     seed_row: sqlite3.Row, candidates: Sequence[_Candidate],
 ) -> list[Neighbor]:
-    """Channel 4. An existing curated folder is the user's own grouping."""
+    """Channel 4. An existing curated folder is the user's own grouping.
+
+    The one channel that publishes a `bridge_entity`. A folder is a named thing
+    that exists independently of the two files it joins, which is what makes
+    `~/Downloads` bridging half the corpus the case §4.3 suppresses. No other
+    channel has one: the shared-fact channel's value is the group's own BASIS,
+    the family and session channels' shared value can be that same basis, and a
+    format pair or a similarity threshold describes the relation rather than
+    naming a third thing.
+    """
     folder = seed_row["directory_position"]
     if not folder:
         return []
@@ -261,6 +285,7 @@ def _related_folder_neighbors(
             anchors=False,
             evidence_ref=None,
             detail=folder,
+            bridge_entity=folder,
         )
         for candidate in candidates
         if candidate.directory_position == folder

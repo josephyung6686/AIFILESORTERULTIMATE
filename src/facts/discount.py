@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import sqlite3
 import unicodedata
+from dataclasses import dataclass, field
 from typing import Callable, Collection, Iterable
 
 from evidence_shape.observation import Observation
@@ -126,6 +127,28 @@ def field_permitted(observation: Observation, field_key: str, *,
     if outcome == _DEMOTE:
         return field_key in AUTHORSHIP_FIELDS
     return True
+
+
+@dataclass(frozen=True, slots=True)
+class MetadataScreen:
+    """The two injected catalogue collections, bound once and carried as one argument.
+
+    §2.2's suppression can be decided without knowing a field; §2.3's demotion cannot
+    -- "may populate `authored_by` and no other field" is only answerable once a
+    producer has PICKED a field. So the two catalogues have to travel to the producer,
+    and this is what travels: one object, no catalogue read, no format branch (§2.8).
+
+    Every producer that names a field takes one with NO DEFAULT (F8, the shape
+    `DirectSlots` already uses). A screen that can be omitted is a screen that is
+    omitted: that is how `python-docx` became a `validated` `subject` fact while the
+    `unresolved` row beside it said it had been refused. An EMPTY screen is a
+    legitimate injection -- a caller holding no catalogue -- and it is spelled at the
+    call site rather than defaulted, so a reviewer sees it.
+    """
+
+    tool_producer_strings: Collection[Callable[[str], bool]] = field(
+        default_factory=tuple)
+    metadata_property_names: Collection[str] = field(default_factory=tuple)
 
 
 def screen_metadata(conn: sqlite3.Connection, *, file_id: str, content_hash: str,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import inspect
 import json
+import re
 import unicodedata
 from pathlib import Path
 
@@ -17,14 +18,17 @@ from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.store import observations_by_key, record_observation, record_run
 
+import facts as facts_package
 from facts import discount as discount_module
 from facts.discount import (
-    AUTHORSHIP_FIELDS, DISCOUNT_OUTCOMES, discount, field_permitted,
+    AUTHORSHIP_FIELDS, DISCOUNT_OUTCOMES, MetadataScreen, discount, field_permitted,
     is_discount_target, screen_metadata,
 )
 from facts.evidence import cite, observations_for_version
 from facts.fields import get_field
 from facts.file_facts import facts_for_file
+from facts.resolver import FactResolver
+from facts.rules import Rule, apply_rules
 from facts.unresolved import unresolved_for_file
 
 CLOCK = "2026-08-19T12:00:00+00:00"
@@ -92,7 +96,8 @@ def _file(conn, tmp_path, *, name, body, parent="Documents"):
 
 def _observe(conn, *, run_id, file_id, content_hash, raw, zone="metadata",
              slot="Producer", extractor="docx.metadata", version="1.0.0",
-             source_type="text_document", reliability="direct", occurrences=1):
+             source_type="text_document", reliability="direct", occurrences=1,
+             context_before=None, context_after=None):
     record_run(conn, ExtractionRun(
         run_id=run_id, file_id=file_id, content_hash=content_hash,
         extractor_name=extractor, extractor_version=version,
@@ -103,7 +108,8 @@ def _observe(conn, *, run_id, file_id, content_hash, raw, zone="metadata",
         file_id=file_id, content_hash=content_hash, extractor_name=extractor,
         extractor_version=version, source_type=source_type, raw_value=raw,
         location=Location(zone, container), occurrence_count=occurrences,
-        observed_at=CLOCK, reliability=reliability, run_id=run_id)
+        observed_at=CLOCK, reliability=reliability, run_id=run_id,
+        context_before=context_before, context_after=context_after)
     record_observation(conn, observation)
     return observation
 
@@ -439,3 +445,114 @@ def test_facts_discount_holds_no_producer_string_and_no_property_catalogue():
     assert catalogues == {}
     assert len(AUTHORSHIP_FIELDS) == 1
     assert len(DISCOUNT_OUTCOMES) == 3
+
+
+# --- Done-means 22 END TO END: the screening constrains the producers ------------
+
+#: An injected rule that matches the whole raw value, in two fields. P6 authors no
+#: detection rule (§3.10), so the adversarial rule is the CALLER'S -- and that is the
+#: point: whatever a caller injects, §2.2's suppression must reach it before it can
+#: turn a generator string into a conclusion.
+_WHOLE_VALUE = re.compile(r"\S+(?: \S+)?")
+
+#: One of §3.5's five literal academic terms, so the context check passes and the
+#: rule actually fires. Without this the refusal would come from the context check
+#: and the defect under test would be invisible.
+_CONTEXT = "Syllabus - "
+
+RULES = (
+    Rule(pattern=_WHOLE_VALUE, required_context_terms=("syllabus",),
+         field_key="authored_by"),
+    Rule(pattern=_WHOLE_VALUE, required_context_terms=("syllabus",),
+         field_key="subject"),
+)
+
+#: The same two catalogues `_screen` binds, carried to the point the rule stage picks
+#: a field. One object, injected: §3.12 keeps `facts` from holding a catalogue.
+SCREEN = MetadataScreen(tool_producer_strings=TOOL_STRINGS,
+                        metadata_property_names=PROPERTY_NAMES)
+
+RESOLVER_CACHE_KEY = (
+    "sha256:0000000000000000000000000000000000000000000000000000000000000002")
+
+
+def _rule_resolver():
+    """A `FactResolver` whose only producer is Task 8's REAL rule stage.
+
+    `screen_metadata` is the same three-positional adapter `FactResolver`'s own
+    docstring specifies for production: it binds the two catalogues and returns the
+    survivors.
+    """
+    def stage(conn, file_id, content_hash):
+        return apply_rules(conn, file_id=file_id, content_hash=content_hash,
+                           rules=RULES, screen=SCREEN)
+
+    return FactResolver(
+        stages={"direct": None, "rule": stage, "llm": None},
+        pending_fields=lambda conn, file_id, content_hash: (),
+        budget_exhausted=lambda key: False,
+        model_route_permitted=lambda file_id: False,
+        record_pass=lambda conn, file_id, content_hash: None,
+        cache_key_for=lambda file_id, content_hash: RESOLVER_CACHE_KEY,
+        screen_metadata=_screen)
+
+
+def test_a_tool_producer_string_becomes_no_fact_in_any_field(p6_conn, docx):
+    """Done-means 22, both halves, driven through the one entry point.
+
+    `resolver.py:176` computed the survivor set and discarded it, and
+    `field_permitted` -- published for exactly this -- had no production caller. So
+    the `unresolved` row saying `python-docx` had been refused was written, and a
+    `validated` fact carrying `python-docx` was written beside it.
+    """
+    file_id, content_hash = docx
+    _observe(p6_conn, run_id="run-e2e-tool", file_id=file_id,
+             content_hash=content_hash, raw="python-docx", slot="creator",
+             context_before=_CONTEXT)
+
+    _rule_resolver().resolve(p6_conn, file_id=file_id, content_hash=content_hash)
+
+    assert [(row["field_key"], row["canonical_value"])
+            for row in facts_for_file(p6_conn, file_id, content_hash)] == []
+    assert [row["reason"] for row in
+            unresolved_for_file(p6_conn, file_id, content_hash)] == [
+        "discounted_tool_metadata"]
+
+
+def test_a_human_name_is_demoted_and_not_suppressed_end_to_end(p6_conn, docx):
+    """§2.3's tier, through the same entry point. A human name in the same slot is
+    KEPT -- it may populate `authored_by` and no other field -- and it writes no
+    `unresolved` row, because an abstention that did not happen is not recorded (B7).
+    """
+    file_id, content_hash = docx
+    _observe(p6_conn, run_id="run-e2e-person", file_id=file_id,
+             content_hash=content_hash, raw="Amelia Hartwell", slot="creator",
+             context_before=_CONTEXT)
+
+    _rule_resolver().resolve(p6_conn, file_id=file_id, content_hash=content_hash)
+
+    rows = facts_for_file(p6_conn, file_id, content_hash)
+    assert {row["field_key"] for row in rows} == {"authored_by"}
+    assert [row["canonical_value"] for row in rows] == ["Amelia Hartwell"]
+    assert unresolved_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_field_permitted_has_a_production_caller():
+    """Asserted on the IMPORT GRAPH, not on source text: a token search matches a
+    comment and a docstring, and `resolver.py:174`'s comment claiming "stages that
+    re-query observations still use field_permitted" is exactly such a match while
+    no caller existed. `discount.py` is skipped so a call to itself cannot satisfy it.
+
+    Paired deliberately with the two behavioural tests above: a call inside dead code
+    would satisfy this one alone.
+    """
+    root = Path(facts_package.__file__).resolve().parent
+    callers = []
+    for path in sorted(root.glob("*.py")):
+        if path.name == "discount.py":
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "field_permitted"):
+                callers.append(f"{path.name}:{node.lineno}")
+    assert callers, "field_permitted is published and called by nothing"

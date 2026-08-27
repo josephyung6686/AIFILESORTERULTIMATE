@@ -106,9 +106,6 @@ def _released_evidence(**overrides) -> ReleasedEvidence:
         address="0:4",
         value="Colu",
         zone="body",
-        context_before=None,
-        context_after=None,
-        context_truncated=False,
     )
     values.update(overrides)
     return ReleasedEvidence(**values)

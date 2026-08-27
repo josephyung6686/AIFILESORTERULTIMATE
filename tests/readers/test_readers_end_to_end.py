@@ -173,29 +173,12 @@ def test_the_bundle_carries_what_was_extracted(db, corpus):
     assert payloads > 0
 
 
-def test_extractors_never_import_the_deployment_layer():
-    """The direction that keeps P5 stdlib-only.
-
-    `src/readers/` depends on `src/extractors/` for the shapes it fills; the reverse
-    would put pdfminer and pyobjc inside a part whose SPEC says it *"adds no
-    third-party runtime dependency"*, and every P5 test would start needing a PDF
-    library installed.
-    """
-    import ast
-
-    offenders = []
-    for module in sorted(Path("src/extractors").glob("*.py")):
-        tree = ast.parse(module.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
-                    ("readers", "pdfminer", "Vision", "Quartz")):
-                offenders.append(f"{module.name}: from {node.module}")
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name.split(".")[0] in {
-                            "readers", "pdfminer", "Vision", "Quartz", "objc"}:
-                        offenders.append(f"{module.name}: import {alias.name}")
-    assert not offenders, offenders
+# `test_extractors_never_import_the_deployment_layer` used to live here. It globbed a
+# RELATIVE `src/extractors` and sat behind the three `importorskip`s above, so it
+# passed vacuously from any other cwd and on any machine without pdfminer or pyobjc --
+# an `import readers.deployment` inside `src/extractors/` did not fail it. It now
+# lives in `tests/p5/test_p5_one_definition.py`, which nothing skips, over a path
+# derived from the imported package.
 
 
 # ------------------------------------------------- the scanned PDF, end to end

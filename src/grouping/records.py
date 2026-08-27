@@ -388,16 +388,39 @@ class Excerpt:
     An excerpt whose key resolves to nothing cannot be verified by P8, and a key
     that survives an extractor upgrade is what lets a rejected dossier still
     resolve as a negative example afterwards.
+
+    `text_span` is the observation's OWN span, copied from
+    `Observation.location.text_span`, and `None` is one of its values -- it means
+    the address is the whole citation (`privacy/items.py:116`), not that the span
+    is missing. The field did not exist, so the P8 seam had nothing to send and
+    computed `(0, len(text))` from the only thing it had. That number is right
+    only when the span starts at 0 and the excerpt was not truncated; P7 refuses
+    any other, and it refuses it AFTER the release is minted, because "consent
+    records the exact requested reference and never repairs one".
+
+    It is a plain `(start, end)` pair rather than a `TextSpan` so that the
+    dossier's JSON round-trip through `grouping.store` needs no rehydration step,
+    and so `EvidenceItem.excerpt_span` -- which is already `tuple[int, int] | None`
+    -- is a straight pass-through.
     """
 
     observation_key: str
     location: str
     text: str
+    text_span: tuple[int, int] | None
 
     def __post_init__(self) -> None:
         _require(self.observation_key, name="observation_key")
         _require(self.location, name="location")
         _require(self.text, name="text")
+        if self.text_span is None:
+            return
+        span = _freeze(self, "text_span")
+        if len(span) != 2 or any(not isinstance(offset, int) for offset in span):
+            raise MalformedGroupRecord(
+                "text_span is the observation's own (start, end) pair of 0-based "
+                "code-point offsets, or None for the whole citation"
+            )
 
 
 @dataclass(frozen=True)

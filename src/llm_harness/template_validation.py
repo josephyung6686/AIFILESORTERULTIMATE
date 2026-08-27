@@ -14,9 +14,13 @@ from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
     ACCEPT_DIRECT,
+    FORBIDDEN_PUBLISHING_KEYS,
+    FRAGMENT_NOT_PUBLISHED,
+    FRAGMENT_PUBLICATION_ATTEMPTED,
     REJECT,
     REJECTED,
     SCHEMA_INVALID,
+    SCOPE_TEMPLATE_LOCAL,
     UNRESOLVED,
     WEAK,
 )
@@ -24,7 +28,20 @@ from llm_harness.vocabulary import (
 
 @dataclass(frozen=True, slots=True)
 class TemplateDependencies:
+    """The two questions P8 cannot answer about a template proposal.
+
+    `schema_validator` answers "is this shape legal" and nothing more.
+    `published_fragment` answers "does this exact fragment, at this exact
+    version, exist in the published catalogue" — the fragment boundary, held as
+    a DISTINCT authority rather than folded into the schema check. An authority
+    can be ABSENT, and an absent one is `ValidationUnavailable` like every other
+    missing dependency here; a folded check can only be silent for a caller that
+    supplies its own validator, and it would report `SCHEMA_INVALID` for a defect
+    that is not a shape defect.
+    """
+
     schema_validator: Callable[[object], bool]
+    published_fragment: Callable[[str, int], bool]
 
 
 def _payload_of(raw: object) -> Mapping[str, object]:
@@ -69,6 +86,34 @@ def _dimensions(payload: Mapping[str, object]) -> tuple[Mapping[str, object], ..
     return tuple(item for item in raw if isinstance(item, Mapping))
 
 
+def _names_an_unpublished_fragment(
+    payload: Mapping[str, object],
+    published_fragment: Callable[[str, int], bool],
+) -> bool:
+    """Every `fragment_refs` entry, asked of the injected authority.
+
+    The shape of each entry is the schema validator's question, already answered
+    by the time this runs; a malformed entry that reached here is still refused
+    rather than passed to the authority, because an authority that has to guard
+    its own argument types cannot return a clean verdict.
+    """
+    refs = payload.get("fragment_refs")
+    if not isinstance(refs, Sequence) or isinstance(refs, (str, bytes)):
+        return False
+    for ref in refs:
+        if not isinstance(ref, Mapping):
+            return True
+        fragment_id = ref.get("fragment_id")
+        fragment_version = ref.get("fragment_version")
+        if not isinstance(fragment_id, str) or not isinstance(fragment_version, int):
+            return True
+        if isinstance(fragment_version, bool):
+            return True
+        if not published_fragment(fragment_id, fragment_version):
+            return True
+    return False
+
+
 def _cited_refs(raw: object) -> set[str]:
     if not isinstance(raw, Mapping):
         return set()
@@ -89,6 +134,18 @@ def _template_site(
     dependencies: TemplateDependencies,
 ) -> P8Verdict | None:
     payload = _payload_of(raw)
+    if any(key in payload for key in FORBIDDEN_PUBLISHING_KEYS):
+        # Rejected on sight, before any content is read. A proposal may REFERENCE
+        # published shared logic; creating any is a human review decision made
+        # once, not a side effect of one branch's model call.
+        return _rewrite(
+            verdict,
+            outcome=REJECT,
+            disposition=REJECTED,
+            reasons=(FRAGMENT_PUBLICATION_ATTEMPTED,),
+            may_propose=False,
+            requires_review=False,
+        )
     if not dependencies.schema_validator(payload):
         return _rewrite(
             verdict,
@@ -98,9 +155,40 @@ def _template_site(
             may_propose=False,
             requires_review=False,
         )
+    if _names_an_unpublished_fragment(payload, dependencies.published_fragment):
+        # NOT `SCHEMA_INVALID`: the shape is legal and the reference is not
+        # published. Site C already keeps this pair apart as `INVENTED_NODE`
+        # versus `NODE_NOT_IN_FROZEN_TREE`.
+        return _rewrite(
+            verdict,
+            outcome=REJECT,
+            disposition=REJECTED,
+            reasons=(FRAGMENT_NOT_PUBLISHED,),
+            may_propose=False,
+            requires_review=False,
+        )
+    # The closure is a CLASSIFIER, not a whole-payload rejection. A name inside
+    # it is fact-backed; a name outside it is a template-local label, which is
+    # how a group from a schema with no declared fields still gets a reviewable
+    # design. The protective force is kept intact and its blast radius narrowed:
+    # claiming `schema-field` for a name the dossier never granted is the model
+    # asserting a field it was not given, and that is still a REJECT. A
+    # template-local name that is a live P6 field key belonging to another schema
+    # is caught upstream by P10's own `schema_validator`, which holds the
+    # catalogue this part deliberately cannot reach.
     vocab = set(dossier.allowed_vocabulary)
     dimensions = _dimensions(payload)
-    if any(item.get("name") not in vocab for item in dimensions):
+    #
+    # An UNDECLARED tier is read as the strict one. Only an explicit
+    # `template-local` exempts a name from the closure, so silence cannot buy
+    # leniency and every payload written before the tier existed keeps the
+    # verdict it was recorded with. Requiring the tier to be stated is P10's
+    # `schema_validator`; defaulting a missing one to the claim that carries the
+    # most obligation is this gate's.
+    if any(
+        item.get("scope") != SCOPE_TEMPLATE_LOCAL and item.get("name") not in vocab
+        for item in dimensions
+    ):
         return _rewrite(
             verdict,
             outcome=REJECT,
@@ -164,6 +252,11 @@ def validate_template_response(
 ):
     if dependencies is None or dependencies.schema_validator is None:
         return ValidationUnavailable(missing=("schema_validator",))
+    if dependencies.published_fragment is None:
+        # The fragment boundary is an authority, so its ABSENCE is reportable.
+        # A caller that supplies only a schema validator used to get silence,
+        # and against that silence a payload naming any fragment at all passed.
+        return ValidationUnavailable(missing=("published_fragment",))
 
     def site(dossier_arg, raw, verdict):
         return _template_site(dossier_arg, raw, verdict, dependencies)

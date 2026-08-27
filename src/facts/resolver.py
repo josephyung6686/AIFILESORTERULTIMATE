@@ -170,9 +170,15 @@ class FactResolver:
         already = {row["unresolved_id"]
                    for row in unresolved_for_file(conn, file_id, content_hash)}
 
-        # §2.2 fires before ranking. The return value is the survivor set;
-        # stages that re-query observations still use field_permitted.
-        # This call is what writes the unresolved row Done-means 22 requires.
+        # §2.2 fires BEFORE any producer, and this call is what writes the one
+        # `unresolved` row Done-means 22 requires. It is not the filter and must not
+        # be read as one: the suppression it decides needs no field, but §2.3's
+        # demotion -- "may populate `authored_by` and no other field" -- is only
+        # answerable where a producer PICKS a field, and this sequencer has no field.
+        # `facts.rules` and `facts.direct` call `field_permitted` at that point, with
+        # the `MetadataScreen` the caller binds into each stage. While the return
+        # value here was treated as the whole story, `python-docx` reached `subject`
+        # as a `validated` fact with the row beside it saying it had been refused.
         self._screen_metadata(conn, file_id, content_hash)
 
         for name in DEGRADATION_ORDER:

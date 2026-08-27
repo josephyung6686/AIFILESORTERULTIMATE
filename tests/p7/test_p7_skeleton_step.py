@@ -93,7 +93,8 @@ from privacy.gate import Gate
 from privacy.learning_seam import assign
 from privacy.policy import current_policy, set_policy, transcription_authorized_for
 from privacy.release import Denied, Released, Target
-from privacy.transport_guard import assert_single_egress
+from privacy.transport_guard import (
+    assert_single_call_site, assert_single_egress)
 from privacy.vocabulary import CONSENT_OPTIONS, USER, USER_CONFIRMED
 
 COMPONENT = "0.1.0"
@@ -392,20 +393,35 @@ def test_the_classification_exists_for_the_scanned_file(skeleton_db, corpus):
 
 
 def test_the_gate_is_installed_on_the_only_egress_path(skeleton_db, corpus):
-    # Done-means 13's second clause, in the only form available before P8 exists:
-    # there is no transport, so the property "the transport's only content parameter
-    # is a `Released`" holds over an empty set -- and `assert_single_egress` is proven
-    # correct against conforming and non-conforming fixtures in Task 19.
+    """Done-means 13's second clause, now that there is a transport to assert it of.
+
+    This test used to assert `transports == []` -- "there is no transport, so the
+    property holds over an empty set" -- and then loop over that empty list calling
+    `assert_single_egress`. P8 shipped `llm_harness/transport.py` and the assertion
+    stayed true anyway, because the module never set `IS_MODEL_TRANSPORT`: the scan
+    kept returning `[]`, the emptiness assertion kept passing, and the loop under it
+    -- the only line that ever runs the guard on real code -- iterated nothing. The
+    day P8 landed, this test went from vacuous-by-design to vacuous-by-accident, and
+    nothing said so.
+
+    Both halves are now positive assertions. The scan must find EXACTLY the one
+    transport, and the guard must reach a verdict on it. `tests/p7/
+    test_p7_real_transport_egress.py` holds the detail; this holds the count, because
+    a SECOND module declaring itself the transport is the failure this file is
+    positioned to see and that one is not.
+    """
     walk(skeleton_db, corpus)
     declared = [path for _dotted, path, _module in src_modules()
                 if _declares_transport(path)]
-    assert declared == [], f"a transport appeared: {declared}; run assert_single_egress"
-    transports = [module for _dotted, _path, module in src_modules()
+    assert [path.name for path in declared] == ["transport.py"], declared
+    transports = [dotted for dotted, _path, module in src_modules()
                   if module is not None
                   and getattr(module, "IS_MODEL_TRANSPORT", False)]
-    assert transports == [], "a transport appeared; run assert_single_egress over it"
-    for module in transports:                      # reachable the day P8 lands
-        assert_single_egress(module)
+    assert transports == ["llm_harness.transport"], transports
+    for dotted in transports:
+        module = importlib.import_module(dotted)
+        assert assert_single_egress(module) is None
+        assert assert_single_call_site(module) is None
 
 
 def test_release_was_called_zero_times(skeleton_db, corpus):

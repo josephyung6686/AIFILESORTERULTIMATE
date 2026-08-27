@@ -35,7 +35,12 @@ from grouping.embeddings import (
     FileVersionRef,
     ensure_file_embedding,
 )
-from grouping.graph import LocalEvidenceGraph, build_graph, evaluate_stop_rules
+from grouping.graph import (
+    LocalEvidenceGraph,
+    build_graph,
+    evaluate_stop_rules,
+    meets_support_bar,
+)
 from grouping.learning import group_basis_key
 from grouping.records import (
     AnchorFact,
@@ -56,12 +61,46 @@ from grouping.vocabulary import (
     NOT_FLAGGED,
     RULES,
     SHARED_VALIDATED_FACT,
+    SUPPORTED,
 )
 
 #: What a deterministic run says about a judgement it did not make. Named rather
 #: than left blank: a candidate with no reason reads as a candidate nobody looked
 #: at, and this one was looked at and deliberately not decided.
 NO_MODEL_CONFIGURED: str = "no_model_call_configured"
+
+
+@dataclass(frozen=True)
+class ModelCallAuthorities:
+    """`run_call`'s five keyword arguments, as P9 receives them.
+
+    Every annotation is `object` on purpose. `CallDependencies` lives in
+    `llm_harness.harness` and the release gate in `privacy.gate`, and
+    `test_p9_never_imports_run_calls_neighbours` fails the build if any file under
+    `src/grouping/` imports either -- an import is a second route to a model. P9
+    constructs neither, reads no field of either, and does not know their types;
+    it forwards them under `run_call`'s own keywords.
+
+    The first five FIELD NAMES are `run_call`'s keyword names exactly, and a
+    conformance test binds them to the live signature. `pipeline.py` called
+    `p8_run_call(conn, request)` for as long as this bundle did not exist, which is
+    a `TypeError` on the first real call and a green suite behind a `**kwargs` spy.
+
+    `model_target` is the SIXTH, and it is deliberately not a `run_call` keyword:
+    it goes into `ModelCallRequest.model_target`, which is P7's, and the gate reads
+    `.locality` off it to decide whether bytes may leave the machine
+    (`privacy/gate.py:133`). P9 cannot construct one -- `ModelTarget` lives in
+    `privacy.release` and the boundary test forbids importing it -- so it arrives
+    here with the rest. The conformance test names it as the one exception rather
+    than relaxing the equality, so a seventh cannot be added silently.
+    """
+
+    gate: object
+    model_client: object
+    prompt: object
+    validation_dependencies: object
+    observed_at: object
+    model_target: object
 
 
 @dataclass(frozen=True)
@@ -164,7 +203,8 @@ def _prepare_embeddings(
         )
 
 
-def _group_for(seed: Seed, *, group_id: str, created_at: str) -> Group:
+def _group_for(seed: Seed, *, group_id: str, state: str,
+               conflicts: Sequence[object], created_at: str) -> Group:
     facts = (
         (AnchorFact(
             field=seed.field_key, value=seed.value,
@@ -190,9 +230,12 @@ def _group_for(seed: Seed, *, group_id: str, created_at: str) -> Group:
         group_category=None,
         display_label=None,
         label_source=None,
-        conflicts=(),
+        # The oracle's conflicts over this graph. Hardcoded `()` meant a group SR4
+        # destroyed came back claiming no conflict, with the reason surviving only
+        # as a formatted string in `stop_rule_outcome.evidence_refs`.
+        conflicts=tuple(conflicts),
         stop_rule_hits=(),
-        state=CANDIDATE,
+        state=state,
         sensitivity_state=NO_SENSITIVITY,
         dossier_id=None,
         llm_response_ref=None,
@@ -202,7 +245,8 @@ def _group_for(seed: Seed, *, group_id: str, created_at: str) -> Group:
     )
 
 
-def _self_membership(group: Group, seed: Seed, *, created_at: str) -> Membership:
+def _self_membership(group: Group, seed: Seed, *,
+                     conflicts: Sequence[object], created_at: str) -> Membership:
     """The group of one. Its own direct fact is what makes it a member."""
     return Membership(
         membership_id=f"{group.group_id}:{seed.file_id}",
@@ -220,7 +264,13 @@ def _self_membership(group: Group, seed: Seed, *, created_at: str) -> Membership
             edge_ref=None),),
         insufficient_evidence=False,
         insufficiency_statement=None,
-        conflicts=(),
+        # The conflicts naming the seed's own file. Empty in every path reachable
+        # today because SR4 stops the group before this line whenever the oracle
+        # returns anything at all -- but taken from the oracle rather than
+        # hardcoded, so it stays correct if SR4 ever narrows to a subset of kinds.
+        conflicts=tuple(
+            conflict for conflict in conflicts
+            if seed.file_id in getattr(conflict, "file_ids", ())),
         outlier_flag=NOT_FLAGGED,
         validation_verdict_ref=None,
         created_at=created_at,
@@ -237,6 +287,7 @@ def group_subject(
     knowledge: GroupingKnowledge,
     user_seed_for: Callable[[str, str], UserSeed | None],
     p8_run_call: Callable[..., object] | None,
+    p8_authorities: ModelCallAuthorities | None,
     embeddings,
     created_at: str,
 ) -> GroupingResult:
@@ -269,19 +320,36 @@ def group_subject(
         conn, seed=seed, limits=limits, knowledge=knowledge.retrieval,
         embeddings_enabled=isinstance(embeddings, EmbeddingsOn))
 
-    group = _group_for(
-        seed, group_id=f"group:{file_id}:{seed.seed_kind}", created_at=created_at)
+    group_id = f"group:{file_id}:{seed.seed_kind}"
     graph = build_graph(
-        group_id=group.group_id, neighborhood=neighborhood, limits=limits,
+        group_id=group_id, neighborhood=neighborhood, limits=limits,
         duplicate_or_version=knowledge.duplicate_or_version,
         created_at=created_at)
 
+    # The seed's own fact is an anchor when P6 validated it. A group of one is a
+    # group whose only anchor is itself.
+    seed_anchors = bool(seed.observation_key and seed.reliability_state)
+    # §4.9's minimum INDEPENDENT anchor count, and it decides `supported` rather
+    # than existence -- `graph.py:265`: "Not a stop rule, and deliberately separate
+    # from SR1." SR1 is zero anchors and stops the group forming; this bar leaves a
+    # group below it standing as a candidate waiting for confirmation.
+    # `minimum_independent_anchors` is injected with no default (`config.py:44`),
+    # so nothing here invents a threshold.
+    # One call to the injected oracle, and every record below is built from its
+    # answer. The group, the self-membership and the dossier each used to hardcode
+    # `conflicts=()`, which is the defect the frozen contract added the field to
+    # fix, reintroduced from P9's side.
+    conflicts = tuple(knowledge.conflicts_for(tuple(graph.file_ids)))
+
+    group = _group_for(
+        seed, group_id=group_id, created_at=created_at, conflicts=conflicts,
+        state=SUPPORTED if meets_support_bar(
+            graph, limits=limits, seed_anchors=seed_anchors) else CANDIDATE)
+
     outcome = evaluate_stop_rules(
-        conn, graph, limits=limits, conflicts_for=knowledge.conflicts_for,
+        conn, graph, limits=limits, conflicts_for=lambda _files: conflicts,
         basis_key=group_basis_key(group),
-        # The seed's own fact is an anchor when P6 validated it. A group of one
-        # is a group whose only anchor is itself.
-        seed_anchors=bool(seed.observation_key and seed.reliability_state))
+        seed_anchors=seed_anchors)
     if outcome is not None:
         # Before the dossier and before the call: a group that cannot form
         # should not cost either one.
@@ -290,7 +358,8 @@ def group_subject(
             stop_rule_outcome=outcome, group=group)
 
     record_group(conn, group)
-    membership = _self_membership(group, seed, created_at=created_at)
+    membership = _self_membership(
+        group, seed, conflicts=conflicts, created_at=created_at)
     record_membership(conn, membership)
 
     dossier = assemble_group_dossier(
@@ -298,7 +367,10 @@ def group_subject(
         active_schema_for=knowledge.active_schema_for,
         signal_evaluator_for=knowledge.signal_evaluator_for,
         classification_store=knowledge.classification_store,
-        conflicts=(), created_at=created_at)
+        # Empty in every path reachable today for the same reason as the
+        # self-membership above: SR4 has already returned. Wired rather than
+        # hardcoded so the dossier does not need a second edit if it narrows.
+        conflicts=conflicts, created_at=created_at)
     if isinstance(dossier, DossierRefused):
         return _result(
             seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
@@ -306,21 +378,53 @@ def group_subject(
             not_implemented_reason=dossier.reason,
             omissions=dossier.withheld)
 
-    if p8_run_call is None:
+    if p8_run_call is None or p8_authorities is None:
+        # "missing P8/config -> fail closed" (connection contract, seam ledger).
+        # A bundle-less run is a deterministic run, not an exception: P9 calling a
+        # model it was given no authority for is the failure this returns instead.
+        # The bundle is a REQUIRED parameter rather than a defaulted one so that
+        # forgetting it is a `TypeError` at the call site, while a deployment with
+        # no model says so by passing `None`.
         return _result(
             seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
             memberships=(membership,), dossier=dossier,
             not_implemented_reason=NO_MODEL_CONFIGURED)
 
-    from grouping.p8_seam import apply_p8_verdict, build_dossier_request
+    from grouping.p8_seam import (
+        apply_p8_verdict,
+        build_dossier_request,
+        prompt_fingerprint_for,
+    )
 
     request = build_dossier_request(
         dossier,
-        model_target=knowledge.retrieval.embedding_identity,
+        # P7's, not retrieval's. This read `knowledge.retrieval.embedding_identity`
+        # -- the local vector model channel 6 retrieves with, `(scope, model_id,
+        # model_version)`. The gate reads `.locality` off this field to decide
+        # whether bytes may leave the machine, and an embedding identity has none,
+        # so the gate raised `AttributeError` before deciding anything (and with
+        # retrieval configured off it was plain `None`). `ModelCallRequest`
+        # annotates the field `ModelTarget` and checks nothing, which is how a
+        # value from another subsystem reached the gate at all. `embedding_identity`
+        # was never a model target; it was the only identity `knowledge` had.
+        model_target=p8_authorities.model_target,
         prompt_template_id="template.grouping",
-        prompt_fingerprint=dossier.dossier_fingerprint,
+        # P7 binds the release to this fingerprint and the transport recomputes it
+        # from the prompt it sends, so the dossier's own content address bound the
+        # release to something that could never match -- and the mismatch is raised
+        # AFTER the release is spent. `prompt_fingerprint_for` is in `p8_seam`
+        # because that is the only file under `src/grouping/` allowed to know P8.
+        prompt_fingerprint=prompt_fingerprint_for(
+            p8_authorities.prompt, absent=dossier.dossier_fingerprint),
         max_dossier_tokens=limits.max_dossier_tokens)
-    outcome_from_model = p8_run_call(conn, request)
+    outcome_from_model = p8_run_call(
+        conn, request,
+        gate=p8_authorities.gate,
+        model_client=p8_authorities.model_client,
+        prompt=p8_authorities.prompt,
+        validation_dependencies=p8_authorities.validation_dependencies,
+        observed_at=p8_authorities.observed_at,
+    )
     if outcome_from_model is None:
         return _result(
             seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,

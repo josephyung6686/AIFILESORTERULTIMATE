@@ -59,11 +59,20 @@ from facts.dates import (
     ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, DatePattern, DatePatterns,
     date_candidates,
 )
+from facts.discount import MetadataScreen
 from facts.facets import fill_or_abstain, rank
 from facts.file_facts import FORBIDDEN_COLUMN_SUBSTRINGS, facts_for_file
 from facts.rules import Rule, apply_rules
 from facts.states import VALIDATED
 from facts.unresolved import CONTEXT_CHECK_FAILED, unresolved_for_file
+
+#: Task 6's §2.2/§2.3 screen, injected EMPTY and injected VISIBLY. These tests hold no
+#: tool-producer catalogue and no metadata property list, so nothing here is suppressed
+#: or demoted -- but the producer takes the screen with no default (F8), so "this test
+#: injects an empty catalogue" is written at every call site instead of being a silence
+#: that let `python-docx` through. `tests/p6/test_p6_discount.py` is where a POPULATED
+#: screen is driven end to end.
+NO_CATALOGUE = MetadataScreen()
 
 CLOCK = "2026-08-19T14:00:00+00:00"
 
@@ -183,7 +192,7 @@ def test_fixture_one_resolves_to_one_validated_fact_with_its_evidence_link(
     # (subject = X) with its evidence link".
     file_id, content_hash, observation = skeleton
     written = apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                          rules=(SUBJECT_RULE,))
+                          rules=(SUBJECT_RULE,), screen=NO_CATALOGUE)
     assert len(written) == 1                                       # ONE fact
     rows = facts_for_file(p6_conn, file_id, content_hash)
     assert len(rows) == 1
@@ -242,13 +251,13 @@ def test_the_skeleton_step_survives_only_because_the_context_check_folds_case(
     lowercase_term = Rule(pattern=SUBJECT_RULE.pattern,
                           required_context_terms=("syllabus",), field_key=SUBJECT)
     assert len(apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                           rules=(lowercase_term,))) == 1
+                           rules=(lowercase_term,), screen=NO_CATALOGUE)) == 1
     # The control, so the pass above is not "any term at all resolves": one of §3.5's
     # own five terms that this context does NOT contain refuses.
     absent_term = Rule(pattern=SUBJECT_RULE.pattern,
                        required_context_terms=("lecture",), field_key=SUBJECT)
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(absent_term,)) == ()
+                       rules=(absent_term,), screen=NO_CATALOGUE) == ()
     assert CONTEXT_CHECK_FAILED in [
         row["reason"] for row in
         unresolved_for_file(p6_conn, file_id, content_hash, field_key=SUBJECT)]
@@ -262,7 +271,7 @@ def test_a_course_code_with_no_academic_context_produces_no_fact(p6_conn, tmp_pa
     _observe(p6_conn, run_id="bare", file_id=file_id, content_hash=content_hash,
              raw="BUSIB 4300", zone="heading", label="heading:page=1/heading=2")
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(SUBJECT_RULE,)) == ()
+                       rules=(SUBJECT_RULE,), screen=NO_CATALOGUE) == ()
     assert facts_for_file(p6_conn, file_id, content_hash) == []
     rows = unresolved_for_file(p6_conn, file_id, content_hash, field_key=SUBJECT)
     assert [row["reason"] for row in rows] == [CONTEXT_CHECK_FAILED]
@@ -290,7 +299,7 @@ def test_the_three_facts_of_the_designs_own_example(p6_conn, tmp_path):
                        context_before="Syllabus — ", context_after="")
 
     apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                rules=(SUBJECT_RULE, WORK_TYPE_RULE))
+                rules=(SUBJECT_RULE, WORK_TYPE_RULE), screen=NO_CATALOGUE)
     contributions = tuple(candidate
                           for observation in (name, title, heading)
                           for candidate in date_candidates(observation,
@@ -342,7 +351,7 @@ def test_the_filenames_course_code_abstains_rather_than_becoming_a_fact(
              raw="Syllabus BUSIB 4300 Spring 2026.pdf", zone="filename",
              label="filename", extractor="filesystem.name")
     assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                       rules=(SUBJECT_RULE, WORK_TYPE_RULE)) == ()
+                       rules=(SUBJECT_RULE, WORK_TYPE_RULE), screen=NO_CATALOGUE) == ()
     reasons = {row["field_key"]: row["reason"]
                for row in unresolved_for_file(p6_conn, file_id, content_hash)}
     assert reasons == {SUBJECT: CONTEXT_CHECK_FAILED,
@@ -362,7 +371,7 @@ def test_every_observation_is_unchanged_after_resolution(p6_conn, tmp_path):
                         label="heading:page=1/heading=2",
                         context_before="Syllabus — ", context_after="")
     apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                rules=(SUBJECT_RULE,))
+                rules=(SUBJECT_RULE,), screen=NO_CATALOGUE)
     after = [one for one in observations_for_file(p6_conn, file_id)
              if one.observation_key == original.observation_key]
     assert len(after) == 1
@@ -380,7 +389,7 @@ def test_the_resolved_fact_carries_no_path_destination_folder_or_group(
     # row the walking skeleton actually produced, which is where a reviewer looks.
     file_id, content_hash, _ = skeleton
     apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
-                rules=(SUBJECT_RULE,))
+                rules=(SUBJECT_RULE,), screen=NO_CATALOGUE)
     row = facts_for_file(p6_conn, file_id, content_hash)[0]
     assert FORBIDDEN_COLUMN_SUBSTRINGS                             # not vacuous
     for column in row.keys():

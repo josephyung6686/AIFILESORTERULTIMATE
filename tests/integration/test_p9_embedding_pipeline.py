@@ -186,7 +186,7 @@ def _run(conn, anchor, *, embeddings, knowledge, limits=None):
     return group_subject(
         conn, file_id=anchor[0], content_hash=anchor[1], plan_version_id=PLAN,
         limits=limits or _limits(), knowledge=knowledge,
-        user_seed_for=lambda f, h: None, p8_run_call=None,
+        user_seed_for=lambda f, h: None, p8_run_call=None, p8_authorities=None,
         embeddings=embeddings, created_at=T0)
 
 
@@ -240,7 +240,7 @@ def test_the_semantic_edge_comes_from_the_stored_vector_not_the_encoder(
     without = group_subject(
         embed_conn, file_id=anchor[0], content_hash=anchor[1],
         plan_version_id=PLAN, limits=_limits(), knowledge=_knowledge(similarity),
-        user_seed_for=lambda f, h: None, p8_run_call=None,
+        user_seed_for=lambda f, h: None, p8_run_call=None, p8_authorities=None,
         embeddings=EmbeddingsOff(), created_at=T0)
     assert not [
         edge for edge in without.graph.edges

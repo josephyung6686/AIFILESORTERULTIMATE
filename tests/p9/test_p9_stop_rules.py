@@ -23,6 +23,7 @@ from grouping.records import Conflict
 from grouping.seeds import Seed
 from grouping.vocabulary import (
     COMPATIBLE_DOCUMENT_TYPE,
+    EXISTING_RELATED_FOLDER,
     MUTUAL_SEMANTIC_RETRIEVAL,
     NO_GROUP,
     SHARED_VALIDATED_FACT,
@@ -67,10 +68,15 @@ def _seed() -> Seed:
     )
 
 
-def _neighbor(file_id, channel, *, anchors=False, detail=BASIS) -> Neighbor:
+def _neighbor(file_id, channel, *, anchors=False, detail=BASIS,
+              bridge_entity=None) -> Neighbor:
+    """`bridge_entity` defaults to `None` and is passed only where the channel
+    genuinely has one -- the same default retrieval uses, so a test cannot prove
+    a hub rule against a neighbour retrieval would never build."""
     return Neighbor(
         file_id=file_id, content_hash=f"h-{file_id}", channel=channel,
         anchors=anchors, evidence_ref="sha256:edge-evidence", detail=detail,
+        bridge_entity=bridge_entity,
     )
 
 
@@ -203,7 +209,8 @@ def test_a_suppressed_hub_edge_does_not_save_the_graph_from_sr2(learning_conn):
     """A hub-suppressed edge is not a connection. Counting it would let a bridge
     the product decided means nothing rescue a graph that is otherwise vectors."""
     graph = _graph(
-        *[_neighbor(f"file-{n}", COMPATIBLE_DOCUMENT_TYPE, detail="columbia.edu")
+        *[_neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                    detail="columbia.edu", bridge_entity="columbia.edu")
           for n in range(3)],
         _neighbor("file-x", MUTUAL_SEMANTIC_RETRIEVAL, detail="sem-x"),
         limits=_limits(generic_hub_frequency=3),
@@ -217,7 +224,8 @@ def test_a_suppressed_hub_edge_does_not_save_the_graph_from_sr2(learning_conn):
 
 def test_sr3_fires_when_every_bridge_is_a_suppressed_hub(learning_conn):
     graph = _graph(
-        *[_neighbor(f"file-{n}", COMPATIBLE_DOCUMENT_TYPE, detail="columbia.edu")
+        *[_neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                    detail="columbia.edu", bridge_entity="columbia.edu")
           for n in range(3)],
         limits=_limits(generic_hub_frequency=3),
     )
@@ -228,7 +236,8 @@ def test_sr3_fires_when_every_bridge_is_a_suppressed_hub(learning_conn):
 
 def test_sr3_does_not_fire_when_a_real_bridge_survives(learning_conn):
     graph = _graph(
-        *[_neighbor(f"file-{n}", COMPATIBLE_DOCUMENT_TYPE, detail="columbia.edu")
+        *[_neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                    detail="columbia.edu", bridge_entity="columbia.edu")
           for n in range(3)],
         _neighbor("file-anchor", SHARED_VALIDATED_FACT, anchors=True),
         limits=_limits(generic_hub_frequency=3),

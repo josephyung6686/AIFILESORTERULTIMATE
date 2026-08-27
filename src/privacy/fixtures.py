@@ -78,8 +78,9 @@ from privacy.items import (
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy
 from privacy.redaction import RedactionEntry, RedactionManifest
-from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
-from privacy.resolve import Materialised
+from privacy.release import (
+    Denied, ModelCallRequest, ModelTarget, Released, ReleasedItem, Target,
+)
 from privacy.vocabulary import CONSENT_OPTIONS
 
 #: One clock for every fixture. A fixture whose timestamps drift is a fixture whose
@@ -706,10 +707,9 @@ FIXTURES: tuple[GateFixture, ...] = (
             release_id=PLACEHOLDER_RELEASE_ID, audit_id=PLACEHOLDER_AUDIT_ID,
             policy_version=PLACEHOLDER_POLICY_VERSION,
             materialised_items=tuple(
-                Materialised(observation_key=_key(3), span=_locator(3),
+                ReleasedItem(observation_key=_key(3), span=_locator(3),
                              value=REDACTED_VALUE, zone=_zone(3),
-                             context_before=None, context_after=None,
-                             context_truncated=False, unit_length=_unit_length(3))
+                             unit_length=_unit_length(3))
                 for _ in range(2)),
             redaction_manifest=RedactionManifest(entries=tuple(
                 RedactionEntry(observation_key=_key(3), span=_locator(3),
@@ -930,10 +930,9 @@ FIXTURES: tuple[GateFixture, ...] = (
             release_id=PLACEHOLDER_RELEASE_ID, audit_id=PLACEHOLDER_AUDIT_ID,
             policy_version=PLACEHOLDER_POLICY_VERSION,
             materialised_items=(
-                Materialised(observation_key=_key(3), span=_locator(3),
+                ReleasedItem(observation_key=_key(3), span=_locator(3),
                              value=REDACTED_VALUE, zone=_zone(3),
-                             context_before=None, context_after=None,
-                             context_truncated=False, unit_length=_unit_length(3)),),
+                             unit_length=_unit_length(3)),),
             redaction_manifest=RedactionManifest(entries=(
                 RedactionEntry(observation_key=_key(3), span=_locator(3),
                                identifier_class=FIXTURE_IDENTIFIER_CLASS,

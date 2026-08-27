@@ -881,7 +881,6 @@ def _release(key, value):
 
     return ReleasedEvidence(
         observation_key=key, address="0:10", value=value, zone="heading",
-        context_before=None, context_after=None, context_truncated=False,
     )
 
 

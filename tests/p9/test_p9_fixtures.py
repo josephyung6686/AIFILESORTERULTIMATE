@@ -270,3 +270,134 @@ def test_no_review_action_deletes_or_moves_a_file():
 
     for banned in ("delete", "move", "trash", "remove"):
         assert not any(banned in action for action in REVIEW_ACTIONS), banned
+
+
+# --- the builder's conflicts, and the guard that keeps them wired ----------------
+
+#: Every `conflicts=()` allowed to remain in `src/grouping/`, with the reason.
+#: A seventh cannot appear without failing the test below. Adding an entry here is
+#: a reviewable decision; adding a bare `conflicts=()` to a module is not.
+CONFLICT_FREE_BY_DESIGN = {
+    ("fixtures.py", "course_dossier_fixture"):
+        "SS4.4's coherent course example has no conflicting course code; the "
+        "conflict-bearing shape published beside it is application_dossier_fixture",
+}
+
+
+def test_no_unexplained_empty_conflicts_survives_in_src_grouping():
+    """`planning/30-p8-p9-connection-contract.md:60-61` added `conflicts` BECAUSE
+    P8 hardcoded `()` and Site B's `target_institution` check could never fire. P9
+    then hardcoded it from the other side at five sites. This is the third chance
+    for the same defect, and an allowlist is what makes a fourth reviewable."""
+    root = pathlib.Path(grouping.__file__).resolve().parent
+    found = []
+    for path in sorted(root.glob("*.py")):
+        tree = ast.parse(path.read_text())
+        scopes = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for inner in ast.walk(node):
+                    scopes[id(inner)] = node.name
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.keyword) or node.arg != "conflicts":
+                continue
+            if isinstance(node.value, ast.Tuple) and not node.value.elts:
+                found.append((path.name, scopes.get(id(node.value), "<module>")))
+
+    unexplained = [site for site in found if site not in CONFLICT_FREE_BY_DESIGN]
+    assert unexplained == [], (
+        f"bare conflicts=() at {unexplained}; either wire the builder's conflicts "
+        f"or add the site to CONFLICT_FREE_BY_DESIGN with a reason")
+    stale = [site for site in CONFLICT_FREE_BY_DESIGN if site not in found]
+    assert stale == [], f"allowlist entry no longer matches any line: {stale}"
+
+
+def test_a_published_fixture_can_exercise_every_site_b_conflict_check():
+    """P10 and P11 build against `GOLDEN_DOSSIERS`. If no published dossier carried
+    a conflict of a kind Site B checks, they would be developed against a fixture
+    that cannot reach the check -- the frozen contract's defect, one layer out."""
+    from grouping.fixtures import GOLDEN_DOSSIERS
+
+    published = {conflict.kind
+                 for build in GOLDEN_DOSSIERS for conflict in build().conflicts}
+    assert "target_institution" in published, published
+
+
+def test_the_published_conflict_survives_into_the_dossier_request():
+    """Carrying it on the fixture is not enough -- `build_dossier_request` is where
+    P9 hardcoded `()`, so the conflict has to be shown crossing that seam. Site B's
+    `_conflicting_institution` (`llm_harness/group_validation.py:113`) reads
+    `dossier.conflicts`, and P8 builds those from the request's."""
+    from privacy.release import ModelTarget
+
+    from grouping.fixtures import application_dossier_fixture
+    from grouping.p8_seam import build_dossier_request
+
+    request = build_dossier_request(
+        application_dossier_fixture(),
+        model_target=ModelTarget(
+            locality="local", model_id="fixture", provider="fixture"),
+        prompt_template_id="template.grouping",
+        prompt_fingerprint="fixture-application-fingerprint",
+        max_dossier_tokens=4000)
+    assert [conflict.kind for conflict in request.conflicts] == [
+        "target_institution"]
+
+
+# --- the span P9 sends is the observation's, never one it computed ---------------
+
+#: The keyword arguments that carry a span to P7 or P8.
+_SPAN_KEYWORDS = {"span", "excerpt_span", "text_span"}
+
+
+def _spans_built_from_text_length():
+    """Every span in `src/grouping/` whose value is derived from `len(...)`.
+
+    A span computed from the length of the excerpt text is not the observation's
+    span. It coincides with it only when the observation's span starts at 0 AND
+    the excerpt was not truncated, which is why `(0, len(text))` looked right and
+    why it broke on every metadata observation, whose span is `None`.
+    """
+    root = pathlib.Path(grouping.__file__).resolve().parent
+    found = []
+    for path in sorted(root.glob("*.py")):
+        tree = ast.parse(path.read_text())
+        scopes = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for inner in ast.walk(node):
+                    scopes[id(inner)] = node.name
+
+        def _uses_len(node):
+            return any(
+                isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name)
+                and inner.func.id == "len"
+                for inner in ast.walk(node))
+
+        for node in ast.walk(tree):
+            # `TextSpan(...)` built from a length, positionally or by keyword.
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "TextSpan" and _uses_len(node)):
+                found.append((path.name, scopes.get(id(node), "<module>"),
+                              "TextSpan"))
+            # `span=` / `excerpt_span=` / `text_span=` built from a length.
+            if (isinstance(node, ast.keyword) and node.arg in _SPAN_KEYWORDS
+                    and _uses_len(node.value)):
+                found.append((path.name, scopes.get(id(node.value), "<module>"),
+                              node.arg))
+    return found
+
+
+def test_no_span_in_src_grouping_is_computed_from_the_text_it_describes():
+    """P7 refuses a requested span that disagrees with the observation's own, and
+    it refuses it AFTER minting the release -- "consent records the exact requested
+    reference and never repairs one" (`src/privacy/gate.py:460`). P9 built
+    `(0, len(excerpt.text))` at two sites, so every observation whose span was
+    `None` or did not start at 0 was unreleasable.
+
+    There is no allowlist. A span is either the observation's or it is invented,
+    and `Excerpt.text_span` now carries the observation's, so nothing under
+    `src/grouping/` has a reason to compute one."""
+    assert _spans_built_from_text_length() == [], (
+        "a span computed from text length is not the observation's span; carry "
+        "`Excerpt.text_span` through instead")

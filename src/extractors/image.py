@@ -123,9 +123,12 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
                   now: str, context_window: int) -> ExtractionResult:
     """Section 2.6's fields, as P4 records, with the hierarchy on the record.
 
-    `context_window` is accepted and unused: every value here is a whole metadata
-    slot with no surrounding text, so P4's three context fields are empty. The
-    parameter stays so the six extractors have one calling shape.
+    `context_window` builds no context here: every value is a whole metadata slot
+    with no surrounding text, so P4's three context fields are empty. It is still
+    recorded in the run's `config` (B4) so the six extractors have one calling shape
+    AND one fingerprinted configuration -- a run whose config omits the budget it was
+    given cannot be told apart from one given a different budget, and which
+    extractors happen to consume it is not a distinction section 8.5's replay makes.
     """
     admit(path, policy=policy)
     record = read_image(path)
@@ -198,7 +201,9 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
                 extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
-                config={"reader": "injected"}, completeness="complete",
+                config={"reader": "injected",
+                        "context_window": context_window},
+                completeness="complete",
                 coverage=coverage("images", 1, 1),
                 observation_count=len(observations), started_at=now, finished_at=now),
         observations=tuple(observations),

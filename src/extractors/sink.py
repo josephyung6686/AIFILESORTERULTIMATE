@@ -25,6 +25,10 @@ class ExtractionResult:
     run: Mapping[str, Any]
     observations: tuple[Mapping[str, Any], ...] = ()
     text_units: tuple[Mapping[str, Any], ...] = ()
+    #: For every observation as SUBMITTED, its position in `observations` after D10
+    #: collapsed. A constructor argument only so the dataclass can hold it; it is
+    #: always recomputed below, and passing one is not a way to state a different map.
+    collapsed_index: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         """P4 D10 is applied HERE, once, for every extractor.
@@ -45,24 +49,49 @@ class ExtractionResult:
         `columbia` stay two observations and cross-form aggregation is P6's.
         Idempotent: a batch `pdf.py` already collapsed sums its counts rather than
         double-counting.
+
+        The collapse RENUMBERS, so it also publishes `collapsed_index` and corrects
+        `observation_count`. Nine extractors counted the SUBMITTED list -- the only
+        list they hold when they call `run(...)` -- and `stage_output.py` copies that
+        number into the P2 section 8.5 payload, so a batch with one repeated value
+        reported a count its own batch cannot support, in every format. Correcting it
+        here rather than in nine call sites is the same argument as collapsing here:
+        the count is derived from the batch, and only the batch knows it.
         """
-        object.__setattr__(self, "observations", _collapse(self.observations))
+        collapsed, index = _collapse(self.observations)
+        object.__setattr__(self, "observations", collapsed)
+        object.__setattr__(self, "collapsed_index", index)
+        if self.run.get("observation_count") != len(collapsed):
+            object.__setattr__(self, "run",
+                               {**self.run, "observation_count": len(collapsed)})
 
 
 def _collapse(observations):
-    first: dict[tuple, dict] = {}
-    order: list[tuple] = []
+    """D10, plus where every submitted observation went.
+
+    The map is returned because the collapse RENUMBERS, and a caller that recorded a
+    position into the submitted list has no other way to follow it.
+    `long_tail.SensitivitySignal.observation_index` is the only such caller and it
+    filed section 2.9's sensitivity signal against a neighbour -- and raised
+    IndexError on a third copy -- for as long as this returned only the survivors.
+    """
+    first: dict[tuple, int] = {}
+    kept: list[dict] = []
+    index: list[int] = []
     for candidate in observations:
         zone = (candidate.get("location") or {}).get("zone")
         key = (zone, candidate.get("raw_value"))
         if key not in first:
-            first[key] = dict(candidate)
-            first[key].setdefault("occurrence_count", 1)
-            order.append(key)
+            first[key] = len(kept)
+            row = dict(candidate)
+            row.setdefault("occurrence_count", 1)
+            kept.append(row)
         else:
-            first[key]["occurrence_count"] = (
-                first[key]["occurrence_count"] + (candidate.get("occurrence_count") or 1))
-    return tuple(first[key] for key in order)
+            kept[first[key]]["occurrence_count"] = (
+                kept[first[key]]["occurrence_count"]
+                + (candidate.get("occurrence_count") or 1))
+        index.append(first[key])
+    return tuple(kept), tuple(index)
 
 
 class EvidenceSink(Protocol):

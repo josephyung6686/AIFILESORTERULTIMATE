@@ -21,10 +21,13 @@ from evidence_shape.store import (
     TextUnit, new_id, record_observation, record_run, record_text_unit,
 )
 from llm_harness.fingerprint import dossier_content_address, prompt_fingerprint
-from llm_harness.records import PromptDefinition, build_call_payload
+from llm_harness.dossier import build_dossier, canonical_dossier_bytes
+from llm_harness.records import (
+    DossierRequest, PromptDefinition, ValidationUnavailable, build_call_payload,
+)
 from llm_harness.schema import create_llm_schema
 from llm_harness.transport import ModelClient, ModelResponse, issue
-from llm_harness.vocabulary import A_FACT
+from llm_harness.vocabulary import A_FACT, REDUCTION_NONE, REMAINS_AMBIGUOUS
 from privacy.binding import BindingMismatch, ReleaseAlreadySpent
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
@@ -35,6 +38,7 @@ from privacy.policy import Policy, UNSET_POLICY_VERSION, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
 from privacy.schema import create_privacy_schema
 
+from p8.conftest import make_evidence_item
 from p8.test_p8_transport import Recorder, _spent
 
 
@@ -297,3 +301,107 @@ def test_local_client_cannot_spend_a_cloud_gate_release(egress_conn):
         )
     assert recorder.calls == []
     assert _spent(egress_conn, decision.release_id) is None
+
+
+def _dossier_request(*, file_id: str, key: str, fingerprint: str) -> DossierRequest:
+    """The builder's side of the seam, addressed at the same released item."""
+    return DossierRequest(
+        call_site=A_FACT,
+        subject_ref=file_id,
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        evidence_items=(make_evidence_item(evidence_ref=key),),
+        conflicts=(),
+        model_call_request=_request(
+            items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+            model_target=CLOUD, file_ids=(file_id,), fingerprint=fingerprint,
+        ),
+        plan_version=None,
+        evidence_snapshot_id="snap-1",
+    )
+
+
+def _released_and_body(conn) -> tuple[Released, str]:
+    """One real gate release, carried through the real `build_dossier`."""
+    file_id, key = _seed_classified(
+        conn, name="passport.pdf", content_hash="hash-passport")
+    _store_policy(conn, "hybrid")
+    prompt = _prompt()
+    digest = prompt_fingerprint(prompt)
+    decision = _gate(conn).release(_request(
+        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+        model_target=CLOUD, file_ids=(file_id,), fingerprint=digest,
+    ))
+    assert isinstance(decision, Released), decision
+    dossier = build_dossier(
+        _dossier_request(file_id=file_id, key=key, fingerprint=digest),
+        decision,
+        reduction_rung=REDUCTION_NONE,
+        allowed_vocabulary=("school",),
+        prompt=prompt,
+    )
+    assert not isinstance(dossier, ValidationUnavailable), dossier
+    return decision, canonical_dossier_bytes(dossier, prompt).decode("utf-8")
+
+
+def test_the_release_carries_no_text_outside_the_requested_span(egress_conn):
+    """§8.4 puts "complete extracted text" in the always-local set
+    (`planning/00-database-agent-product-design.md:186`) and P7 SPEC:248 says
+    `materialised_items[] post-redaction values only`. The gate redacted the
+    value and then handed `context_before` / `context_after` straight off the
+    pre-redaction record into `Released`, and `dossier._released_body` wrote both
+    into the canonical model-visible bytes -- so an 8-character requested span
+    released every character of its unit, the redacted name masked and the
+    passport number beside it not.
+
+    The property, not the mechanism: no window of the source unit that reaches
+    outside the requested span may appear in the bytes the model is shown.
+    """
+    released, body = _released_and_body(egress_conn)
+
+    item = released.materialised_items[0]
+    assert item.value == "[redacted]"          # the span itself was redacted
+    assert "[redacted]" in body                # and the release is not empty
+
+    window = SPAN.end - SPAN.start + 2         # wider than the requested span
+    leaked = [
+        TEXT[start:start + window]
+        for start in range(len(TEXT) - window + 1)
+        if TEXT[start:start + window] in body
+    ]
+    assert leaked == [], f"released text outside the requested span: {leaked}"
+
+
+def test_the_manifest_still_carries_the_context_it_always_did(egress_conn):
+    """M5 split the context out "precisely so §8.4 can redact a value without
+    dropping its context" (`privacy/redaction.py`). That property is about the
+    LOCAL audit entry, which travels inside the audit event's explanation. It is
+    kept; this asserts it was not thrown away with the released copy."""
+    released, _body_text = _released_and_body(egress_conn)
+
+    entry = released.redaction_manifest.entries[0]
+    assert entry.context_before == TEXT[:SPAN.start]
+    assert entry.context_after == TEXT[SPAN.end:]
+    assert entry.context_truncated is False
+
+
+def test_no_released_record_has_a_place_to_put_raw_context():
+    """The guard. Removal, not discipline: a released record with no context
+    field cannot re-release context, and the model-visible payload builder must
+    not name one either. `Materialised` and `RedactionEntry` keep theirs -- they
+    are the pre-redaction resolution record and the local audit entry.
+    """
+    import dataclasses
+    import inspect
+
+    import llm_harness.dossier as dossier_module
+    from llm_harness.records import ReleasedEvidence
+    from privacy.release import ReleasedItem
+
+    forbidden = {"context_before", "context_after", "context_truncated"}
+    for record in (ReleasedItem, ReleasedEvidence):
+        names = {field.name for field in dataclasses.fields(record)}
+        assert not (names & forbidden), f"{record.__name__} carries {names & forbidden}"
+
+    source = inspect.getsource(dossier_module)
+    for name in sorted(forbidden):
+        assert name not in source, f"dossier.py still names {name}"

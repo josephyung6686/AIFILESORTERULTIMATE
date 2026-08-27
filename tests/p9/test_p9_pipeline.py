@@ -137,7 +137,7 @@ def _run(conn, subject, **overrides):
     file_id, content_hash = subject
     values = dict(
         plan_version_id=PLAN, limits=_limits(), knowledge=_knowledge(),
-        user_seed_for=lambda f, h: None, p8_run_call=None,
+        user_seed_for=lambda f, h: None, p8_run_call=None, p8_authorities=None,
         embeddings=EmbeddingsOff(), created_at=T0,
     )
     values.update(overrides)
@@ -159,11 +159,19 @@ def subject(pipeline_conn, tmp_path):
 
 def test_one_directly_identified_file_becomes_a_group_of_one(pipeline_conn, subject):
     """No model, no cloud, no embeddings. A file with one direct P6 fact is a
-    group whose only member is itself, on direct-anchor evidence."""
+    group whose only member is itself, on direct-anchor evidence.
+
+    Its state is whatever the support bar says. `_limits()` injects
+    `minimum_independent_anchors=1` and the seed anchors itself, so one anchor
+    clears the bar. Asserting `candidate` here held whether or not the bar was
+    ever consulted, which is how `SUPPORTED` stayed unreachable.
+    """
+    from grouping.vocabulary import SUPPORTED
+
     result = _run(pipeline_conn, subject)
     assert isinstance(result, GroupingResult)
     assert result.group is not None
-    assert result.group.state == CANDIDATE
+    assert result.group.state == SUPPORTED
     assert result.memberships
     assert all(item.basis == DIRECT_ANCHOR for item in result.memberships)
     assert result.memberships[0].file_id == subject[0]
@@ -420,3 +428,178 @@ def test_an_injected_run_call_receives_a_reference_only_request(
          knowledge=_knowledge(), limits=_limits())
     for request in seen:
         assert isinstance(request, DossierRequest)
+
+
+# --- the north-star property: more evidence never makes grouping worse -----------
+
+
+def _corroborating(conn, tmp_path, name, *, run_id):
+    """One more scanned file that independently states the seed's own basis."""
+    file_id, content_hash = _file(conn, tmp_path, name, body=b"PHYS1401 " + name.encode())
+    _fact(conn, file_id=file_id, content_hash=content_hash,
+          field="subject", value="PHYS1401", run_id=run_id)
+    return file_id, content_hash
+
+
+def test_more_corroborating_files_never_reduce_a_groups_anchors(
+    pipeline_conn, subject, tmp_path,
+):
+    """Scanning MORE of the corpus must not make the grouping worse.
+
+    `retrieval.py:180` described every file that independently states the basis
+    with one string, `subject=PHYS1401`; `graph.py:160` promoted that description
+    to an entity identity; `_hub_entities` counted it; and `anchoring_files`
+    discarded every suppressed edge. So the third corroborating file destroyed the
+    group the second one had built -- the count SS4.3 asks the rules to make is the
+    count this punished.
+    """
+    from grouping.graph import anchoring_files
+
+    limits = _limits(generic_hub_frequency=3)
+    _corroborating(pipeline_conn, tmp_path, "Lecture 08.pdf", run_id="r-08")
+    _corroborating(pipeline_conn, tmp_path, "Lecture 09.pdf", run_id="r-09")
+
+    before = _run(pipeline_conn, subject, limits=limits)
+    assert before.group is not None, before.stop_rule_outcome
+    anchors_before = anchoring_files(before.graph, seed_anchors=True)
+    assert len(anchors_before) == 3, anchors_before
+
+    # One more file, stating the same basis, and nothing else about the corpus
+    # changes.
+    _corroborating(pipeline_conn, tmp_path, "Lecture 10.pdf", run_id="r-10")
+    after = _run(pipeline_conn, subject, limits=limits)
+
+    assert after.stop_rule_outcome is None, after.stop_rule_outcome.rules_fired
+    assert after.group is not None
+    anchors_after = anchoring_files(after.graph, seed_anchors=True)
+    assert len(anchors_after) >= len(anchors_before), (
+        f"{len(anchors_before)} anchors became {len(anchors_after)} when one more "
+        f"corroborating file was scanned")
+
+
+# --- the support bar decides `supported`, and SR1 still decides existence --------
+
+
+def test_enough_independent_anchors_makes_a_group_supported(
+    pipeline_conn, subject, tmp_path,
+):
+    """`graph.py:262` computes the bar and nothing called it, so `SUPPORTED` was a
+    member of `GROUP_STATES` that no writer could ever reach."""
+    from grouping.store import current_group
+    from grouping.vocabulary import SUPPORTED
+
+    _corroborating(pipeline_conn, tmp_path, "Lecture 08.pdf", run_id="r-08")
+    result = _run(pipeline_conn, subject,
+                  limits=_limits(minimum_independent_anchors=2))
+    assert result.group.state == SUPPORTED
+    assert current_group(pipeline_conn, result.group.group_id).state == SUPPORTED
+
+
+def test_one_anchor_below_the_bar_waits_as_a_candidate(pipeline_conn, subject):
+    """"Conflating the two made a one-anchor group vanish instead of waiting for
+    confirmation" (`graph.py:270`). It must not vanish and must not be supported."""
+    result = _run(pipeline_conn, subject,
+                  limits=_limits(minimum_independent_anchors=2))
+    assert result.group is not None
+    assert result.group.state == CANDIDATE
+    assert result.stop_rule_outcome is None
+
+
+def test_zero_anchors_still_fires_sr1(pipeline_conn, tmp_path):
+    """SR1 and the support bar stay two rules. SR1 stops the group forming at all;
+    the bar only decides whether a formed group may be called `supported`."""
+    anchorless = _file(pipeline_conn, tmp_path, "Sparse.pdf", body=b"HW 3")
+    result = _run(pipeline_conn, anchorless,
+                  limits=_limits(minimum_independent_anchors=2))
+    assert result.group is None
+    assert result.memberships == ()
+
+
+def test_the_release_is_bound_to_the_prompt_that_will_be_sent(
+    pipeline_conn, subject,
+):
+    """P7 mints the release bound to `ModelCallRequest.prompt_fingerprint`, and
+    `transport.issue` re-computes that fingerprint from the prompt it is about to
+    send (`llm_harness/transport.py:74`). `pipeline.py` bound it to the DOSSIER's
+    content address instead, so the first real group call died with
+    `privacy.binding.BindingMismatch` -- after P7 had already spent the release.
+    Wiring `run_call`'s five keywords is not enough on its own; this is the same
+    "P9 cannot call P8" defect one layer further in."""
+    from llm_harness.fingerprint import prompt_fingerprint
+    from llm_harness.records import PromptDefinition
+
+    from grouping.pipeline import ModelCallAuthorities
+
+    prompt = PromptDefinition(
+        template_id="template.grouping", template_bytes=b"TEMPLATE",
+        response_schema_bytes=b'{"type":"object"}', call_site="B_group",
+        call_site_version="1", shaping_policy_bytes=b'{"policy":"authored"}')
+    seen = []
+    _run(pipeline_conn, subject,
+         p8_run_call=lambda conn, request, **kw: seen.append(request) or None,
+         p8_authorities=_model_authorities(prompt=prompt))
+
+    assert seen, "the pipeline built no request"
+    assert seen[0].model_call_request.prompt_fingerprint == (
+        prompt_fingerprint(prompt))
+
+
+def test_a_group_stopped_by_a_conflict_names_the_conflict_that_stopped_it(
+    pipeline_conn, subject,
+):
+    """`Group.conflicts` was hardcoded `()`, so a group SR4 destroyed for having
+    two irreconcilable terms came back claiming no conflict at all -- the reason
+    was in `stop_rule_outcome.evidence_refs` as a formatted string and nowhere as
+    a record. The group is built before the rules run, so this is the one
+    conflict-bearing shape the pipeline can reach today."""
+    from grouping.records import Conflict
+    from grouping.vocabulary import SR4
+
+    conflict = Conflict(kind="term", competing_values=("Spring 2026", "Fall 2026"),
+                        file_ids=(subject[0],))
+    result = _run(
+        pipeline_conn, subject,
+        knowledge=_knowledge(conflicts_for=lambda files: (conflict,)))
+
+    assert SR4 in result.stop_rule_outcome.rules_fired
+    assert result.group.conflicts == (conflict,)
+
+
+def _model_authorities(**overrides):
+    """A bundle whose only real value is the one under test. The gate, client and
+    dependencies are never reached: the spy below returns before `run_call`."""
+    from grouping.pipeline import ModelCallAuthorities
+
+    from privacy.release import ModelTarget
+
+    values = dict(gate=object(), model_client=object(), prompt=None,
+                  validation_dependencies=object(), observed_at=lambda: T0,
+                  model_target=ModelTarget(
+                      locality="local", model_id="m", provider="p"))
+    values.update(overrides)
+    return ModelCallAuthorities(**values)
+
+
+def test_p9_hands_p7_a_model_target_not_an_embedding_identity(
+    pipeline_conn, subject,
+):
+    """`ModelCallRequest.model_target` is the field P7 reads `.locality` off to
+    decide whether bytes may leave the machine (`src/privacy/gate.py:133`).
+
+    `pipeline.py` passed `knowledge.retrieval.embedding_identity` -- the LOCAL
+    VECTOR MODEL that retrieval channel 6 uses, whose fields are `(scope,
+    model_id, model_version)`. It has no `locality`, so the gate raised
+    `AttributeError` before it could decide anything, and with `_knowledge`'s own
+    default it was plain `None`. `ModelCallRequest` annotates the field
+    `ModelTarget` and checks nothing, which is how this reached the gate at all.
+    """
+    from privacy.release import ModelTarget
+
+    seen = []
+    _run(pipeline_conn, subject,
+         p8_run_call=lambda conn, request, **kw: seen.append(request) or None,
+         p8_authorities=_model_authorities())
+
+    assert seen, "the pipeline built no request"
+    assert isinstance(seen[0].model_call_request.model_target, ModelTarget), (
+        seen[0].model_call_request.model_target)

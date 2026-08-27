@@ -16,6 +16,7 @@ the passing case is an assertion that has never been tested.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -25,6 +26,19 @@ from evidence_shape.observation import Observation
 from evidence_shape.text_units import TextUnit
 
 from privacy.release import Released
+
+
+@dataclasses.dataclass
+class PromptEnvelope:
+    """Hoisted to module scope so `eval_str=True` can resolve it.
+
+    The guard resolves annotations through `fn.__globals__`, which is this module's
+    namespace. A class defined inside a factory is not in it, and the guard would
+    report an unresolvable annotation rather than the constructor the fixture exists
+    to expose.
+    """
+
+    text: str
 
 
 def _module(name: str, *defined, **imported) -> ModuleType:
@@ -205,6 +219,39 @@ def transport_with_a_private_string_helper() -> ModuleType:
         return text
 
     return _module("transport_with_a_private_string_helper", send, _format)
+
+
+def transport_with_a_private_path_helper() -> ModuleType:
+    """The residue of the module-wide rule, on a type that has no innocent reading.
+
+    A `str` in the interior of a real transport is a model id, an ISO timestamp or a
+    prompt fingerprint -- §8.4 REQUIRES the audit record that holds all three. A
+    `Path` is none of those. §8.4's always-local set opens with "Paths", so a
+    transport that can name a file at any depth is a finding whether or not a caller
+    can reach it.
+    """
+
+    def send(released: Released) -> str:
+        return _load(Path(released.release_id))
+
+    def _load(document: Path) -> str:
+        return str(document)
+
+    return _module("transport_with_a_private_path_helper", send, _load)
+
+
+def transport_with_an_envelope_the_entry_point_accepts() -> ModuleType:
+    """The envelope hole, on the side where a caller can actually use it.
+
+    `transport_with_a_dataclass_envelope` declares the same class and the entry point
+    does not accept it, so a caller who builds one has nowhere to put it. Here the
+    entry point takes it, and the constructor is the door.
+    """
+    def send(released: Released, envelope: PromptEnvelope) -> str:
+        return envelope.text
+
+    return _module("transport_with_an_envelope_the_entry_point_accepts",
+                   PromptEnvelope, send)
 
 
 def transport_as_a_class_taking_a_string() -> ModuleType:

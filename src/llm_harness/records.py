@@ -239,20 +239,24 @@ class EvidenceItem:
 
 @dataclass(frozen=True, slots=True)
 class ReleasedEvidence:
-    """One P7 `Materialised` item as the model saw it.
+    """One P7 `ReleasedItem` as the model saw it.
 
     `value` is the released/redacted value and is the ONLY span-matching source
     universal validation may use. `address` is P7's span locator; a citation that
     matches the raw P4 text but not this value is not grounded in what was released.
+
+    It carried `context_before` / `context_after` / `context_truncated`, copied
+    from P7 into `dossier._released_body` -- the canonical model-visible bytes --
+    and nothing in P8 ever read them: `validation._check_citation` matches
+    `cited_span` against `value` and nothing else. §8.4 puts "complete extracted
+    text" in the always-local set, so they are gone from the record rather than
+    emptied in it.
     """
 
     observation_key: str
     address: str
     value: str
     zone: str
-    context_before: str | None
-    context_after: str | None
-    context_truncated: bool
 
     def __post_init__(self) -> None:
         if not self.observation_key or not self.address:
@@ -260,8 +264,6 @@ class ReleasedEvidence:
                 "ReleasedEvidence requires observation_key and address; an item with "
                 "no address cannot bind a citation to what P7 released"
             )
-        if not isinstance(self.context_truncated, bool):
-            raise MalformedRecord("context_truncated is a boolean flag")
 
 
 @dataclass(frozen=True, slots=True)

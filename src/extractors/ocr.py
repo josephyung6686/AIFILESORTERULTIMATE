@@ -184,7 +184,7 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
                 extractor_name=name, extractor_version=output.provider_version,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
-                config=config,
+                config={**config, "context_window": context_window},
                 completeness="capped" if output.capped else "complete",
                 coverage=coverage("pages", output.pages_processed,
                                   output.pages_total),

@@ -353,6 +353,12 @@ def test_site_d_adds_its_reason_codes():
 
 
 def test_all_reason_codes_is_the_membership_union():
+    from llm_harness.vocabulary import (
+        FRAGMENT_NOT_PUBLISHED,
+        FRAGMENT_PUBLICATION_ATTEMPTED,
+        SITE_E_REASON_CODES,
+    )
+
     published = set(ALL_REASON_CODES)
     assert published == (
         set(UNIVERSAL_REASON_CODES)
@@ -360,7 +366,17 @@ def test_all_reason_codes_is_the_membership_union():
         | set(SITE_B_REASON_CODES)
         | set(SITE_C_REASON_CODES)
         | set(SITE_D_REASON_CODES)
+        | set(SITE_E_REASON_CODES)
     )
+    # Site E's two, added with P10's fragment boundary (contract §10.3 #2). They
+    # are a PAIR on purpose: a well-formed proposal naming an unpublished
+    # fragment is not the same defect as one attempting to publish, and Site C
+    # already keeps the analogous pair apart.
+    assert SITE_E_REASON_CODES == (
+        FRAGMENT_NOT_PUBLISHED, FRAGMENT_PUBLICATION_ATTEMPTED,
+    )
+    assert FRAGMENT_NOT_PUBLISHED == "FRAGMENT_NOT_PUBLISHED"
+    assert FRAGMENT_PUBLICATION_ATTEMPTED == "FRAGMENT_PUBLICATION_ATTEMPTED"
     assert INVENTED_DATE in ALL_REASON_CODES
     assert ALL_REASON_CODES.count(INVENTED_DATE) == 1
     assert ALL_REASON_CODES.count(INVENTED_PROJECT) == 1

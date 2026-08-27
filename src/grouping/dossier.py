@@ -109,10 +109,15 @@ def _excerpts_for(
         if not observations:
             continue
         observation = observations[0]
+        span = observation.location.text_span
         found.append(Excerpt(
             observation_key=key,
             location=observation.location.zone,
             text=observation.raw_value[:limit],
+            # The observation's OWN span, `None` included. Not derived from
+            # `text` above: `text` is truncated to `limit`, so a length taken from
+            # it is a span the observation never had.
+            text_span=None if span is None else (span.start, span.end),
         ))
     return tuple(found)
 

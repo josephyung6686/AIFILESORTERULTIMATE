@@ -212,16 +212,33 @@ def test_an_unhashable_annotation_leaf_does_not_crash_the_guard():
 
 # --- the two fixtures a weaker guard would pass ----------------------------------
 
-def test_a_private_string_helper_fails():
-    """"The un-released path does not exist" is about the module, not its exports.
+def test_a_private_string_helper_passes_and_a_private_path_helper_does_not():
+    """Amended once P8's transport existed. The old assertion was the reverse.
 
-    A private `_format(text: str)` beside the entry point is a string-prompt path that
-    happens to be unexported, and inside a module whose whole job is egress there is
-    nothing for it to legitimately be. The entry-point COUNT is taken over public
-    functions; the content check is taken over all of them.
+    This test read "a private `_format(text: str)` fails", on the reasoning that
+    inside a module whose whole job is egress there is nothing for a bare string to
+    legitimately be. P8's shipped transport says otherwise, and §8.4 says it first:
+    "Every model call should be recorded in a consent-aware audit record ... which
+    model received the data, and the prompt fingerprint." `transport.py`'s private
+    `_record_issued(fingerprint: str, observed_at: str)` and `_explanation(model_id:
+    str | None, ...)` write exactly that record, and they are indistinguishable in
+    shape from `_format(text: str)`. A rule that forbids them forbids the audit
+    record §8.4 mandates -- one §8.4 requirement cannot make another unsatisfiable.
+
+    The old rule was also satisfiable COSMETICALLY: move the helpers into a
+    neighbouring module and it passes, having changed nothing about what reaches a
+    model. A privacy property a file-move satisfies is not a privacy property.
+
+    What survives is the half with no innocent reading. §8.4's always-local set opens
+    with "Paths", and no audit field is a `Path`, so `CORPUS_ONLY_TYPES` is still
+    banned at any depth. The string-prompt path a caller can actually reach is caught
+    on the egress surface -- see `test_the_check_reads_signatures_and_never_source_text`
+    and `test_a_class_method_taking_a_string_fails`, both still red.
     """
-    with pytest.raises(UnreleasedContentParameter, match="_format"):
-        assert_single_egress(fixtures.transport_with_a_private_string_helper())
+    assert assert_single_egress(
+        fixtures.transport_with_a_private_string_helper()) is None
+    with pytest.raises(UnreleasedContentParameter, match="_load"):
+        assert_single_egress(fixtures.transport_with_a_private_path_helper())
 
 
 def test_a_class_method_taking_a_string_fails():
@@ -314,10 +331,24 @@ def test_a_content_taking_constructor_fails():
     assert "__init__" in str(caught.value) and "prompt" in str(caught.value)
 
 
-def test_a_dataclass_envelope_fails_through_its_generated_constructor():
-    """The same hole with nothing dunder-shaped in the source to notice."""
-    with pytest.raises(UnreleasedContentParameter):
-        assert_single_egress(fixtures.transport_with_a_dataclass_envelope())
+def test_a_dataclass_envelope_fails_when_the_entry_point_can_be_handed_one():
+    """The same hole with nothing dunder-shaped in the source to notice -- amended.
+
+    The generated `__init__` is still checked; what changed is WHICH ones are on the
+    surface. `transport_with_a_dataclass_envelope` declares `PromptEnvelope` and its
+    `send(released: Released)` does not accept one, so a caller who builds an
+    envelope has nowhere to put it: no content reaches a model through a class the
+    egress function cannot take. P8's `ModelResponse` is that shape -- a public
+    frozen dataclass of `bytes` and `str` that `issue` only ever RETURNS -- and §8.4
+    sequences one direction only, "before content reaches any model".
+
+    Handed to the entry point, the same envelope is a door, and is red.
+    """
+    assert assert_single_egress(
+        fixtures.transport_with_a_dataclass_envelope()) is None
+    with pytest.raises(UnreleasedContentParameter, match="PromptEnvelope.__init__"):
+        assert_single_egress(
+            fixtures.transport_with_an_envelope_the_entry_point_accepts())
 
 
 def test_a_constructor_is_checked_but_never_counted_as_an_entry_point():

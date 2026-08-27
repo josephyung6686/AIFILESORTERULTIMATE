@@ -90,7 +90,12 @@ def test_all_nine_section_2_7_fields_have_a_home_and_are_populated(sink):
     assert row["extractor_name"] == "ocr.apple_vision"          # provider
     assert row["extractor_version"] == "19.1"                   # version
     assert row["config"]["languages"] == ["en-US"]              # languages
-    assert row["config_fingerprint"] == fingerprint(FIXTURE_CONFIG)  # configuration
+    # The fingerprint is of the config the RUN stored, which is the engine's config
+    # plus B4's context budget: "the context budget goes in the run's `config` so it
+    # is fingerprinted". Restating the engine's half here would fingerprint less than
+    # the run was configured with.
+    assert row["config_fingerprint"] == fingerprint(row["config"])  # configuration
+    assert row["config"] == {**FIXTURE_CONFIG, "context_window": 20}
     assert unit["container_path"][0] == {"kind": "page", "index": 1,
                                          "label": None}         # page reference
     assert unit["text"] == RECOGNIZED                            # raw recognized text

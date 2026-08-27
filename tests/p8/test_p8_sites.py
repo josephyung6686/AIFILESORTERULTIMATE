@@ -81,7 +81,12 @@ def _residual_dependencies(**overrides):
 def _template_dependencies(**overrides):
     from llm_harness.template_validation import TemplateDependencies
 
-    values = dict(schema_validator=lambda payload: True)
+    # `published_fragment` is the second authority (contract §10.3 #2). It is a
+    # separate injection precisely so a caller that supplies only a schema
+    # validator gets `ValidationUnavailable` instead of silence, so this fixture
+    # supplies it explicitly rather than relying on a default it must not have.
+    values = dict(schema_validator=lambda payload: True,
+                  published_fragment=lambda fragment_id, fragment_version: True)
     values.update(overrides)
     return TemplateDependencies(**values)
 

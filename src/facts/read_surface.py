@@ -147,9 +147,19 @@ def proposal_eligible(conn: sqlite3.Connection, *, file_id: str,
     §3.6: a weak model output "may remain a possible clue for review; it must not quietly
     become a folder proposal or an asserted file property". `unresolved` rows are in a
     different table and are therefore absent by construction rather than by a filter.
+
+    Three filters, not one. `active = 0` and a non-null `superseded_by` are both "this
+    conclusion was replaced", and §8.2 keeps the replaced row READABLE -- readable is
+    not proposable. `values_with_counts`, 23 lines below, has always filtered all three,
+    and its docstring records what happened when the two reads in this one module
+    disagreed about the same file. They disagreed in the other direction too: a
+    replaced conclusion reached P10's and P11's folder-proposal read, so a tree was
+    proposed from stale truth. `facts_for` and `history` still return the old row.
     """
-    return facts_for(conn, file_id=file_id, content_hash=content_hash,
-                     states=PROPOSAL_ELIGIBLE_STATES)
+    return [row for row in facts_for(conn, file_id=file_id,
+                                     content_hash=content_hash,
+                                     states=PROPOSAL_ELIGIBLE_STATES)
+            if row["active"] and row["superseded_by"] is None]
 
 
 def active_allowlist_for(conn: sqlite3.Connection, *, file_id: str, content_hash: str,

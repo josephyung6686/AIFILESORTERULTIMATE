@@ -157,7 +157,13 @@ def build_graph(
             # refuses one; retrieval can legitimately return the seed.
             continue
         edge_type = _edge_type(neighbor, duplicate_or_version, seed_file_id)
-        bridge = neighbor.detail
+        # The neighbour's own bridge entity, NOT its `detail`. `detail` describes
+        # why the channel returned the file; reading it here promoted every
+        # description to an entity identity, so the group's own basis became a
+        # "hub" the moment enough files corroborated it -- and §4.3's count, which
+        # exists to find an entity that bridges UNRELATED groups, punished the
+        # corroboration §4.3 asks the rules to make.
+        bridge = neighbor.bridge_entity
         edge_id = _edge_id(group_id, seed_file_id, neighbor.file_id, edge_type, bridge)
         built.append(TypedEdge(
             edge_id=edge_id,
@@ -304,10 +310,17 @@ def evaluate_stop_rules(
         fired.append(SR2)
         evidence.extend(edge.evidence_ref for edge in live)
 
-    bridging = [edge for edge in graph.edges if edge.bridge_entity_ref is not None]
-    if bridging and all(edge.hub_suppressed for edge in bridging):
+    suppressed = [edge for edge in graph.edges if edge.hub_suppressed]
+    if suppressed and not live:
+        # SR3 is "one high-frequency entity acts as the ONLY bridge": a hub was
+        # suppressed and nothing else is left holding the graph together. Asking
+        # instead whether every ENTITY-BEARING edge was suppressed says the same
+        # thing only while every edge carries an entity, which stopped being true
+        # when `bridge_entity` became its own field -- and would then fire on a
+        # graph whose anchors are perfectly alive, destroying the group for having
+        # sat in a busy folder.
         fired.append(SR3)
-        evidence.extend(edge.evidence_ref for edge in bridging)
+        evidence.extend(edge.evidence_ref for edge in suppressed)
 
     found = conflicts_for(graph.file_ids)
     if found:

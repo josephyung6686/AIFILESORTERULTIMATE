@@ -106,9 +106,6 @@ def make_released_evidence(**overrides) -> ReleasedEvidence:
         address="0:19",
         value="Columbia University",
         zone="body",
-        context_before=None,
-        context_after=None,
-        context_truncated=False,
     )
     values.update(overrides)
     return ReleasedEvidence(**values)

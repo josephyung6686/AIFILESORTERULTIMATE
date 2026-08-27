@@ -29,14 +29,19 @@ from dataclasses import dataclass
 from database_agent.db import transaction
 from database_agent.events import append_event
 from evidence_shape.location import TextSpan
+from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.records import (
     CallFailed,
     DossierRequest,
     EvidenceItem,
     P8Verdict,
+    PromptDefinition,
     Refusal,
     ValidationUnavailable,
 )
+# P8's `Conflict` is `(conflict_id, kind)`; P9's is `(kind, competing_values,
+# file_ids)`. Two records, one word, so the import is qualified rather than bare.
+from llm_harness.records import Conflict as P8Conflict
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -140,12 +145,38 @@ def _excerpt_items(dossier: CandidateGroupDossier) -> tuple[EvidenceItem, ...]:
             evidence_ref=excerpt.observation_key,
             kind="excerpt",
             location=excerpt.location,
-            excerpt_span=(0, len(excerpt.text)),
+            # The observation's own span, straight through. This computed
+            # `(0, len(excerpt.text))`, which is a span the observation never
+            # claimed whenever it did not start at 0 or the text was truncated.
+            excerpt_span=excerpt.text_span,
             reliability_state="direct",
             basis=DIRECT_ANCHOR,
         )
         for excerpt in dossier.excerpts
     )
+
+
+def prompt_fingerprint_for(prompt: object, *, absent: str) -> str:
+    """The fingerprint P7 binds the release to: the PROMPT's, not the dossier's.
+
+    `llm_harness/transport.py:74` recomputes this from the `PromptDefinition` it
+    is about to send and refuses the release when the two disagree, so a request
+    bound to anything else -- the dossier's own content address, for instance --
+    raises `privacy.binding.BindingMismatch` after P7 has already spent the
+    release. The pipeline bound it to the dossier address, which is why the first
+    real group call could never reach a model.
+
+    `absent` is used only when there is no prompt to fingerprint. That request is
+    refused with `ValidationUnavailable(missing=("prompt",))` before any egress
+    (`llm_harness/harness.py:144`), so the value never reaches a binding.
+
+    It lives here rather than in `pipeline.py` because
+    `test_src_grouping_imports_no_later_part` allows exactly one file under
+    `src/grouping/` to import `llm_harness`, and this is that file.
+    """
+    if isinstance(prompt, PromptDefinition):
+        return prompt_fingerprint(prompt)
+    return absent
 
 
 def build_dossier_request(
@@ -169,7 +200,15 @@ def build_dossier_request(
         subject_ref=dossier.group_id,
         eligibility_reason=COHERENCE_JUDGEMENT,
         evidence_items=_member_items(dossier) + _excerpt_items(dossier),
-        conflicts=(),
+        # The builder's known conflicts, in P8's shape. Hardcoding `()` here made
+        # Site B's `target_institution` check (`llm_harness/group_validation.py:113`)
+        # unreachable from P9 -- the same defect the frozen contract added this
+        # field to fix (`planning/30-p8-p9-connection-contract.md:60-61`), arriving
+        # from the other side. The id is stable per (group, kind) so two calls over
+        # one group name the same conflict.
+        conflicts=tuple(
+            P8Conflict(conflict_id=f"{dossier.group_id}:{item.kind}", kind=item.kind)
+            for item in dossier.conflicts),
         model_call_request=ModelCallRequest(
             stage=GROUP_STAGE,
             target=Target(file_ids=files, group_id=dossier.group_id),
@@ -177,7 +216,12 @@ def build_dossier_request(
             requested_items=tuple(
                 ReleaseExcerpt(
                     observation_key=excerpt.observation_key,
-                    span=TextSpan(0, len(excerpt.text)),
+                    # `None` means "the whole citation" and is a legal request
+                    # (`privacy/items.py:116`). Synthesising `TextSpan(0, len(...))`
+                    # for it is what made P7 refuse every unbounded observation
+                    # with `UnresolvableSpan`, after the release had been minted.
+                    span=(None if excerpt.text_span is None
+                          else TextSpan(*excerpt.text_span)),
                     reason="states the group's basis",
                 )
                 for excerpt in dossier.excerpts
@@ -333,7 +377,12 @@ def apply_p8_verdict(
                 support=support,
                 insufficient_evidence=False,
                 insufficiency_statement=None,
-                conflicts=(),
+                # The conflicts that name THIS file, not the group's whole set: a
+                # membership claiming a conflict it is not part of is as wrong as
+                # the hardcoded `()` that claimed none at all.
+                conflicts=tuple(
+                    conflict for conflict in dossier.conflicts
+                    if item.file_id in conflict.file_ids),
                 outlier_flag=NOT_FLAGGED,
                 validation_verdict_ref=result.verdict_id,
                 created_at=created_at,
