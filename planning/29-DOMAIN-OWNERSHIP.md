@@ -225,7 +225,7 @@ manufacturing.work-instruction | OTHER-TEAM | active
 nonprofit.advocacy-campaign | OTHER-TEAM | complete
 nonprofit.fundraising-donor | OTHER-TEAM | active
 nonprofit.governance | OTHER-TEAM | active
-nonprofit.grant-reporting | OTHER-TEAM | active
+nonprofit.grant-reporting | OTHER-TEAM | complete
 nonprofit.member-association | OTHER-TEAM | active
 nonprofit.political-campaign | OTHER-TEAM | active
 nonprofit.religious-institution | OTHER-TEAM | active
@@ -344,7 +344,7 @@ law_practice.regulatory-submission | OTHER-TEAM | active
 law_practice.settlement | OTHER-TEAM | complete
 manufacturing.energy-audit | OTHER-TEAM | complete
 nonprofit.advocacy-campaign | OTHER-TEAM | active
-nonprofit.grant-reporting | OTHER-TEAM | active
+nonprofit.grant-reporting | OTHER-TEAM | complete
 nonprofit.trade-union | OTHER-TEAM | active
 retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active

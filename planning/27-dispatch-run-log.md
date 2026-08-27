@@ -1268,3 +1268,7 @@ Accepted (energy boundary + baseline + ECM). Pair committed.
 ### Landed — retail_hospitality.bookings-reservations
 
 Accepted (operator capacity/status apparatus; NJ-BR-1 dimensional thinness flagged). Pair committed.
+
+### Landed — nonprofit.grant-reporting
+
+Refused (duplicate of nonprofit restricted-grant schema default). Pair committed.
