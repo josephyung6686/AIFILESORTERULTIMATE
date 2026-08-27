@@ -120,6 +120,12 @@ CREATE TABLE IF NOT EXISTS files (
     sensitivity_state         TEXT
 );
 CREATE INDEX IF NOT EXISTS files_content_hash ON files (content_hash);
+-- `observe_path` asks `WHERE current_path = ?` twice for every file it
+-- admits, and `scan_agent.watch` and `stat_cache` ask it again. Unindexed,
+-- each of those is a full pass over every file already recorded, which makes
+-- the scan quadratic in the size of the corpus. Not UNIQUE: a superseded row
+-- (R3) keeps its path while the new version records the same one.
+CREATE INDEX IF NOT EXISTS files_current_path ON files (current_path);
 """
 
 
@@ -155,6 +161,12 @@ CREATE TRIGGER IF NOT EXISTS events_no_replace
 BEFORE INSERT ON events
 WHEN EXISTS (SELECT 1 FROM events WHERE event_id = NEW.event_id)
 BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
+-- `events` grows about three rows per file, and two per-file questions are asked
+-- of it by `file_id`: P3's "has this file been discovered?" (`basic_record.py:38`)
+-- and `file_path_history`. Unindexed, each is a pass over three times the corpus
+-- for every file admitted -- the largest single term in the scan's cost. An index
+-- adds no way to update or delete a row, so R6's append-only guarantee is untouched.
+CREATE INDEX IF NOT EXISTS events_file_id ON events (file_id);
 """
 
 

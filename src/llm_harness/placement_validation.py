@@ -459,7 +459,17 @@ def validate_residual_response(
 
 
 def _ensure_identity_table(conn: sqlite3.Connection) -> None:
-    conn.executescript(_IDENTITY_DDL)
+    """`execute`, never `executescript`.
+
+    `sqlite3.Connection.executescript` COMMITs any pending transaction before it
+    runs the script. This DDL is lazy -- it runs on every C/D verdict write, and
+    `harness._issue_and_validate` holds ONE transaction over the consequence and
+    the verdict that justifies it -- so `executescript` here committed the
+    harness's transaction from under it, and the harness's own COMMIT then raised
+    `cannot commit - no transaction is active`. `_IDENTITY_DDL` is one statement,
+    so one `execute` runs it inside whatever transaction the caller owns.
+    """
+    conn.execute(_IDENTITY_DDL)
 
 
 def record_cd_verdict(

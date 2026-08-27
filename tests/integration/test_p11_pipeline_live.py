@@ -294,9 +294,8 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
       PROMPT and not a label -- a mismatch raises `BindingMismatch` after the gate
       has already released.
 
-    The chain then stops inside P8's own verdict write, which the strict xfail
-    below reports. What this test proves is that P11's request is one P8 accepts
-    and P7 releases against.
+    What this test proves is that P11's request is one P8 accepts and P7 releases
+    against; the test below carries it through to the decision P11 returns.
     """
     import placement.pipeline as pipeline
     from placement.index import legal_node_ids
@@ -319,14 +318,13 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
 
     pipeline.call_placement = _observe
     try:
-        with pytest.raises(Exception) as raised:
-            place_file(live,
-                       subject=Subject(kind=v.FILE, file_id=file_id,
-                                       content_hash=content_hash, group_id=None,
-                                       member_file_ids=()),
-                       inputs=_inputs(live, gate=_gate(live)),
-                       evidence=_evidence(obs), component_version="P11-live",
-                       observed_at=FIXED_CLOCK)
+        decision = place_file(live,
+                              subject=Subject(kind=v.FILE, file_id=file_id,
+                                              content_hash=content_hash,
+                                              group_id=None, member_file_ids=()),
+                              inputs=_inputs(live, gate=_gate(live)),
+                              evidence=_evidence(obs), component_version="P11-live",
+                              observed_at=FIXED_CLOCK)
     finally:
         pipeline.call_placement = real
 
@@ -346,24 +344,33 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
     assert seen["sites"].fact is None and seen["sites"].template is None
     # And the call went the whole way: P7's gate RELEASED (an unresolvable span or
     # a binding mismatch would have raised long before here), the model was
-    # invoked, and the failure is inside P8's own verdict write.
-    assert "no transaction is active" in str(raised.value), raised.value
+    # invoked, P8's validator judged the answer, and P8's verdict write COMMITTED
+    # -- it used to raise `cannot commit - no transaction is active` right here.
+    assert decision.outcome in v.OUTCOMES
+    assert live.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 1
 
 
-def test_p8s_verdict_write_still_breaks_the_live_placement_chain(live, tmp_path):
-    """KNOWN DEFECT, in P8 and not in P11.
+def test_p8s_verdict_reaches_p11_and_the_whole_write_lands_together(live, tmp_path):
+    """The first live model-backed placement the product completes end to end.
 
-    With a real released transport and a real Site C response, `run_call`'s
-    verdict write reaches `database_agent.db.transaction` with no active
-    transaction and raises `OperationalError: cannot commit - no transaction is
-    active`. Everything before it -- P11's request, P8's eligibility and
-    reduction, P7's release, the dossier, the model call -- succeeds, which is
-    what the test above asserts.
+    This was `xfail(strict=True)` for as long as `run_call`'s verdict write
+    raised `OperationalError: cannot commit - no transaction is active`. The
+    cause was one call: `placement_validation._ensure_identity_table` ran its
+    lazy `llm_cd_plan_identity` DDL through `sqlite3.Connection.executescript`,
+    which COMMITs any pending transaction before it runs -- so it committed the
+    ONE transaction `harness._issue_and_validate` holds over the consequence and
+    the verdict that justifies it, and the harness's own COMMIT then found
+    nothing active. `tests/p8/test_p8_placement_validation.py` guards both
+    directions of that.
 
-    `xfail(strict=True)` on purpose: it reports the defect on every run, and the
-    day P8 fixes it this XPASSes, the suite turns RED, and somebody has to come
-    back here and assert the verdict P11 now actually receives.
+    The xfail asked whoever fixed it to come back and assert the verdict P11 then
+    receives, so this asserts all three things that were never once true before:
+    the verdict P8 recorded, the identity row written WITH it in the same
+    transaction, and the decision P11 built out of it.
     """
+    from llm_harness.vocabulary import CITATION_NOT_IN_DOSSIER, NO_DESTINATION, REJECT
+
     file_id, content_hash = _corpus_file(live, tmp_path / "corpus")
     obs = _observation(live, file_id=file_id, content_hash=content_hash)
     _classify(live, file_id=file_id, content_hash=content_hash, obs=obs)
@@ -374,15 +381,35 @@ def test_p8s_verdict_write_still_breaks_the_live_placement_chain(live, tmp_path)
                         group_id=None, member_file_ids=()),
         inputs=_inputs(live, gate=_gate(live)), evidence=_evidence(obs),
         component_version="P11-live", observed_at=FIXED_CLOCK)
-    assert decision.outcome in v.OUTCOMES
 
+    # 1. P8's judgement of the model's answer. The fixture response cites an
+    # evidence_ref the dossier does not carry, so Site C rejects it -- P8's own
+    # verdict, reached by P8's validator against P11's authorities.
+    verdict = live.execute("SELECT * FROM llm_verdict").fetchall()
+    assert len(verdict) == 1, [dict(row) for row in verdict]
+    verdict = verdict[0]
+    assert verdict["outcome"] == REJECT
+    assert verdict["disposition"] == NO_DESTINATION
+    assert verdict["plan_version"] == "plan-1"
+    assert json.loads(verdict["payload"])["reasons"] == [CITATION_NOT_IN_DOSSIER]
 
-test_p8s_verdict_write_still_breaks_the_live_placement_chain = pytest.mark.xfail(
-    strict=True,
-    reason="P8's verdict write raises OperationalError('cannot commit - no "
-           "transaction is active') on a live released call. XPASSes and fails "
-           "the suite the moment P8 fixes it.",
-)(test_p8s_verdict_write_still_breaks_the_live_placement_chain)
+    # 2. The identity row that the same transaction had to land with it: a C/D
+    # verdict that cannot say which plan and which evidence snapshot it judged is
+    # the orphan the single transaction exists to prevent.
+    identity = live.execute(
+        "SELECT plan_version, evidence_snapshot_id FROM llm_cd_plan_identity "
+        "WHERE verdict_id = ?", (verdict["verdict_id"],)).fetchone()
+    assert identity is not None
+    assert identity["plan_version"] == "plan-1"
+    assert identity["evidence_snapshot_id"].startswith("snap-")
+    assert live.execute(
+        "SELECT count(*) AS c FROM llm_grounding_report").fetchone()["c"] == 1
+    assert not live.in_transaction        # committed, not left open
+
+    # 3. And what P11 does with a rejected placement: no destination is supported,
+    # so it abstains and the file does not move.
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
 
 
 def test_a_refusal_is_the_privacy_answer_and_a_non_verdict_is_refused_loudly(

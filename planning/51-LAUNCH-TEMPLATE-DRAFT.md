@@ -34,6 +34,37 @@ carried over on trust.
 
 ---
 
+> ### 54 is the FIRST WAVE, not the ceiling — J-WIDE-1
+>
+> Ratified by Joseph on 2026-08-27 (`410d21c`,
+> [`overnight/council/DECISION-BRIEF.md`](overnight/council/DECISION-BRIEF.md) §J-WIDE-1): **all 23
+> roster schemas become real, field-declaring schemas.** PR-6's field freeze on the thirteen
+> professional-world schemas is overruled.
+>
+> **Read the 54 accordingly.** They are the rows that can build a folder *today*, on the six schemas
+> that happen to declare fields already. **278 of the 335 template rows point at schemas that are
+> about to gain fields** — 78% of the catalogue. A reader who takes 54 as the product's reach will
+> conclude it files six kinds of thing; it is designed to file twenty-three, and the roster has
+> already researched all of them.
+>
+> The audit sentence that forced the ruling is worth keeping in view, because it is a north-star
+> failure and not a coverage statistic: where two rows collide and only one side has fields, *"the
+> side with a tree wins regardless of the signal — a builder's job-site photo files next to his
+> kids' birthday photos."*
+>
+> **What does not change:** 00's cap of **three to six fact fields per schema** stands; canonical
+> keys are reused, never re-spelled; the roster stays at 358; refusals stand. **`medical` stays
+> field-less by privacy design** — condition and provider names would become visible folder labels —
+> and `identity` and `legal` remain safety domains. The sequencing the ruling implies is `career`
+> first (J-WIDE-2, §4.8), then `creative` (42 rows), `law_practice` (37), `construction_property`
+> (28) and `manufacturing` (20).
+>
+> **Nothing in this document changes because of J-WIDE-1.** Every definition here is drafted against
+> a schema that already declares fields. What changes is what the document *means*: it is the first
+> wave of a library 00 sizes at *"roughly 200-300 domain-specific templates"*, not the library.
+
+---
+
 ## 0. The answer, before the evidence
 
 | | |
@@ -50,16 +81,29 @@ carried over on trust.
 | Order-carrier fragments the built composition path forces (Judgment Call 2) | **19** |
 | Definitions serving more than one schema | **2** (one serves three) |
 | Candidate orders I had to author because the corpus attests only one | **10** |
+| Further definitions drafted for `career` but **unable to bind** (§4.8) | **1**, with 0 applicability rows and **no default set** |
+| Template rows still gated on a schema declaring fields — **wave 2, not the ceiling** | **278** of 335 |
 
-**Six things need the owner and cannot be settled here** — §8. Everything else in this document is
-mechanical once those six are answered.
+**Eight things need the owner and cannot be settled here** — §8. Everything else in this document is
+mechanical once those eight are answered.
 
-**Three findings came out of running the built code rather than reading it** (§3.4, verified in the
-appendix): a definition that references no fragment *raises* at composition time; a
-definition-local dimension carries no ordering constraint and sorts last; and the three shared
-fragments, merged, derive 00's own Academic order `school → term → course → work type` with no
-further input. The first two are why §3 has two tiers of fragment. The third is the strongest
-evidence in this document that the role vocabulary is right.
+**Every definition carries a human-sense test** (§4 and §4.8): would a real person name this folder
+this way, out loud, to another person — and which *different* plausible person, holding the same
+files, would want a different shape. Four definitions fail it, and they are named rather than
+smoothed over: **D08** (a child's IEP — fails on purpose, because the two words a parent would use
+are both forbidden as folder labels), **D19** and **D20** (a traveller says *"my Japan trip"* and a
+household says *"the car folder"*, and neither the trip nor the asset is a field), and **D03**
+(a homeschooling parent files by the child's name). Two more pass only at a shallower depth than
+drafted: **D23** — a person makes one folder called `Screenshots` and stops — and **D24**, where
+nobody names a folder `Scans` on purpose.
+
+**`career` ships `launch: full` and cannot build a folder** — 0 fields, 6 template rows, 6 empty
+dimension orders. This is a hole in the wave already declared full, not a wave-2 item. §4.8 drafts
+J-WIDE-2's two orders as one definition's `candidate_orders` and **deliberately leaves the default
+unset**: a dedicated `career` pass in another session owns the fragmentation evidence that decides
+which order is recommended, and this document does not duplicate it. §4.8 also records two things
+that constrain whatever they land — the two orders have **disjoint role sets**, and the record
+requires **exactly one** default, so "neither is the default" is not constructible today.
 
 ---
 
@@ -532,6 +576,16 @@ provider"* · *"a scoped `General` under the deepest resolved parent rather than
 where `subject_anchor` resolves to one value the level is flagged by V2 and flattened on the canvas,
 not removed from the recipe.
 
+**Human-sense test.** *"My Columbia stuff → spring semester → physics → homework."* A student
+says all four of those words out loud, in that order, to another person. This is the most
+conventional tree in the launch set and the one a careful person builds by hand.
+**A different person, same files:** someone taking one evening course a year says *"my Python
+course"* and nothing above it — school and term are noise, and the recipe drops both by making them
+optional rather than by being a different recipe. The `research` binding serves a third person
+entirely: a bench scientist says *"the lab's protocols"*, not *"my project's protocols"*, which is
+why `holder_institution` leads for them and is invisible for the evening student. One recipe, three
+depths, no relabelling.
+
 ---
 
 #### **D02 · `def.subject-work-record.third-party@1`** — `cross-domain` · `sp.third-party-confidential@1`
@@ -552,6 +606,13 @@ approved for years"*).
 value · a roster, gradebook or consent-signature leaf is a *folder name* and a folder name is visible
 where the file's contents are not.
 
+**Human-sense test.** A lecturer says *"my Spring 2026 sections."* An IRB coordinator says *"the
+consent forms for the sleep study."* Both name the container before the thing inside it, which is
+what this order does.
+**A different person, same files:** a TA with one course wants no term level at all; a PI running
+four studies would never say *"2026 → sleep study"* — they say the study first, which is the second
+candidate order. The split between them is depth and order, not vocabulary.
+
 ---
 
 #### **D03 · `def.subject-work-record.household@1`** — `domain-focused` · `sp.household-member-record@1`
@@ -571,6 +632,13 @@ label the household invented, which no schools gazetteer will ever confirm."*
 > not "third parties", it merges into D02. Both are defensible; the row itself calls the underlying
 > question *"Joseph's call, not this node's."*
 
+**Human-sense test.** A homeschooling parent says *"this year's work"* and then **the child's
+name.** Every level this recipe offers is in the parent's own vocabulary, and the tree is still
+organized wrong, because the level they actually file by is the one no field carries (JC 5d).
+**This is the clearest case in the set where a technically correct tree fails the human test for a
+reason no template can fix.** A single-child household would flatten it to `subject › work_type` and
+never miss the term; a two-child household will notice on day one.
+
 ---
 
 #### **D04 · `def.reading-shelf@1`** — `domain-focused` · `sp.not-holder-personal@1`
@@ -588,6 +656,14 @@ deeper path invented to fill the shape."* · `venue` is legal here and is **neve
 on it produces one folder per journal over a long tail of single papers"* · `lab` is worse — *"for a
 paper by others, the affiliation describes its authors, and an author-or-affiliation level is the
 collector 00 forbids outright."*
+
+**Human-sense test.** A person says *"papers"* or *"my reading"*, never *"artifact type"*. The leaf
+labels must be `Papers`, `Preprints`, `Book Chapters` — which is what the field's values already
+are, so the label passes as long as the role name never reaches the screen.
+**A different person, same files:** a student writing a literature review wants papers grouped by
+**topic**, and no topic field exists. A methods-focused reader wants them by **journal**, which the
+row refuses on the tiny-folders warning and offers only as a user reordering. Neither is served by
+the default — stated here rather than hidden.
 
 ### 4.2 Family B — an institution-issued record with no subject (academic)
 
@@ -608,6 +684,12 @@ value the document does not assert.
 
 **Row (1):** `academic.transcripts-credentials` (binds hi, ak).
 
+**Human-sense test.** *"My Columbia transcript."* People name the institution, then the document.
+Correct as drafted.
+**A different person, same files:** someone assembling a job application says *"my diplomas"* first
+and does not care which school issued which. That is this definition's authored second order, and it
+is the one place in §4.8 where the authored alternative is clearly right rather than filler.
+
 #### **D06 · `def.household-school-record@1`** — `sp.household-member-record@1`
 
 | Candidate order | Nesting | Attested by |
@@ -618,6 +700,12 @@ value the document does not assert.
 **Row (1):** `academic.k12-schooling`. The row states plainly that *"The order this situation actually
 wants is child → school year → work type, and no declared field names the child"* — that is
 **Judgment Call 5**.
+
+**Human-sense test.** A parent says *"Maya's school stuff"* — and the first word is again the
+child. Without that field, `school › year › report card` is the closest true thing the product can
+say, and it is what a one-child household would build anyway.
+**A different person, same files:** a household with two children at the same school gets both
+children merged into one branch, and will see it immediately. Same gap as D03, same JC 5d.
 
 #### **D07 · `def.evaluative-letters@1`** — `sp.third-party-confidential@1`
 
@@ -632,6 +720,13 @@ Roles: `cycle_period`(req) · `artifact_kind`(req). Fragment: `frag.cycle-then-a
 from one employing institution"* — and `subject` is dropped because *"the course in which the writer
 taught one applicant is sparse in these files and, where present, yields a folder holding a single
 letter."* No dimension names the person a letter is about, and none may.
+
+**Human-sense test.** A professor says *"the letters I wrote this fall."* `term › work_type` is
+literally that sentence.
+**A different person, same files:** a professor who writes for the same handful of students year
+after year files by **the student** — the one dimension the design forbids outright. The tree is
+right and the person's instinct is one the product deliberately declines to serve; the interface
+should say so rather than silently produce a shape they did not ask for.
 
 #### **D08 · `def.protected-plan-record@1`** — `sp.household-member-record@1`
 
@@ -650,6 +745,15 @@ and sync clients all read."* The `work_type` fact still extracts and still drive
 simply never a level. This is the one place in the launch set where a privacy rule removes a
 dimension rather than restricting a file, and it is why D08 cannot merge into D06.
 
+**Human-sense test — and it fails, deliberately.** A parent says *"Maya's IEP."* Both of those
+words are forbidden as folder levels: the name because it is a person, the plan type because a
+folder called `504 Plan` publishes a named child's disability determination into a namespace Finder,
+Spotlight and every sync client read. What remains — `school › year` — is a tree no parent would ever
+name out loud.
+**This is the one definition in the set that fails the human-sense test on purpose, and it should.**
+Recording it as a failure rather than dressing it up as a design is the honest read; the alternative
+is a folder name that leaks a child's disability.
+
 ### 4.3 Family C — code
 
 #### **D09 · `def.preserved-root@1`** — `domain-focused` · `sp.holder-own-record@1`
@@ -659,6 +763,12 @@ the record permits for a single-role recipe.
 `ord.project-only` ★ — `subject_anchor`. **Row (1):** `code.pkm-vault`, whose own words are *"One
 dimension, deliberately"*, because 00 says *"Existing folders must not be automatically flattened,
 renamed, or reorganized simply because a template would produce a different structure."*
+
+**Human-sense test.** A person says *"my notes"*, or the vault's own name. One level, carrying the
+name the user already gave it, is exactly what they would say.
+**A different person, same files:** none plausible wants more. This is the rare definition where
+every persona agrees, which is why the row's *"One dimension, deliberately"* holds without a second
+opinion.
 
 #### **D10 · `def.container-artifact@1`** — `domain-focused` · `sp.credential-bearing@1`
 Roles: `repository_instance`(req) · `artifact_kind`(req). Fragment: `frag.container-then-artifact@1`.
@@ -673,6 +783,13 @@ Roles: `repository_instance`(req) · `artifact_kind`(req). Fragment: `frag.conta
 recommendation is to flatten to nothing and leave them where they are"*, because *"A dotfile that the
 machine reads from a fixed location… moving it breaks the tool that reads it."* That is
 **Judgment Call 4**.
+
+**Human-sense test.** A developer says *"my dotfiles."* They do **not** say
+*"dotfiles → shell configuration"* — they say `zsh/`, `nvim/`, `git/`: per **tool**, which no field
+carries and which the row's own open question names.
+**A different person, same files:** a developer with three machines wants the **machine** first.
+Both instincts point at keys that do not exist, which is exactly why the row's honest recommendation
+is to leave dotfiles where they are and represent them rather than move them (JC 4).
 
 ### 4.4 Family D — college applications
 
@@ -709,6 +826,14 @@ a shared supporting document attached to several packets never inherits an addre
 shared branch exists, the system should not arbitrarily choose one university. It should abstain or
 ask the user to choose a primary home."*
 
+**Human-sense test.** *"My UChicago application."* Everybody says the school first.
+**A different person, same files — and this is the strongest argument in the document for candidate
+orders:** the scholarship applicant says *"my 2026 applications"*. A season, not a sponsor, because
+they applied to thirty places and each one got one essay. Two people, the same file types, opposite
+trees, and 00 refuses to choose between them: *"the product should not assume that all applications
+are best organized in the same way."* Under a single frozen order one of these two people is simply
+wrong.
+
 #### **D12 · `def.addressee-packet.household@1`** — `sp.household-member-record@1`
 
 | Candidate order | Nesting | Attested by |
@@ -717,6 +842,10 @@ ask the user to choose a primary home."*
 | `ord.cycle-addressee-kind` | cycle_period › addressed_org › artifact_kind | **AUTHORED** |
 
 **Row (1):** `applications.k12-admission`.
+
+**Human-sense test.** A parent says *"the Dalton application."* Named correctly.
+**A different person, same files:** two children applying in the same year are merged, same gap as
+D03 and D06.
 
 #### **D13 · `def.purpose-packet@1`** — `scope_kind: purpose-focused` · `sp.holder-own-record@1`
 
@@ -732,6 +861,13 @@ an application submission."*
 `target_university` cannot, because *"this packet frequently has no single addressee"*;
 `application_document_type` cannot, because *"a folder of loose Certificates is exactly the
 fragmentation the flat packet exists to prevent."*
+
+**Human-sense test — it passes because a person already wrote the label.** 00's own instance of
+this branch is a folder the user made and named themselves: *"an existing Chinese University
+Application Materials directory."* That is the test passing at the source.
+**The risk here is the opposite one:** that the product renames a folder the user already named
+well. The row's answer is to adopt it rather than rebuild it, which is also 00's — *"A carefully
+curated existing folder should be treated as a strong expression of user intent."*
 
 ### 4.5 Family E — finance (18 rows, all `sp.safety-domain-protected@1`)
 
@@ -759,6 +895,14 @@ coverage-line level under each carrier would usually open a branch with a single
 `artifact_kind`, never above `issuing_org`, and never filled from a statement period ·
 `account_holder` is not a live field and would never be a level if it became one.
 
+**Human-sense test.** *"My Chase statements."* Bank, then account, then kind — which is how bank
+websites are laid out and how people talk about them.
+**A different person, same files:** someone who has switched banks twice says *"my checking
+account"*, because the account is the durable thing and the bank is what changed;
+`finance.investment-brokerage` argues exactly that for retirement accounts, and it is this
+definition's second candidate order. A third person — a small-business owner — wants neither name at
+the top, which is why D18 exists as a separate recipe rather than a third order here.
+
 #### **D15 · `def.issuer-period-record@1`**
 Roles: `issuing_org`(req) · `scope_period`(req) · `artifact_kind`(req). Fragment: `frag.issuer-then-period-then-record@1`.
 
@@ -770,6 +914,11 @@ Roles: `issuing_org`(req) · `scope_period`(req) · `artifact_kind`(req). Fragme
 **Row (1):** `finance.payroll-received`. This is deliberately **not** a depth variant of D14: D14's
 rows put `tax_year` *under* the record kind as an optional leaf; this row puts it *above*. Different
 position is a different recipe.
+
+**Human-sense test.** *"My ADP pay stubs, 2025."* Employer then year is how people talk about
+payroll.
+**A different person, same files:** someone doing their taxes wants the year first and does not care
+who paid — that is D16's shape, and it is this definition's authored second order.
 
 #### **D16 · `def.period-scoped-filing@1`** — the one finance definition that is time-first
 Roles: `scope_period`(req) · `artifact_kind`(req) · `issuing_org`(opt). Fragment: `frag.period-then-record@1`.
@@ -790,6 +939,12 @@ invoice — because *"The graph does not automatically copy those missing facts 
 Those members land in a scoped `General` under the year, or in review. That consequence is real and
 is **Judgment Call 5(b)**.
 
+**Human-sense test.** *"My 2025 taxes."* This is the most confidently-named folder in the entire
+launch set. Nobody says *"tax records → 2025"*, and that is the whole case for putting time first
+here even though 00 licenses the exception only for capture media.
+**A different person, same files:** an accountant with several clients wants the **client** first —
+a role the finance schema has no key for. Finance's version of JC 5.
+
 #### **D17 · `def.loan-kind-record@1`**
 Roles: `account_kind`(req) · `issuing_org`(opt) · `artifact_kind`(req). Fragment: `frag.loan-kind-then-record@1`.
 
@@ -804,6 +959,12 @@ constraint rather than a preference: **no candidate order may put `issuing_org` 
 serviced by a third; institution-first scatters a single loan across sibling folders whose members
 belong together."*
 
+**Human-sense test.** *"My mortgage."* Not *"Wells Fargo → mortgage"* — the loan is the thing and
+the servicer is trivia that changes underneath it, which is precisely the row's argument for
+refusing an institution-first order.
+**A different person, same files:** someone with two mortgages on two properties says the
+**property** first, and no field carries it. Same gap as D20.
+
 #### **D18 · `def.function-first-book@1`**
 Roles: `artifact_kind`(req) · `account_kind`(opt). Fragment: `frag.function-then-container@1`.
 
@@ -815,6 +976,12 @@ Roles: `artifact_kind`(req) · `account_kind`(opt). Fragment: `frag.function-the
 **Row (1):** `finance.small-business-bookkeeping`. `issuing_org` is omitted for a reason that is 00's
 own rule, not a preference: *"using the holder's own operation as the leading institution would turn
 authorship-side identity into the collector 00 forbids."*
+
+**Human-sense test.** A small-business owner says *"the ledger"*, *"invoices out"*, *"receipts
+in"* — function words, never institution names. Correct as drafted, and it is the one finance recipe
+whose top level is a verb-shaped noun rather than a proper noun.
+**A different person, same files:** an owner whose bookkeeping is really one bank account would
+prefer the bank first — but that person is describing D14's situation, not this one.
 
 #### **D19 · `def.function-then-issuer@1`**
 Roles: `artifact_kind`(req) · `issuing_org`(opt). Fragment: `frag.function-then-issuer@1`.
@@ -828,6 +995,14 @@ Roles: `artifact_kind`(req) · `issuing_org`(opt). Fragment: `frag.function-then
 expressed**: *"the Finance schema cannot express it: the trip remains a P9 group or user-created
 branch and is never smuggled into dimension_order."*
 
+**Human-sense test — and it fails for a structural reason.** *"My boarding passes"*, *"hotel
+bookings"* are things people say, so `record_type › institution` reads correctly level by level. But
+what a traveller **actually** says first is *"my Japan trip"*, and the trip is the one thing this
+definition cannot express: *"the Finance schema cannot express it… it cannot encode trip then record
+type."*
+**Every plausible persona wants the same missing level here**, which makes this the strongest
+argument in the document for JC 6 and for answering `ROSTER.md` NJ-R1a-2.
+
 #### **D20 · `def.group-scoped-record@1`**
 Role: `artifact_kind`(req) only. Fragment: `frag.record-kind-only@1`. One candidate order,
 `ord.kind-only` ★.
@@ -837,6 +1012,14 @@ scoped inside an accepted single-asset group** and both say the same thing: the 
 field that does not exist (`property`, `vehicle`), and *"this row does not smuggle an unratified
 field into dimension_order."* `finance.vehicle-records`: *"institution-first scatters one vehicle
 across issuers and record_type-first at the corpus root merges several vehicles."*
+
+**Human-sense test — fails the same way.** People say *"the house papers"* and *"the car
+folder"*: they name the **asset**, then maybe the kind. This definition can only ever offer the
+second half of that sentence.
+**A different person, same files:** a household with one car and one house barely notices; a
+landlord with four properties gets four merged piles. The rows refuse to fake the missing level —
+*"no existing key may be repurposed to make the familiar vehicle then record-type tree appear
+complete"* — which is right, and the gap is real.
 
 ### 4.6 Family F — photos
 
@@ -852,6 +1035,13 @@ Roles: `capture_time`(req) · `occasion_anchor`(opt). Fragment: `frag.capture-ti
 
 `validation_constraints`: `people` and `camera_information` are not destination-eligible and never
 become levels — *"It should avoid using authorship or creator identity as a destination dimension"*.
+
+**Human-sense test.** *"Photos from 2026 → Japan Trip."* This is how every phone gallery is
+organized and how people describe their own photos, which is why 00 makes capture media the one
+time-first exception.
+**A different person, same files:** a builder photographing job sites wants the **site** first, not
+the year — the same instinct D25 serves with a place, and a wave-2 role (`site_anchor`) at full
+corpus. A parent with fifteen years of photos wants the year and would be lost without it.
 
 #### **D22 · `def.capture-time-events.third-party@1`** — `sp.third-party-confidential@1`
 Roles: `capture_time`(req) · `occasion_anchor`(opt) · `capture_kind`(opt). Same fragment.
@@ -869,6 +1059,14 @@ three) · `photos.family-archive` (oa, ct — takes the second order).
 reverses it on evidence rather than taste:** in this situation *"the capture date is precisely the
 thing that is not recoverable — the only machine-readable timestamp belongs to the scanner."*
 
+**Human-sense test.** A person says *"the family albums"* or *"grandma's photos"*. The
+default's year-first shape is exactly wrong for them and the row knows it — the only recoverable
+timestamp is the day someone ran the scanner — which is why `photos.family-archive` takes the
+reversed order.
+**A different person, same files:** someone exporting five years of WhatsApp says *"my chat
+exports"* and wants nothing below it at all. Flat is the right answer there, and the recipe reaches
+it by making every level optional rather than by being a third recipe.
+
 #### **D23 · `def.capture-kind-led@1`** — `sp.holder-own-record@1`
 Roles: `capture_kind`(req) · `capture_time`(opt). Fragment: `frag.capture-kind-then-time@1`.
 
@@ -878,6 +1076,16 @@ Roles: `capture_kind`(req) · `capture_time`(opt). Fragment: `frag.capture-kind-
 | `ord.year-then-kind` | capture_time › capture_kind | the row itself: *"Where the user has already made screenshots their own root, the media_type level has one child and should be flattened away, leaving capture_year leading"* |
 
 **Row (1):** `photos.screenshot-captures`.
+
+**Human-sense test — this is the lead's own question.** *Would a real person put random
+screenshots in a folder?* Some do, and they call it `Screenshots`: one word, no year, no subfolders.
+Many do not, and want them left where they fall and merely searchable, which 00 records as a
+genuine user preference.
+**So the honest reading is that the year level should default OFF** — a person makes one folder
+called Screenshots and stops. **A different person, same files:** a designer who screenshots
+reference material daily wants them by year or by project; a person who screenshots receipts wants
+those files to end up in **Finance**, not in Photos at all, which is D24's deferral pattern rather
+than a level of this one.
 
 #### **D24 · `def.capture-kind-led.document@1`** — `sp.document-reproduced-whole@1`
 Same roles, same fragment, same two candidate orders. **Row (1):** `photos.scanned-documents`.
@@ -889,6 +1097,14 @@ should enter a protected state immediately."* The row also carries the launch se
 recovered OCR activates another schema, that schema's template governs the placement and this
 template contributes `media_type` as a search fact only, so the scanned tax statement lands in the
 finance branch and the photographed homework page lands under the course, not under Scans."*
+
+**Human-sense test.** **Nobody names a folder `Scans` on purpose.** People scan a thing in order
+to file it somewhere else, which is why this definition's most common correct outcome is to
+contribute nothing to the path and let the finance or academic branch claim the file.
+**A different person, same files:** the exception is real — someone digitizing a filing cabinet over
+several months genuinely does want `Scans/2026` while the backlog is being worked through. Both are
+served by the same recipe at two depths, and which one a user is depends on whether scanning is a
+project or a habit. That is JC 5(e), and it decides where several hundred real files live.
 
 #### **D25 · `def.occasion-place@1`** — `sp.holder-own-record@1`
 Roles: `occasion_anchor`(req) · `place`(opt) · `capture_time`(opt). Fragment: `frag.occasion-then-place@1`.
@@ -902,6 +1118,13 @@ Roles: `occasion_anchor`(req) · `place`(opt) · `capture_time`(opt). Fragment: 
 product's own vocabulary carries its own year ('Japan Trip 2025'), so a year level above it… 'repeats
 a concept already expressed in the parent'."* `place` is offered *"only where the trip actually
 visited more than one resolved place."*
+
+**Human-sense test.** *"Japan Trip 2025 → Kyoto."* Both words are the user's own, and the trip
+label carries its own year the way people actually write it.
+**A different person, same files:** someone who travels to the same city every year for work wants
+the **city** first with years beneath it. The row argues against a place-first top and the argument
+is good, but the option should be visible rather than removed — a place-first order is a legitimate
+third candidate this draft does not ship and flags instead.
 
 ### 4.7 Family G — research beyond Family A
 
@@ -926,6 +1149,13 @@ either way, because both orders ship.
 
 **Rows (2):** `research.dataset-analysis`, `research.thesis-dissertation`.
 
+**Human-sense test.** *"The thesis → chapter 4 → drafts."* Artifact then stage is how a doctoral
+student talks about their own work, which is exactly why both bound rows invert 00's order.
+**A different person, same files:** a supervisor tracking several students thinks stage-first —
+*"who's in revision?"* — which **is** 00's order and this definition's second candidate. Two people,
+one corpus, opposite trees. The flip is defaulted for the person who owns the files; the supervisor's
+view ships beside it rather than being argued away.
+
 #### **D27 · `def.research-workflow-split@1`**
 Roles: `subject_anchor`(req) · `lifecycle_stage`(req). Fragment: `frag.subject-then-stage@1`.
 
@@ -939,6 +1169,13 @@ Roles: `subject_anchor`(req) · `lifecycle_stage`(req). Fragment: `frag.subject-
 narrative, budget, justification, biosketches and letters that were submitted as one thing."* The
 level this row actually wants first is the **sponsor**, and no organization key on the research
 schema carries the funding role. That is a gate, not an ordering question — **Judgment Call 5(c)**.
+
+**Human-sense test.** A PI says *"the NSF proposal"*, then *"before we got it / after"*.
+`project › stage` is that sentence, and the before-and-after split is the real navigation axis of a
+funded project.
+**A different person, same files:** a PI with three funders says *"NSF"* first, because the agency
+sets the formats, the deadlines and the rules. The most-wanted first word is the one no field carries
+(JC 5c).
 
 #### **D28 · `def.submission-to-venue@1`**
 Roles: `subject_anchor`(req) · `addressed_org`(opt) · `lifecycle_stage`(req).
@@ -960,6 +1197,13 @@ Fragment: `frag.venue-in-submission-chain@1`.
 > order still names it, the default *branch* does not open it. Both documents get what they asked
 > for.
 
+**Human-sense test.** *"The PVA paper → Nature Methods → response to reviewers."* All three
+levels are said out loud, in that order, by the person who wrote them.
+**A different person, same files:** a researcher whose papers each go to exactly one journal never
+says the journal — they say *"the PVA paper → revisions"*. That is why `addressed_org` is optional
+and the applicability row's expected shape leaves it closed until a second venue appears, which is
+how this draft reconciles `41` §4-C with the record.
+
 #### **D29 · `def.venue-bundle@1`**
 Roles: `addressed_org`(req) · `subject_anchor`(opt) · `artifact_kind`(req).
 Fragments: `frag.venue-prefix@1` + `frag.subject-then-artifact@1`.
@@ -973,7 +1217,184 @@ Fragments: `frag.venue-prefix@1` + `frag.subject-then-artifact@1`.
 bundle it carries one value for nearly every member"*. `lab` is not a role — *"a PI-named lab folder
 is one step from the authorship collector 00 forbids."*
 
-### 4.8 The ten authored alternatives
+**Human-sense test.** *"ASCB 2026 → the poster."* Conference then artifact, in the words a
+presenter uses.
+**A different person, same files:** someone who shows one project at five meetings says the
+**project** first and would otherwise find one poster's history scattered across five conference
+folders. The row records that counter-case itself, and it is this definition's second candidate
+order.
+
+### 4.8 Career — `launch: full`, zero fields, and J-WIDE-2
+
+**Career is in the launch wave and it cannot produce a folder.** Verified directly:
+
+```
+career.json           kind: schema   launch: "full"   fields: 0   proposed_fields: 0
+career.recruiting                    launch: "full"   template.dimension_order: []
+career.employment-records            launch: "placeholder"        dimension_order: []
+career.credentials-licenses          launch: "placeholder"        dimension_order: []
+career.portfolio-work-samples        launch: "placeholder"        dimension_order: []
+career.employer-side-hiring          launch: "placeholder"        dimension_order: []
+career.consulting-client-engagement  launch: "placeholder"        dimension_order: []
+```
+
+Six template rows, six empty orders. `career.json`'s own `template.why` is explicit that this is
+**"EMPTY BY CONTRACT, not by refusal"** — it holds 00's recommendation *"a Career template may define
+company → role or recruiting cycle → document type"* as prose precisely because *"a dimension may
+only branch on a field the schema declares, and this placeholder declares none."*
+
+The consequence, stated plainly: **the product ships recognising résumés, offer letters and
+recruiter threads, and has nowhere to put any of them.** Career is not a wave-2 gap; it is a hole in
+the wave the owner has already declared full.
+
+> **One correction to "zero proposed fields", and it is good news.** That is true of the *schema*
+> row. It is **not** true of career's template rows: `career.employment-records` has already proposed
+> **`employer`** and **`role`** — both `destination_eligible: true` — and `career.credentials-licenses`
+> has proposed `credential_expiry` (`destination_eligible: false`, correctly, since an expiry date is
+> a search fact and not a folder level).
+>
+> **Two of the four keys D30 needs are therefore already on the table, named and with their
+> folder-eligibility already decided.** The path from here to career shipping is shorter than the
+> schema row suggests — but see the role warning at the end of this section, which is now about a key
+> that has actually been proposed rather than a hypothetical one.
+
+#### What J-WIDE-2 rules
+
+> *"Build both templates and let the user choose during setup. Neither is the default; the question
+> is asked before the user has seen their own files."*
+>
+> *"Recorded honestly: this is the option that does the most work and picks no default. The trade
+> Joseph accepted is that job-hunting genuinely splits two ways — 'my 2026 search' vs 'everything
+> about Stripe' — and company-first produces many two-file folders, the 'many tiny folders' outcome
+> `00` tells the canvas to warn about."*
+
+`career.recruiting` reached the same finding independently, from the files rather than from the
+design: *"00 writes the middle level as a disjunction — 'role or recruiting cycle' — and those are
+not one field. One company running two processes needs role; one person running a whole search
+season needs cycle; **the two orders produce different trees from the same facts**."*
+
+#### **D30 · `def.career-search-and-tenure@1`** — `domain-focused` · `sp.holder-own-record@1` · **DRAFTED, NOT BINDABLE, DEFAULT PENDING**
+
+Roles: `employer_org`(req) · `role_title`(opt) · `cycle_period`(opt) · `artifact_kind`(req)
+
+| Candidate order | Nesting | Attested by |
+|---|---|---|
+| `ord.employer-role-cycle-kind` | employer_org › role_title › cycle_period › artifact_kind | 00 verbatim, first half: *"a Career template may define **company → role** or recruiting cycle → document type"*; `career.json`: *"company first, because a document type such as an offer letter is unintelligible without the employer"* |
+| `ord.cycle-kind-employer-role` | cycle_period › artifact_kind › employer_org › role_title | 00 verbatim, second half: *"company → role or **recruiting cycle → document type**"*; J-WIDE-2's *"my 2026 search"* |
+
+> ### ★ DEFAULT DELIBERATELY UNSET — the evidence is arriving from another lane
+>
+> **Neither order is marked default here, and that is not indecision.** A dedicated `career` pass in
+> another session owns the fragmentation analysis that decides it — the question of whether
+> `company → role` produces the *"large number of tiny folders"* 00 tells the canvas to warn about,
+> given that most applications are two or three files. **That analysis is finished in their lane and
+> is not duplicated here.** This document supplies the *shape*; they supply the *recommendation*;
+> the lead merges them.
+>
+> **This is not "both are equal, you decide."** The question is answerable from evidence, and the
+> evidence exists — it is simply not mine. When it lands, one of the two orders above takes
+> `is_default: true` and the other stays as the offered alternative, which is exactly what
+> `candidate_orders` is for.
+
+**Human-sense test.** J-WIDE-2 supplies both sentences itself, and both are things people say out
+loud: *"everything about Stripe"* and *"my 2026 search."* Neither is a taxonomist's phrase, so the
+naming question is settled for both orders and only the recommendation is open.
+**A different person, same files — and here they are not merely different, they are opposed.**
+Someone who has held four jobs over ten years says the company first: the company is the durable
+thing and the paperwork accretes under it. Someone job-hunting right now says the season first,
+because in one season they applied to many companies and most produced two files. **The two are not
+a big and a small version of each other — they are opposite shapes, deep-and-few against
+shallow-and-many.** That is why J-WIDE-2 ships both, and it is the clearest case in this document
+for the whole `candidate_orders` mechanism.
+
+**Applicability rows: 0.** No role above can be bound, because career declares no field. The
+definition is drafted so the recipe can be reviewed now and bound the moment the fields land;
+**it is not counted in the 54 and it is not counted in the 29.**
+
+#### Two things about J-WIDE-2 the built record cannot do as written
+
+**1. "Neither is the default" is not expressible.** `TemplateDefinition._check_orders` requires
+**exactly one** `is_default=True`:
+
+> *"`{n}` candidate orders are marked default. A definition RECOMMENDS exactly one and the end user
+> picks per branch (§5.3, §5.8); none means nothing can be previewed, and two means the
+> recommendation is undefined."*
+
+So the record forces a recommendation to exist even when the ruling says none should. Two readings,
+both honest: (a) `is_default` is the recipe's *preview* seed and the setup flow may still present
+the two orders unweighted, in which case the record and the ruling do not actually conflict and the
+draft above marks the employer-first order default only so a preview can render; or (b) the ruling
+means what it says and `_check_orders` needs a third state. **This draft takes (a) and flags (b).**
+It is JC 7.
+
+**2. "Two templates" and `candidate_orders` are mutually exclusive as 00 words them.** This one is
+structural and it is worth reading carefully, because it constrains the shape the other lane's
+recommendation will land in.
+
+The two orders 00 names have **disjoint role sets** — `company → role` uses an employer role and
+`role_title`; `recruiting cycle → document type` uses `cycle_period` and `artifact_kind`. The record
+refuses that as one definition: *"candidate orders must cover the same roles. An order that drops or
+adds a role is a different RECIPE."*
+
+There are exactly two ways to satisfy J-WIDE-2, and they are not equivalent:
+
+| | Shape | What the user is choosing | Does `chosen_order_id` record it? | Can the canvas preview them side by side? |
+|---|---|---|---|---|
+| **(i)** *drafted above* | **one** definition over the **union** of the four roles, two candidate orders | an **order** | **yes** | **yes** — 00 §5.5's own mechanism |
+| **(ii)** | **two** definitions, each over its own two roles | a **template** | **no** — `chosen_order_id` is null | no |
+
+**I drafted (i)**, because J-WIDE-2's substance is *"let the user choose during setup"* and (i) is the
+only shape in which that choice is recorded in the branch binding — which §8.8 requires of ordering
+choices — and the only one in which the canvas can show both options **with real branch counts**
+before the user commits. That last point matters directly to the other lane: **a fragmentation
+finding is exactly the kind of thing 00 wants shown as a branch count at decision time**, and under
+(ii) the two options cannot be counted against each other in one preview.
+
+**The cost of (i), stated:** the employer-first user carries a `cycle_period` role they never fill
+and the season-first user carries `role_title` unbound. Harmless — an unbound optional role simply
+does not resolve — but neither user's recipe is as tight as a purpose-built one would be. **If the
+other lane's evidence turns out to want different *roles* rather than a different *order*, the draft
+splits mechanically** into `def.career-by-employer@1` and `def.career-by-cycle@1`, each still
+needing two candidate orders of its own. This is JC 8.
+
+#### What the shape REQUIRES of career's field set — a dependency, not a proposal
+
+**The field set is the other lane's and this document proposes none.** What follows names what D30's
+four roles *need* in order to bind, so their pass can check the shape against whatever it lands. If
+their keys differ, the shape survives and only the role→field bindings change.
+
+| D30 role | Requirement on whatever key fills it | Why the requirement exists |
+|---|---|---|
+| `employer_org` | must be **destination-eligible** | it is a folder level in the first candidate order; `career.employment-records` already records that this *"rules out reusing `our_firm`"* (authorship-side identity, never a destination) *"and rules out `client`"* (the opposite side of the relationship) |
+| `role_title` | destination-eligible; must be **separable from the cycle** | `career.recruiting`: *"00 writes the middle level as a disjunction — 'role or recruiting cycle' — and those are not one field"* |
+| `cycle_period` | destination-eligible | it leads the second candidate order |
+| `artifact_kind` | destination-eligible; **should not be a fourth spelling of a concept the product already names** | `career.employment-records` refuses one outright: *"minting a fourth spelling for one concept is the 574's exact fragmentation failure"*, beside `work_type`, `record_type` and `application_document_type` |
+
+**One requirement is a constraint rather than a property, and it is the one worth handing over
+explicitly.** Career's "company" is not one thing. On `career.recruiting` it is the company the
+holder **applied to** — the row already carries a `school ↔ target_university` role split that puts
+it on the addressee side, and says *"the addressee this template actually has — an employer — has no
+canonical key at all yet"*. On `career.employment-records` it is the company the holder **works
+for**. Those are the two roles the launch vocabulary already spends effort keeping apart —
+`addressed_org` and `holder_institution` — and 00's rule governs: *"The system must separate roles
+that happen to contain the same entity type."*
+
+**So: whichever key their pass lands, one `employer` key serving both rows would hold the same
+company name in two roles — Stripe the place I applied, Stripe the place I worked.** That is the
+same shape as the `school ↔ target_university` split, which is already the most-authored role split
+in the corpus. Flagging it because it constrains D30's `employer_org` binding; **the resolution is
+theirs, and there may well be a good answer I cannot see from here.**
+
+> Their pass will find this too, and it is noted only because it bears on the shape: two of the four
+> keys are **already proposed on career's own template rows** — `career.employment-records` proposes
+> **`employer`** and **`role`**, both `destination_eligible: true`, and `career.credentials-licenses`
+> proposes `credential_expiry` (`destination_eligible: false`, correctly). The `employer` proposal is
+> spelled singular and sits on the row whose company is the one the holder *works for*, which is
+> where the role question above becomes concrete rather than hypothetical.
+
+---
+
+### 4.9 The ten authored alternatives
 
 The record requires a recipe with two or more dimensions to offer **two or more** candidate orders:
 *"one candidate is a single `dimensions` tuple wearing a new field name."* For **ten** definitions the
@@ -1081,7 +1502,7 @@ school and the schema forbids it as a level.
 
 **`people` and `camera_information` appear in no `allowed_fields` and in no binding.**
 
-### 5.6 `uses_schema: research` — 9 rows
+### 5.6 `uses_schema: research` — 8 rows
 
 | Applicability id | Definition | Role → field | Rows |
 |---|---|---|---|
@@ -1472,25 +1893,81 @@ travel deserve a small schema using existing canonical fields such as `event`, `
 
 ---
 
+### JC 7 · "Neither is the default" is not constructible — and this now blocks a handoff
+
+`TemplateDefinition._check_orders` refuses a definition unless **exactly one** candidate order
+carries `is_default=True`:
+
+> *"`{n}` candidate orders are marked default. A definition RECOMMENDS exactly one and the end user
+> picks per branch (§5.3, §5.8); none means nothing can be previewed, and two means the
+> recommendation is undefined."*
+
+J-WIDE-2 rules that career's two orders ship with **neither** defaulted. **D30 is drafted with no
+default, which makes it a valid proposal and an unconstructible record.** That was a curiosity when
+this was a design question; it is now a concrete handoff constraint, because the other lane's
+fragmentation finding has to land *somewhere*, and the only slot the record offers is
+`is_default: true` on exactly one order.
+
+**Three ways out, and the choice is the owner's:**
+- **(a)** the other lane's evidence names a winner, that order takes `is_default`, and the loser
+  ships as the offered alternative. **This is the expected path and it needs no record change** —
+  J-WIDE-2's *"asks the user on first run"* is then a setup-flow behaviour layered over a record
+  that still carries a recommendation.
+- **(b)** `is_default` is read as the *preview seed* — the order the canvas renders first so branch
+  counts can be shown at all — and the setup flow presents the two unweighted regardless. Also needs
+  no record change, and is the honest reading if the evidence comes back genuinely balanced.
+- **(c)** `_check_orders` gains a third state (`no recommendation`). A P10 record change. It would
+  also serve `def.addressee-packet`, where `41` O1 and O2 record two more genuinely 1-for-1 forks.
+
+**Cost of doing nothing:** whichever order happens to be listed first acquires the authority of a
+recommendation the owner explicitly declined to give.
+
+### JC 8 · Career: one definition with two orders, or two definitions?
+
+00's two career orders have **disjoint role sets**, so they cannot be candidate orders of one
+definition as 00 words them. §4.8 lays out both shapes in full.
+
+**Chosen: (i)** — one definition over the union of the four roles — because it is the only shape in
+which the user's setup answer is recorded in `BranchTemplateBinding.chosen_order_id`, and the only
+one in which the canvas can show both options side by side with real branch counts (00 §5.5). That
+second point is not cosmetic: **a fragmentation finding is exactly the kind of evidence 00 wants
+surfaced as a branch count at decision time**, and under (ii) the two options cannot be counted
+against each other in one preview.
+
+**(ii)** — two definitions — is closer to J-WIDE-2's literal *"build both templates"*, and the draft
+splits mechanically if the other lane's evidence turns out to want different **roles** rather than a
+different **order**.
+
+**Neither shape binds anything until career declares fields, and the field set is not this
+document's.** That is the actual blocker and it is larger than this choice.
+
 ## 9. What this draft cannot do
 
 1. **It ships nothing.** P10's compiler does not exist; no ratified catalogue record has been turned
    into a runtime `TemplateFragment`, `TemplateDefinition` or `TemplateApplicability`. The publication
    boundary stands: *"P10 runtime code must not import [`planning/domains/`] Markdown or draft JSON."*
-2. **`is_safety_domain` is still absent from `finance.json`, `identity.json` and `medical.json`.**
+2. **`career` ships `launch: "full"` and can build nothing.** Zero live fields, zero proposed
+   fields, six template rows with six empty `dimension_order`s. J-WIDE-2 has ruled what career
+   should offer and §4.8 drafts it, but the recipe binds **zero** applicability rows until the field
+   keys are decided. `_CONTRACT.md` rule 10 has said *"Career is owed before P10"* since
+   2026-08-21. **This is the one item on this list that is a hole in the wave already declared
+   full**, rather than a wave-2 sequencing item.
+3. **`is_safety_domain` is still absent from `finance.json`, `identity.json` and `medical.json`.**
    Only `legal.json` carries it. Re-verified today. A compiler reading these files would treat
    finance as an ordinary domain. The information exists under a second name — all four carry
    `launch: "safety"` — so the repair is small, but **it is not mine and it is not made here.**
-3. **Privacy floors are placeholders.** `TemplateFragment.privacy_floor` values are P7's vocabulary,
+4. **Privacy floors are placeholders.** `TemplateFragment.privacy_floor` values are P7's vocabulary,
    injected per deployment. This draft writes the symbol `baseline` and assigns no handling class —
    `_CONTRACT.md` rule 5 reserves that vocabulary and this draft respects it.
-4. **`detection_signal_refs` are references, not patterns.** R2 owns the regexes and gazetteers.
+5. **`detection_signal_refs` are references, not patterns.** R2 owns the regexes and gazetteers.
    No pattern is written here.
-5. **237 template rows remain gated** on schemas with no live fields. Seventeen of the twenty-three
-   schemas declare zero. The largest recipe in the whole corpus — `matter_anchor › artifact_kind`,
-   51 rows across 10 domains, zero reversals — cannot bind at launch. That is wave 2 and it is
-   bigger than this wave.
-6. **The per-schema split of the 54, for anyone checking the arithmetic:** academic 11 · code 3 ·
+6. **278 template rows — 83% of the catalogue — are still gated** on a schema declaring fields.
+   Seventeen of the twenty-three schemas declare zero today. **J-WIDE-1 has ruled that thirteen of
+   them will gain fields**, so this is a sequencing state and not a ceiling; `medical` stays
+   field-less by privacy design and is the one permanent exclusion. The largest recipe in the whole
+   corpus — `matter_anchor › artifact_kind`, 51 rows across 10 domains, zero reversals — cannot bind
+   today and is the thing wave 2 unlocks. It is bigger than this entire wave.
+7. **The per-schema split of the 54, for anyone checking the arithmetic:** academic 11 · code 3 ·
    college_applications 5 · finance 18 · photos 9 · research 8. The three refused rows sit on `code`
    (2) and `research` (1), which is why those two schemas carry more template rows than bindings.
    §1.3 and §5 agree row-for-row, and the appendix regenerates both.
@@ -1567,6 +2044,23 @@ hi=F('frag.holder-affiliation-prefix',('holder_institution','subject_anchor'),
 cp=F('frag.cycle-then-artifact',('cycle_period','artifact_kind'),
      (('cycle_period','artifact_kind'),),('cycle_period',))
 print('(c)',' > '.join(merge_fragment_constraints([sa,hi,cp],privacy_rank=rank).ordered_roles))
+PY
+
+# §4.8 — career ships launch:full and can build nothing; and the wave-2 backlog
+python3 - <<'PY'
+import json,glob
+t=[json.load(open(f)) for f in glob.glob('planning/domains/nodes/*.json')]
+c=[d for d in t if d['id']=='career' or d['schema_id']=='career']
+for d in sorted(c,key=lambda x:x['id']):
+    print(f"{d['id']:38s} kind={d['kind']:8s} launch={str(d.get('launch')):12s} "
+          f"fields={len(d['fields'])} proposed={len(d['proposed_fields'])} "
+          f"order={d['template'].get('dimension_order')}")
+tm=[d for d in t if d['kind']=='template']
+SIX=['academic','code','college_applications','finance','photos','research']
+print('template rows gated on a field-less schema:',
+      sum(1 for d in tm if d['schema_id'] not in SIX), 'of', len(tm))
+print('schemas declaring zero live fields:',
+      sum(1 for d in t if d['kind']=='schema' and not d['fields']), 'of 23')
 PY
 
 # §9.2 — the safety flag, still absent on three of the four

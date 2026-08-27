@@ -8,6 +8,7 @@ from collections import Counter
 
 import pytest
 
+from database_agent.db import transaction
 from llm_harness.fixtures import (
     SITE_C_OUTCOME_PAIRS,
     SITE_C_REASON_PAIRS,
@@ -481,6 +482,87 @@ def test_record_cd_verdict_rolls_back_if_identity_insert_fails(p8_conn):
         )
     assert p8_conn.execute(
         "SELECT count(*) AS c FROM llm_verdict WHERE verdict_id = ?",
+        (verdict.verdict_id,),
+    ).fetchone()["c"] == 0
+
+
+class _CallerFailed(Exception):
+    """A caller's own failure, raised after the verdict write returned."""
+
+
+def test_a_cd_verdict_write_leaves_its_callers_transaction_open(p8_conn):
+    """`record_cd_verdict` joins the caller's transaction; it never ends it.
+
+    `harness._issue_and_validate` holds ONE transaction over the consequence and
+    the verdict that justifies it, and this write runs inside it. The lazy
+    `llm_cd_plan_identity` DDL used to run through
+    `sqlite3.Connection.executescript`, which COMMITs any pending transaction
+    before it runs the script -- unconditionally, even when the script is a
+    `CREATE TABLE IF NOT EXISTS` that does nothing. So the harness's transaction
+    ended HERE, the verdict write committed on its own, and the harness's own
+    COMMIT raised `cannot commit - no transaction is active`. That was every
+    live model-backed placement the product ever attempted.
+    """
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    verdict = _validate_c(pair)[0][0]
+    with transaction(p8_conn):
+        record_cd_verdict(
+            p8_conn, verdict,
+            evidence_snapshot_id=pair.evidence_snapshot_id,
+            model_id="fixture-model",
+            prompt_fingerprint="fp-canonical",
+            release_audit_id=17,
+            observed_at=FIXED_CLOCK,
+        )
+        # The caller's transaction, not a committed one and not a second one.
+        assert p8_conn.in_transaction
+    # ... and the caller's own COMMIT is the one that lands both rows.
+    assert not p8_conn.in_transaction
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_verdict WHERE verdict_id = ?",
+        (verdict.verdict_id,),
+    ).fetchone()["c"] == 1
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_cd_plan_identity WHERE verdict_id = ?",
+        (verdict.verdict_id,),
+    ).fetchone()["c"] == 1
+
+
+def test_a_cd_verdict_rolls_back_with_the_caller_that_owns_the_transaction(p8_conn):
+    """The discriminating twin: not raising is only half of "one transaction".
+
+    A write that quietly commits itself also stops raising. What proves it JOINED
+    the caller's transaction is that the caller's failure takes it back out --
+    a verdict that survived the rollback of the consequence it justifies is the
+    orphan the single transaction exists to prevent.
+    """
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    verdict = _validate_c(pair)[0][0]
+    # Pre-created so the rollback below can only remove ROWS: the table itself is
+    # not what is under test, and the broken `executescript` committed the
+    # caller's transaction even when this DDL had nothing left to do.
+    p8_conn.execute(
+        "CREATE TABLE IF NOT EXISTS llm_cd_plan_identity ("
+        "verdict_id TEXT PRIMARY KEY, plan_version TEXT NOT NULL, "
+        "evidence_snapshot_id TEXT NOT NULL)"
+    )
+    with pytest.raises(_CallerFailed):
+        with transaction(p8_conn):
+            record_cd_verdict(
+                p8_conn, verdict,
+                evidence_snapshot_id=pair.evidence_snapshot_id,
+                model_id="fixture-model",
+                prompt_fingerprint="fp-canonical",
+                release_audit_id=17,
+                observed_at=FIXED_CLOCK,
+            )
+            raise _CallerFailed
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_verdict WHERE verdict_id = ?",
+        (verdict.verdict_id,),
+    ).fetchone()["c"] == 0
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_cd_plan_identity WHERE verdict_id = ?",
         (verdict.verdict_id,),
     ).fetchone()["c"] == 0
 

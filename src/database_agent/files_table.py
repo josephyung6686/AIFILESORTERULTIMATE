@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import stat
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,29 +32,34 @@ class ReservedScanState(Exception):
 # to re-derive it, which is the contract violation P3's drift test exists to catch.
 
 
-def _is_same_file(recorded: str, observed: Path) -> bool:
-    """Do these two path spellings name the same file on this filesystem?
+def _lstat_or_none(recorded: str) -> os.stat_result | None:
+    """The identity of a recorded path spelling, or None if it names nothing.
 
-    Asked of the filesystem, never guessed. On APFS and HFS+ the NFC and NFD
-    spellings of one name open the same inode, so comparing `current_path` as a
-    Python string mints a second `files` row for one file — and §8.3's collision
-    policy, seeing two rows whose hashes "prove the files are identical", would
-    offer to delete one copy and delete the only copy. Normalising the string
-    instead would be wrong on a filesystem that does not fold, where the two
-    spellings really are two files. The filesystem is asked instead.
-    Compared with `lstat`, which does NOT follow symlinks, so a symlink and its
-    target stay two records: the link has its own directory entry and its own
-    inode, and §8.3 must be able to move one without touching the other. Two
-    spellings of a single entry share one inode and are one record.
+    `observe_path` compares two path spellings by inode, asked of the filesystem
+    and never guessed. On APFS and HFS+ the NFC and NFD spellings of one name open
+    the same inode, so comparing `current_path` as a Python string mints a second
+    `files` row for one file — and §8.3's collision policy, seeing two rows whose
+    hashes "prove the files are identical", would offer to delete one copy and
+    delete the only copy. Normalising the string instead would be wrong on a
+    filesystem that does not fold, where the two spellings really are two files.
+    The filesystem is asked instead.
+
+    `lstat`, which does NOT follow symlinks, so a symlink and its target stay two
+    records: the link has its own directory entry and its own inode, and §8.3 must
+    be able to move one without touching the other. Two spellings of a single entry
+    share one inode and are one record.
 
     This is a live comparison of two paths in one process, not a stored value:
     P1 OQ9 is about persisting a volume identifier, and nothing here is persisted.
+
+    None means gone, or unreachable — either way not the same file, possibly a
+    move. It also settles the dead-path question for free: if `lstat` fails then
+    `stat` fails too, so `Path(recorded).exists()` is False without asking again.
     """
     try:
-        a, b = os.lstat(recorded), os.lstat(observed)
+        return os.lstat(recorded)
     except OSError:
-        return False        # one of them is gone: not the same file, possibly a move
-    return (a.st_dev, a.st_ino) == (b.st_dev, b.st_ino)
+        return None
 
 
 def _require_caller_scan_state(scan_state: str) -> None:
@@ -241,28 +247,56 @@ def observe_path(conn: sqlite3.Connection, path: Path, *,
     # path is no longer live. Two live copies are two records (§2.9, §8.3).
     # Exact path wins first: otherwise a deleted twin (earlier rowid, dead path)
     # would steal the still-live copy's identity on re-observation.
-    same_hash = conn.execute(
-        "SELECT * FROM files WHERE content_hash = ? AND scan_state != ? "
-        "ORDER BY rowid", (content_hash, SUPERSEDED_CONTENT),
-    ).fetchall()
-    existing = next((row for row in same_hash if row["current_path"] == observed), None)
-    # Same file under a different spelling of its name is the same file version,
-    # not a duplicate. Checked before the dead-path branch so it can never be
-    # mistaken for a move.
+    # The exact-path case is answered by an index, not by reading the family. A
+    # re-scan of an unchanged corpus takes this branch for every file, so a
+    # duplicate family of any size costs nothing to re-observe.
+    existing = conn.execute(
+        "SELECT file_id, current_path FROM files WHERE current_path = ? "
+        "AND content_hash = ? AND scan_state != ? ORDER BY rowid LIMIT 1",
+        (observed, content_hash, SUPERSEDED_CONTENT),
+    ).fetchone()
     if existing is None:
-        existing = next(
-            (row for row in same_hash if _is_same_file(row["current_path"], path)), None
-        )
-    if existing is None:
-        path_taken = conn.execute(
-            "SELECT 1 FROM files WHERE current_path = ? AND scan_state != ?",
-            (observed, SUPERSEDED_CONTENT),
-        ).fetchone()
-        if path_taken is None:
-            existing = next(
-                (row for row in same_hash if not Path(row["current_path"]).exists()),
-                None,
-            )
+        # Only two columns: the family is walked, and materialising sixteen columns
+        # per member to read two of them is the walk's largest term after the
+        # syscalls.
+        same_hash = conn.execute(
+            "SELECT file_id, current_path FROM files "
+            "WHERE content_hash = ? AND scan_state != ? ORDER BY rowid",
+            (content_hash, SUPERSEDED_CONTENT),
+        ).fetchall()
+        try:
+            observed_stat: os.stat_result | None = os.lstat(path)
+        except OSError:
+            observed_stat = None
+        # One pass, not three. Same file under a different spelling of its name is
+        # the same file version, not a duplicate, and is settled before the
+        # dead-path branch so it can never be mistaken for a move — which is why
+        # `dead` is only consulted after the whole family has failed the inode test.
+        dead = None
+        for row in same_hash:
+            recorded_stat = _lstat_or_none(row["current_path"])
+            if recorded_stat is None:
+                # lstat failed, so stat fails too: `Path(...).exists()` is False.
+                if dead is None:
+                    dead = row
+                continue
+            if (observed_stat is not None
+                    and (recorded_stat.st_dev, recorded_stat.st_ino)
+                    == (observed_stat.st_dev, observed_stat.st_ino)):
+                existing = row
+                break
+            # A live non-symlink exists(); only a symlink can lstat and still not,
+            # and only then is the extra syscall the old third pass paid worth it.
+            if (dead is None and stat.S_ISLNK(recorded_stat.st_mode)
+                    and not Path(row["current_path"]).exists()):
+                dead = row
+        if existing is None and dead is not None:
+            path_taken = conn.execute(
+                "SELECT 1 FROM files WHERE current_path = ? AND scan_state != ?",
+                (observed, SUPERSEDED_CONTENT),
+            ).fetchone()
+            if path_taken is None:
+                existing = dead
 
     if existing is not None:
         if existing["current_path"] != observed:

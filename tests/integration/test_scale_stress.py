@@ -212,7 +212,7 @@ def test_scan_is_quadratic_in_the_size_of_a_duplicate_family():
     changes, so anything that moves is identity resolution and not per-file work.
 
     `files_table.observe_path` reads every row sharing the observed content hash
-    and then walks that list twice with a SYSCALL in each pass -- `_is_same_file`
+    and then walks that list twice with a SYSCALL in each pass -- the inode check
     lstats two paths, and the dead-path branch stats a third. A family of k files
     therefore costs O(k^2) lstats to admit.
 
@@ -255,6 +255,192 @@ def test_scan_is_quadratic_in_the_size_of_a_duplicate_family():
         "`observe_path` resolving identity against the whole family: O(k^2) "
         "lstat calls for a family of k. A real disk's zero-byte and stub-file "
         "families run to tens of thousands."
+    )
+
+
+def test_identity_resolution_does_not_stat_the_whole_duplicate_family():
+    """The same finding as the test above, counted instead of timed.
+
+    Counting is the sharper instrument: the syscalls are the cause and the seconds
+    are only the symptom, so this fails on a slow machine and a fast one alike and
+    it names `observe_path`'s identity walk rather than reporting that a scan was
+    slow. Constant per-file work (hashing, one stat from the walker) cancels out
+    because what is asserted is the RATIO of per-file syscalls between two family
+    sizes, not their absolute number.
+
+    `observe_path` reads every live row sharing the observed content hash and walks
+    that list with a filesystem call per candidate -- the inode check lstats two
+    paths and the dead-path branch stats a third. Admitting a family of k costs
+    O(k^2) syscalls, so per-file syscalls rise linearly with family size.
+    """
+    counts: dict[int, int] = {}
+    real_lstat, real_stat = os.lstat, os.stat
+    for family_size in (200, 800):
+        base = Path(tempfile.mkdtemp())
+        try:
+            corpus = base / "corpus"
+            corpus.mkdir()
+            for index in range(family_size):
+                # One family: identical bytes, distinct names.
+                (corpus / f"copy_{index:05d}.bin").write_bytes(b"IDENTICAL")
+            conn = _fresh_db(base)
+            calls = [0]
+
+            def counted_lstat(target, *a, _r=real_lstat, _c=calls, **k):
+                _c[0] += 1
+                return _r(target, *a, **k)
+
+            def counted_stat(target, *a, _r=real_stat, _c=calls, **k):
+                _c[0] += 1
+                return _r(target, *a, **k)
+
+            os.lstat, os.stat = counted_lstat, counted_stat
+            try:
+                _scan_corpus(corpus, conn)
+            finally:
+                os.lstat, os.stat = real_lstat, real_stat
+            assert conn.execute(
+                "SELECT COUNT(*) c FROM files").fetchone()["c"] == family_size
+            counts[family_size] = calls[0]
+            conn.close()
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
+
+    per_file = {size: total / size for size, total in counts.items()}
+    growth = per_file[800] / per_file[200]
+    print(f"\n  family of 200: {counts[200]:>9,} syscalls "
+          f"({per_file[200]:.0f} per file)"
+          f"\n  family of 800: {counts[800]:>9,} syscalls "
+          f"({per_file[800]:.0f} per file)"
+          f"\n  per-file syscalls grew x{growth:.1f} for a family four times as big")
+    assert growth < 1.5, (
+        f"admitting a file cost {per_file[200]:.0f} filesystem calls in a family of "
+        f"200 and {per_file[800]:.0f} in a family of 800 (x{growth:.1f}). Per-file "
+        "cost rises with the size of the duplicate family, so the family costs "
+        "O(k^2) to admit. Identical files are not an exotic input -- empty files, "
+        "`.DS_Store`, stub configs, thumbnails and repeated downloads all form "
+        "families in the tens of thousands on a real disk."
+    )
+
+
+class _RowCountingConnection:
+    """Forwards to a real connection and counts the rows SQLite hands back.
+
+    Rows read is the right unit for the question below: re-observing a file that
+    has not changed does no filesystem work either way, so a syscall count cannot
+    see the difference. What it costs is how much of the `files` table has to be
+    materialised to recognise the file, and that is what this counts.
+    """
+
+    def __init__(self, conn):
+        object.__setattr__(self, "_conn", conn)
+        object.__setattr__(self, "rows", 0)
+
+    def __getattr__(self, name):
+        return getattr(object.__getattribute__(self, "_conn"), name)
+
+    def __setattr__(self, name, value):
+        setattr(object.__getattribute__(self, "_conn"), name, value)
+
+    def execute(self, sql, *args, **kwargs):
+        cursor = object.__getattribute__(self, "_conn").execute(sql, *args, **kwargs)
+        if " FROM files " in f" {' '.join(sql.split())} ":
+            return _RowCountingCursor(cursor, self)
+        return cursor
+
+
+class _RowCountingCursor:
+    def __init__(self, cursor, owner):
+        self._cursor, self._owner = cursor, owner
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+    def _charge(self, rows):
+        object.__setattr__(self._owner, "rows",
+                           object.__getattribute__(self._owner, "rows") + rows)
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        self._charge(len(rows))
+        return rows
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        self._charge(1 if row is not None else 0)
+        return row
+
+    def __iter__(self):
+        for row in self._cursor:
+            self._charge(1)
+            yield row
+
+
+def test_reobserving_an_unchanged_duplicate_family_does_not_read_the_family():
+    """The steady-state case, which is the one a real disk is in most of the time:
+    the file is already recorded at the path it is observed at, and its bytes are
+    unchanged.
+
+    `observe_path` is driven directly rather than through `scan`, because a second
+    scan is answered by the stat cache and never reaches identity resolution at
+    all — measuring it through `scan` would measure the cache and report a result
+    about something else.
+
+    Recognising an unchanged file is a single question — is there a live row with
+    this path and these bytes? — and an index answers it. Reading the whole
+    duplicate family to find the one row whose `current_path` matches in Python
+    costs O(k) per file for files that have not changed.
+
+    Companion to `test_identity_resolution_does_not_stat_the_whole_duplicate_family`
+    above: that one is about admitting a family, this one is about living with it.
+    """
+    from database_agent.files_table import observe_path
+    from p1_contract import p3_basic_record
+
+    per_file: dict[int, float] = {}
+    for family_size in (200, 800):
+        base = Path(tempfile.mkdtemp())
+        try:
+            corpus = base / "corpus"
+            corpus.mkdir()
+            members = []
+            for index in range(family_size):
+                member = corpus / f"copy_{index:05d}.bin"
+                member.write_bytes(b"IDENTICAL")
+                members.append(member)
+            conn = _fresh_db(base)
+
+            def observe(target, connection):
+                return observe_path(
+                    connection, target, author="scale", component_version="1",
+                    parent_folder_context=None, mime_type=None,
+                    detected_format=None, scan_state="complete",
+                    materialized=True, **p3_basic_record(target))
+
+            for member in members:                       # admit the family
+                observe(member, conn)
+            counting = _RowCountingConnection(conn)
+            for member in members:                       # observe it again, unchanged
+                observe(member, counting)
+            assert conn.execute(
+                "SELECT COUNT(*) c FROM files").fetchone()["c"] == family_size
+            per_file[family_size] = counting.rows / family_size
+            conn.close()
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
+
+    growth = per_file[800] / per_file[200]
+    print(f"\n  re-observing a family of 200: {per_file[200]:.0f} `files` rows read "
+          f"per file"
+          f"\n  re-observing a family of 800: {per_file[800]:.0f} `files` rows read "
+          f"per file"
+          f"\n  grew x{growth:.1f} for a family four times as big")
+    assert growth < 1.5, (
+        f"re-observing an unchanged file read {per_file[200]:.0f} rows of `files` in "
+        f"a family of 200 and {per_file[800]:.0f} in a family of 800 "
+        f"(x{growth:.1f}). Nothing about the file changed, so every one of those "
+        "reads is spent recognising a file already recorded at the path it was "
+        "found at."
     )
 
 

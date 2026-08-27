@@ -11,7 +11,13 @@ SCALE_STRESS=1 python -m pytest tests/integration/test_scale_stress.py -v -s
 ```
 
 Default collection is unaffected: `python -m pytest tests/integration/test_scale_stress.py`
-reports `17 skipped in 0.19s`. Full harness runtime is **66 seconds**; 14 fail, 3 pass.
+reports `19 skipped`. As first measured the harness ran **66 seconds**; 14 failed, 3 passed.
+
+> **Status, after the scan fixes below.** The harness is now **19 tests, 35 seconds,
+> 13 fail / 6 pass**. Two tests were added (one green, one red) and two previously
+> failing tests now pass. Findings **1a is fixed and 1b is improved but not closed**;
+> findings 2, 3 and 4 (retrieval, tree health, and the nonsense/threshold items) are
+> untouched and reproduce exactly as measured. See **Status of each finding** below.
 
 **Method.** Every test drives the real code — the real `scan` over a real directory
 tree, the real `vertical_options`/`project_branch_preview`/`warnings_for`, the real
@@ -32,18 +38,22 @@ are from a single machine and only the *ratios* are claims.
 
 ## Ranked: what fails first on a real user's disk
 
-| # | Finding | Severity | Where |
-|---|---|---|---|
-| 1 | Scan is quadratic in corpus size — `files.current_path` is unindexed | **Breaks** | `database_agent/files_table.py:258,283` |
-| 2 | Scan is quadratic in duplicate-family size, with a syscall in the inner loop | **Breaks** | `database_agent/files_table.py:244-265` |
-| 3 | Placement retrieval reads and deserialises **every legal node for every file** | **Breaks** | `placement/index.py:236`, `placement/retrieval.py:82` |
-| 4 | Tree health / §5.9 warnings are quadratic in node count | **Breaks** | `tree_design/health.py:60-80` |
-| 5 | `example_members` is the entire branch membership | Nonsense | `tree_design/candidates.py:463` |
-| 6 | Nothing caps how many folders one split creates | Nonsense | `tree_design/routing.py:487` |
-| 7 | The warning list outgrows the tree it describes | Nonsense | `tree_design/health.py:156` (`warnings_for`) |
-| 8 | The corpus-scaling budget is read and never enforced | Uncalibrated | `placement/config.py:32` |
-| 9 | One ceiling key serves the picker and the depth limit; they want opposite values | Uncalibrated | `tree_design/config.py:30` |
-| 10 | Every §5.9 threshold's only exercised value fails `00`'s own example | Uncalibrated | `tree_design/config.py:39-45` |
+| # | Finding | Severity | Where | Status |
+|---|---|---|---|---|
+| 1a | Scan is quadratic in corpus size — per-file lookups are unindexed | **Breaks** | `db.py` FILES_DDL / EVENTS_DDL | **FIXED** |
+| 1b | Scan is quadratic in duplicate-family size, with a syscall in the inner loop | **Breaks** | `database_agent/files_table.py:244-265` | **3× cheaper, still O(k²)** |
+| 2 | Placement retrieval reads and deserialises **every legal node for every file** | **Breaks** | `placement/index.py:236`, `placement/retrieval.py:82` | verified, open |
+| 3 | Tree health / §5.9 warnings are quadratic in node count | **Breaks** | `tree_design/health.py:60-80` | verified, open |
+| 4 | `example_members` is the entire branch membership | Nonsense | `tree_design/candidates.py:463` | open |
+| 5 | Nothing caps how many folders one split creates | Nonsense | `tree_design/routing.py:487` | open |
+| 6 | The warning list outgrows the tree it describes | Nonsense | `tree_design/health.py:156` (`warnings_for`) | open |
+| 7 | The corpus-scaling budget is read and never enforced | Uncalibrated | `placement/config.py:32` | open |
+| 8 | One ceiling key serves the picker and the depth limit; they want opposite values | Uncalibrated | `tree_design/config.py:30` | open |
+| 9 | Every §5.9 threshold's only exercised value fails `00`'s own example | Uncalibrated | `tree_design/config.py:39-45` | open |
+
+*(The original numbering listed the two scan quadratics as one item and shifted
+everything below by one. They are separated here because one is fixed and one is
+not; the prose sections keep their original headings.)*
 
 The first four are the ones that decide whether this product runs at all on a real disk.
 **Items 1 and 2 matter most because the scan is the first thing the product does** — no
@@ -71,17 +81,47 @@ SELECT file_id FROM files WHERE current_path = ? AND scan_state != ?  ->  ['SCAN
 `files` carries `sqlite_autoindex_files_1` and `files_content_hash` — nothing on
 `current_path`. Every file read costs a full pass over every file already recorded.
 
+**The diagnosis was right and the query named was the smaller of two.** Timing every
+statement the scan issues, at 1,000 files and again at 4,000, found the dominant term
+somewhere else entirely:
+
+```
+SELECT 1 FROM events WHERE file_id = ? AND event_type = 'discovery' LIMIT 1
+        1,000 files:  70.4 us per call        4,000 files:  540.9 us per call
+```
+
+`scan_agent/basic_record.py:38` asks that once per file admitted, `events` carries **no
+index at all** beyond its integer primary key, and it grows about three rows per file —
+so each file read costs a pass over three times the corpus. It is a bigger term than
+either `current_path` lookup, and `file_path_history` (`files_table.py:329`) asks the
+same table the same way. Both are fixed by one index on `events (file_id)`.
+
+**FIXED**, in `database_agent/db.py`:
+
+```sql
+CREATE INDEX IF NOT EXISTS files_current_path ON files (current_path);
+CREATE INDEX IF NOT EXISTS events_file_id     ON events (file_id);
+```
+
+Neither weakens R6: an index adds no way to update or delete an event.
+
 Measured with **every file's content unique**, so no duplicate family can contribute:
 
-| files | scan time | throughput |
+| files | before | after |
 |---|---|---|
-| 1,000 | 0.82 s | 1,221 files/s |
-| 4,000 | 6.26 s | 639 files/s |
+| 1,000 | 0.82 s — 1,221 files/s | 0.68 s — 1,464 files/s |
+| 4,000 | 6.26 s — 639 files/s | 3.01 s — 1,328 files/s |
 
-Per-file cost grew **x1.9 for four times the files**. Throughput falls as the corpus
-grows, which is the definition of the problem.
+Per-file cost grew **x1.9 before and x1.1 after**. Every per-file SELECT is now flat
+within noise across the 4× range (3.9→4.1 µs, 5.5→5.7 µs, 5.8→6.0 µs, 6.1→6.4 µs); what
+is left is per-file INSERT cost, which is constant.
 
-*Test:* `test_scan_stays_linear_when_every_file_is_unique`.
+*Tests:* `test_scan_stays_linear_when_every_file_is_unique` (**now passes**), and two
+new query-plan tests in the DEFAULT suite —
+`tests/test_db.py::test_identity_lookups_by_path_search_an_index_instead_of_scanning`
+and `::test_the_per_file_event_lookups_search_an_index_instead_of_scanning`. They assert
+`EXPLAIN QUERY PLAN` reports `SEARCH` rather than `SCAN`, which is the property rather
+than the schema text, and both go red if either index is removed.
 
 ### 1b. Identity resolution is O(k²) in the duplicate family, with three syscalls per step
 
@@ -102,14 +142,56 @@ if existing is None:
 Isolated by holding the file count **fixed at 2,000** and varying only how many files
 share a content hash:
 
-| families | files per family | scan time |
-|---|---|---|
-| 500 | 4 | 3.05 s |
-| 1 | 2,000 | **25.25 s** |
+| families | files per family | before | after |
+|---|---|---|---|
+| 500 | 4 | 3.05 s | 2.51 s |
+| 1 | 2,000 | **25.25 s** | **8.87 s** |
 
-**x8.3 slower for the same 2,000 files**, purely from duplicate structure. A profile at
-4,000 files shows 1.24 M `Path.exists()` and 2.48 M `lstat` calls for 3,473 files —
-about 357 stat calls per file, rising with corpus size.
+**x8.3 slower for the same 2,000 files** before, **x3.5 after** — purely from duplicate
+structure. A profile at 4,000 files showed 1.24 M `Path.exists()` and 2.48 M `lstat`
+calls for 3,473 files, about 357 stat calls per file, rising with corpus size.
+
+**PARTLY FIXED — 3× cheaper, same shape.** `observe_path` now:
+
+* answers the exact-path case with an indexed
+  `WHERE current_path = ? AND content_hash = ?` and **never loads the family at all**
+  when the file is unchanged at the path it was found at — the steady state a real disk
+  is in most of the time;
+* loads `file_id, current_path` instead of all sixteen columns when it does walk;
+* lstats the observed path **once per family** instead of once per candidate; and
+* folds the dead-path pass into the inode pass. A row whose `lstat` fails cannot
+  `exists()` either, and a live non-symlink always `exists()`, so only a *symlink*
+  candidate now costs the extra syscall the third pass used to cost every candidate.
+
+Counted rather than timed, which is the sharper instrument because the syscalls are the
+cause and the seconds are only the symptom:
+
+| family size | syscalls per file, before | after |
+|---|---|---|
+| 200 | 300 | 102 |
+| 800 | 1,200 | 402 |
+
+**The constant fell 3× and the curve did not move: still exactly x4.0 per-file for a
+4× family.** The residual O(k) is `_is_same_file` asking the filesystem, once per
+candidate, whether the recorded path and the observed path are the same inode. Removing
+it needs a decision this work did not have standing to take, and there are two ways:
+
+1. **Persist the inode** and answer the question with an indexed lookup. Blocked by an
+   existing pinned test —
+   `test_a_symlink_and_its_target_are_recorded_as_two_file_versions`
+   (`tests/test_adversarial.py:1177`) asserts `files` has no `inode`/`st_ino`/
+   `real_path`/`is_symlink` column, and calls the underlying SPEC question unsettled.
+2. **Narrow the candidates by path spelling** — NFC-normalise and casefold, then still
+   confirm by `lstat`, so a non-folding filesystem is unaffected. This is exact for the
+   case `_is_same_file`'s docstring is written about, and it silently changes two cases
+   it is not: **hard links** (two entries, one inode — collapsed to one row today) and
+   **symlinked directory components**, which on macOS includes `/tmp` → `/private/tmp`.
+   Neither has a test today. Changing them is a design ruling, not an optimisation.
+
+Until one of those is taken, admitting a large duplicate family stays quadratic. What is
+now linear is *re-observing* one — see
+`test_reobserving_an_unchanged_duplicate_family_does_not_read_the_family`, which reads
+**1 row per file at both 200 and 800**, and read 200 and 800 before the change.
 
 This is not an exotic input. §2.9's duplicate families and §8.3's identical-file
 collisions are the design stating that real corpora contain many identical files, and
@@ -117,20 +199,24 @@ they do: empty files, `.DS_Store`, stub configs, repeated downloads, thumbnails,
 `node_modules` artefacts. A 20,000-member duplicate family — ordinary — costs
 2×10⁸ lstat pairs.
 
-*Test:* `test_scan_is_quadratic_in_the_size_of_a_duplicate_family`.
+*Tests:* `test_scan_is_quadratic_in_the_size_of_a_duplicate_family` (still fails, x3.5
+against a x2.0 bar), the new counting test
+`test_identity_resolution_does_not_stat_the_whole_duplicate_family` (still fails, x4.0),
+and the new `test_reobserving_an_unchanged_duplicate_family_does_not_read_the_family`
+(**passes**, and goes red if the fix is reverted).
 
 ### 1c. Combined, on a disk-shaped corpus
 
 Long-tailed corpus (35% screenshots, deep project trees, tail of tiny folders, duplicate
-basenames): **3,473 files recorded in 19.6 s — 177 files/s**. At a *flat* rate 100,000
-files is 9 minutes; the rate is not flat, it falls, so extrapolating the measured
-x3/doubling from 8,000 files (70 s) gives roughly **3 hours for 128,000 files**.
+basenames): **3,473 files recorded in 19.6 s — 177 files/s** before; **7.3 s — 477
+files/s** after, a 2.7× improvement. This corpus is duplicate-heavy by construction, so
+it carries the residual 1b cost as well as the fixed 1a one.
 
-*Test:* `test_the_scan_finishes_a_realistic_disk_shaped_corpus`.
+*Test:* `test_the_scan_finishes_a_realistic_disk_shaped_corpus` — **now passes**.
 
-**Fix for 1a is one line** — `CREATE INDEX files_current_path ON files (current_path)`.
-1b needs `observe_path` to stop walking the family: the exact-path and inode checks can
-both be answered by indexed queries rather than by scanning and stat-ing every candidate.
+**Fix for 1a is two lines** — an index on `files (current_path)` and one on
+`events (file_id)`; both are now in `db.py`. 1b still needs `observe_path` to stop
+walking the family, which needs one of the two rulings above.
 
 ---
 
@@ -162,6 +248,29 @@ and takes 25 ms for 800 nodes. The index is cheap to write and expensive to use.
 
 *Tests:* `test_retrieval_does_not_read_every_legal_node_for_every_file` (fails),
 `test_building_the_destination_index_scales_with_the_tree` (passes).
+
+**Re-verified at the call sites, and the shape is N+1 queries, not one wide read.**
+`legal_node_ids` (`index.py:194-201`) is one query returning every legal node id.
+`entries_for_plan` (`index.py:236-241`) is a generator that then calls `entry_for` per
+id, and `entry_for` (`index.py:221-234`) issues its own
+`SELECT payload ... WHERE plan_version = ? AND node_id = ?` and one `json.loads`.
+`retrieve` (`retrieval.py:82`) calls it as its **first statement**, per subject, and
+then loops over every entry it got back. Reproduced unchanged after the fixes above:
+2.9 ms per file at 200 nodes, 11.9 ms at 800 — **x4.1**.
+
+**The fix, in two steps, both in `src/placement/` (not touched here — that directory has
+an owner):**
+
+1. `entries_for_plan` should be one query, not N+1:
+   `SELECT node_id, payload FROM placement_index_entries WHERE plan_version = ? AND
+   superseded_by IS NULL ORDER BY node_id`, decoded in the loop. This removes ~800
+   round trips per file on its own and is behaviour-preserving.
+2. `retrieve` should not call it at all. By `retrieval.py:82` the subject's facts, group
+   ids and folder labels are already in hand, and `00`:105 says the engine retrieves
+   "the few most relevant approved destination nodes, **rather than searching the entire
+   filesystem**". The narrowing belongs in SQL — a join from the stated `(field, value)`
+   pairs, group ids and casefolded labels to candidate `node_id`s — so the per-file cost
+   is the size of the candidate set, not the size of the tree.
 
 ---
 
@@ -206,6 +315,22 @@ So the picker's cost is driven by the **width of the split**, not the size of th
 `test_the_picker_is_quadratic_in_the_folders_a_split_would_create` (both fail),
 `test_the_picker_is_linear_in_the_files_a_branch_holds`,
 `test_tree_health_group_coverage_scales_with_the_accepted_groups` (both pass).
+
+**Re-verified at the call sites.** `_children` (`health.py:60`) filters the whole node
+sequence per call. `_descendants` (`:64-72`) calls it once per node it reaches.
+`_depth` (`:75-82`) rebuilds `{node_id: node}` on **every** call. `branch_counts`
+(`:126`) calls `_children` (`:145`) and `_descendants` (`:146`); `warnings_for` calls
+`_children` at `:177` and `:206` and `_depth` at `:197`, inside a loop over every node;
+and `candidates.py:361` calls `branch_counts` once per node. Reproduced unchanged:
+0.108 s at 800 nodes, 1.767 s at 3,200 — **x4.1 per-node for a 4× tree**.
+
+**The fix, in `src/tree_design/health.py` (not touched here — that directory has an
+owner):** build `children_by_parent: dict[str, list[Node]]` and `depth_by_id:
+dict[str, int]` **once** from `nodes`, and give `branch_counts` and `warnings_for` a
+parameter to receive them. `_descendants` then walks the subtree it actually visits
+instead of re-filtering the tree at every step. This is one module, it collapses both
+this finding and the picker's width quadratic, and it changes no result — the same
+children, the same depths, computed once.
 
 `tree_health`'s group coverage — the §5.11 measure the brief flagged as a possible O(n²)
 — **is linear**: 8,000 accepted groups in 0.018 s. It builds two sets per group and
@@ -383,12 +508,19 @@ what held.
 
 ## Recommended order of work
 
-1. **Index `files.current_path`.** One line, removes the dominant scan quadratic.
-2. **Stop `observe_path` walking the duplicate family** — answer the exact-path and inode
-   questions with indexed queries instead of scanning and stat-ing every candidate.
+1. ~~**Index `files.current_path`.**~~ **DONE**, together with the larger one the first
+   pass missed: `events (file_id)`. The scan is now flat per file on unique content and
+   2.7× faster on a disk-shaped corpus.
+2. **Rule on `observe_path`'s inode question, then stop it walking the duplicate
+   family.** The cheap parts are done (3× fewer syscalls, and an unchanged file no
+   longer reads the family at all). Closing it needs either a persisted inode — which
+   `tests/test_adversarial.py:1177` currently forbids — or a spelling-based narrowing,
+   which changes what happens to hard links and symlinked directory components. Pick
+   one; do not let it stay open, because a duplicate family of 20,000 is ordinary.
 3. **Give `retrieve` a narrowed query.** It already knows the subject's fact values,
    group ids and folder labels before it loads anything; `entries_for_plan` should not be
-   the first line of a per-file function.
+   the first line of a per-file function. Make `entries_for_plan` one query instead of
+   N+1 first — that alone removes ~800 round trips per file and changes no behaviour.
 4. **Memoise structure in `health.py`.** Build `children_by_parent` and `depth_by_id` once
    per tree and pass them down. This collapses findings 4 and the picker's width quadratic
    together, and touches one module.

@@ -23,7 +23,11 @@ def test_the_worked_academics_example_produces_the_counts_55_promises(conn, tmp_
     create_fields(conn)
     create_evidence_schema(conn)
     corpus = seed_academics(conn, tmp_path)
-    from p10.test_p10_materialise import ONE_CLASS, _candidate
+    from p10.test_p10_materialise import (
+        ONE_CLASS,
+        PROTECTED_CLASSES,
+        _candidate,
+    )
 
     _, evidence = materialise_branch(
         conn, _candidate(("school", "school"), ("subject", "subject"),
@@ -31,7 +35,8 @@ def test_the_worked_academics_example_produces_the_counts_55_promises(conn, tmp_
         branch_node_id="n_academics",
         members=corpus.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert child_counts(evidence) == {"school": 1, "subject": 2, "work_type": 2}
     assert evidence.unresolved_by_field["work_type"] == frozenset({corpus.file_id("lab")})
 
@@ -58,6 +63,7 @@ def test_accepting_a_branch_drives_the_real_projection_into_the_store(conn, tmp_
         ALWAYS_ORDINARY,
         NO_CONTEXT,
         ONE_CLASS,
+        PROTECTED_CLASSES,
         _candidate,
         _parent,
     )
@@ -91,7 +97,8 @@ def test_accepting_a_branch_drives_the_real_projection_into_the_store(conn, tmp_
         branch_node_id="n_academics",
         members=corpus.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     report = ValidationReport(report_id="vr_1", passed=("V1",), failures=())
 
     minted = iter(range(100))

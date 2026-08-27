@@ -1,7 +1,8 @@
 # The reuse recipes, recomputed on the complete 358-row corpus
 
-Date: 2026-08-27 · **Every count below was recomputed from `planning/domains/nodes/` at
-2026-08-27T14:42:17Z.** Nothing is inherited from [`37-TEMPLATE-REUSE-INVENTORY.md`](37-TEMPLATE-REUSE-INVENTORY.md),
+Date: 2026-08-27 · **Corpus re-derived from `planning/domains/nodes/` at commit `bdab2ab`,
+2026-08-27T14:55:37Z** (first read at `410d21c`/14:42:17Z; the two agree on every count in this document).
+Nothing is inherited from [`37-TEMPLATE-REUSE-INVENTORY.md`](37-TEMPLATE-REUSE-INVENTORY.md),
 [`41-TEMPLATE-DECISION-BRIEF.md`](41-TEMPLATE-DECISION-BRIEF.md), [`42-REUSE-FULL-CORPUS-CHECK.md`](42-REUSE-FULL-CORPUS-CHECK.md)
 or [`43-ROLE-VOCABULARY-AND-RECUT.md`](43-ROLE-VOCABULARY-AND-RECUT.md); where this pass disagrees with them, §9 says so.
 `00-database-agent-product-design.md` wins on conflict.
@@ -12,6 +13,32 @@ record was written or edited by this pass.
 **Scope note.** All 237 field-less rows were read in full (362,996 bytes of `template.why`) and assigned a role
 sequence by this pass. Every template row in the corpus is accounted for — none was sampled, skipped or
 inferred from a sibling.
+
+> ### PREMISE UPDATE — **J-WIDE-1 is ratified** (`410d21c`)
+>
+> Joseph has **overruled PR-6 for the thirteen professional-world schemas**: `business_operations`,
+> `clinical_practice`, `construction_property`, `creative`, `engineering`, `government`, `hr`, `law_practice`,
+> `logistics`, `manufacturing`, `nonprofit`, `resource_operations`, `retail_hospitality` **become real,
+> field-declaring schemas**, and `career` ships fields under J-WIDE-2. `medical` stays field-less by privacy
+> design and is out of scope; `identity` and `legal` remain safety domains.
+>
+> **What this does to this document.** Nothing in §§1–6 or §§8–10 changes: this pass read and counted all 291
+> non-refused rows from the start and **cut nothing for sitting on a field-less schema**. What changes is the
+> framing of §7, which is rewritten. *"54 bindable / 237 gated"* is a **snapshot of today, not a ceiling.*
+> Every recipe below is now marked **bindable TODAY** or **bindable AFTER J-WIDE-1**, and §7.4 names the rows
+> that are still blocked after it and the exact decision blocking each.
+>
+> **Constraints that still bind and that §7.5 measures against the corpus:** `00`'s **three-to-six fact fields
+> per schema**, canonical-key reuse (no second spelling of an existing key), and
+> `fields[] ⊆ canonical_fields.json`.
+>
+> Three sibling adjudications have landed and are treated as settled inputs rather than re-derived:
+> [`47-PERIOD-KEY-ADJUDICATION.md`](47-PERIOD-KEY-ADJUDICATION.md) (one key, `record_period`),
+> [`48-ENTITY-KEY-ADJUDICATION.md`](48-ENTITY-KEY-ADJUDICATION.md) (the 14 `organization` rows are three
+> roles), [`49-RECORD-KEY-ADJUDICATION.md`](49-RECORD-KEY-ADJUDICATION.md) (`student` folds into
+> `subject_of_record`; `instruction` is `project` respelled). **§7.2 maps every role in this document onto
+> the key those three route it to, and §7.6 reports the two places where their rulings cut across a recipe
+> here.**
 
 ---
 
@@ -24,8 +51,11 @@ inferred from a sibling.
 | **Definitions needed for 291 rows** | **133** at exact role sets, **79** if a definition may carry one optional role, **66** at two. The launch six need **28 / 14 / 11** on the same three rules. Not 24. |
 | **Does 00's 200–300 hold?** | **Yes — for the situation catalogue, which is 291 non-refused rows.** It is **too high for `TemplateDefinition` records**, which the evidence puts at 66–133. The two numbers are different records and 00's sentence describes the first. |
 | **`def.subject-work-record` = 14 rows / 3 schemas?** | **CORRECT, verified row by row.** academic 7, research 6, code 1. At full corpus the same recipe reaches **73 rows across 16 schemas with zero reversals anywhere** — the single most stable ordering fact in the corpus. |
-| **The launch set** | **54 bindable rows, 3 cross-schema recipes, 28 definitions.** The other 13 recipes below are **entirely unbindable today** — 0 field rows between them. |
-| **The one number that matters most** | `matter_anchor > artifact_kind` is now **55 rows across 12 schemas, zero reversals, and zero field rows.** It is the largest reuse fact in the product and it cannot produce a single folder at launch. |
+| **Bindable TODAY** | **54 rows / 6 schemas / 3 cross-schema recipes / 28 definitions.** |
+| **Bindable AFTER J-WIDE-1** | **14 of the 16 recipes**, and **171 further rows in full plus 24 more partially** — 249 of 276 sequenced rows can then build a tree. |
+| **Still blocked after J-WIDE-1** | **2 recipes and 27 rows**, and the cause is three specific rulings, not the field freeze: `organization` seeded `destination_eligible: false` (14 rows), `workforce_unit` false (7 rows), and **no key anywhere for `series_instalment`** (§7.4). |
+| **The binding constraint is now the CAP, not the freeze** | **13 of 21 schemas need more destination roles than `00`'s six-field cap allows** — `business_operations` needs 15. Under an optimal 6-field cut, 209 of 276 rows keep their whole recommended tree, 257 keep two levels, 19 collapse (§7.5). |
+| **The one number that matters most** | `matter_anchor > artifact_kind` is **55 rows across 12 schemas with zero reversals**. J-WIDE-1 makes all 55 bindable — but `49` routes `matter_anchor` and `subject_anchor` to the **same** canonical key `project`, which merges recipes 1 and 2 into one binding and leaves 3 rows unable to express both levels (§7.6). |
 
 **The single sentence.** The many-to-many is real and it is bigger than the catalogue has ever shown: **32 of
 79 definitions serve two or more schemas and between them carry 212 of 276 rows** — but **23 of those 32 have
@@ -245,7 +275,7 @@ These clear 2+ schemas, ≥4 schemas, and reverse under 25%. **Ten have zero rev
 | **15 · `counterparty_org > matter_anchor`** | the client, then the engagement | **5** | **4** | 0 | 0 | **PROSE ONLY** |
 | **16 · `subject_anchor > series_instalment`** | the work, then the instalment of it | **4** | **4** | **0** | 0 | **PROSE ONLY** |
 
-**Thirteen of sixteen have zero field rows.** The launch six can bind three of them and nothing else.
+**Thirteen of sixteen have zero field rows today.** The launch six bind three of them. **Under J-WIDE-1, fourteen of the sixteen become bindable** and only recipes 12 and 16 stay blocked — see §7.2.
 
 #### Membership, by `domain_id`
 
@@ -659,12 +689,215 @@ Two things to add to the claim:
 
 ---
 
-## 7. The launch set — what actually ships
+## 7. The binding horizon — today, after J-WIDE-1, and what is still blocked
 
-**54 bindable rows in 6 schemas.** This is a **closed** evidence base: every schema that declares fields is
-already fully landed (11+3+5+18+9+8 = 54, gated = 0 for all six), so no future row can add a bound dimension.
+J-WIDE-1 turns "54 bindable / 237 gated" from a ceiling into a snapshot. This section reports every recipe
+and every row against three horizons: **bindable TODAY**, **bindable AFTER J-WIDE-1**, and **STILL BLOCKED**
+— and names the exact decision blocking each of the last group.
 
-### 7.1 Every ordering fact the launch set can express
+### 7.1 Role → canonical key, after 47 / 48 / 49
+
+Treated as settled inputs, not re-derived. A recipe is bindable when **both** its roles route to a key that is
+in `canonical_fields.json`, is `destination_eligible: true`, and can be declared on the row's own schema.
+
+| Role in this document | Canonical key after the three adjudications | `destination_eligible` | Source |
+|---|---|---|---|
+| `artifact_kind` | `record_type` · `work_type` · `artifact_type` · `application_document_type` | **true** | 49 §1.1, §5 — EXTENSION; `engineering_artifact_type` refused |
+| `subject_anchor` | `project` · `product` · `subject` | **true** | 49 §1.3 EXTENSION, §1.5 MINT (`output_stream` refused) |
+| `matter_anchor` | **`project`** | **true** (`law_practice` narrows to user-approval) | 49 §1.3/§1.4 — `instruction`, `matter`, `case_ref`, `docket` all refused as respellings |
+| `site_anchor` | `site` · `property` | **true** | 48 §7 MINT |
+| `scope_period` | `record_period` · `tax_year` | **true** | 47 §3.1, §4.1 — one key, five spellings folded |
+| `lifecycle_stage` | **`stage`** | **true** | 49 §5 — `lifecycle_stage` refused as a key name |
+| `component_anchor` | `design_item` | **true** | 49 §5 MINT (**single signature**) |
+| `cycle_period` | `people_cycle` · `term` · `application_cycle` | **true** | 49 §1.6 MINT |
+| `occasion_anchor` | `event` | **true** | canonical already reads *"a capture **or record**"* — never yet declared outside `photos` |
+| `asset_instance` | `asset` | **true** (single-asset files) | 49 §1.2 MINT |
+| `counterparty_org` | `client` · `supplier` | **true** | canonical + 48 §7 MINT |
+| `issuing_org` | `institution` · `issuing_body` | **true** | canonical + 48 §7 MINT |
+| `purpose_anchor` · `place` · `capture_time` · `capture_kind` · `account_kind` · `repository_instance` | `purpose` · `location` · `capture_year` · `media_type` · `account_type` · `repository` | **true** | canonical, unchanged |
+| **`holder_institution`** | `school` · `lab` · `employer` — but **`organization`** off those three schemas | **SPLIT: `organization` is false** | 48 §3 — *"seeded false, template-time promotable"* |
+| **`addressed_org`** | `target_university` · `venue` · `target_school` | **partial** — `addressee` **declined** | 48 §7 |
+| **`org_unit`** | `workforce_unit` | **FALSE** | 48 §3 — search/privacy/join only |
+| **`series_instalment`** | **none — no key is proposed anywhere in the corpus** | — | 42 §5.1 flagged it; no adjudication mints it |
+| `standard_ref` | `standard_designation` (`engineering` only) · `authorisation` | partial | 48 §6a |
+| `direction_role` · `variant_axis` · `channel_locus` · `provenance_role` | **none** | — | 43 §2.4 named-not-adopted; unchanged |
+
+### 7.2 The sixteen recipes against the three horizons
+
+| Recipe | Rows | Schemas | TODAY | AFTER J-WIDE-1 | STILL BLOCKED |
+|---|---:|---:|---:|---:|---:|
+| 1 · `matter_anchor > artifact_kind` | 55 | 12 | 0 | **55** | 0 |
+| 2 · `subject_anchor > artifact_kind` | 32 | 11 | **14** | 18 | 0 |
+| 3 · `cycle_period > artifact_kind` | 26 | 7 | **4** | 22 | 0 |
+| 4 · `component_anchor > artifact_kind` | 18 | 7 | 0 | **18** | 0 |
+| 5 · `site_anchor > matter_anchor` | 15 | 5 | 0 | **15** | 0 |
+| 6 · `subject_anchor > component_anchor` | 13 | 6 | 0 | **13** | 0 |
+| 7 · `holder_institution > subject_anchor` | 11 | 5 | **4** | 1 | **6** ← `organization` DE=false |
+| 8 · `occasion_anchor > artifact_kind` | 10 | 6 | 0 | **10** | 0 |
+| 9 · `matter_anchor > lifecycle_stage` | 9 | 4 | 0 | **9** | 0 |
+| 10 · `site_anchor > asset_instance` | 8 | 4 | 0 | **8** | 0 |
+| 11 · `asset_instance > artifact_kind` | 6 | 4 | 0 | **6** | 0 |
+| 12 · `series_instalment > artifact_kind` | 6 | 5 | 0 | **0** | **6** ← no key |
+| 13 · `site_anchor > artifact_kind` | 6 | 4 | 0 | **6** | 0 |
+| 14 · `site_anchor > component_anchor` | 6 | 4 | 0 | **6** | 0 |
+| 15 · `counterparty_org > matter_anchor` | 5 | 4 | 0 | **5** | 0 |
+| 16 · `subject_anchor > series_instalment` | 4 | 4 | 0 | **0** | **4** ← no key |
+
+**Fourteen of sixteen recipes go from unbindable to bindable.** Recipe 1 alone — 55 rows across 12 schemas,
+the largest reuse fact in the product — moves from zero folders to all 55. **Two recipes do not move at all**,
+and both die on the same missing key.
+
+### 7.3 Rows, by horizon
+
+| Horizon | Rows |
+|---|---:|
+| **Bindable TODAY** (non-empty `dimension_order`) | **54** |
+| **Bindable AFTER, whole recommended sequence** | **171** |
+| **Bindable AFTER, but losing at least one level** | **24** |
+| **STILL BLOCKED — cannot open a top level** | **27** |
+| Carry no sequence (8 refuse depth, 7 unrecoverable) | 15 |
+| **Total kept template rows** | **291** |
+
+**249 of 276 sequenced rows can build a tree after J-WIDE-1**, against 54 today.
+
+### 7.4 The 27 rows still blocked, and the three decisions that block them
+
+None of these is blocked by the field freeze. Each is blocked by a ruling in 47/48/49 or by a key nobody minted.
+
+**(a) `organization` seeded `destination_eligible: false` — 14 rows / 3 schemas.** 48 §3 is explicit that
+false means *seeded* false and template-time promotable. Every one of these rows leads with the custodian
+organisation, so **seeded-false means their top level never proposes itself**:
+`business_operations.board-governance` `.corporate-regulatory-filings` `.it-asset-inventory`
+`.market-research` `.meeting-record` `.partnerships-bd` `.policy-handbook` `.procurement-sourcing`
+`.product-requirements` `.product-roadmap` · `government.education-institution-governance` ·
+`nonprofit.member-association` `.religious-institution` `.trade-union`.
+**This is a direct collision with Recipe 7.** `holder_institution > subject_anchor` is 11 rows / 5 schemas with
+zero reversals anywhere in 276 rows; 48's ruling leaves 6 of those 11 unable to build. The two are
+reconcilable — the recipe is the evidence that the promotion fires often, and 48's own dissent
+(`business_operations.corporate-regulatory-filings`) is one of these 14 rows — but somebody has to say
+whether "promotable" is good enough for a 5-schema recipe.
+
+**(b) `workforce_unit` `destination_eligible: false` — 7 rows lead with it, 7 more lose a level.**
+Leading: `business_operations.budget-forecast` `.risk-register` `.strategy-plan` ·
+`government.library-administration` `.school-district-administration` `.social-services-casework` ·
+`hr.org-design-headcount`. Losing an internal level: `creative.theatre-production` ·
+`government.parks-public-lands` · `hr.compensation-planning` `.engagement-survey` `.performance-cycle`
+`.training-development` · `manufacturing.quality-management-system`.
+`org_unit` is 16 rows / 6 schemas in this corpus. 48 files it under "search/privacy/join only" alongside
+`account_holder` and `entity_registration_number` — which is right for a *personnel* unit and wrong for a
+cost centre, a service area or a constituted body. `hr.org-design-headcount` states the case in one line:
+*"an establishment artifact is ABOUT a unit."*
+
+**(c) `series_instalment` has no key anywhere — 2 rows blocked at the top, 11 more lose a level, 2 recipes die.**
+Blocked at the top: `creative.podcast-episode` (on `series_instalment` itself) and
+`nonprofit.religious-institution` (blocked one level earlier by (a), and it would lose this level too).
+Losing the level: `construction_property.final-account` `.quote-estimate` ·
+`creative.periodical-issue` · `engineering.embedded-firmware` `.material-specification` `.pcb-layout` ·
+`law_practice.appeals` `.closing-binder` `.contract-negotiation` · `manufacturing.safety-case` ·
+`retail_hospitality.product-catalogue`.
+`creative.periodical-issue` predicted this exactly: *"the issue designator maps to no candidate key … It is
+not `project` … not `stage` … not `artifact_type`."* **This is the same shape doc 42 found with
+`matter_anchor`: a role carried by 13 rows across 7 schemas that is unstateable because nobody minted the
+key.** Two recipes — 6 rows / 5 schemas and 4 rows / 4 schemas — cannot exist without it.
+
+**(d) Four single-cause stragglers.** `addressee` declined by 48 §7 blocks `career.recruiting` and
+`creative.submission-query` (both lead with an organisation their work is *submitted to*, which is neither a
+client nor an issuer); `standard_ref` blocks `business_operations.compliance-audit`; `direction_role` blocks
+`clinical_practice.referral-correspondence`; `channel_locus` blocks `retail_hospitality.ecommerce-ops` and
+costs `retail_hospitality.guest-feedback` a level.
+
+### 7.5 The real constraint after J-WIDE-1 is `00`'s six-field cap
+
+`00`:48 caps a schema at three to six fact fields. **Thirteen of the 21 schemas carrying sequences need more
+destination roles than that**, and the overshoot is not marginal.
+
+| Schema | rows | distinct destination roles its rows need | over cap by |
+|---|---:|---:|---:|
+| `business_operations` | 22 | **15** | 9 |
+| `creative` | 26 | 13 | 7 |
+| `government` | 29 | 13 | 7 |
+| `construction_property` | 22 | 12 | 6 |
+| `manufacturing` | 19 | 12 | 6 |
+| `retail_hospitality` | 14 | 12 | 6 |
+| `engineering` | 19 | 11 | 5 |
+| `law_practice` | 27 | 11 | 5 |
+| `career` · `resource_operations` | 6 · 8 | 8 · 8 | 2 · 2 |
+| `hr` · `logistics` · `nonprofit` | 11 · 7 · 4 | 7 · 7 · 7 | 1 each |
+| the other 8 (incl. all six live schemas) | — | ≤6 | **within cap** |
+
+**The cap is survivable, and this corpus says which six to pick.** Choosing, per schema, the six roles that
+maximise the number of rows whose *entire* recommended sequence still fits:
+
+| Schema | rows | keep whole tree | keep ≥2 levels | the six roles |
+|---|---:|---:|---:|---|
+| `government` | 29 | 18 | 28 | `matter_anchor`, `site_anchor`, `subject_anchor`, `cycle_period`, `lifecycle_stage`, `artifact_kind` |
+| `law_practice` | 27 | 23 | 24 | `matter_anchor`, `subject_anchor`, `occasion_anchor`, `series_instalment`, `scope_period`, `artifact_kind` |
+| `creative` | 26 | 21 | 25 | `subject_anchor`, `lifecycle_stage`, `counterparty_org`, `series_instalment`, `capture_time`, `artifact_kind` |
+| `business_operations` | 22 | 9 | 18 | `holder_institution`, `subject_anchor`, `org_unit`, `cycle_period`, `scope_period`, `artifact_kind` |
+| `construction_property` | 22 | 14 | 21 | `site_anchor`, `matter_anchor`, `component_anchor`, `lifecycle_stage`, `scope_period`, `artifact_kind` |
+| `engineering` | 19 | 14 | 17 | `subject_anchor`, `component_anchor`, `matter_anchor`, `lifecycle_stage`, `series_instalment`, `artifact_kind` |
+| `manufacturing` | 19 | 12 | 18 | `site_anchor`, `asset_instance`, `component_anchor`, `matter_anchor`, `subject_anchor`, `artifact_kind` |
+| `retail_hospitality` | 14 | 7 | 13 | `site_anchor`, `matter_anchor`, `occasion_anchor`, `lifecycle_stage`, `channel_locus`, `artifact_kind` |
+| `hr` | 11 | 10 | 11 | `cycle_period`, `org_unit`, `subject_anchor`, `matter_anchor`, `scope_period`, `artifact_kind` |
+| `resource_operations` | 8 | 6 | 8 | `site_anchor`, `asset_instance`, `component_anchor`, `subject_anchor`, `scope_period`, `artifact_kind` |
+| `logistics` | 7 | 6 | 7 | `site_anchor`, `asset_instance`, `matter_anchor`, `counterparty_org`, `scope_period`, `artifact_kind` |
+| `career` | 6 | 4 | 6 | `holder_institution`, `counterparty_org`, `addressed_org`, `matter_anchor`, `subject_anchor`, `artifact_kind` |
+| `nonprofit` | 4 | 3 | 4 | `holder_institution`, `org_unit`, `cycle_period`, `matter_anchor`, `series_instalment`, `artifact_kind` |
+
+**Under a strict six-field cap applied optimally: 209 of 276 sequenced rows keep their whole recommended
+tree, 257 keep at least two levels, and 19 collapse to one level or none.** That is a good outcome and it
+should be stated as one — the cap costs about a quarter of the trees a level, and almost nothing a tree.
+
+**But note what the optimiser is forced to pick.** Eight of the thirteen cuts include a role that has **no
+canonical key**: `series_instalment` (law_practice, creative, engineering, nonprofit), `org_unit`
+(business_operations, hr, nonprofit) and `channel_locus` (retail_hospitality). The optimiser chooses them
+because the rows genuinely need them. **§7.4's three gaps are not edge cases — they sit inside the optimal
+six-field set of eight different schemas.**
+
+**`business_operations` is the hardest row in this table and deserves its own sentence.** It needs 15 roles,
+keeps only 9 of 22 whole trees under any six, and its best six include the two roles 48 seeds
+destination-ineligible. It is the schema J-WIDE-1 helps least.
+
+### 7.6 Where 47/48/49 cut across a recipe in this document
+
+**(a) `matter_anchor` and `subject_anchor` both route to `project` (49 §1.3, §1.4).** At the *role* layer this
+document keeps them apart, and §10.4 gives the corpus's own reason: merging them produces an illegal
+self-repeat. At the *key* layer 49 has merged them, deliberately and with the cost stated. The consequences:
+
+- **Recipes 1 and 2 become one binding.** `matter_anchor > artifact_kind` (55 rows / 12 schemas) and
+  `subject_anchor > artifact_kind` (32 / 11) both compile to `project > <kind>`. That is a real
+  simplification — one definition serving 87 rows across 16 schemas — and it should be taken as one.
+- **Six rows want both levels. Three of them can have both and three cannot.**
+  `manufacturing.failure-analysis`, `.production-record` and `.warranty-claim` are safe, because
+  manufacturing's subject is `product` (a separate mint) and its matter is `project`.
+  **`construction_property.variation-claim`, `government.grant-programme-administration` and
+  `law_practice.ip-prosecution` compile to `project > project`**, which `DimensionOrder` rejects
+  (`templates.py:275-278`) and `00` forbids. `construction_property.subcontract` states the same cost in
+  its own words, and 49 §1.4 records it: *"one job's five packages either collapse into one value or each
+  become a sibling 'project' of the job that contains them."*
+  **This is the price of one vocabulary and it is three rows, not a class of rows. It is worth paying.** The
+  mitigation 49 offers — the pair becomes one `project` value, or the inner level becomes a `work_type`
+  value — works for all three.
+
+**(b) `lifecycle_stage` is refused as a key name and folded into `stage` (49 §5).** This is a rename, not a
+merge, and it costs this document nothing: the role keeps its name, the field is `stage`. Recipes 6, 9 and the
+contested pair in §4.2 are unaffected. **§4.2's recommendation gets easier, not harder:** with `stage`
+canonical and widened past research, shipping `{subject_anchor, lifecycle_stage, artifact_kind}` with both
+orders as candidates is a single definition on one key.
+
+**(c) The period cluster resolves §4.1's "one role doing two jobs" — halfway.** 47 folds five spellings into
+one `record_period`; 49 mints `people_cycle` separately. That is exactly the split §4.1 asked for — *a period
+a record is measured over* (`record_period` ← my `scope_period`) versus *a named recurring process instance*
+(`people_cycle` ← my `cycle_period`). **What it does not resolve is the direction question**: 29 rows put the
+covering period below the function level and 14 put it above, and one key cannot hold both without the
+`metadata_only` override 47 §4.1 relies on. §4.1 stands as written.
+
+### 7.7 What ships today, unchanged
+
+**54 bindable rows in 6 schemas** — a **closed** evidence base, since every field-declaring schema is already
+fully landed (11+3+5+18+9+8 = 54, gated = 0 for all six).
+
+#### Every ordering fact the launch set can express
 
 | Rows | Schemas | Recipe | Reuse? |
 |---:|---:|---|---|
@@ -683,11 +916,9 @@ already fully landed (11+3+5+18+9+8 = 54, gated = 0 for all six), so no future r
 | 2 | 1 | `scope_period > artifact_kind` | finance only |
 | 1 each | 1 | `artifact_kind > account_kind` · `artifact_kind > issuing_org` · `artifact_kind > addressed_org` · `occasion_anchor > capture_time` · `occasion_anchor > capture_kind` · `addressed_org > subject_anchor` · `issuing_org > scope_period` · `holder_institution > artifact_kind` · `subject_anchor > addressed_org` · `addressed_org > lifecycle_stage` · `addressed_org > cycle_period` · `occasion_anchor > place` · `subject_anchor > lifecycle_stage` · `repository_instance > artifact_kind` | one schema each |
 
-**Three of the sixteen full-corpus recipes are bindable. Thirteen are not — they have zero field rows between
-them.** Everything `matter_anchor`, `site_anchor`, `component_anchor`, `asset_instance`, `counterparty_org`,
-`org_unit` and `series_instalment` touches is wave 2 or later.
+**Three of the sixteen recipes are bindable today.** Under J-WIDE-1 that becomes fourteen.
 
-### 7.2 The 28 launch definitions (exact role sets, cap 0)
+#### The 28 launch definitions (exact role sets, cap 0)
 
 | Rows | Sch | Role set | Candidate orders present in the corpus | Rows |
 |---:|---:|---|---|---|
@@ -712,8 +943,8 @@ and `{subject_anchor, artifact_kind}` picking up `code.pkm-vault`, `finance.hous
 `finance.vehicle-records` (the last two by leaving `subject_anchor` unbound, which `TemplateApplicability`
 permits and finance's field list requires).
 
-**The honest launch headline: 54 bindings, 14–28 definitions, 3 cross-schema recipes.** The composable
-library's payoff is real and almost all of it is in wave 2.
+**Today's headline: 54 bindings, 14–28 definitions, 3 cross-schema recipes. After J-WIDE-1: 249 bindable
+rows, 14 of 16 recipes, and the constraint moves from the field freeze to the six-field cap.**
 
 ---
 
@@ -814,23 +1045,41 @@ sentence rather than with a table.
 
 ## 11. What this proposes
 
+**Reframed for J-WIDE-1.** The first six are unchanged by the ruling; the last five exist because of it.
+
 1. **Freeze the sixteen recipes in §2.2** as `TemplateFragment` candidates, with §8's exposure-class question
    answered first for recipe 1 and recipe 5.
-2. **Do not cut Recipe 2.** It is 11 rows across 5 schemas with zero reversals and it is one of only three
-   recipes with a bound half.
+2. **Do not cut Recipe 2.** It is 11 rows across 5 schemas with zero reversals — and §7.4(a) is now the live
+   threat to it, not sample size.
 3. **Count definitions as role sets, not sequences** — the built code already requires it — and adopt **cap 1**:
-   **79 definitions for the full catalogue, 14 for launch.**
+   **79 definitions for the full catalogue, 14 for the six schemas that bind today.**
 4. **Say "291 situations, 79 definitions, ~16 fragments"** rather than "200–300 templates." 00's range is
    right about the first number and roughly 2–4× too high for the second.
 5. **Scope the research stage-flip to research** and ship `{subject_anchor, lifecycle_stage, artifact_kind}`
-   with both orders as candidates. §4.2 stops being an open design question the moment the definition offers
-   both.
+   with both orders as candidates — cheaper still now that 49 makes `stage` one canonical key (§7.6b).
 6. **Do not merge the four org roles**, and record `business_operations.partnerships-bd` and
    `.corporate-regulatory-filings` as the structural proof (§3.3).
 7. **Open a record-shape question for the 8 NONE rows** (§8): a situation whose recommendation is zero depth
    has no representable definition today.
-8. **Treat the 13 unbindable recipes as the wave-2 backlog**, and note that they are unbindable because six
-   roles carrying 222 role-uses across up to 13 schemas have no field anywhere in the product.
+8. **Mint a `series_instalment` key.** It is the one gap that kills whole recipes rather than trimming trees:
+   two recipes (6 rows / 5 schemas and 4 rows / 4 schemas), 13 rows across 7 schemas, and it sits inside the
+   optimal six-field set of four schemas. It is the same shape doc 42 found with `matter_anchor` — a real
+   organizing axis that is unstateable because nobody minted the key — and `creative.periodical-issue` already
+   wrote the specification for it. **This is the highest-value single addition to `canonical_fields.json` that
+   the three adjudications did not make.**
+9. **Re-open `organization`'s `destination_eligible: false` (48 §3) against Recipe 7.** Seeded-false is right
+   for a single-entity corpus and wrong as the reason a 5-schema, zero-reversal recipe cannot open its top
+   level on 14 rows. Either the template-time promotion must be specified well enough that a recipe can rely
+   on it, or `organization` needs the per-schema override 48 §7 already says `canonical_fields.json` cannot
+   express.
+10. **Re-open `workforce_unit`'s `destination_eligible: false` for the non-personnel senses.** A cost centre,
+    a service area and a constituted body are not a personnel unit; 13 rows across 6 schemas want one as a
+    level and `hr.org-design-headcount` gives the argument. If the answer is still false, say so — but then
+    `business_operations`, `hr` and `nonprofit` lose a role their optimal six-field set contains.
+11. **Plan the six-field cut per schema deliberately (§7.5), because it is now the binding constraint.**
+    Thirteen of 21 schemas want more than six roles; `business_operations` wants fifteen. An optimal cut keeps
+    209 of 276 whole trees and 257 two-level trees, which is a good outcome — but it is only reachable if the
+    cut is chosen from the evidence rather than schema by schema in isolation.
 
 ---
 
@@ -896,3 +1145,16 @@ for s in sorted(by):
 
 The role sequence assigned to each of those 237 rows is the one judgement layer in this document. §10 names
 the eight calls most likely to be wrong; §1.2 states the two conventions that produced them.
+
+**§7's horizon analysis** is that role table joined to §7.1's role→key map. Given a per-row role sequence, a
+row is *bindable after J-WIDE-1* when every role in it routes to a `destination_eligible: true` key its own
+schema may declare; *partial* when its first role does but a later one does not; *blocked* when its first
+role does not. §7.5's six-role cut is an exhaustive search over `C(n,6)` role subsets per schema, maximising
+first the rows whose whole sequence fits and second the rows keeping two levels. Both are mechanical once the
+role table exists; neither adds a judgement beyond §7.1's map, which is read out of 47 §3.1/§4.1,
+48 §3/§7 and 49 §5.
+
+**Corpus stamp.** Counts read at `410d21c` (14:42:17Z) and re-read at `bdab2ab` (14:55:37Z): 358 files,
+335 templates, 23 schemas, 44 refused, 291 kept, 54 bindable, 237 gated, 30 live fields, and 262 template
+rows pointing at the thirteen — identical at both commits. `planning/domains/nodes/` is under concurrent
+writes; re-derive before quoting.
