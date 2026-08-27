@@ -986,3 +986,55 @@ inside `00`:48's cap**, while a portfolio PDF still activates from a job applica
 **J-WIDE-6 — `career.employer-side-hiring`: OPEN.** Joseph selected no option and asked *"put in
 both?? could be both??"*. Answered in the run log; the mechanism works but does not settle the
 privacy question, which is the reason the placement was raised. **Still owed.**
+
+#### J-WIDE-2-R MECHANICS — how "both orders, no default" is actually built
+
+**Not a new ruling. Joseph's intent is preserved exactly; only the record shape changes.** Recorded
+because the ratified wording is not constructible as written, and both reasons were verified against
+live code by this session (not taken on report).
+
+**Why the literal wording fails, verified at `src/tree_design/templates.py`:**
+
+1. **"Neither order is recommended" is refused at construction.** `templates.py`:345-352 — `defaults =
+   [order for order in self.candidate_orders if order.is_default]`, then `if len(defaults) != 1:
+   raise MalformedTemplateRecord(...)`. The message: *"A definition RECOMMENDS exactly one and the
+   end user picks per branch (§5.3, §5.8); none means nothing can be previewed."* **Zero defaults
+   raises.**
+
+2. **The deeper one: career's two orders are not two ORDERS.** `templates.py`:353-360 requires every
+   candidate order to cover the same roles — *"An order that drops or adds a role is a different
+   RECIPE, and offering it as an ordering choice would let the user silently change what the branch
+   organizes by."* `company → role` and `recruiting cycle → document type` have **disjoint role
+   sets**. They are two recipes, and the guard's reasoning is right: picking between them is a bigger
+   decision than picking an order.
+
+**THE CONSTRUCTIBLE SHAPE — career gets TWO `TemplateDefinition` records, not one with two orders:**
+
+- **D-A** — roles `{employer | target_employer, job_title}` — the company-first recipe
+- **D-B** — roles `{recruiting_cycle, record_type}` — the cycle-first recipe
+
+Each definition carries its own internal `candidate_orders` (`templates.py`:361 requires a recipe of
+2+ roles to offer 2+ orders, so each needs both nestings of its own pair) **with exactly one default
+inside it** — that rule is per-definition. **The first-run question then chooses between two
+RECIPES, and "neither is recommended" is expressible at that level**, because nothing ranks two
+definitions against each other.
+
+**This makes the ruling more coherent, not less.** Joseph declined to rank two ways of *organizing a
+job hunt* — a larger and more honest question than declining to rank two rotations of the same two
+folders. And it strengthens the `00`:99 requirement rather than weakening it: the two options produce
+genuinely different trees, not one tree rotated, so live structural feedback matters more.
+
+**⛔ BLOCKER — the live feedback J-WIDE-2-R depends on is not wired. Verified by this session.**
+
+`warnings_for` in `src/tree_design/health.py`:156 — which computes §5.9's `WARN_ONE_CHILD`,
+`WARN_TINY_FOLDERS`, `WARN_EXCESSIVE_DEPTH`, `WARN_REPEATED_PARENT` and `RECOMMEND_FLATTEN` — **has
+ZERO production callers.** Confirmed: 2 references in `src/`, both inside `health.py` itself (its own
+`def` at :156 and a docstring at :88), and 14 in `tests/p10/test_p10_health.py`. Nothing in the
+product calls it.
+
+**Consequence, stated plainly: until that is wired, shipping "both orders, no default" ships an
+UNGUIDED question** — the user is asked to choose between two recipes with no child counts, no
+files-per-child, and no tiny-folder warning, which is precisely the gap the ruling relies on `00`:99
+to fill. The implementation requirement recorded above is therefore **not yet met**, and this is a
+dependency of the ruling, not an objection to it. Assigned blocker-class by the peer session's P10
+owner.
