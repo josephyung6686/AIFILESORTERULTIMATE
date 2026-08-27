@@ -192,7 +192,7 @@ law_practice.pleadings | OTHER-TEAM | active
 law_practice.precedent-bank | OTHER-TEAM | active
 law_practice.pro-bono | OTHER-TEAM | active
 law_practice.regulatory-submission | OTHER-TEAM | active
-law_practice.settlement | OTHER-TEAM | active
+law_practice.settlement | OTHER-TEAM | complete
 law_practice.time-and-billing | OTHER-TEAM | active
 law_practice.transactional-deal | OTHER-TEAM | active
 law_practice.trial-preparation | OTHER-TEAM | active
@@ -341,7 +341,7 @@ law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.investigation | OTHER-TEAM | active
 law_practice.legal-research | OTHER-TEAM | active
 law_practice.regulatory-submission | OTHER-TEAM | active
-law_practice.settlement | OTHER-TEAM | active
+law_practice.settlement | OTHER-TEAM | complete
 manufacturing.energy-audit | OTHER-TEAM | active
 nonprofit.advocacy-campaign | OTHER-TEAM | active
 nonprofit.grant-reporting | OTHER-TEAM | active
