@@ -1692,3 +1692,51 @@ and taxes this would already sort better than anything on the market.** The gap 
 seventeen schemas are recognition without placement — the product tells a photographer, a builder, a
 manufacturer and a job-seeker it understands every file they have, then files nine in ten of them
 under "Review Later".
+
+### The generalizable rule the north-star lane found — worth more than any single finding
+
+**A refusal is safe when the absorbing row has fields, and harmful when it does not.** The node test
+was applied *uniformly*; it should have been conditioned on whether the absorber can actually hold
+the file.
+
+Five sampled refusals cost the user nothing, because each names an absorber that carries a real
+dimension order: `code.software-project` → `code` (`project/repository/artifact_type`);
+`research.project-workspace` → `research` (`project/stage/artifact_type`);
+`engineering.bill-of-materials` → a `work_types[]` value; `law_practice.matter-correspondence` and
+`creative.graphic-design-project` → their schema defaults. Keep all five.
+
+Seven are taxonomically right and product mistakes, every one absorbed into a **field-less** schema:
+`creative.licensing-rights` (a model release is the file a photographer is most often asked to
+produce on demand, now split across field-less `legal` and `finance`);
+`creative.self-initiated-work`; `construction_property.compliance-certificate` (a Gas Safe / EPC
+certificate — right about provenance, wrong about retrieval);
+`construction_property.timesheet` (excellent forensics — "three different documents that share a
+table shape" — but the builder has one weekly file and three homes, none he would guess);
+`construction_property.sale-purchase` (a once-a-decade 40-document bundle left on `record_type`
+alone); `clinical_practice.veterinary-practice` (correct for a vet practice, but the commoner holder
+is a **pet owner** and no owner-side row exists in all 358); `nonprofit.volunteer-management`
+(refused as a duplicate of its schema default — but `nonprofit` declares no fields, so "absorbed into
+the schema default" means absorbed into nothing).
+
+**This does not require reversing refusals.** It requires landing fields on the absorbers first
+(P0/P2), after which most of these stop hurting on their own. Re-test the list then, not now.
+
+### Two further shape findings
+
+- **`Review Later` is the fallback of 326 of 358 rows (91%)** — a promise of future work, not an
+  answer. For a student the residual share of a real drive is small; for a photographer, builder,
+  manufacturer, solicitor or job-seeker it is the *majority* of their professional corpus. That is
+  not the residual system failing; it is the residual system correctly absorbing 17 of 23 schemas.
+- **The photos family alone ships six different tree shapes** — `capture_year/event`,
+  `event/capture_year`, `media_type/capture_year`, `event/location` (no year at all),
+  `capture_year`, `capture_year/event/media_type`. Each is individually argued; together a user's
+  photo tree is year-first in one branch and event-first in the next.
+- **Q5, answered honestly:** the six schemas written from the user's point of view match how people
+  think about their files; the seventeen added since are cut **occupationally** (a records manager's
+  view), not situationally. Nobody thinks "my `resource_operations` files" — a farmer thinks "the
+  farm", and that schema bundles farming, fishing, forestry, mining, oil and gas, grid connections
+  and utility metering. `business_operations` (25 rows) is an org chart. Note the correlation and it
+  is not a coincidence: **the rows that are person-shaped are exactly the ones that have trees** —
+  photos, academic, applications, tax — because those are the four `00` wrote first, from a real
+  corpus. The catalogue got *wider* by adding professions; a person's drive gets messy along **life
+  events**, not SIC codes.
