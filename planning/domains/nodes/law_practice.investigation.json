@@ -1,0 +1,595 @@
+{
+  "id": "law_practice.investigation",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Investigations: terms of reference, interview notes, evidence logs and findings",
+  "one_line": "The practitioner-side APPARATUS of a bounded fact-finding enquiry conducted FOR a client: the terms of reference or investigation plan that separates a commissioning client from an investigator and names subjects, allegations in and out of scope, and a reporting deadline; the investigator-authored interview note (third-person summary, unsigned by the interviewee, no oath and no page-and-line coordinates); the evidence or exhibit log keyed to an investigation reference; the source-cited chronology; and the findings or recommendations report addressed to the instructing party. It is NOT the word investigation, not a litigation STAGE, not a document-type name, not the employer's own grievance or disciplinary case (hr.employee-relations), not a discovery demand-and-production exercise, not an attested deposition or witness statement, and not the state's interview of the practice's own client.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED WHOLE FROM THE SCHEMA AND NOT RESTATED PER SIGNAL: these are schema-activation signals, not licences to write facts - `law_practice` declares no field rows, so nothing below authorises a client, matter, subject, allegation, finding or date fact. Every signal is a STRUCTURE plus a LABELLED SLOT, and the schema's default additionally requires an exact matter, file, engagement or investigation reference. THIS TEMPLATE NARROWS THAT PRECONDITION IN ONE PLACE: signals I1–I5 may be anchored by an EXACT INVESTIGATION OR ENQUIRY REFERENCE allocated in the terms of reference, even where the surrounding matter reference is absent from a single interview note or evidence-log row, because those artefacts routinely carry only the enquiry identifier.",
+      "I1. THE TERMS-OF-REFERENCE OR INVESTIGATION-PLAN structure — the row's constitutive signal and the one the schema default states only as a work_type value. A document whose own labelled slots pair a COMMISSIONING or INSTRUCTING CLIENT (or instructing solicitor) with an INVESTIGATOR or enquiry lead, name SUBJECTS under review, partition ALLEGATIONS or issues INTO SCOPE and OUT OF SCOPE, and carry a REPORTING DEADLINE or deliverable slot. There is no tribunal caption, no bound adverse-party demand pair, no propounding/responding designation, and no employee-procedure hearing date. The commissioning-and-investigator pair plus the in-scope/out-of-scope partition is the discriminator. A one-author fact-find note with no commissioning slot is not this signal.",
+      "I2. THE INVESTIGATOR-AUTHORED INTERVIEW NOTE — the row's most distinctive artefact and the seam already drawn by landed siblings. A dated record of one person's account written IN THE THIRD PERSON by the investigator, usually a SUMMARY rather than a verbatim transcript, with no oath administered by an officer, no page-and-line coordinate system, no errata or correction slot for the interviewee, and typically no signature by the person interviewed. Header slots name the investigation reference, the interviewer, the interviewee, date, location, and attendees. Where the interviewee HAS signed a verbatim record under an attestation, this signal does not fire and the file is contested with `law_practice.depositions-testimony` — abstention, not a coin toss.",
+      "I3. THE EVIDENCE OR EXHIBIT LOG keyed to an investigation reference: a table with one row per collected item carrying an investigation exhibit or control identifier, a description, a source or custodian, a date obtained, and usually a chain-of-custody or location line — WITHOUT a production-volume designation, WITHOUT a contiguous Bates/control run tied to a load file, and WITHOUT a propounding/responding party pair. The investigation-reference column plus the absence of a production apparatus is the discriminator against `law_practice.discovery`.",
+      "I4. THE SOURCE-CITED CHRONOLOGY: a dated sequence of alleged events whose rows carry a SOURCE or EVIDENCE-CITATION column pointing back to an interview note, a document in the evidence log, or both. A bare timeline without source citations is ordinary matter work product and is not this signal; the citation column is what makes the chronology part of the enquiry apparatus rather than a strategy note.",
+      "I5. THE FINDINGS OR RECOMMENDATIONS REPORT addressed to the instructing party: a document whose own sections separate instructions or mandate, evidence considered, findings of fact, and recommendations or next steps, with a header naming the investigation reference and the commissioning client. The section grammar is the evidence. The words privileged, confidential, findings and recommendations are not, and the structure establishes no correctness, legal effect, privilege or disclosure right.",
+      "I6. THE HOLD OR PRESERVATION NOTICE under an investigation mandate: a notice pairing a NAMED SUBJECT or custodian set with a preservation instruction, a scope description, and an acknowledgement slot, where the governing reference is an investigation or enquiry identifier rather than a litigation production volume. Where the same notice also carries an adverse-party proceeding designation and a production-volume apparatus, `law_practice.discovery` contests it and both may be candidates.",
+      "I7. AN ARCHIVE whose manifest, read WITHOUT unpacking, shows member paths repeatedly encoding one investigation reference across coherent enquiry families — terms of reference, interviews, evidence log, chronology, findings — because \"Archives should be inspected without being unpacked to disk.\" and \"the normal scan should never extract archive contents to the filesystem\". Directory names stay observations."
+    ],
+    "needs_llm": [
+      "DECIDING WHOSE PROCESS IT IS — the family's sharpest under-firing risk. The same terms of reference, interview note, evidence log and findings report exist in an employer's own grievance or disciplinary case (`hr.employee-relations`), in a compliance or internal-audit engagement (`business_operations.compliance-audit`), in a consulting forensic engagement (`career.consulting-client-engagement`), and in a practitioner-side matter conducted FOR a client. Only the commissioning-and-investigator slots plus the presence of practitioner-side matter apparatus resolve it, and where they do not the correct outcome is Review Later: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "Separating an investigation interview from a deposition, a sworn witness statement, and a police or regulator interview of the practice's own client. Topic will not separate them; the attestation block, the direction of questioning, and the officer or rights-advisement slots will.",
+      "Separating an investigation evidence log from a discovery production volume and from a trial bundle index. Shared exhibit labels decide nothing.",
+      "Recognising unlabelled practitioner prose about the enquiry: a running note of who was spoken to, a scribbled scope change, a handover on where document review stopped. 00 names unlabelled forms and unusual professional artifacts among the reasons rules alone are insufficient.",
+      "Distinguishing an operative enquiry record from a study or exemplar copy — a bar-course sample investigation pack, a firm know-how precedent, a textbook specimen. Topic will not separate them; \"purpose answers what the file was for\" is the only test that works.",
+      "Deciding whether a heterogeneous pack is ONE enquiry or several when the same subjects recur across related complaints. Cross-enquiry bridging by subject name is forbidden as a privacy rule, not only an accuracy rule.",
+      "Abstaining whenever neither the terms-of-reference pair nor an investigation-reference anchor can be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "THE WORDS INVESTIGATION, ENQUIRY, INQUIRY, FACT-FIND, INTERVIEW, FINDINGS, WHISTLEBLOWING, MISCONDUCT or ALLEGATION ALONE, in a filename, a heading or a folder. The schema already strikes legal vocabulary as a class; this row restates it because its own name is one of those words and because a staff-handbook procedure extract titled with all of them trips nothing else.",
+      "A SUBJECT, WITNESS, COMPLAINANT, WHISTLEBLOWER or ACCUSED NAME ALONE, and a name beside a document-type word. Read across from \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" — and note that existence of a named person in an investigation corpus is itself disclosive.",
+      "A DOCUMENT-TYPE WORD ALONE — interview note, terms of reference, chronology, findings report, evidence log, hold notice. Delete every entity name and every document-type word; if nothing structural survives, nothing fires.",
+      "A CONFIDENTIAL, PRIVILEGED, WITHOUT-PREJUDICE, ATTORNEY-CLIENT or SUBJECT-TO-PROTECTIVE-ORDER LABEL. The observation is preserved literally; nothing is decided about legal status, and specifically such a label is not evidence that this row rather than a neighbour owns the file.",
+      "A COURT CAPTION, FILED STAMP, CHARGE SHEET or REGULATOR CASE REFERENCE ALONE. A caption is `legal`'s; a regulator's own case administration is government's; neither proves a practitioner-side enquiry apparatus.",
+      "A SOURCE TYPE or EXTENSION ALONE, including text_document, email, spreadsheet, archive, audio_video, ocr and every extension this row lists. file_kind_plausible is constitutionally never-alone.",
+      "A FOLDER named Investigation, Interviews, Findings, Evidence or Hold. Paths stay local; a folder name is an unlabelled position.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE or CURRENT-DIRECTORY MEMBERSHIP. 00: \"A session should never be treated as proof of topic\".",
+      "MATCHING SUBJECT NAMES, ALLEGATION TOPICS or SEMANTIC SIMILARITY ACROSS TWO ENQUIRIES. Cross-enquiry bridging is suppressed because assembling a history of investigations against one person is a privacy harm, not a filing convenience.",
+      "AUTHOR, CREATOR or LAST-SAVED-BY METADATA naming a practitioner or firm. 00: \"It should avoid using authorship or creator identity as a destination dimension\"."
+    ]
+  },
+  "proposed_context_terms": [
+    "terms of reference",
+    "investigation plan",
+    "scope of enquiry",
+    "in scope",
+    "out of scope",
+    "commissioning client",
+    "instructing solicitor",
+    "investigator",
+    "enquiry lead",
+    "reporting deadline",
+    "interview note",
+    "interview memorandum",
+    "attendees",
+    "evidence log",
+    "exhibit log",
+    "chain of custody",
+    "chronology",
+    "source citation",
+    "findings of fact",
+    "recommendations",
+    "investigation report",
+    "hold notice",
+    "preservation notice",
+    "whistleblowing",
+    "protected disclosure",
+    "subject of investigation"
+  ],
+  "work_types": [
+    "terms of reference or investigation plan",
+    "subject notification or interview invitation",
+    "investigator-authored interview note or memorandum",
+    "evidence or exhibit collection log",
+    "source-cited chronology",
+    "findings of fact and recommendations report",
+    "preservation or hold notice under an investigation mandate",
+    "investigation pack or enquiry-system export"
+  ],
+  "grouping_reasons": [
+    "ONE ENQUIRY from terms of reference through findings, joined by an exact repeated investigation or matter reference: the plan, the interview notes, the evidence log, the chronology and the report. Content-incoherent and purpose-coherent — \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership; it copies no subject, allegation or finding onto any member.",
+    "ONE INTERVIEW EVENT: the invitation, the note, any recording and any follow-up clarification, joined by an exact interview date-and-subject reference already evidenced in the note header — never by a shared person name alone.",
+    "ONE DOCUMENT across draft and issued findings versions — the universal version_family fact, never a `-final` suffix.",
+    "NO GROUP AT ALL is a valid outcome. A single interview note with no accepted enquiry around it is still protected material: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+    "NOT grouping reasons: shared subject names across two enquiries; shared allegation topics; a firm name; a download session; and \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY THREE TIMES OVER, inherited from the schema and not reopened here. (1) BY CONTRACT: `law_practice` declares no field rows under PR-6, so no dimension may branch. (2) BY SAFETY CO-ACTIVATION: enquiry packs routinely contain instruments and identity copies that co-activate `legal` and `identity`, and \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" (3) BY DISCLOSURE: the natural axes are a CLIENT and a SUBJECT OF INVESTIGATION, and naming either in a path publishes that a named person is under enquiry — \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" A named subject may NEVER be a folder level. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "audio_video",
+      "ocr",
+      "image",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".7z",
+      ".mp3",
+      ".m4a",
+      ".mp4",
+      ".png",
+      ".jpg",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Terms of Reference - INV-2026-014 - workplace harassment enquiry.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots pair a commissioning client organisation with a named investigator and an instructing solicitor",
+        "a numbered list of allegations partitioned into in-scope and out-of-scope sections",
+        "a reporting-deadline slot and a confidentiality undertaking",
+        "an investigation reference INV-2026-014 repeated in the header and footer",
+        "no tribunal caption, no propounding/responding party pair, no employee-procedure hearing date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact — the schema declares none",
+        "that a named subject is guilty, that allegations are true, or that the enquiry is authorised or complete",
+        "that this is hr.employee-relations material merely because the subject is an employee — the commissioning client and instructing-solicitor slots are the discriminator",
+        "a folder path, and specifically not a branch named for the subject"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Investigation interview note - A. Okafor - grievance.docx",
+      "source_type": "text_document",
+      "observations": [
+        "header slots: investigation reference, interviewer, interviewee A. Okafor, date, location, attendees",
+        "body is a third-person SUMMARY of answers, not a verbatim transcript",
+        "no oath, no reporter certificate, no page-and-line coordinates, no errata slot",
+        "the interviewee has not signed the note",
+        "footer carries the practice letterhead and the investigation reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is `law_practice.depositions-testimony` — that sibling requires attestation by the person whose words they are",
+        "that the interviewee's account is true, complete or admissible",
+        "a subject_of_record or client fact — none is declared on this schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Evidence log - INV-2026-014.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: exhibit id, description, source/custodian, date obtained, location, chain-of-custody line",
+        "investigation reference INV-2026-014 in the sheet header",
+        "no begdoc/enddoc columns, no volume designation, no load-file sibling, no propounding party"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is `law_practice.discovery` production apparatus — the discriminating absence is the load-file and volume structure",
+        "that exhibit identifiers may be copied as facts onto neighbouring files",
+        "permission to unpack linked archives solely to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Chronology - INV-2026-014 - with sources.docx",
+      "source_type": "text_document",
+      "observations": [
+        "dated event rows spanning several months",
+        "each row carries a source citation pointing to an interview note or evidence-log exhibit id",
+        "investigation reference in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the chronology is a complete or accurate history of events",
+        "that a date in a citation is a capture date or a legal deadline",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Investigation report - findings and recommendations - INV-2026-014.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sections labelled mandate, evidence considered, findings of fact, recommendations",
+        "addressed to the commissioning client named in the terms of reference",
+        "investigation reference repeated in the header",
+        "a privileged-and-confidential legend in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege, work-product protection, correctness or legal effect from the legend or from the findings",
+        "that recommendations were followed, accepted or authorised",
+        "permission to summarise findings to a cloud model by default — \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Preservation notice - INV-2026-014 - named custodians.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled custodian set, preservation instruction, scope description, acknowledgement signature block",
+        "governing reference is INV-2026-014, described as an internal investigation",
+        "no production-volume designation and no adverse-party caption"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is automatically `law_practice.discovery` — that sibling needs a production or demand apparatus; both may be candidates when both are present",
+        "that preservation was in fact complied with",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Interview audio - A. Okafor - 2026-03-04.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "recording metadata with date and duration",
+        "filename carries interviewee name and date matching an interview note in the same folder",
+        "no transcript sidecar present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that speech-to-text may be run to improve classification without an explicit privacy and compute policy",
+        "matter or subject facts from the filename alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Investigation pack - INV-2026-014 - export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest readable without unpacking shows member paths encoding INV-2026-014 across ToR, Interviews, Evidence, Chronology, Report folders",
+        "file count and extensions visible; no password prompt on the outer archive"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "permission to unpack solely to improve classification — \"the normal scan should never extract archive contents to the filesystem\"",
+        "that directory names are facts on members",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Interview transcript - 2026-03-04 - Rowan Pike.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "dated question-and-answer record on the practice's template with a matter reference in the footer",
+        "a caution or rights-advisement block at the head",
+        "an attending-legal-adviser role slot naming the holder's firm",
+        "a custody or booking reference distinct from the matter reference",
+        "the practice's CLIENT is the person being questioned"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE COLLISION FIXTURE WITH `law_practice.criminal-defence`: the practice attends as adviser while the STATE questions the client — the direction of questioning and the caution block discriminate, never the word interview",
+        "any investigation-subject fact about Rowan Pike as if the practice were the questioner",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grievance GRV-2026-014 investigation pack - employer HR export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest shows allegation letter, investigation report, hearing notice, outcome letter",
+        "case reference GRV-2026-014 with a process name grievance and a subject-employee column in an accompanying register extract",
+        "no instructing-solicitor or commissioning-client slot; the employer is running its own procedure",
+        "representation-right and appeal-route language in the hearing notice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE COLLISION FIXTURE WITH `hr.employee-relations`: the served procedural apparatus of an employer process, not a practitioner-side enquiry for a client",
+        "a law_practice matter from an HR case reference",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Requests for Production - Set One - Acme v Beta.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "definitions and instructions block followed by consecutively numbered demands",
+        "labelled propounding and responding party slots naming two adverse parties",
+        "certificate of service page",
+        "no investigation reference and no commissioning-investigator pair"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE COLLISION FIXTURE WITH `law_practice.discovery`: a demand instrument is that sibling's constitutive signal",
+        "that the word production or disclosure in a subject line activates an investigation",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deposition Transcript - Jordan Lee - Volume I - CERTIFIED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "reporter certificate, appearances, verbatim Q&A with page-and-line coordinates",
+        "errata sheet invitation",
+        "matter caption on the cover"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Collision fixture with `law_practice.depositions-testimony`: attestation and coordinates are that sibling's structure; an investigator summary is this row's",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Internal audit prepared-by-client list - FY2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "numbered demand list with a provided/outstanding status column",
+        "engagement and audit-period header",
+        "auditor/auditee role pair",
+        "no adverse party and no investigation reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Collision fixture with `business_operations.compliance-audit`: an audit engagement structure without a practitioner-side investigation mandate",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LPC Skills - sample investigation interview note (marked).docx",
+      "source_type": "text_document",
+      "observations": [
+        "perfectly formed interview-note structure with fictional client and subject names",
+        "tutor comments and a mark in tracked changes",
+        "training-provider header and a module code"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this schema from a perfectly formed practitioner structure — \"purpose answers what the file was for\"",
+        "that a fictional subject name is a real subject of investigation",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Investigation pack - INV-2026-014 - password protected.7z",
+      "source_type": "archive",
+      "observations": [
+        "archive header identifies a password-protected volume",
+        "member manifest unavailable to the approved scanner",
+        "filename carries an investigation-shaped token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row, a subject or a finding from the filename — \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "permission to force it open — \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr.employee-relations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Grievance GRV-2026-014 investigation pack - employer HR export.zip`. Both rows hold terms of reference, interview notes, an evidence pack and a findings report about a named individual's conduct. TOWARDS THIS ROW: a commissioning CLIENT and an INSTRUCTING SOLICITOR or practitioner-side matter apparatus, with the enquiry conducted FOR that client. TOWARDS HR: the employer running its OWN written procedure — a grievance or disciplinary process name, a subject-employee column, a representation right, a separated investigator/decision-maker/appeal-hearer triad, and an outcome carrying an appeal route. DISCRIMINATED BY whose process it is, never by the words investigation or interview. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.depositions-testimony",
+      "signal": "SAME FIXTURE BOTH SIDES: `Investigation interview note - A. Okafor - grievance.docx`. Both rows hold one named individual's account of events recorded in a bounded professional setting. TOWARDS THIS ROW: the investigator's OWN record — third-person summary, unsigned by the interviewee, no oath, no coordinates, no correction slot — together with terms of reference, evidence log and findings. TOWARDS DEPOSITIONS: a record ATTESTED BY THE PERSON WHOSE WORDS THEY ARE — oath or statement of truth, verbatim capture with a coordinate system, and usually an errata slot. DISCRIMINATED BY who attested the record. Where an interviewee HAS signed a verbatim record under an attestation, abstention is correct. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.criminal-defence",
+      "signal": "SAME FIXTURE BOTH SIDES: `Interview transcript - 2026-03-04 - Rowan Pike.pdf`. Both rows hold a dated question-and-answer record of one person being questioned inside a practitioner matter. TOWARDS THIS ROW: an investigation CONDUCTED FOR a client — the practice is the questioner, the subject is a third party, and the anchor is an investigation instruction or engagement reference. TOWARDS CRIMINAL-DEFENCE: an interview in which the practice's CLIENT IS THE ONE BEING QUESTIONED BY THE STATE, and the practice attends as adviser — caution or rights-advisement block, attending-legal-adviser slot, and a custody or booking reference distinct from the matter reference. DISCRIMINATED BY the DIRECTION OF QUESTIONING read off the role slots, never the word interview. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Preservation notice - INV-2026-014 - named custodians.pdf` and, separately, a one-row-per-document review log. Both rows hold preservation notices, collection logs and document-review tables. TOWARDS THIS ROW: the governing reference is an investigation or enquiry mandate with NO demand instrument and NO production-volume/load-file apparatus. TOWARDS DISCOVERY: a numbered demand with propounding/responding parties, or a produced-corpus apparatus (load file, contiguous control range, volume designation). DISCRIMINATED BY whether a demand-or-volume apparatus is present, never by the words hold, review or production. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: `Internal audit prepared-by-client list - FY2026.xlsx` and an internal-investigation review log shaped like a coding table. Both worlds produce numbered document demands and one-row-per-document review tables. TOWARDS THIS ROW: practitioner-side enquiry under a client investigation mandate with commissioning/investigator slots. TOWARDS COMPLIANCE-AUDIT: an engagement or audit-period header, auditor/auditee roles, a control or finding reference, and no instructing-solicitor matter apparatus. DISCRIMINATED BY the role pair and the mandate, never by the word investigation. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: a forensic or workplace-investigation engagement letter with two organisations, fees, confidentiality and a scope of work. TOWARDS THIS ROW: explicit counsel or legal-services scope, an instructing-solicitor slot, tribunal-adjacent follow-on, or legal work-product structure inside the pack. TOWARDS CONSULTING: prepared-for / prepared-by consulting roles with milestones and acceptance, and no legal-services or matter-opening apparatus. Where only the engagement paper exists, Review Later. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "SAME FIXTURE BOTH SIDES: an investigation report about a clinical adverse event naming a clinician and a patient. TOWARDS THIS ROW: the report sits inside a practitioner-side legal matter for a client, keyed to an investigation or matter reference with instructing counsel. TOWARDS THE CLINICAL ROW: the clinician-side incident form, duty-of-candour letter or clinical governance investigation with an incident-system reference and no legal matter apparatus. An investigation report alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Terms of Reference - INV-2026-014 - workplace harassment enquiry.pdf` sitting in a corpus where the HOLDER is the subject named in the terms of reference. TOWARDS THIS ROW: practitioner-side apparatus the holder produced for a client. TOWARDS PERSONAL-LEGAL: the holder is the person under enquiry, receiving a client-care letter and subject notifications addressed to themselves, with no matter apparatus they produced. DISCRIMINATED BY which signature block is the holder's and whether practitioner-side apparatus exists around the file. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.professional-regulator",
+      "signal": "SAME FIXTURE BOTH SIDES: a regulator's own investigation plan, interview record and findings about a regulated professional. TOWARDS THIS ROW: the practitioner's copy of an enquiry conducted FOR a client (often the regulated person, or their insurer), with commissioning and investigator slots on the practice's template. TOWARDS THE REGULATOR ROW: authority-side case administration produced by the regulator itself. Receipt of an authority-issued notice does not activate government by itself; production by the authority does. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Witness statement - Priya Raman - signed.docx` collected into an investigation evidence log beside `Investigation report - findings and recommendations - INV-2026-014.pdf`. `legal` activates on executed-instrument or proceeding structures and its protection runs first. TOWARDS LEGAL: the sworn statement once a notarial jurat or bound party-pair execution is present, and any captioned proceeding record inside the pack. TOWARDS THIS ROW: the enquiry apparatus on which those signals do not fire — terms of reference, investigator summaries, evidence logs, chronologies, findings reports. DISCRIMINATED BY structure, never by folder membership: being inside an investigation pack does not strip `legal`, and a findings report does not become `legal` for lack of a caption. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: an investigation pack containing both a findings report (this row, on the mandate-and-section grammar) and a sworn witness statement or executed instrument collected as evidence (`legal`, on attestation or execution). Disjoint evidence, one corpus, both fieldless; `legal` is a safety domain so protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "signal": "SAME FIXTURE BOTH SIDES: a subject or witness passport or proof-of-address copy collected during identity verification inside an enquiry. Identity keeps its own evidence and protection; this row adds only enquiry-membership via an exact investigation reference. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "SAME FIXTURE BOTH SIDES: personal-injury or clinical-negligence enquiry packs that contain another person's clinical records as collected evidence. Medical keeps its protection; this row keeps the evidence-log membership. Production or collection membership must not strip clinical protection. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: ledgers, statements or invoice runs collected into an investigation evidence log. Finance owns institution-and-account structure; this row owns enquiry membership. Being listed in an evidence log is a relationship, never a reclassification. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: a practitioner instructed by an employer-client produces an enquiry pack that sits beside the employer's own HR case file about the same employee. Disjoint evidence when both apparatuses are present — HR's procedural triad and appeal route on one side, instructing-solicitor and investigation reference on the other. Co-activation is safer than forcing a single owner when both structures are evidenced. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first: the characteristic isolated file here is about a named third party under enquiry who never chose this filesystem. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Readable professional artefacts whose process owner is unresolved — practitioner enquiry, employer HR case, audit, or consulting forensic job. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected investigation packs and unreadable recordings. 00: \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Specimen investigation packs, textbook examples and firm know-how with no live enquiry. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone professional certificate or blank form with no third party exposed. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a case-management or hold portal whose OCR does not establish an enquiry. 00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Stricter than the schema default on one specific axis the default names but does not operationalise for this situation: the SUBJECT OF THE ENQUIRY is routinely NOT the client and often has no relationship with the holder at all — an employee accused of misconduct, a complainant, a whistleblower, a witness, a third-party suspect. Existence of the file can disclose that a named person is under investigation before any content is read, which is why a subject name may never become a folder level and why cross-enquiry bridging by subject name is suppressed as a privacy rule. Interview notes and findings reports concentrate allegations, medical or financial detail, and other people's correspondence; they are detected in order to be protected, never summarised into a remote prompt by default — \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" Privilege and confidentiality legends stay literal observations; the product decides no legal status. \"The default posture must therefore be local-first and data-minimizing.\" P7 owns handling classes; this row assigns none.",
+  "open_question": "Four. (1) NJ-INV-1, THE WORK-TYPE CHARGE, answered here as a NARROW YES and recorded so it can be reversed: the schema already lists \"investigation and interview record conducted for a client\" as a work_type VALUE. This row survives only on the terms-of-reference / investigator-summary / evidence-log / findings apparatus plus the subject-existence privacy rule — not on holding investigation-shaped documents. If R1c judges those structures are merely the schema default with a narrower filename filter, the correct outcome is REFUSAL and coverage routes to the schema default, `hr.employee-relations`, `law_practice.discovery`, `law_practice.depositions-testimony` and Protected Records. (2) NJ-INV-2, THE HR CO-ACTIVATION: when an employer-client instructs the practice to investigate an employee, both `hr` and this row may see structurally complete packs. Alternatives: (a) prefer this row whenever an instructing-solicitor slot is present; (b) prefer HR whenever an employee-procedure triad is present; (c) allow also_holds_with co-activation (this row's preference) and let P9 membership stay exact-reference only. (3) NJ-INV-3, WHETHER A REGULATOR OR POLICE INTERVIEW OF A THIRD PARTY collected into a defence or regulatory matter is this row's or remains `government` / `law_practice.criminal-defence` material — this row claims only practitioner-conducted or practitioner-commissioned enquiry apparatus. (4) NJ-INV-4, THE SAFETY-ORDERING RESIDUE restated from the schema's NJ-LP-6: terms of reference, interview notes, evidence logs and findings reports often do not fire `legal` at all, yet need protect-before-model ordering; the substitute mechanism is still unnamed."
+}
