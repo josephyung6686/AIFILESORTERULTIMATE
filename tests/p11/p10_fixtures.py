@@ -9,11 +9,19 @@ this file exists to avoid: P10 could add a field or tighten a check and every
 fixture below would keep passing against a record the product no longer has.
 
 `NodeContext`, `AnchorExcerpt`, `Restrictions`, `DestinationProfile`,
-`FreezeRecord` and `FrozenTree` are still P10's by ownership
-(`planning/38-p10-p11-connection-contract.md` §2) but `tree_design.profiles` and
-`tree_design.freeze` are not built yet, so they are declared here field for field
-from that contract and invent nothing. When P10 ships them this file keeps only
-`tree_with()` and imports the rest.
+`FreezeRecord` and `FrozenTree` were DECLARED HERE while `tree_design.profiles`
+and `tree_design.freeze` were unbuilt -- six duplicate record classes, so P11's
+suite could have been green against a shape P10 no longer had and nothing
+anywhere would have said so. That is the hand-built-double defect, sitting at
+P11's own boundary. P10 ships them now, so they are imported and the duplicates
+are gone.
+
+What stays is the INSTANCE, not the type: `NODES`, `FREEZE_RECORD` and
+`FROZEN_TREE` are P11's own small tree, built through P10's live constructors.
+That is a fixture, not a double -- §6.10's arithmetic below turns on these exact
+nodes and groups, and P10's own `frozen_tree_fixture()` is a different corpus
+answering a different question. `tests/integration/test_p11_p10_tree.py` is where
+P11 runs against P10's own published tree.
 
 `refinement_disposition` is the field that matters most among them: it is the
 user's own answer to whether a branch is shallow ON PURPOSE, and §6.7 and
@@ -24,9 +32,12 @@ it returns, which is why the index may read it as a `str`.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import replace
 
+from tree_design.freeze import FreezeRecord, FrozenTree
+from tree_design.profiles import (
+    AnchorExcerpt, DestinationProfile, NodeContext, Restrictions,
+)
 from tree_design.records import ExpectedValue, Node, TemplateContext
 
 __all__ = [
@@ -34,92 +45,6 @@ __all__ = [
     "FROZEN_TREE", "FreezeRecord", "FrozenTree", "NODES", "Node", "NodeContext",
     "Restrictions", "TemplateContext", "tree_with",
 ]
-
-
-@dataclass(frozen=True)
-class NodeContext:
-    """One ancestor or child, as §6.1's "parent and child meanings". P10's."""
-
-    node_id: str
-    display_label: str
-    dimension: str | None
-    expected_values: tuple[ExpectedValue, ...]
-
-
-@dataclass(frozen=True)
-class AnchorExcerpt:
-    """A P9 direct anchor's cited evidence, addressed by P4's durable handle.
-
-    It carries `node_id` beside `observation_key` because §6.1 asks for anchor
-    evidence PER NODE; a bare key tuple cannot say which node an excerpt anchors.
-    """
-
-    observation_key: str
-    node_id: str
-
-
-@dataclass(frozen=True)
-class Restrictions:
-    handling_class: str
-    accepts_placement: bool
-    node_role: str
-    disposition: str | None
-
-
-@dataclass(frozen=True)
-class DestinationProfile:
-    """§6.1, emitted by P10 (B4). P11 builds the §6.2 index OVER this, never one."""
-
-    node_id: str
-    display_label: str
-    domains: tuple[str, ...]
-    template_binding: str | None
-    template_fields: tuple[str, ...]
-    expected_values: tuple[ExpectedValue, ...]
-    parent_context: tuple[NodeContext, ...]
-    child_context: tuple[NodeContext, ...]
-    accepted_group_ids: tuple[str, ...]
-    group_labels: tuple[str, ...]
-    representative_files: tuple[str, ...]
-    anchor_files: tuple[str, ...]
-    anchor_excerpts: tuple[AnchorExcerpt, ...]
-    known_document_types: tuple[str, ...]
-    known_exclusions: tuple[str, ...]
-    user_edits: tuple[str, ...]
-    restrictions: Restrictions
-
-
-@dataclass(frozen=True)
-class FreezeRecord:
-    """§8.8's adopted-plan-version record. Ids and configuration only -- P10's."""
-
-    plan_version_id: str
-    created_at: str
-    node_ids: tuple[str, ...]
-    legal_destination_ids: frozenset[str]
-    template_bindings: tuple[str, ...]
-    labels_and_aliases: Mapping[str, tuple[str, ...]]
-    residual_configuration: Mapping[str, str]
-    shared_material_policy_ids: tuple[str, ...]
-    cross_folder_moves: bool
-    selection_id: str
-
-
-@dataclass(frozen=True)
-class FrozenTree:
-    """P10's hand-over bundle. `frozen_tree(conn, *, plan_version)` returns it.
-
-    `shared_material_policy` is the resolved VALUE, not one of
-    `FreezeRecord.shared_material_policy_ids`: §6.9 makes P11 branch on which of
-    four rules applies, and an id list cannot tell it which.
-    """
-
-    plan_version_id: str
-    freeze_record: FreezeRecord
-    nodes: tuple[Node, ...]
-    profiles: tuple[DestinationProfile, ...]
-    shared_material_policy: str
-    shared_material_policy_scope: str | None = None
 
 
 def _node(**overrides) -> Node:

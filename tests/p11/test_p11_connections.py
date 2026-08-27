@@ -498,3 +498,56 @@ def test_no_producer_fills_decision_depths_unsupported_levels():
     # The record's own refusal, so the gap cannot be closed by filling one half.
     with pytest.raises(Exception):
         DecisionDepth(node_depth=1, supported_depth=2, unsupported_levels=())
+
+
+# --- P11 declares none of P10's record types ------------------------------------
+
+
+def test_p11s_p10_fixture_declares_no_record_class_of_its_own():
+    """The hand-built double, at P11's own boundary.
+
+    `tests/p11/p10_fixtures.py` DECLARED six of P10's record classes --
+    `NodeContext`, `AnchorExcerpt`, `Restrictions`, `DestinationProfile`,
+    `FreezeRecord`, `FrozenTree` -- while `tree_design.profiles` and
+    `tree_design.freeze` were unbuilt. Field for field identical to P10's, and
+    therefore green: P11's whole suite could have gone on passing against a shape
+    P10 had changed, and nothing anywhere would have said so. That is the "test
+    that builds its own record instead of using the production builder" shape,
+    and it is the one this project has paid for repeatedly.
+
+    P10 ships them now. The check is on `__module__` rather than on `is`, for the
+    reason `test_p11_vocabulary.py` records: identity is not stable across a
+    re-import, and `__module__` says exactly the thing that matters -- who
+    DECLARED this type.
+    """
+    from p11 import p10_fixtures
+
+    owners = {
+        "NodeContext": "tree_design.profiles",
+        "AnchorExcerpt": "tree_design.profiles",
+        "Restrictions": "tree_design.profiles",
+        "DestinationProfile": "tree_design.profiles",
+        "FreezeRecord": "tree_design.freeze",
+        "FrozenTree": "tree_design.freeze",
+        "Node": "tree_design.records",
+        "ExpectedValue": "tree_design.records",
+        "TemplateContext": "tree_design.records",
+    }
+    for name, owner in owners.items():
+        assert getattr(p10_fixtures, name).__module__ == owner, name
+
+    # And structurally: the file declares no class at all, so a seventh mirror
+    # cannot appear beside the six that were removed.
+    source = ast.parse(
+        (Path(__file__).resolve().parent / "p10_fixtures.py").read_text(
+            encoding="utf-8"))
+    assert [node.name for node in ast.walk(source)
+            if isinstance(node, ast.ClassDef)] == []
+
+
+def test_the_mirror_scan_would_catch_a_redeclared_record():
+    # The negative twin. A check keyed on the NAME being importable would pass
+    # over a local class of the same name, which is precisely what was there.
+    tree = ast.parse("@dataclass(frozen=True)\nclass FrozenTree:\n    nodes: tuple\n")
+    assert [node.name for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef)] == ["FrozenTree"]
