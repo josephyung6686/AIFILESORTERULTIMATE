@@ -173,7 +173,7 @@ law_practice.criminal-defence | OTHER-TEAM | active
 law_practice.deadlines-diary | OTHER-TEAM | active
 law_practice.depositions-testimony | OTHER-TEAM | active
 law_practice.discovery | OTHER-TEAM | active
-law_practice.due-diligence | OTHER-TEAM | active
+law_practice.due-diligence | OTHER-TEAM | complete
 law_practice.engagement-terms | OTHER-TEAM | active
 law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.evidence-exhibits | OTHER-TEAM | active
@@ -336,7 +336,7 @@ block (`creative.commissioned-shoot`, the four `logistics.*`, the four released 
 and the four remaining `resource_operations.*`). Claiming the 16 OTHER-TEAM can write:
 
 law_practice.contract-negotiation | OTHER-TEAM | complete
-law_practice.due-diligence | OTHER-TEAM | active
+law_practice.due-diligence | OTHER-TEAM | complete
 law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.investigation | OTHER-TEAM | complete
 law_practice.legal-research | OTHER-TEAM | active

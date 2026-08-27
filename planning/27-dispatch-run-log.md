@@ -1256,3 +1256,7 @@ Accepted (instrument-level negotiation apparatus). Pair committed.
 ### Landed — law_practice.investigation
 
 Accepted narrowly (enquiry apparatus + subject privacy). Pair committed.
+
+### Landed — law_practice.due-diligence
+
+Accepted (examination apparatus). Pair committed.
