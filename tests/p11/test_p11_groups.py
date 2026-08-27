@@ -12,11 +12,15 @@ from grouping.vocabulary import (
 )
 from grouping.records import GroupAcceptance
 
+from tree_design.vocabulary import (
+    BRANCH_BEARING_SHARED_POLICIES, MANDATORY_REVIEW, PRIMARY_HOME,
+    REFERENCE_OR_ALIAS, SHARED_BRANCH, SHARED_MATERIAL_POLICIES,
+)
+
 from placement import vocabulary as v
 from placement.groups import (
     AskOrAbstainSelectorRequired, ExcludedOutlier, GroupNotAcceptedInVersion,
-    GroupPlan, InstitutionalDestinationRefused, MANDATORY_REVIEW, PRIMARY_HOME,
-    REFERENCE_OR_ALIAS, SHARED_BRANCH, SHARED_MATERIAL_POLICIES,
+    GroupPlan, InstitutionalDestinationRefused,
     SharedMaterialPolicyRequired, accepted_group_as_of, confirm_shared_parent,
     excluded_outlier_for, resolve_multi_home,
 )
@@ -251,7 +255,9 @@ def test_the_three_branch_bearing_policies_place_and_mandatory_review_does_not()
     # The discriminating twin for the branch-bearing set. With all four members
     # in it, every assertion above still passes and `mandatory-review` silently
     # stops being mandatory.
-    for policy in (SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS):
+    assert set(BRANCH_BEARING_SHARED_POLICIES) == {
+        SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS}
+    for policy in BRANCH_BEARING_SHARED_POLICIES:
         outcome, payload = resolve_multi_home(
             candidate_node_ids=("n-columbia", "n-duke"),
             shared_material_policy=policy, shared_branch_node_id="n-apps",
@@ -354,8 +360,34 @@ def test_an_underscored_policy_raises_rather_than_falling_through():
 
 
 def test_the_four_policies_are_69s_own_four():
+    # The one place a literal spelling belongs: pinning P10's tuple against
+    # §6.9's own words. Everywhere else P11 imports it.
     assert SHARED_MATERIAL_POLICIES == (
         "shared-branch", "primary-home", "reference-or-alias", "mandatory-review")
+
+
+def test_p11_holds_no_second_copy_of_69s_policy_sets():
+    """MINOR 6, by IDENTITY rather than by equality.
+
+    "P10 owns the tree, so P10 names its node kinds. P11 carries these verbatim
+    and publishes no parallel vocabulary." A local copy with the same four
+    members passes every `==` in this file and every behavioural test above --
+    and then drifts the day P10 adds a fifth policy or respells one, at which
+    point a multi-home file matches no branch in `resolve_multi_home`. `is` is
+    what separates carrying a set from re-deriving it.
+
+    This set in particular decides whether a file that belongs in two places
+    gets a home or gets asked about, which makes a silent disagreement between
+    the two parts a wrong answer to the product's most-repeated question.
+    """
+    import placement.groups as groups
+    from tree_design import vocabulary as p10
+
+    assert groups.SHARED_MATERIAL_POLICIES is p10.SHARED_MATERIAL_POLICIES
+    assert groups._BRANCH_BEARING is p10.BRANCH_BEARING_SHARED_POLICIES
+    for name in ("SHARED_BRANCH", "PRIMARY_HOME", "REFERENCE_OR_ALIAS",
+                 "MANDATORY_REVIEW"):
+        assert getattr(groups, name) is getattr(p10, name), name
 
 
 def test_the_alias_convention_is_not_a_filesystem_instruction():

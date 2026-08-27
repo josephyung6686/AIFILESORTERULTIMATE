@@ -38,6 +38,28 @@ from llm_harness.vocabulary import (
     WEAK,
 )
 from privacy.vocabulary import HANDLING_CLASSES
+# P10's node vocabulary, aliased on import. Four of its names collide with a P11
+# axis -- `RESIDUAL`, `PROTECTED`, `LEAVE_IN_PLACE` and `EXISTING` all mean
+# something else here -- so each arrives under a `P10_` name and is rebound below
+# to the P11 name that says which axis it is on. An unaliased import would
+# silently shadow P11's own constant with P10's.
+from tree_design.vocabulary import (
+    EXISTING as P10_EXISTING,
+    IGNORED as P10_IGNORED,
+    LEAVE_IN_PLACE as P10_LEAVE_IN_PLACE,
+    NODE_ROLES as P10_NODE_ROLES,
+    NODE_TYPES as P10_NODE_TYPES,
+    ORDINARY as P10_ORDINARY,
+    PHYSICAL_DESTINATION as P10_PHYSICAL_DESTINATION,
+    PROPOSED as P10_PROPOSED,
+    PROTECTED as P10_PROTECTED,
+    RESIDUAL as P10_RESIDUAL_ROLE,
+    RESIDUAL_DISPOSITIONS as P10_RESIDUAL_DISPOSITIONS,
+    REVIEW_ONLY as P10_REVIEW_ONLY,
+    SCOPED_GENERAL as P10_SCOPED_GENERAL,
+    SHARED_MATERIAL as P10_SHARED_MATERIAL,
+    USER_CREATED as P10_USER_CREATED,
+)
 
 # --- re-exported, because the concept is the other part's ------------------------
 
@@ -99,31 +121,58 @@ PLAN_BEARING_OUTCOMES: tuple[str, ...] = (PLACE,)
 
 # --- the destination -------------------------------------------------------------
 #
-# P10's vocabulary, carried verbatim on the node (SPEC:322-323, MINOR 6). P10 is
-# unbuilt, so the values are spelled here from P10's SPEC and this module is the
-# one home until P10 publishes them, at which point this becomes a re-export.
+# P10's vocabulary, carried verbatim on the node (SPEC:322-323, MINOR 6): "P10
+# owns the tree, so P10 names its node kinds. P11 carries these verbatim and
+# publishes no parallel vocabulary." This block spelled the values from P10's
+# SPEC while P10 was unbuilt, and said in this comment that it would become a
+# re-export the day P10 published them. P10 has, so it is one.
+#
+# The three closed sets are P10's OBJECTS, not tuples that agree with P10's. A
+# tuple that merely agrees is one P10 edit away from disagreeing, and the day it
+# did, `index.py` would refuse a node role P10 had just added -- reported as a
+# malformed tree rather than as two parts holding different lists.
+#
+# The NAMES are P11's, and deliberately. `RESIDUAL_ROLE`,
+# `LEAVE_IN_PLACE_DISPOSITION` and `PROTECTED_NODE` exist because P11 has its own
+# `RESIDUAL` origin stage, `LEAVE_IN_PLACE` outcome and `PROTECTED` marked state
+# on unrelated axes, and this module's opening rule is that a module reading one
+# axis must never reach for the other's constant. A distinct name bound to P10's
+# object is carrying; a distinct name bound to a fresh string is the parallel
+# vocabulary MINOR 6 forbids.
 
-ORDINARY: str = "ordinary"
-SCOPED_GENERAL: str = "scoped-general"
-RESIDUAL_ROLE: str = "residual"
-SHARED_MATERIAL: str = "shared-material"
-NODE_ROLES: tuple[str, ...] = (ORDINARY, SCOPED_GENERAL, RESIDUAL_ROLE, SHARED_MATERIAL)
+ORDINARY: str = P10_ORDINARY
+SCOPED_GENERAL: str = P10_SCOPED_GENERAL
+RESIDUAL_ROLE: str = P10_RESIDUAL_ROLE
+SHARED_MATERIAL: str = P10_SHARED_MATERIAL
+NODE_ROLES: tuple[str, ...] = P10_NODE_ROLES
 
-PHYSICAL_DESTINATION: str = "physical-destination"
-REVIEW_ONLY: str = "review-only"
-LEAVE_IN_PLACE_DISPOSITION: str = "leave-in-place"
-DISPOSITIONS: tuple[str, ...] = (
-    PHYSICAL_DESTINATION, REVIEW_ONLY, LEAVE_IN_PLACE_DISPOSITION,
-)
+PHYSICAL_DESTINATION: str = P10_PHYSICAL_DESTINATION
+REVIEW_ONLY: str = P10_REVIEW_ONLY
+#: P10 hyphenates its dispositions; P8 -- whose value P11's `LEAVE_IN_PLACE`
+#: OUTCOME is -- underscores. The two are not the same string and must not be
+#: bound to one another; the assertion below says so rather than leaving it to a
+#: reader to notice.
+LEAVE_IN_PLACE_DISPOSITION: str = P10_LEAVE_IN_PLACE
+DISPOSITIONS: tuple[str, ...] = P10_RESIDUAL_DISPOSITIONS
 
-EXISTING: str = "existing"
-PROPOSED: str = "proposed"
-USER_CREATED: str = "user-created"
-PROTECTED_NODE: str = "protected"
-IGNORED: str = "ignored"
-NODE_TYPES: tuple[str, ...] = (
-    EXISTING, PROPOSED, USER_CREATED, PROTECTED_NODE, IGNORED,
-)
+EXISTING: str = P10_EXISTING
+PROPOSED: str = P10_PROPOSED
+USER_CREATED: str = P10_USER_CREATED
+PROTECTED_NODE: str = P10_PROTECTED
+IGNORED: str = P10_IGNORED
+NODE_TYPES: tuple[str, ...] = P10_NODE_TYPES
+
+#: Pinned, not bound. P10's disposition and P8's outcome are two different
+#: strings for two different concepts, and an editor who "fixed" the
+#: inconsistency by binding one to the other would silently respell a value one
+#: of the two owners publishes.
+assert LEAVE_IN_PLACE_DISPOSITION != LEAVE_IN_PLACE
+
+assert set(NODE_ROLES) == {ORDINARY, SCOPED_GENERAL, RESIDUAL_ROLE, SHARED_MATERIAL}
+assert set(DISPOSITIONS) == {PHYSICAL_DESTINATION, REVIEW_ONLY,
+                             LEAVE_IN_PLACE_DISPOSITION}
+assert set(NODE_TYPES) == {EXISTING, PROPOSED, USER_CREATED, PROTECTED_NODE,
+                           IGNORED}
 
 CONFIRMED_DOMAIN_GROUP: str = "confirmed_domain_group"
 ACCEPTED_GRAPH_OR_PURPOSE_PACKET: str = "accepted_graph_or_purpose_packet"

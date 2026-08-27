@@ -37,33 +37,37 @@ from grouping.acceptance import group_state_as_of
 from grouping.store import memberships_for_group
 from grouping.vocabulary import ACCEPTED, NOT_FLAGGED
 
+from tree_design.vocabulary import (
+    BRANCH_BEARING_SHARED_POLICIES, MANDATORY_REVIEW, PRIMARY_HOME,
+    REFERENCE_OR_ALIAS, SHARED_BRANCH, SHARED_MATERIAL_POLICIES,
+)
+
 from placement.store import subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ASK_USER, FILE, NO_SHARED_BRANCH, OUTLIER_ROUTES, PLACE,
     ROUTED_TO_NODE, ROUTED_TO_REVIEW_QUEUE, check,
 )
 
-SHARED_BRANCH: str = "shared-branch"
-PRIMARY_HOME: str = "primary-home"
-REFERENCE_OR_ALIAS: str = "reference-or-alias"
-MANDATORY_REVIEW: str = "mandatory-review"
-
-#: §6.9's four: "a shared branch, a primary-home convention, a reference or alias
-#: convention, or mandatory review". P10 records which one at freeze, and the
-#: VALUES are P10's spelling -- hyphenated, like every other value in P10's node
-#: vocabulary (`scoped-general`, `shared-material`, `review-only`). Underscored
-#: here, `resolve_multi_home` would match none of them and every multi-home file
-#: would fall through every branch with nothing raising.
-SHARED_MATERIAL_POLICIES: tuple[str, ...] = (
-    SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS, MANDATORY_REVIEW,
-)
-
-#: The three that resolve to one approved node when the tree offers one. Under
-#: `mandatory-review` the tree deliberately offers none, which is the policy --
-#: so a branch handed in under `mandatory-review` is ignored rather than placed.
-_BRANCH_BEARING: frozenset[str] = frozenset(
-    {SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS}
-)
+#: §6.9's four policies and the three of them that bear a branch, both CARRIED
+#: from P10 and neither defined here. MINOR 6: "P10 owns the tree, so P10 names
+#: its node kinds. P11 carries these verbatim and publishes no parallel
+#: vocabulary." Until P10 shipped there was nowhere to carry them from and this
+#: module spelled its own; two spellings of one closed set is how two parts
+#: silently disagree, and THIS set decides whether a file belonging to two places
+#: gets a home or gets asked about.
+#:
+#: `BRANCH_BEARING_SHARED_POLICIES` is P10's by ownership and P10's by authorship:
+#: P10 needed the set at its own call site, found this module already computing it
+#: privately, and published it rather than importing a private name across the
+#: seam. `mandatory-review` is absent from it because under that policy the tree
+#: deliberately offers no branch -- a branch would answer the question the policy
+#: exists to keep open -- so a branch handed in under it is ignored rather than
+#: placed.
+#:
+#: `tests/integration/test_ambiguity_cases.py` still imports the old private name;
+#: it is bound to P10's tuple here so there is ONE definition and nothing to
+#: drift, and it goes when that file moves to P10's name.
+_BRANCH_BEARING: tuple[str, ...] = BRANCH_BEARING_SHARED_POLICIES
 
 
 class SharedMaterialPolicyRequired(RuntimeError):
@@ -256,7 +260,8 @@ def resolve_multi_home(*, candidate_node_ids, shared_material_policy: str,
             "shared branch is a destination above the competition, not one side "
             "of it"
         )
-    if shared_material_policy in _BRANCH_BEARING and shared_branch_node_id:
+    if (shared_material_policy in BRANCH_BEARING_SHARED_POLICIES
+            and shared_branch_node_id):
         return PLACE, shared_branch_node_id
     if ask_or_abstain is None:
         raise AskOrAbstainSelectorRequired(

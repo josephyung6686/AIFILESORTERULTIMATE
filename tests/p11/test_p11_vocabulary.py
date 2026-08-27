@@ -70,20 +70,79 @@ def test_evidence_types_are_the_live_spellings_not_the_specs():
     assert dropped not in v.EVIDENCE_TYPES
 
 
-def test_no_placement_module_spells_a_value_another_part_owns():
-    # By AST over string constants, because a text search matches docstrings.
+def _owned_values() -> set[str]:
+    """Every value another part owns the spelling of.
+
+    MINOR 6: "P10 owns the tree, so P10 names its node kinds. P11 carries these
+    verbatim and publishes no parallel vocabulary." P10 ships now, so its five
+    closed tree sets belong here beside P8's two -- this test read only P8's
+    until today, which is why `groups.py` could hold its own spelling of §6.9's
+    four shared-material policies for as long as it did.
+
+    The sets are named one by one rather than swept from the module.
+    `tree_design.vocabulary` also publishes P1's correction scopes and P13's
+    action names, which are not P10's to own and which P11 legitimately spells on
+    its own axes.
+    """
     from llm_harness.vocabulary import RESIDUAL_ACTIONS
     from llm_harness.vocabulary import OUTCOMES as P8_OUTCOMES
-    owned = set(P8_OUTCOMES) | set(RESIDUAL_ACTIONS)
+    from tree_design.vocabulary import (
+        BRANCH_BEARING_SHARED_POLICIES, NODE_ROLES, NODE_TYPES,
+        RESIDUAL_DISPOSITIONS, SHARED_MATERIAL_POLICIES,
+    )
+    return (set(P8_OUTCOMES) | set(RESIDUAL_ACTIONS) | set(NODE_ROLES)
+            | set(NODE_TYPES) | set(RESIDUAL_DISPOSITIONS)
+            | set(SHARED_MATERIAL_POLICIES)
+            | set(BRANCH_BEARING_SHARED_POLICIES))
+
+
+def _borrowed_value_literals(tree: ast.AST, owned: set[str]) -> list[tuple[int, str]]:
+    """String literals in a VALUE position that spell a value another part owns.
+
+    By AST over string constants, because a text search matches docstrings. But
+    not over every constant: a string in `body["residual"]` or `{"protected":
+    ...}` is a FIELD NAME that happens to share a spelling with one of P10's node
+    kinds, and flagging it would make this guard fire on things that are not
+    violations -- which is how a boundary test stops being read. Subscript keys
+    and dict keys are therefore excluded, and the two tests below pin both halves.
+    """
+    identifiers = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
+            identifiers.add(id(node.slice))
+        if isinstance(node, ast.Dict):
+            identifiers.update(id(key) for key in node.keys
+                               if isinstance(key, ast.Constant))
+    return [
+        (node.lineno, node.value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        and node.value in owned and id(node) not in identifiers
+    ]
+
+
+def test_the_boundary_check_reads_values_and_not_field_names():
+    # The negative twin, and the reason this guard can be trusted when it stays
+    # silent. A check that flagged `body["residual"]` would report a defect on
+    # every module that reads a record field, and one that flagged nothing would
+    # report a clean boundary on a module that redefined P10's whole vocabulary.
+    owned = {"residual", "shared-branch"}
+    borrowed = _borrowed_value_literals(ast.parse(
+        'SHARED_BRANCH = "shared-branch"\n'
+        'value = body["residual"]\n'
+        'mapping = {"residual": 1}\n'), owned)
+    assert borrowed == [(1, "shared-branch")]
+
+
+def test_no_placement_module_spells_a_value_another_part_owns():
+    owned = _owned_values()
     offenders = []
     for path in sorted(PLACEMENT_ROOT.glob("*.py")):
         if path.name == "vocabulary.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                if node.value in owned:
-                    offenders.append((path.name, node.lineno, node.value))
+        offenders.extend((path.name, lineno, value) for lineno, value
+                         in _borrowed_value_literals(tree, owned))
     assert offenders == []
 
 
@@ -92,3 +151,66 @@ def test_check_names_the_set_and_never_the_nearest_match():
         v.check("plase", v.OUTCOMES, name="outcome")
     assert "place" not in str(excinfo.value)
     assert str(len(v.OUTCOMES)) in str(excinfo.value)
+
+
+def test_p11s_node_vocabulary_is_p10s_objects_and_not_a_second_spelling():
+    """MINOR 6 for the node vocabulary, by identity, as `groups.py` now is.
+
+    `placement/vocabulary.py` wrote the promise itself: *"P10 is unbuilt, so the
+    values are spelled here from P10's SPEC and this module is the one home until
+    P10 publishes them, at which point this becomes a re-export."* P10 publishes
+    them now, so the re-export is due.
+
+    Identity and not equality. All fifteen values agree today; three of them are
+    closed TUPLES, and a tuple that merely agrees is one P10 edit away from
+    disagreeing -- at which point `index.py` would refuse a node role P10 had just
+    added, and the refusal would read as a malformed tree rather than as two
+    parts holding different lists.
+
+    The local NAMES stay. P11 has its own `RESIDUAL` origin stage, its own
+    `LEAVE_IN_PLACE` outcome and its own `PROTECTED` marked state, all on
+    different axes from P10's node kinds, so `RESIDUAL_ROLE`,
+    `LEAVE_IN_PLACE_DISPOSITION` and `PROTECTED_NODE` are what keeps a reader of
+    one axis from reaching for the other's constant. A distinct name bound to
+    P10's object is carrying; a distinct name bound to a fresh string is the
+    parallel vocabulary MINOR 6 forbids.
+    """
+    from tree_design import vocabulary as p10
+
+    assert v.NODE_ROLES is p10.NODE_ROLES
+    assert v.DISPOSITIONS is p10.RESIDUAL_DISPOSITIONS
+    assert v.NODE_TYPES is p10.NODE_TYPES
+    for ours, theirs in (
+            ("ORDINARY", "ORDINARY"), ("SCOPED_GENERAL", "SCOPED_GENERAL"),
+            ("RESIDUAL_ROLE", "RESIDUAL"), ("SHARED_MATERIAL", "SHARED_MATERIAL"),
+            ("PHYSICAL_DESTINATION", "PHYSICAL_DESTINATION"),
+            ("REVIEW_ONLY", "REVIEW_ONLY"),
+            ("LEAVE_IN_PLACE_DISPOSITION", "LEAVE_IN_PLACE"),
+            ("EXISTING", "EXISTING"), ("PROPOSED", "PROPOSED"),
+            ("USER_CREATED", "USER_CREATED"), ("PROTECTED_NODE", "PROTECTED"),
+            ("IGNORED", "IGNORED")):
+        assert getattr(v, ours) is getattr(p10, theirs), (ours, theirs)
+
+
+def test_the_borrowed_node_names_stay_distinct_from_p11s_own_axes():
+    # The negative twin of the re-export. Binding `RESIDUAL_ROLE` to P10's node
+    # kind must not merge it with P11's `RESIDUAL` origin stage, nor
+    # `PROTECTED_NODE` with the `PROTECTED` marked state: they are equal strings
+    # on unrelated axes, and this module's opening rule is that a module reading
+    # one must never reach for the other's constant.
+    # The strings are shared; the axes are not, and each name lives on exactly
+    # one of them. `RESIDUAL_ROLE` is a node kind and `RESIDUAL` an origin stage;
+    # they spell the same word and belong to different closed sets.
+    assert v.RESIDUAL_ROLE == v.RESIDUAL
+    assert v.RESIDUAL_ROLE in v.NODE_ROLES and v.RESIDUAL not in v.NODE_TYPES
+    assert v.RESIDUAL in v.ORIGIN_STAGES and v.RESIDUAL_ROLE not in v.ORIGIN_STAGES[:1]
+    assert v.PROTECTED_NODE == v.PROTECTED
+    assert v.PROTECTED_NODE in v.NODE_TYPES and v.PROTECTED in v.MARKED_STATES
+    assert v.MARKED_STATES != v.NODE_TYPES
+    # These two do not even share a spelling: P10 hyphenates its dispositions and
+    # P8 (whose value P11's outcome is) underscores. Binding one to the other
+    # would be a silent respelling, not a re-export.
+    assert v.LEAVE_IN_PLACE_DISPOSITION == "leave-in-place"
+    assert v.LEAVE_IN_PLACE == "leave_in_place"
+    assert v.LEAVE_IN_PLACE_DISPOSITION in v.DISPOSITIONS
+    assert v.LEAVE_IN_PLACE in v.OUTCOMES and v.LEAVE_IN_PLACE not in v.DISPOSITIONS
