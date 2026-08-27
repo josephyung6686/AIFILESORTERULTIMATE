@@ -165,7 +165,7 @@ law_practice.appeals | OTHER-TEAM | active
 law_practice.client-intake | OTHER-TEAM | active
 law_practice.closing-binder | OTHER-TEAM | active
 law_practice.conflicts-check | OTHER-TEAM | active
-law_practice.contract-negotiation | OTHER-TEAM | active
+law_practice.contract-negotiation | OTHER-TEAM | complete
 law_practice.conveyancing | OTHER-TEAM | active
 law_practice.corporate-secretarial | OTHER-TEAM | active
 law_practice.court-filing-record | OTHER-TEAM | active
@@ -335,7 +335,7 @@ Recomputed owed (JSON+memo both required). Excluded every id still registered to
 block (`creative.commissioned-shoot`, the four `logistics.*`, the four released `manufacturing.*`,
 and the four remaining `resource_operations.*`). Claiming the 16 OTHER-TEAM can write:
 
-law_practice.contract-negotiation | OTHER-TEAM | active
+law_practice.contract-negotiation | OTHER-TEAM | complete
 law_practice.due-diligence | OTHER-TEAM | active
 law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.investigation | OTHER-TEAM | active

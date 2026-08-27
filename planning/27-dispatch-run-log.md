@@ -1248,3 +1248,7 @@ Landed JSON kept. Memo committed. Pair complete. proposed_fields: subject_of_rec
 ### Landed — law_practice.settlement
 
 Refused (work_type / absence-defined). Pair committed.
+
+### Landed — law_practice.contract-negotiation
+
+Accepted (instrument-level negotiation apparatus). Pair committed.
