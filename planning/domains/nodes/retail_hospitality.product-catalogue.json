@@ -1,0 +1,627 @@
+{
+  "id": "retail_hospitality.product-catalogue",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Range, price and the selling face (what is sold, and what it currently costs to buy it)",
+  "one_line": "The standing record of WHAT THE OPERATOR SELLS and AT WHAT PRICE, held as a population of item lines under a range or a season and versioned by an EFFECTIVE DATE: the range or assortment plan, the item master, the price list, the price-change or markdown file, the product specification, the authored copy and photography that dress each line, and the printed or on-shelf selling face those files produce. Every other row in this family records a TRADING OCCASION - a session, a count, an order cycle, a booking, a function - and measures a counted reality against a recorded belief. THIS row is the recorded belief itself, standing before any occasion consumes it: the referent that a count sheet counts, that a till rings, that a listing publishes and that a delivery replenishes. Its anchor is therefore a RANGE and a VERSION, not a date of trade, and its risk is COMMERCIAL rather than personal - it is the one row in the fourteen whose ordinary content is not a member of the public but a cost price, a margin and an unlaunched season. A PLACEHOLDER ROW (J-IND, D1 as narrowed, PR-6): it declares NO field rows and serialises NO folder dimensions; activation unlocks recognition, this row's own privacy posture, the universal facts, and the honest prose dimension recommendation held in `template.why`.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The `retail_hospitality` schema declares no field rows, so nothing here writes a domain fact - only the universal facts are legal. Detection exists so the material is recognised, kept local where this row's `sensitivity_why` says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "AN ITEM-KEY-AND-EFFECTIVE-PRICE structure. This row's primary signal and its refinement of the schema's own CATALOGUE-AND-PRICE structure. A record with one row per SELLING LINE carrying a STABLE ITEM KEY (a SKU, article, PLU, style or barcode-shaped token), a description, and at least one price slot, PLUS the two things the schema-level signal does not require: an EFFECTIVE-FROM, valid-from, season or version slot that makes two files with identical rows two different records rather than duplicates, and a key that RECURS across artefacts of different function - the same code naming an image file, a paragraph of copy, a label print row and a price-change line. A table of items and prices with no effective dating and no recurring key is the schema's generic catalogue signal and belongs to the default template, not here. “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.”",
+      "A PRICE-CHANGE structure - the signal nothing else in this family or in `business_operations` produces. A record pairing, per item key, a WAS price against a NOW price, with an effective-from date, a scope slot (all stores, a store group, a channel, a clearance list) and usually a reason token (promotion, permanent reduction, markdown, cost-price increase, competitor match). The discriminator against `retail_hospitality.pos-reporting` is that a Z-read records what price WAS CHARGED across a completed session; this records what price WILL APPLY from a future instant, and carries no takings, no tender split and no till identity.",
+      "A RANGE OR ASSORTMENT-PLAN structure. A forward record, one row per line or option, carrying a planned buy or intake quantity, a planned cost and retail with a planned margin, launch and exit dates, an option or colourway count, and a status slot (proposed, committed, dropped, carried over). The discriminator against `business_operations.budget-forecast` is exact and runs both ways: a forecast's rows are MONEY LINE ITEMS over FISCAL PERIODS and its variance is forecast against actual; this record's rows are PHYSICAL SELLABLE OPTIONS over a SEASON, carrying colour, size ratio, pack and supplier attributes that no budget line has. Money appears in both; only one of them can be worn.",
+      "AN ITEM-KEYED ASSET SET. A folder, archive manifest or single document whose MEMBERS ARE NAMED BY THE ITEM KEY of an already-accepted range, price or master file - `4821_front.jpg`, `4821_detail_02.jpg`, a copy document with one heading per code, a shot list or imagery brief with one row per code and a required-angle column. The key recurrence is the whole signal; a photograph of merchandise with no key and no accepted range file is not this row's - see `never_alone`. “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+      "A SELLING-FACE PRINT ARTEFACT. A print-destined document whose repeated unit is description plus price plus a barcode-shaped token or a course-and-dish block - shelf-edge label sheets, ticket runs, a line sheet, a lookbook page grid, a printed catalogue or menu - carrying print apparatus (crop marks, a bleed box, a department or aisle scope, a print or in-store date, a version marker). The document is the OUTPUT of the price record, and its in-store date binds it to the same effective version.",
+      "A PRODUCT SPECIFICATION structure, labelled or as unlabelled prose. One document per item key setting composition or ingredients, dimensions or size chart, pack configuration, care or storage instruction, country of origin, statutory marking and a supplier or factory reference. Where the same document instead decomposes ONE finished item into MANY costed components with a yield, it is `retail_hospitality.menu-recipe-costing`'s and this row must not activate - see `collides_with`.",
+      "AN OUTBOUND PRICE LIST - the operator's own prices published TO its customers or trade accounts. Recognised by the holder being the ISSUER and by the presence of a retail, RRP or menu price alongside any trade price. Direction is decisive: the same document shape arriving FROM a supplier, priced only in cost with an account number, minimum order value and delivery-day schedule, is `retail_hospitality.supplier-order`'s. This is the row's collision fixture and it is settled on direction, never on the words `price list`.",
+      "An email whose labelled subject slot names a range, a season, a line or a price effective date AND whose attachment-name slot names a price file, a range plan, a copy deck, a shot list or a label print run. A supplier-sounding sender domain contributes nothing on its own.",
+      "An archive whose manifest names a CATALOGUE DROP - a product export or price file sitting beside a directory of images named by item key - read from the manifest alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: a model step runs only under the user's policy and after P7, and for this row the material offered to it must be the COLUMN HEADERS AND A DESCRIPTION SAMPLE, not the cost, margin or supplier columns. See `sensitivity_why`.",
+      "Deciding DIRECTION on a price list - whose selling face is this. `Trade price list 2026 - Bidfood.pdf` and `Price list - trade + RRP - effective 2026-04-01.pdf` are the same document shape, the same extension, and often the same folder. The determination is whether the holder is the issuer pricing its OWN lines outward, or the recipient of a third party's prices inward, and it is read from the letterhead, the account-number slot, the presence or absence of an RRP or margin column, and the pack-size and delivery-day apparatus that only an inbound trade list carries.",
+      "Separating a PRICED SELLING FACE from a COST MODEL, this row's reciprocal of the determination `retail_hospitality.menu-recipe-costing` was required to answer. Both name the same items, both carry money, both frequently sit in one folder. The structural test is THE COMPONENT EXPLOSION: does one named item decompose into many costed components with a yield in the same document. Where it does not, and the record is one row per item with a price, this row holds it.",
+      "Separating a LIVE range or price record from a SPECIMEN, a template, a wholesaler's sample, a franchise manual extract or a competitor's catalogue. A blank range-plan workbook has every header, every formula and no values; a supplier's sample price list is written to look exactly like a live one. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Separating a RETAIL PRODUCT SPECIFICATION from a SOFTWARE PRODUCT REQUIREMENT. `Product spec v3.docx` exists in both worlds and the id-name similarity to `business_operations.product-requirements` is a real trap. The test is whether the subject is a physical or menu line with a code, a price and a pack, or a feature set with user stories, acceptance criteria and a release.",
+      "Reading a PHOTOGRAPHED OR SCANNED selling face - a shelf ticket, a chalkboard menu, a printed price card captured on a phone - where OCR of prices and item names is the whole content and confidence is low.",
+      "Recognising the range or season token itself, which is operator-specific vernacular (`AW26`, `Spring 26`, `Core`, `Wave 2`, `Cycle 4`) and cannot be listed in advance."
+    ],
+    "never_alone": [
+      "A DOCUMENT-TYPE WORD standing alone - `catalogue`, `price list`, `menu`, `line sheet`, `product`. The schema's own rule governs this row more directly than any other in the family: these are values of a function dimension, and a row resting on one is the schema's default template wearing a name. What fires here is the ITEM KEY plus the EFFECTIVE VERSION, never the noun on the cover.",
+      "A BARCODE-SHAPED OR SKU-SHAPED TOKEN standing alone. A bare 13-digit number in a filename is not a product any more than a bare 4-digit number is a year, and a lone code with no population around it and no accepted range or price file to recur into proves nothing.",
+      "A PRODUCT, FOOD OR MERCHANDISE IMAGE standing alone. The schema already forbids it, and this row is the one most tempted to break the rule because merchandise photography is genuinely its material. An image becomes this row's only when its name or an accompanying manifest carries a key that recurs in an accepted range, master or price file; otherwise it is `photos` or `creative` evidence.",
+      "A CURRENCY-DENOMINATED TABLE standing alone. Money in cells is finance, `business_operations`, `construction_property` or `manufacturing` before it is this. What fires here is the pairing of a stable item key with an effective-dated price, not the presence of amounts.",
+      "A BRAND, SUPPLIER OR RETAILER NAME standing alone, in a filename, a folder name or a letterhead. An organisation name is never-alone evidence and cannot decide direction, holder side, or whether the file is live.",
+      "A FOLDER NAMED `Products`, `Catalogue`, `Range` or `Menus`, and equally a download session that put a competitor's catalogue beside the operator's own price file. A path is not a fact and a download session is not a topic.",
+      "AN `.indd`, `.ai` OR `.psd` EXTENSION, which says the file is a design source and says nothing about whether the operator sells the thing depicted."
+    ]
+  },
+  "proposed_context_terms": [
+    "range plan",
+    "assortment",
+    "option count",
+    "size ratio",
+    "colourway",
+    "line list",
+    "item master",
+    "product master",
+    "SKU",
+    "article number",
+    "PLU",
+    "GTIN",
+    "barcode",
+    "price list",
+    "RRP",
+    "retail price",
+    "cost price",
+    "landed cost",
+    "margin",
+    "gross profit",
+    "markup",
+    "effective from",
+    "valid from",
+    "price change",
+    "was price",
+    "now price",
+    "markdown",
+    "clearance",
+    "promotion mechanic",
+    "multibuy",
+    "launch date",
+    "exit date",
+    "discontinued",
+    "carried over",
+    "core range",
+    "seasonal range",
+    "line sheet",
+    "lookbook",
+    "shelf edge",
+    "ticket run",
+    "planogram",
+    "product copy",
+    "shot list",
+    "imagery brief",
+    "pack configuration",
+    "case size",
+    "country of origin",
+    "size chart"
+  ],
+  "work_types": [
+    "range or assortment plan - the forward commitment of which lines will be sold in a season",
+    "item or product master record - the standing identity of each selling line",
+    "price list - the operator's own outbound prices, trade and retail",
+    "price-change or markdown file - was against now, with an effective date and a scope",
+    "promotion mechanic sheet - the offer structure attached to named lines for a dated window",
+    "product specification - composition, dimensions, pack, care, origin and statutory marking for one line",
+    "product copy - authored descriptions, feature bullets and keyword lines, one block per item key",
+    "product photography and its brief - shot list, required angles, delivered assets named by item key",
+    "selling-face print artefact - shelf-edge labels, ticket runs, line sheets, lookbooks, printed catalogues and menus",
+    "range exit or discontinuation list - the lines leaving, with their run-out and clearance treatment"
+  ],
+  "grouping_reasons": [
+    "ONE ITEM KEY across artefacts of different function: the master row, the specification, the copy block, the image set, the price line and the label row - joined by the code, never by the product's NAME, which repeats across ranges, suppliers and seasons.",
+    "ONE RANGE OR SEASON as a population: the plan, the master extract, the price file, the copy deck, the shot list and the print artefact pulled for the same named season. Purpose-coherent and content-incoherent, exactly as an application packet is.",
+    "ONE EFFECTIVE VERSION as a set: a price-change file and the label print run that carries the same effective-from date belong together even though no item key is shared between every member.",
+    "ONE CATALOGUE DROP: a product export sitting beside a directory of images named by item key, read from a manifest and never unpacked to prove the relationship.",
+    "A repeatedly re-exported product file is a version family, not a duplicate family: identical rows with different effective dates are different records, and this is the one row in the family where that distinction changes the answer."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract - PR-6 leaves the `retail_hospitality` schema with no field rows, and a dimension may only branch on a field the same schema declares. The recommendation is therefore held as prose, and this paragraph is THIS ROW'S DIFFERENCE FROM ITS SCHEMA'S DEFAULT. The default is the TRADING UNIT (conditional) then the TRADING OCCASION - session, count, order cycle, booking, function or licensed premises - then the OPERATIONAL RECORD FUNCTION. This row cannot use the middle level at all, because no trading occasion exists in its material: a range plan belongs to no session, no count and no booking. Its organising anchor is instead the RANGE OR SEASON, and beneath it the EFFECTIVE VERSION, and beneath that the FUNCTION - so RANGE/SEASON, then EFFECTIVE VERSION or EDITION, then FUNCTION. The SITE level, which the default puts first when a corpus spans more than one, drops OUT of the top position here rather than merely moving: a range is normally common to the whole estate, so branching on site would split one range across every shop and produce exactly the fault the engine rejects - “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” Site returns only where prices or assortments genuinely differ by store group, and then it belongs BELOW the range, as a scope on a price version, not above it. NOT time-first, and this row must resist the family's temptation more firmly than its siblings do, because an effective date is stamped on nearly every artefact it holds: the effective date VERSIONS the record, it does not root the tree - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and the time-first exception belongs to capture-based media alone: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” Merchandise photography is capture-based media, but it is filed here as an item-keyed asset, not as a capture event; the shoot day itself is `creative`'s. The PRODUCT must never become a dimension - a branch per SKU is the schema's stated prohibition and this is the row that would commit it. Any later order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "design_creative",
+      "code_structured",
+      "presentation",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".tsv",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".indd",
+      ".psd",
+      ".xml",
+      ".json",
+      ".pptx",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Range plan - AW26 - womenswear.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per line with columns headed Style, Description, Colourway, Size ratio, Supplier, Cost, Retail, Margin %, Intake units, Launch, Exit, Status",
+        "a season token `AW26` in the filename and repeated in a header cell",
+        "status values include `committed`, `proposed` and `dropped`; several rows have a launch date in the future",
+        "no counted quantity anywhere, no as-at date, no till and no session"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact - the schema declares none",
+        "a range, season, site or effective date as a stored fact; all await R1c (see NJ-PC-1)",
+        "that forward money over a season makes this a budget - the physical option attributes are the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Price list - trade + RRP - effective 2026-04-01.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the holder's own letterhead as ISSUER, addressed to trade accounts",
+        "one row per line: code, description, pack, trade price, RRP, VAT code",
+        "a single effective-from date governing the whole document, printed under the title",
+        "no account number for the holder, no minimum order value, no delivery-day schedule"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that a document titled `price list` is this row's - direction, not the noun, decides it",
+        "that the RRP is the price actually charged in any store",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Trade price list 2026 - Bidfood.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "THE COLLISION FIXTURE. A supplier's letterhead as issuer, addressed to the holder",
+        "the holder's ACCOUNT NUMBER in a labelled slot, a minimum order value and a delivery-day schedule",
+        "one row per line: supplier code, description, case size, unit cost, price-hold-until date",
+        "no retail price, no RRP, no margin column anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that this is the holder's range or price record - it is an INPUT to the order cycle and belongs to `retail_hospitality.supplier-order`",
+        "that the supplier's codes are the holder's item keys",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Price change file - week 14 - all stores.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns headed SKU, Description, Was, Now, Effective from, Scope, Reason",
+        "reason values include `promotion`, `permanent reduction` and `competitor match`",
+        "effective-from is a single future date repeated on every row",
+        "no takings, no tender split, no till identity, no counted quantity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that a was/now pair is a variance - a variance compares two measurements of the same instant, this compares two instants",
+        "that the file records what was charged; it records what will apply",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "products_export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SHARED FIXTURE with `retail_hospitality.ecommerce-ops`",
+        "columns headed Handle, Title, Body (HTML), Vendor, Type, Tags, Variant SKU, Variant Price, Cost per item, Image Src",
+        "the presence or absence of a `Published` column is the whole determination",
+        "several hundred rows, one per variant, with the parent identity blank on continuation rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that a product export is automatically this row's - with a publication-state column it is channel state and belongs to `retail_hospitality.ecommerce-ops`",
+        "that an image URL makes the linked asset a member of an accepted group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "stock_export_20260331.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SHARED FIXTURE with `retail_hospitality.stocktake`",
+        "columns headed SKU, Description, Cost, Retail, On hand",
+        "an as-at timestamp in the filename but NO counted column and no variance column",
+        "no count sheet or variance record for the same population anywhere beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that an as-at date in a filename promotes this to a stocktake - promotion requires a sibling count artefact and is never inferred from the name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Product spec - 4821 wool overshirt.docx",
+      "source_type": "text_document",
+      "observations": [
+        "UNLABELLED PROSE, not a form: composition, dimensions, pack configuration, care instruction and country of origin written as paragraphs",
+        "the item key `4821` in the title and repeated in the body",
+        "a supplier and factory reference in running text",
+        "no component list with unit costs, no yield, no portion count"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that `spec` makes it a software product requirement - there are no user stories, acceptance criteria or release",
+        "that it is a costing - nothing decomposes into costed components",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "4821_front_white.jpg",
+      "source_type": "image",
+      "observations": [
+        "studio product photography on a white sweep, no people in frame",
+        "EXIF names a camera body and a capture date; the filename carries `4821` and an angle token",
+        "sits in a directory whose other members are `4821_detail_02.jpg`, `4830_front_white.jpg` and so on",
+        "an accepted range or master file elsewhere in the corpus contains the key `4821`"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that a merchandise photograph alone activates this row - the key recurrence into an accepted file is the signal",
+        "that the capture date should root the tree; this asset is filed by item, not by shoot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Product copy - AW26 - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "one heading per item key, each followed by a short description, three feature bullets and a keyword line",
+        "the season token `AW26` in the title",
+        "tracked changes from two authors and a `final` marker in the filename",
+        "no price anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that authored marketing prose alone is this row's - the item-key headings are what bind it",
+        "authorship as a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Shelf edge labels - dept 12 - print 2026-04-01.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a repeated cell grid, each cell carrying a description, a price and a barcode-shaped token",
+        "crop marks and a bleed box; a department scope and an in-store date in the footer",
+        "the in-store date matches the effective-from date of a price-change file in the same corpus",
+        "no takings and no counted quantity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that crop marks make it a design deliverable - the print apparatus is incidental, the priced selling face is the content",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Spring menu 2026 - print final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SHARED FIXTURE with `retail_hospitality.menu-recipe-costing`",
+        "course sections, dish names, one price per dish, a statutory allergen footnote",
+        "no component list, no unit costs, no yield, no gross-profit percentage",
+        "sits in the same directory as the costing workbook that set the prices"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that proximity to a costing workbook makes this a costing - the component explosion is the discriminator and this document has none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 09.14.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: a phone photograph of a competitor's shelf, OCR yields product names and prices",
+        "no item key belonging to the holder appears anywhere in the OCR text",
+        "a competitor's fascia name is legible in the frame",
+        "no accepted range or price file contains any of the names"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that prices plus product names activate this row - the holder's own item key is required",
+        "a retailer name as evidence of anything; an organisation name is never-alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "catalogue_drop_20260401.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names one CSV and several hundred JPGs whose names share a code prefix pattern with the CSV's first column",
+        "read from the manifest alone; the archive is not extracted",
+        "a single date token in the archive name matching an effective-from date elsewhere",
+        "member sizes and types only; no member content inspected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that members carry the archive's date or range as facts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "AW26 costs and margins - CONFIDENTIAL - do not circulate.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per line with landed cost, supplier terms, planned retail and margin",
+        "a confidentiality legend in the header row and in the filename",
+        "several lines with a launch date in the future and no public trace",
+        "no personal data of any kind - no named individual appears in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that a confidentiality legend is a handling class - it is a literal observation and P7 owns the class",
+        "that the absence of personal data makes the file low-sensitivity; the risk here is commercial",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Invoice 88231.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the schema's own collision fixture, restated for this row",
+        "one transaction: an issuer, a bill-to, line items with prices, a total and a due date",
+        "no population, no effective version, no item key that recurs anywhere else in the corpus",
+        "prices in cells, which is the temptation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any `retail_hospitality` fact",
+        "that priced line items make a catalogue - a lone transaction has no standing range behind it",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.ecommerce-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: `products_export.csv` - this row owns the PRODUCT AS A THING SOLD (item key, specification, cost and retail, planned margin, range or season plan, authored copy and imagery), the neighbour owns the LISTING AS CHANNEL STATE (publication or status slot, variant-option matrix, per-channel price or title override, marketplace category code, SEO slug, image-source URL), discriminated by whether the export carries a publication-state column: with it the file is a channel record, without it it is a catalogue record. Reciprocal, and stated in the neighbour's own words: this row MUST NOT take a listing suppression notice or a marketplace category mapping merely because the subject is a product; `ecommerce-ops` MUST NOT take a range plan, a costing sheet or a photography brief merely because the products also sell online.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.menu-recipe-costing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Spring menu 2026 - print final.pdf` - a priced menu with an allergen footnote sitting in the same folder as the costing workbook that set its prices. This row owns the ATOMIC PRICED SELLING LINE, the customer-visible face: one row per item, a code, a description and a price, with no cost side. The neighbour owns the COST MODEL: the one-to-many decomposition of a sold item into bought components with unit costs, a yield rollup and a derived margin. Discriminated by THE COMPONENT EXPLOSION - does one named item decompose into many costed components in the same document. Reciprocal: this row MUST NOT take a costing workbook merely because it names the same forty dishes and carries prices; `menu-recipe-costing` MUST NOT take the printed menu, the price list or the range plan merely because the items are dishes. Being occasion-free separates neither from the other - both are standing records - so the decomposition is the whole of the discriminator.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "SAME FIXTURE BOTH SIDES: `stock_export_20260331.csv` - this row owns it when it is read as a range and price file (item key, description, cost, retail, no as-at count context), the neighbour owns it when it is the RECORDED BELIEF half of a count, discriminated by an as-at timestamp matching a count date PLUS a count sheet or variance record for the same population. On its own bytes the file favours this row; promotion to the neighbour requires a sibling artefact and is never inferred from the filename. Reciprocal: this row MUST NOT take a count sheet, a variance report or a wastage log merely because every row names a product; `stocktake` MUST NOT take a price file merely because it shares the item population it counted.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BOTH SIDES: `Trade price list 2026 - Bidfood.pdf` - the row's collision fixture, identical in shape to this row's own `Price list - trade + RRP - effective 2026-04-01.pdf` and often in the same folder. This row owns the OUTBOUND price list, where the holder is the issuer pricing its OWN lines to its OWN customers and a retail or RRP column exists; the neighbour owns the INBOUND trade list, an already-agreed price schedule the holder buys against, keyed by the holder's ACCOUNT NUMBER and carrying minimum order value, case sizes and delivery days with no retail price anywhere. Discriminated by DIRECTION - who is the issuer and is there a selling price - never by the words `price list`. Reciprocal: this row MUST NOT take a purchase order, a goods-received note or a credit note merely because they name the holder's item keys; `supplier-order` MUST NOT take the holder's own outbound price list or range plan merely because it prices the same goods.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-requirements",
+      "signal": "SAME FIXTURE BOTH SIDES: `Product spec v3.docx` - a filename the two rows produce identically, sharpened by the near-identical row names. This row owns the specification of a PHYSICAL OR MENU SELLING LINE: an item key, composition or ingredients, dimensions or size chart, pack configuration, origin, statutory marking and a price or supplier reference. The neighbour owns the specification of a SOFTWARE OR SERVICE PRODUCT: a problem statement, user stories, acceptance criteria, scope cuts and a release. Discriminated by whether the document describes a THING WITH A CODE AND A PRICE or a BEHAVIOUR WITH ACCEPTANCE CRITERIA. Reciprocal: this row MUST NOT take a PRD merely because the word `product` appears; `product-requirements` MUST NOT take a garment or dish specification merely because it is a spec document.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: `item_master.csv` - one row per item key, exported from the same system, reaching both rows. This row owns the SELLING attributes: description, range or season, cost, retail, margin, copy and imagery. The neighbour owns the HANDLING attributes: weight, cube, case and pallet configuration, bin or location, pick face, hazard class. Discriminated by whether the columns price the item to a customer or tell an operative where it lives and how it moves. Reciprocal, and consistent with the neighbour's own note that merchandise photography is this row's: this row MUST NOT take a putaway list, a pick face map or a condition photograph of damaged stock; `warehouse-ops` MUST NOT take a range plan, a price file or a studio product image merely because the same item keys appear in its bins.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.commissioned-shoot",
+      "signal": "SAME FIXTURE BOTH SIDES: the directory `AW26_product_shoot/` containing `4821_front_white.jpg` beside raw captures, a call sheet and a retoucher's layered file. This row owns THE DELIVERED CATALOGUE ASSET: the selected, named-by-item-key image that dresses a selling line, filed by item and season. The neighbour owns THE SHOOT AS A COMMISSION: the brief, the call sheet, the raw capture set, the model and usage release, the selection and retouch rounds and the client sign-off, filed by shoot date. Discriminated by ITEM-KEY NAMING AND SELECTION versus PRODUCTION APPARATUS AND A CAPTURE EVENT. Reciprocal: this row MUST NOT take raws, layered sources, call sheets or releases merely because the subject is merchandise; `commissioned-shoot` MUST NOT take the delivered item-keyed asset set that a range file already claims.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The principal fallthrough for a durable standalone selling-face document with no range or version around it - a single printed price list, one menu, one specification sheet. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” This row activates on a POPULATION under a VERSION; the lone durable document is a residual's business.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for the lone transaction that carries priced line items and nothing else - `Invoice 88231.pdf`, a supplier's order confirmation, a customer's own purchase receipt for one of these products. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The exact residual `00` names for this row's most common near-miss, and it names it in this row's own vocabulary: a competitor's shelf photograph, a saved product page, a swipe file of packaging ideas. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.” Product references belong here, not in this row, unless the holder's own item key claims them.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a range-or-price-shaped file whose DIRECTION or LIVENESS is unresolved - a price list where issuer evidence is missing, a product export where the publication column cannot be read, a blank range-plan template that may or may not be a specimen. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Required where the material is a confidential cost, margin or unlaunched-range file, or where product photography carries an identifiable model without a visible release. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” This row reaches it for a commercial reason where its siblings reach it for a personal one.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The home for a catalogue drop that cannot be opened, a password-protected costs workbook or a proprietary PIM export binary. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a merchandise photograph whose filename carries no item key and which no accepted range or master file claims. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THIS ROW'S PRIVACY RULE IS THE ONE PLACE IT INVERTS ITS SCHEMA, and the inversion is the third leg of its node test. The family's declared posture is driven by PERSONAL DATA ABOUT MEMBERS OF THE PUBLIC - reservation exports, dietary and accessibility requirements, complaints naming a guest and a staff member, identity documents taken at check-in. This row holds almost none of that: a range plan, a price list and a shelf-label run have no data subject at all, and the fixture `AW26 costs and margins - CONFIDENTIAL - do not circulate.xlsx` is marked confidential without a single named individual in it. The exposure is COMMERCIAL: landed cost, supplier terms, margin, and above all an UNLAUNCHED range whose leak is a competitive harm rather than a privacy harm, frequently under a supplier confidentiality obligation or a dated embargo. Two consequences follow that no other row in the family shares. First, the discrimination is INTRA-FILE and column-level: one spreadsheet's description, image and retail columns are meant to be published - this row's output is literally the operator's public face - while the cost, margin, supplier and intake columns beside them must never leave the machine. A model step for this row should therefore be offered column headers and a description sample only. Second, the row still has two genuine personal-data pockets that must not be forgotten because the general posture is commercial: product photography containing an identifiable model or a member of staff, where a usage release may or may not exist, and copy or specification documents whose tracked changes name their authors. `potentially_sensitive` is the only available value and it is correct, but the REASON differs from the schema's, and the reason is what governs handling. “Privacy policy must be enforced before content reaches any model or external connector.” Handling classes remain P7's; the confidentiality legend on the fixture is a literal observation and never a class.",
+  "open_question": "Four, unsmoothed. NJ-PC-1: with no field rows, this row's organising anchor - the RANGE or SEASON - and its versioning anchor - the EFFECTIVE FROM date - cannot be stored, so the prose recommendation in `template.why` is unenforceable until R1c rules whether the schema gains fields. Alternatives: (a) leave both as detection-only and accept that the recommendation is advisory; (b) let R1c propose a range/season key and an effective-date key on the schema, which would make this the first row in the family able to serialise a dimension order; (c) borrow a canonical key, which this row declines to do because no existing key means `the season a selling line belongs to`. NJ-PC-2: the version-family versus duplicate-family question is sharper here than anywhere else in the roster - two product exports with identical rows and different effective dates are DIFFERENT RECORDS, not duplicates, and a deduplicator that cannot see the effective date will delete the wrong one. Alternatives: treat effective-dated files as an explicit version family, or exclude this row's material from duplicate collapse entirely. NJ-PC-3: the intra-file column split in `sensitivity_why` has no representation in this phase - the catalogue is the one row whose material is PARTLY MEANT TO BE PUBLISHED, and the product currently has no way to say `these columns are public, those are not`. Alternatives: a whole-file conservative posture (chosen here), or a P7 column-level policy this row would then depend on. NJ-PC-4: `also_holds_with` is schema-to-schema only under CONNECTION section 5 and this row is a template, so it cannot author the coactivation it genuinely needs - a printed catalogue or menu is simultaneously a trading record and a design deliverable. The intent is recorded for R1c as a candidate `retail_hospitality` to `creative` schema-level edge; the `creative.commissioned-shoot` entry in `collides_with` is the narrower, correct template-level statement available today."
+}

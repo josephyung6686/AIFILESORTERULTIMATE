@@ -1,0 +1,543 @@
+{
+  "id": "law_practice.trial-preparation",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Hearing and trial preparation",
+  "one_line": "J-DEPTH placeholder template for the COMPILATION-AND-ORDERING APPARATUS a practice builds for one listed sitting: the artefact whose own structure IS an enumeration of other documents or of events in sequence - a bundle or trial-book index mapping member documents to tabs and continuous compilation pagination, a volume within a declared total, a chronology whose rows are date plus event plus source reference, a running order or trial timetable, a cross-examination or witness-handling plan keyed to bundle references, and the numbered jury-instruction set with its source and disposition columns (the absorbed legacy `law.jury-materials`). It is NOT a lifecycle stage, NOT the set of document types a hearing happens to consume, and NOT the compiled PDF's own subject matter. It differs from the law_practice DEFAULT TEMPLATE on the default's own second leg: the default requires an artefact whose labelled slots separate a practitioner role from a client role, and the characteristic files here have NO party pair at all - a chronology and a bundle index are internal work product addressed to nobody. What stands in its place is a two-leg structure of a different kind: an ENUMERATION OVER OTHER DOCUMENTS OR EVENTS plus an anchor to ONE IDENTIFIED TRIBUNAL LISTING. It differs on privacy in a way no sibling shares: a compilation is a cross-domain aggregation that DEFEATS member-level protection - a passport, a medical record and a bank statement that would each have been protected as files become pages 412, 588 and 913 of a volume - and the index alone, without any volume, is a readable directory of that aggregation.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "The documents are content-incoherent but purpose-coherent.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED AND THEN REPLACED. The law_practice schema declares no field rows, so nothing here licenses a law_practice fact; these are activation signals only. The schema's default precondition has two legs - an exact matter reference repeated across artefacts, PLUS an artefact whose labelled slots separate a practitioner-or-firm role from a client role. THIS ROW SATISFIES THE FIRST LEG AND FAILS THE SECOND ON PURPOSE, which is the whole argument for its existence: a bundle index, a chronology and a running order have no party pair, no execution block and no addressee. The substitute second leg is structural: AN ENUMERATION WHOSE ROWS ARE OTHER DOCUMENTS OR EVENTS IN AN IMPOSED ORDER, anchored to ONE IDENTIFIED TRIBUNAL LISTING (a hearing or trial date, a listing or hearing reference, a court or tribunal room, a sitting week). Both legs are required. The deletion test business_operations.organisational-records states applies unchanged: delete every entity name and every document-type word - bundle, chronology, trial, hearing, index, brief - and if no enumerating structure and no listing anchor survive, nothing fires.",
+      "THE BUNDLE OR TRIAL-BOOK INDEX, and it is this row's cleanest signal because no sibling produces this table. One row per MEMBER DOCUMENT carrying a description of that document, the member's own date, and a TAB or item number together with a page range in a pagination that is CONTINUOUS ACROSS THE COMPILATION rather than internal to any member. The discriminating column against `law_practice.evidence-exhibits` is what the ordering key is: a single letter-and-number DESIGNATOR series over tendered items is that row's schedule; tab numbers plus continuous compilation pages running over pleadings, statements, correspondence, medical records and authorities alike is this row's index. Read through 00's spreadsheet and table paths, which license column headers and labelled cells as evidence.",
+      "A VOLUME MARKER WITHIN A DECLARED TOTAL - a header, spine label, separator sheet or filename component asserting one part of a numbered set (a volume, a part, a section) where the total is stated on the artefact itself. This is what tells a compilation from a merely long PDF. Alone it is nothing - see never_alone - but paired with an index or a listing anchor it is the strongest available evidence that a SET, not a document, is the real object.",
+      "A CHRONOLOGY structure: a table whose columns pair a DATE with an EVENT DESCRIPTION and a SOURCE REFERENCE INTO OTHER MATERIAL, commonly with a disputed-or-agreed column and sometimes a party column. It is the row's second-cleanest signal because its rows are about events rather than about the document that contains them, which is a shape no pleading, transcript, review log or exhibit schedule has. The dates on it are OBSERVATIONS about the matter's history and must never be read as this file's own creation date; 00's narrow-date rule applies with force here because a chronology is a page of year-shaped digits.",
+      "A RUNNING ORDER, TRIAL TIMETABLE or WITNESS ORDER: a table whose rows are a SEQUENCE POSITION or a time slot paired with a participant, an activity and commonly an estimated duration, under a header naming one sitting or sitting week. The key is the sequence, not the participant; a list of names with no imposed order is a contact list or a service list and belongs to the matter file.",
+      "A CROSS-EXAMINATION, EXAMINATION-IN-CHIEF or WITNESS-HANDLING PLAN: a working note whose structure is TOPIC OR PUT-POINT rows carrying cross-references into a compilation or a record - bundle tab-and-page references, transcript page-and-line coordinates, exhibit designators. The landed `law_practice.depositions-testimony` row has already conceded this shape to this row in its own words, and the firewall it stated is adopted here verbatim in effect: a transcript coordinate appearing inside a preparation document is a REFERENCE and never a second leg for that row, and equally a tab number appearing on a transcript exhibit is a reference and never a second leg for this one.",
+      "THE NUMBERED INSTRUCTION SET - the absorbed legacy `law.jury-materials`, and it activates on this row's structural test rather than on the word jury. A numbered set of directions to a decision-maker where each numbered item carries a SOURCE OR AUTHORITY column and a DISPOSITION column (proposed, agreed, joint, given, refused, modified, withdrawn) is an enumeration over items in an imposed order, anchored to one sitting. The same structure covers proposed findings, an agreed list of issues for determination, and a verdict or determination form whose rows are questions in a required answering order.",
+      "AN ARCHIVE WHOSE MEMBER SET IS A COMPILATION: an inspected archive whose contained paths show an index member beside several volume members and an authorities member, or several volume members with sequential names. 00 licenses exactly this reading of an archive without unpacking it - \"A ZIP file named submission.zip may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name\" - and the inference here is the same one applied to a different purpose: the member SET, not the outer name, is the evidence."
+    ],
+    "needs_llm": [
+      "DECIDING WHETHER AN INDEX IS A HEARING COMPILATION OR A TRANSACTION COMPILATION. A closing or completion binder index and a trial bundle index are structurally identical - member descriptions, tab numbers, continuous pagination, volume markers. The discriminator is the ANCHOR EVENT, and it is often one header line: a court or tribunal name with a hearing or listing reference points here; a completion or closing date with a deal or project name and a signatory schedule points to `law_practice.closing-binder`. Where the header is absent, neither row should fire and the artefact is Review Later.",
+      "DECIDING WHETHER AN ENUMERATING TABLE IS PREPARATION OR PRODUCTION. A disclosure review log and a bundle index are both tables of documents. The discriminator is what the row DECIDES: a reviewer identity plus a responsive, privileged or coding decision is `law_practice.discovery`'s; a tab, an order position and a compilation page is this row's. A table with both columns is a production set being converted into a bundle and needs the LLM to say which structure the artefact is FOR.",
+      "DECIDING WHETHER AN ORDERED SET OF SUBMISSIONS IS A FILED ADVOCACY DOCUMENT OR A WORKING OUTLINE. A skeleton argument, written case or opening note filed with the tribunal - caption, filing mark, service list - is `law_practice.motions-and-briefs`' or `law_practice.pleadings`'. An unfiled outline whose structure is an ordering of points against bundle references and a witness sequence is this row's. This seam is genuinely fine, both neighbours are unlanded, and it is raised as NJ-TP-2 rather than settled here.",
+      "READING A COMPILATION'S MEMBERSHIP WITHOUT INHERITING ITS MEMBERS' WORLDS. Whether a page range inside a volume is a medical record, a bank statement or an identity document is exactly the judgement this row must NOT act on for placement, and must be able to make for protection. The distinction is stated in sensitivity_why and it is the row's hardest LLM-facing rule.",
+      "TELLING A GENUINE CHRONOLOGY FROM A PROJECT TIMELINE OR AN INCIDENT LOG. Both pair dates with events. The discriminator is the SOURCE REFERENCE COLUMN pointing into other case material plus a matter or listing anchor; a dated event table with no cross-references and no listing is an operations or project artefact and is not this row's, whatever the filename says."
+    ],
+    "never_alone": [
+      "THE WORDS. `bundle`, `trial`, `hearing`, `chronology`, `index`, `running order`, `timetable`, `brief`, `jury`, `prep`, `final`, `vol` - alone or stacked, in a filename, a header or a folder name. These are document-type and stage words, they are the exact material of this row's own strongest refusal argument, and none of them is evidence. `Trial bundle.pdf` with no index structure, no volume total and no listing anchor is a long PDF.",
+      "A LAW-FIRM NAME, A COURT OR TRIBUNAL NAME, A CASE CAPTION, A COUNSEL BLOCK OR A PRACTISING CERTIFICATE, singly or together. Inherited from the schema and restated because a caption is the single most tempting token in this world: a caption identifies a proceeding, and this row is not about proceedings.",
+      "CONTINUOUS PAGINATION, TAB MARKERS, SEPARATOR SHEETS, A STAMPED PAGE NUMBER OR A LONG PAGE COUNT ALONE. A paginated multi-document PDF is a compilation of SOMETHING; it is not evidence of a hearing listing. A scanned book, an appellate record (`law_practice.appeals`), a closing binder and a printed policy manual all have this shape.",
+      "A HEARING DATE, A LISTING REFERENCE OR A CALENDAR ENTRY ALONE. A diarised hearing is `law_practice.deadlines-diary`'s ordinary content. Without an enumerating structure this row does not fire, and it must never compute, verify or characterise a date as a deadline.",
+      "A VOLUME OR PART NUMBER WITH NO DECLARED TOTAL, and equally a filename suffix such as `-vol2` or `-part3`. 00's own adversarial list names duplicate suffixes on unrelated files as a recorded failure mode; a bare volume token is a version-family observation at best.",
+      "A PHOTOGRAPH OF A COMPILATION. A phone picture of lever-arch spines reading Vol 1 to Vol 4, or of a tab divider, is an image of an object. It supports no membership, licenses no fact, and a missing or present EXIF field decides nothing about it.",
+      "A DATE-AND-EVENT TABLE WITH NO SOURCE REFERENCES. Project timelines, incident logs, medical treatment summaries and personal diaries all have this shape; the cross-reference column into other case material is what makes a chronology a chronology.",
+      "MEMBERSHIP ITSELF AS A LICENCE. Appearing inside an accepted compilation is never evidence that a member document belongs to this row, to this matter, or to law_practice at all - \"The graph does not automatically copy those missing facts onto sparse files.\" is the general rule and here it is also the protection that keeps a claimant's medical record a medical record."
+    ]
+  },
+  "proposed_context_terms": [
+    "bundle index",
+    "index to bundle",
+    "tab",
+    "volume of",
+    "core bundle",
+    "trial bundle",
+    "hearing bundle",
+    "chronology",
+    "dramatis personae",
+    "cast list",
+    "list of issues",
+    "running order",
+    "trial timetable",
+    "witness order",
+    "reading list",
+    "cross-examination plan",
+    "proposed instructions",
+    "given",
+    "refused",
+    "as modified",
+    "listing reference"
+  ],
+  "work_types": [
+    "bundle, trial-book or hearing-file index",
+    "compiled bundle volume (core, supplementary, authorities, medical, correspondence)",
+    "chronology, dramatis personae and agreed list of issues",
+    "running order, trial timetable and witness order",
+    "reading list and pre-reading note for the tribunal",
+    "cross-examination, examination-in-chief and witness-handling plan",
+    "opening and closing outline, note or speaking plan",
+    "authorities list and compiled authorities set for the sitting",
+    "hearing logistics and attendance plan (room, equipment, interpreter, remote link record)",
+    "proposed or agreed jury instruction set with source and disposition columns",
+    "juror questionnaire batch and jury selection or panel chart",
+    "verdict, determination or proposed-findings form",
+    "bundle pagination, re-pagination and cross-reference conversion record",
+    "hearing preparation task, allocation and readiness checklist"
+  ],
+  "grouping_reasons": [
+    "ONE LISTED SITTING, and it is the row's only strong anchor and the reason the row exists. The index, the volumes, the chronology, the running order, the reading list, the cross-examination plans and the instruction set are joined because they were assembled FOR ONE HEARING - a purpose relation, not a subject relation, and 00 states the licence in its own words: \"The documents are content-incoherent but purpose-coherent.\" A trial bundle is that sentence's legal twin: it contains a contract, a photograph, a medical report, a bank statement and a school report, and a content-similarity system will tend to split them exactly as 00 predicts.",
+    "ONE COMPILATION ACROSS ITS VOLUMES: volumes 1 to 4 plus their index plus the archive that carried them are one object, and it is a set whose members are individually unintelligible - a volume with no index is an unnavigable slab. This is the universal version_family and duplicate_family evidence supported by declared totals and index cross-references, never by a `-final` suffix.",
+    "ONE COMPILATION ACROSS ITS RE-PAGINATIONS: the pre-hearing bundle, the re-paginated bundle after documents were added, the core bundle extracted from it, and the conversion table between the two pagination schemes. This is the row's most confusing internal grouping and the conversion table is what makes it decidable.",
+    "MEMBERSHIP COPIES NOTHING, and here that is a privacy rule rather than an accuracy rule. A document enumerated in an index does not thereby acquire a matter, a party, a hearing date or a law_practice membership, and equally does not lose its own domain: a claimant's medical record listed at tab 47 is still medical material with its own protection. Grouping is not activation - CONNECTION states the separation, and this row leans on it harder than most because a compilation would otherwise launder every world it contains into this one.",
+    "A COMPILATION IS AN ANCHOR FOR ITS MEMBERS AND THEIR OWN FACTS STAY THEIRS: the sparse-file case bites here in an unusual direction. `Tab 12.pdf` or `047.pdf` extracted from a bundle carries no fact at all; it may join the compilation's group through the index's own row for it, and it must be marked group_without_copying_facts rather than given a matter or a date the index happens to state."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY FOR THE SCHEMA'S THREE REASONS - no declared fields under D1/PR-6, a safety neighbour whose activation unlocks no deep template, and the disclosure cost of a client or matter level - and this row adds a FOURTH that is its own and that survives even if all three lift: A COMPILATION MUST NOT BE EXPLODED INTO FOLDER LEVELS AT ALL. The natural-looking dimension here is document function - pleadings, statements, medical, correspondence, authorities - and it is precisely the wrong one, because those are the bundle's SECTIONS and turning them into folders dissolves the only object that exists. THE RECOMMENDATION HELD AS PROSE, and it differs from the schema's default paragraph at two of its four positions. The schema's default is client (only on explicit approval) then MATTER then DOCUMENT FUNCTION then period. This row's is: the same guarded client level, then the MATTER, then THE SITTING - one hearing or trial listing as a single level - and then NOTHING: the compilation and its volumes stay together inside that level as files, not as further branches. Function is REMOVED as a level rather than reordered, which is the sharper difference; where a corpus genuinely holds many sittings in one matter the sitting level earns itself, and where it holds one it must be flattened away as 00 requires of levels that \"create meaningless one-child levels\". A sitting level is also the one place in this family where an event label is usually SAFE - a date and a court room disclose far less than a client name - but it is still not automatic, because in a small corpus a lone dated hearing level identifies the matter it hangs under. NOT TIME-FIRST, and this row is the family's most tempting exception because everything in it points at one date. 00 settles it against that temptation: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A chronology spanning eleven years belongs to one sitting; a year-first tree would shred it. The sitting is an EVENT anchor, not a time dimension, and the distinction must be kept or every compilation in a long matter scatters.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "archive",
+      "ocr",
+      "image",
+      "presentation",
+      "calendar",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".zip",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".ics",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Index to trial bundle - Hartley v Nash - vol 2 of 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "table rows describe OTHER documents: a description column, a document-date column, a tab column and a page-range column",
+        "the page ranges are consecutive and do not restart, and they continue a range that began in another volume",
+        "header states a case identifier and 'Volume 2 of 4'",
+        "a footer line states a hearing date and a court room"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and no matter, party, hearing_date, tab or bundle value; those keys do not exist and this row does not mint them",
+        "that the description column may be sent to a cloud model. It is a one-line abstract of every document in the case including the private ones, which makes the index bulk-sensitive as a whole even though no single row is long",
+        "that the member documents named in the rows are law_practice files, or that they carry the matter",
+        "a date fact from the digits inside a tab number or a page range",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Chronology - Hartley v Nash - as at 2026-05-04.docx",
+      "source_type": "text_document",
+      "observations": [
+        "columns: date, event, source reference, agreed or disputed",
+        "the source-reference column holds tab-and-page tokens of the form B/14/207",
+        "dates in the date column span eleven years and none of them is this file's own date",
+        "a heading names one hearing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a creation_date drawn from any row of the date column - this is exactly the fuzzy-date failure 00 forbids, on a page that is nothing but year-shaped digits",
+        "that a disputed or agreed marking is a legal status; it is a literal observation of the column's own text",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Trial timetable and witness order - week 1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: day, time slot, activity, witness, examining counsel, estimated duration",
+        "rows are in an imposed sequence rather than alphabetical or arbitrary order",
+        "a header row names one sitting week and one tribunal"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a named witness may become a folder level, or be bridged to any other file by name - the schema's naming rule binds this row and the witness column is the exact material it protects",
+        "that an estimated duration is a scheduling fact the product may act on",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "XX plan - Lee - topics and bundle refs.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose in numbered topic blocks, each block ending in bracketed references",
+        "the references are of two kinds: tab-and-page tokens into a compilation, and page-and-line coordinates into a transcript",
+        "no caption, no addressee, no signature block, no filing mark"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the transcript coordinates activate `law_practice.depositions-testimony` or `law_practice.hearing-transcripts` - that row's own landed edge states the firewall, a coordinate inside a preparation document is a reference and never a second leg for it",
+        "that the absence of a caption proves anything; a row defined by an absence cannot activate, and this file needs its topic-plus-reference structure and a listing anchor",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bundle - Hartley v Nash - vol 3 - medical and financial.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one continuous PDF whose pages change document type repeatedly at separator sheets",
+        "a stamped page number in the same corner of every page, continuing a range from an earlier volume",
+        "internal pages are clinic letterheads, a discharge summary, bank statements and payslips",
+        "the first page is a section index"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the medical and financial pages are law_practice material, or that their own domains' protection is discharged because they are now pages rather than files - this is the row's defining privacy claim and the wrong conclusion here is the one that does real harm",
+        "a clinical or financial fact of any kind about the person the pages concern",
+        "that page-level content may be excerpted into a model prompt",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hartley trial bundle FINAL.zip",
+      "source_type": "archive",
+      "observations": [
+        "inspected without unpacking: contained paths show one index member, four sequentially named volume members, an authorities member and one native spreadsheet",
+        "the member set is coherent as a compilation; the outer name is not the evidence",
+        "uncompressed size far exceeds the sum of any single member's plausible size"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the archive should be unpacked to disk to improve classification - 00 requires archives be inspected without being unpacked",
+        "that the word FINAL is a version fact",
+        "that the native spreadsheet member's own domain is law_practice",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Proposed jury instructions - joint - with sources and dispositions.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered items, each with an authority-or-source line and a disposition column reading proposed, agreed, given, refused or as modified",
+        "a header names one trial and one court",
+        "items are in a required delivery order rather than a topical one"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a disposition value is a ruling the product may treat as legal status; given, refused and as modified stay literal observations",
+        "that the cited authorities make this reading material - the disposition column and the sitting anchor are what distinguish it from a practice text",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Panel questionnaires - scanned batch.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of a repeated form: the same labelled slots recur once per person across many pages",
+        "slots include name, address, occupation, employer, household members, prior service and hardship",
+        "a panel or venire number appears in a header, and a court name appears once"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the named people are clients, parties or witnesses - they are private individuals with no relationship to the holder at all, which is why this fixture sets this row's sensitivity floor rather than illustrating it",
+        "a people fact, an address fact or an employer fact for any of them; no such extraction is licensed and bulk multi-subject rows scale the exposure by row count",
+        "that OCR text may be excerpted into a model prompt",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Completion bundle index - Project Larkspur.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "THE COLLISION FIXTURE. Structurally identical to this row's anchor: member descriptions, tab numbers, continuous pagination, a volume marker",
+        "the header names a completion date, a project code name and a signatory schedule",
+        "no court, no tribunal, no listing reference, no hearing date anywhere on it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row fires. The enumerating structure is present and the LISTING ANCHOR IS ABSENT, and both legs are required; the anchor event is a transaction completion, so `law_practice.closing-binder` owns it",
+        "that a completion date is a hearing date",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Table of Cases and Index - Civil Procedure (2026 ed).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SECOND COLLISION FIXTURE. An enumerating table over documents with page references, in a long continuously paginated PDF",
+        "the enumerated items are published decisions, not matter material, and the pages are the book's own",
+        "a publisher imprint and an ISBN-shaped token appear on an early page; no matter reference, no listing, no volume total"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an index plus continuous pagination is this row's signal - a book has both, which is why continuous pagination is a never_alone",
+        "that legal vocabulary or a citation-shaped token activates anything in this family",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": [
+        "a phone photograph of four lever-arch spines with printed labels reading Vol 1 to Vol 4 and a case name",
+        "EXIF DateTimeOriginal present; no OCR-able structure beyond the spine labels"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_year",
+        "camera_information",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a photograph of a compilation is a compilation; it is an image of an object, supports no membership and licenses no matter fact",
+        "that the spine text is an index; a volume marker with no declared total on the artefact is a never_alone",
+        "a screenshot conclusion from the presence or absence of any metadata field",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Hearing 12 June - listing.ics",
+      "source_type": "calendar",
+      "observations": [
+        "one event with a summary carrying a case identifier and a court room, an organizer and several attendees",
+        "no enumeration of documents or events anywhere in the entry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "event",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row fires - a diarised sitting with no enumerating structure is `law_practice.deadlines-diary`'s ordinary content and the second leg is missing",
+        "a deadline, a limitation date or any computed or verified date consequence",
+        "that the attendee list may be bridged to other files by name",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "bundle-index-scan.png",
+      "source_type": "ocr",
+      "observations": [
+        "a screen capture or scan of one page of an index; OCR recovers a partial column structure with tab numbers and truncated descriptions",
+        "no header survives the crop, so no case identifier and no listing reference are readable",
+        "aspect ratio is browser-like"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the enumerating structure alone activates this row; the listing anchor is unreadable and both legs are required",
+        "a screenshot origin from browser-like dimensions or from missing capture metadata",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Bundle vol 1-4 - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "encrypted archive; member names are not readable and no manifest can be inspected",
+        "the outer filename is the only text available"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a compilation, a matter, a sitting or a sensitivity result from the outer filename alone",
+        "that the file should be forced open to classify it",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "SAME FIXTURE BOTH SIDES: `Bundle index - Hartley v Nash - vol 2.pdf` — the neighbour named this fixture in its own landed edge and gave it away to this row; this is the reciprocal it said was owed. THIS ROW OWNS the compilation and its index because the ordering key is a TAB PLUS A CONTINUOUS COMPILATION PAGE RANGE running over pleadings, statements, correspondence and authorities alike, inside a volume within a declared total, anchored to one listing. THE NEIGHBOUR OWNS the schedule of exhibits inside it, because its ordering key is a DESIGNATOR NAMESPACE over tendered items only, and the schedule survives the hearing the bundle was built for. DISCRIMINATED BY the ordering key of the enumerating table: a designator series is the neighbour's, a tab-and-continuous-page series is this row's; where one document does both, this row holds the compilation and the neighbour holds the schedule. This row accepts the neighbour's stated merge direction (merge INTO this row, never the reverse) but does not think a merge is needed, because the privacy claims differ: the neighbour protects a re-identification layer, this row protects an aggregation that defeats member-level protection.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.depositions-testimony",
+      "signal": "SAME FIXTURE BOTH SIDES: `Designations and counter-designations - Lee - with objections.xlsx` — an enumerating table built for a hearing, which is this row's whole purpose. THE NEIGHBOUR OWNS it, and this row concedes it in the neighbour's own terms: the rows are page-from/line-from/page-to/line-to, coordinates INTO a transcript, and the coordinate system is the neighbour's structure. THIS ROW OWNS enumerations that address DOCUMENTS OR EVENTS — bundle indexes, chronologies, running orders, cross-examination plans — even where they quote or cite testimony. DISCRIMINATED BY whether the table's key is a transcript coordinate or a document or event reference. Firewall, adopted from the neighbour: a transcript coordinate appearing inside a preparation document is a reference and never a second leg for the neighbour.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.hearing-transcripts",
+      "signal": "SAME FIXTURE BOTH SIDES: one enumerating table carrying page numbers and a case identifier, sitting beside the hearing it belongs to. DISCRIMINATED BY NAMESPACE AND DIRECTION, in the neighbour's own landed words: THIS ROW's index maps whole member DOCUMENTS to tab numbers and compilation pages in a set assembled BEFORE the sitting and carries a volume marker within a declared total — prospective, about what will be put before the tribunal. THE NEIGHBOUR's index maps PASSAGES to page-and-line coordinates inside a record that already exists — retrospective, about what was said. A tab number appearing on a transcript exhibit is a reference, never a second leg for this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.closing-binder",
+      "signal": "SAME FIXTURE BOTH SIDES: `Completion bundle index - Project Larkspur.pdf` — structurally indistinguishable from this row's anchor, with member descriptions, tab numbers, continuous pagination and a volume marker. THIS ROW OWNS an enumerated set anchored to a TRIBUNAL LISTING (hearing or trial date, listing or hearing reference, court or tribunal room). THE NEIGHBOUR OWNS the same structure anchored to a TRANSACTION COMPLETION (completion or closing date, deal or project name, signatory and deliverables schedule). DISCRIMINATED BY the anchor event named in the header, which is usually a single line and is the only difference between the two artefacts; where no anchor event is readable neither row fires and the file is Review Later. This is this row's sharpest collision and the reason its second leg is a listing anchor rather than merely a compilation structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES: a spreadsheet listing documents in a matter with dates and descriptions, produced in the run-up to a hearing. THE NEIGHBOUR OWNS it when the rows carry a REVIEWER and a DECISION — responsive, privileged, redact, withhold, produced — because the table's purpose is to decide about documents. THIS ROW OWNS it when the rows carry a TAB, AN ORDER POSITION AND A COMPILATION PAGE, because the table's purpose is to order documents for one sitting. DISCRIMINATED BY whether the row decides something about a document or places it in a sequence; a table with both column families is a production being converted into a bundle and needs the LLM to say which structure it is for.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.motions-and-briefs",
+      "signal": "SAME FIXTURE BOTH SIDES: `Skeleton argument - claimant - hearing 12 June.docx` — numbered submissions with authorities and bundle cross-references, written for one listed sitting. THE NEIGHBOUR OWNS it once it is a FILED ADVOCACY DOCUMENT: caption, filing mark or electronic-filing notice, service list, page limits. THIS ROW OWNS the unfiled working outline whose structure is an ordering of points against bundle references and a witness sequence, and the reading list and running order it sits beside. DISCRIMINATED BY the presence of a filing or service apparatus, not by draft-versus-final and not by the word skeleton. This seam is fine and the neighbour is unlanded — see NJ-TP-2.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.appeals",
+      "signal": "SAME FIXTURE BOTH SIDES: a compiled, indexed, continuously paginated multi-volume set with a court name on the cover. THE NEIGHBOUR OWNS the RECORD ON APPEAL, whose index maps members to page ranges in an appellate record's own continuous pagination and whose anchor is a lodged appeal with an appeal reference. THIS ROW OWNS the first-instance hearing or trial bundle, anchored to a listing at the tribunal that will hear evidence. DISCRIMINATED BY the anchor: an appeal reference and a lower-court judgment as a member point to the neighbour; a witness order, a chronology and a trial timetable in the same set point to this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.legal-research",
+      "signal": "SAME FIXTURE BOTH SIDES: `Authorities - Hartley v Nash - compiled.pdf` — a paginated compilation of published decisions with an index. THE NEIGHBOUR OWNS a research artefact: an authorities table keyed to propositions or issues, a note explaining what each case is for, no listing anchor. THIS ROW OWNS the authorities BUNDLE: the same cases compiled into a tabbed, continuously paginated volume within a declared total for one sitting, cross-referenced from a reading list. DISCRIMINATED BY whether the enumeration serves an argument or serves a hearing's pagination; a stack of downloaded judgments with neither is Reading Inbox, not either row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.deadlines-diary",
+      "signal": "SAME FIXTURE BOTH SIDES: `Hearing 12 June - listing.ics` and any dated hearing entry. THE NEIGHBOUR OWNS the diarised date itself — the listing, the limitation entry, the key-date table whose rows are obligations with dates. THIS ROW OWNS the material ordered FOR that date, and needs the enumerating structure as well; a listing reference alone is a never_alone here. DISCRIMINATED BY whether the artefact IS a date record or is an ordering of documents anchored to one. Neither row may compute, verify or characterise a date as a deadline.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: a bundle volume whose members include executed instruments and filed pleadings — material the `legal` schema's instrument-and-proceeding signals fire on directly, page by page. `legal` IS A SAFETY DOMAIN AND ITS PROTECTION RUNS FIRST; where it fires on a member, that protection is not discharged by this row's compilation claim. THIS ROW OWNS only the COMPILATION AND ITS ORDERING APPARATUS — the index, the pagination, the volume set, the chronology. DISCRIMINATED BY whether the evidence is a bound party pair, an execution block or a tribunal caption (`legal`'s, on its own evidence) or an enumeration over members plus a listing anchor (this row's). Membership never converts a member into this row's file, and never launders a member's own domain into law_practice.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "FIRST and the correct default for this row, because its characteristic isolated artefact is a directory of, or an aggregation of, other people's records. A stray index page, a chronology, a witness order, a single bundle volume, a panel questionnaire batch: the protective home is right and the cautious error is the cheap one. 00 names the residual and this material together - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" A bundle volume routinely contains several of those items as pages.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's defining failure, which is an unreadable ANCHOR rather than an unreadable structure: an index, a chronology or a running order that is plainly an ordering apparatus but whose sitting cannot be identified, and the completion-versus-listing ambiguity in full. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Compilations are delivered as large, split and password-protected archives more often than any other artefact in this family, and those are exactly the files that must not be forced open. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This row's tempting false positives are overwhelmingly published and reference material that carries an index and continuous pagination - practice texts, tables of cases, procedure guides, downloaded judgments compiled by a publisher. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The honest home for the photographed-compilation case and for tab and spine snapshots, which support no membership and licence no fact. Named because this row's image fixture would otherwise be pulled into Protected Records on the strength of a case name on a spine, which is precisely the never-alone token.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, inherited from the schema and then EXTENDED on two grounds that are this row's own and that no sibling can make. FIRST, AGGREGATION DEFEATS MEMBER-LEVEL PROTECTION, and this is the row's defining privacy claim. Every protection this product offers is applied to FILES; a compilation converts protected files into PAGES. A claimant's passport, a discharge summary, a bank statement and a child's school report each individually trip the safety domains 00 names - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - and inside volume 3 they trip nothing at all, because there is no longer a passport file to detect. The consequence this row records for R1c and for P7: a compilation must be treated as carrying the STRICTEST posture of any member it plausibly contains, never the posture its own outer document type suggests, and its interior must never be excerpted into a model prompt on the theory that the outer file is 'a bundle index PDF'. SECOND, THE INDEX IS A DIRECTORY OF THE AGGREGATION AND IS SEPARATELY DISCLOSIVE. A bundle index is a one-line abstract of every document in a case, and it is small, textual and inviting - exactly the artefact a summariser would reach for. 00's own contrast governs it: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" An index read aloud is that visible list. THIRD, INHERITED AND UNCHANGED: the exposed parties are THIRD PARTIES who never chose this filesystem, and this row widens the class further than any sibling - a juror or panel member has no relationship with the holder, no stake in the matter, and gave their address, employer and household details to a court, not to a law firm. FOURTH, EXISTENCE REMAINS DISCLOSIVE and the naming rule binds here unchanged: no client, matter, party, witness, deponent, accused or juror name may become a folder level without explicit user approval, since \"A visible client or matter label can itself disclose the existence and subject of a representation.\" The one relaxation this row argues for, and marks as a recommendation rather than a permission: a SITTING level expressed as a date and a room usually discloses far less than a client or party level, which is why it is the level this row's prose recommendation reaches for - but in a small corpus a lone dated hearing level identifies the matter above it, so it is not automatic. Two consequences inherited without change: privilege, confidentiality and waiver are never inferred, only the literal label is preserved as an observation; and cross-matter bridging by party or witness name is suppressed as a privacy barrier and not only as an accuracy rule.",
+  "open_question": "Four, none of them smoothed. (1) NJ-TP-1, THE NAME IS A LIFECYCLE STAGE AND THE ROW IS NOT. `trial-preparation` reads as a phase of a matter, and a phase is a value of the canonical `stage` key, never a node. This row survives only because it claims something narrower than its name: artefacts whose own structure is an ENUMERATION OVER OTHER DOCUMENTS OR EVENTS anchored to one listing. It does NOT claim everything made before a trial - a pleading drafted for trial stays `law_practice.pleadings`', a deposition taken for trial stays `law_practice.depositions-testimony`'. Alternatives for R1c: (a) keep the id and read the name narrowly, which is this row's recommendation, since the roster name 'Hearing and trial preparation' is already broader than 'trial'; (b) RENAME to compilation-and-bundle, which would describe the actual content better and would kill the stage reading outright - this row would welcome it; (c) refuse and route compilations to `law_practice.evidence-exhibits`, chronologies and outlines to the matter file, and the rest to Protected Records - this row opposes (c) because the aggregation-defeats-protection claim would then have no home at all. (2) NJ-TP-2, THE ADVOCACY-DOCUMENT SEAM. `law_practice.motions-and-briefs` and `law_practice.pleadings` are unlanded, and the boundary drawn here - filed advocacy document to them, unfiled working outline to this row - turns on a filing apparatus that a working copy may simply lack. Alternatives: (a) as drawn, filing apparatus decides; (b) all written advocacy to the neighbours and this row keeps only indexes, chronologies, timetables and plans, which is cleaner and would shrink this row's `work_types` by three; (c) all hearing-directed advocacy here, which this row rejects as a lifecycle claim of exactly the kind NJ-TP-1 warns against. Reciprocal owed to both neighbours either way. (3) NJ-TP-3, THE ABSORBED `law.jury-materials`, absorbed here on the argument that a numbered instruction set with source and disposition columns is this row's structure and that juror questionnaires arrive as a batch prepared for one sitting. The honest counter is that a juror questionnaire batch is not an ordering of anything - it is a set of forms about private individuals, structurally closer to `law_practice.investigation`'s interview records, and it carries a sharper privacy problem than anything else in this row. Alternatives: (a) keep as absorbed, this row's recommendation, because splitting on a document type is the 574's mistake; (b) route questionnaire batches to Protected Records unconditionally and keep only the instruction set here; (c) raise the batch to a schema-level rule about multi-subject forms, which is really clinical_practice's multi-subject list rule generalised and belongs to R1c, not here. (4) NJ-TP-4, THE COMPILATION POSTURE HAS NO MECHANISM. This row asserts that a compilation must inherit the strictest posture of any member it plausibly contains, and nothing in the design documents provides a way to express that: sensitivity here is only `none` or `potentially_sensitive`, both this row and a plain office memo take the same value, and handling classes are P7's. Alternatives: (a) P7 defines a compilation or container posture and this row's claim becomes a P7 input; (b) the schema records a container rule that suppresses interior excerpting for any artefact whose structure is an enumeration over members; (c) nothing is done, and the practical result is that a bundle volume is protected only as well as its outer file type suggests, which this row believes is the wrong answer and records so that the decision is deliberate."
+}

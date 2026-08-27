@@ -1,0 +1,459 @@
+{
+  "id": "retail_hospitality.returns-warranty",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Returns, refunds and warranty claims (the operator's adjudication of a sale run backwards)",
+  "one_line": "The record a TRADING OPERATION keeps when a unit it already sold comes back and a right is asserted against it: which unit, under which entitlement - a statutory cancellation right, the retailer's own policy, a manufacturer's warranty term, or a card scheme's dispute rules - in what condition it arrived, what the operator DECIDED, and what that one decision did to BOTH a money ledger and a stock ledger at once. Its anchor is a RETURN CASE carrying an authorisation identity of its own, distinct from the order identity that spawned it and frequently existing without one at all. It is the OPERATOR'S side only: the buyer's own return label or refund email is never this row. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH on a schema that declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so it recommends no folder dimensions and writes no domain facts; activation unlocks recognition, a privacy posture stricter than its parent schema's, and consideration of the four landed neighbours that each declined to take this remainder.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The `retail_hospitality` schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, held under this row's privacy posture, and offered honestly.",
+      "AN ENTITLEMENT-AGAINST-DISPOSITION structure - this row's whole claim to exist, and a pairing the parent schema does not list among its ten. A record carrying, for ONE returned unit or ONE case: a RETURN AUTHORISATION reference; a REASON drawn from a bounded returns enum (faulty, not as described, damaged in transit, wrong item, wrong size, change of mind, late delivery, duplicate order); an ENTITLEMENT BASIS naming which right is being relied on (cancellation period, retailer policy window, warranty term, scheme dispute rules); a CONDITION-ON-RECEIPT assessment; and a DISPOSITION decision (refund, exchange, repair, credit note, restock, write-off, return-to-vendor, reject and send back). The reason names WHY; the entitlement names UNDER WHAT RIGHT; the disposition names WHAT WAS DONE. Two of those three in labelled slots is the signal, and “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "A RETURN IDENTITY DISTINCT FROM THE ORDER IDENTITY. A reference in a slot literally labelled RMA, RA, Return authorisation, Return reference, Claim number, Case number or Dispute ID, co-existing with a SEPARATE order, invoice or receipt reference - or, decisively, existing with NO order reference at all. The orderless case is the strongest form of this signal, because it is exactly the material the parent schema's default template has no occasion to file: a warranty claim on a gift, on transferred goods, or on a unit bought through another channel.",
+      "A PAIRED MONEY-AND-STOCK OUTCOME on ONE event. A row or block in which a credit, refund or replacement value sits beside a stock consequence for the same unit - restocked, written off, quarantined, sent to vendor, scrapped. This pairing is the discriminator against every pure ledger: a refunds list that moves money and says nothing about where the goods went is finance's or `retail_hospitality.pos-reporting`'s, not this row's.",
+      "A WARRANTY-TERM TEST. A purchase or installation date, a stated term or expiry, and an IN-WARRANTY or OUT-OF-WARRANTY verdict, usually with proof-of-purchase evidence attached or referenced. The verdict slot is what fires; a warranty certificate with no claim against it is not this row - see falls_through_to.",
+      "A PAYMENT-DISPUTE CASE structure. An acquirer's or platform's case reference, a scheme dispute reason code, a stated response deadline, a required-evidence list, and the merchant's assembled representment pack. The discriminator against `finance` is that this is the merchant's CASE FILE contesting one transaction, not the settlement or account record into which its outcome eventually posts.",
+      "A POPULATION FORM of any of the above: a register or export with one row per case, carrying at least a case reference, a date, a reason and a disposition column. Population is what separates this row from a residual - a single return document with no register, no decision and no counterpart is a transactional document and “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "An email whose labelled subject slot names a return, RMA, refund, replacement, warranty claim or chargeback reference AND whose body or attachment carries a DECISION or an inbound-goods instruction. A customer's complaint email that merely asks for a refund is not this signal; the adjudication or the authorisation is.",
+      "An archive whose manifest names a dispute or representment pack, a returns export, an RTV consignment file or a claims batch - read from the manifest alone, without extraction.",
+      "Parent-folder context naming returns, RMA, claims, credits or disputes, treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's ordinary output joins a NAMED MEMBER OF THE PUBLIC to a PAYMENT INSTRUMENT and to a DISPUTE, so a model step runs under the user's policy and after P7. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "Separating the OPERATOR'S side from the CUSTOMER'S side, inherited from the parent schema and sharper here than anywhere else in the family, because the returns world is the one place where the two copies are near-identical documents that BOTH carry an RMA reference. The operator's copy carries an ADJUDICATION - a decision, an approver, a condition assessment, a stock consequence; the buyer's copy carries an INSTRUCTION to the buyer and no decision at all. Where the evidence does not settle the side, this row must not activate.",
+      "Separating a return CASE from the returns POLICY it cites. A policy document is written in the second person, states windows and exclusions in general terms, and names no unit, no customer and no decision. It is governance material, and “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Separating an ADJUDICATED refund from a GOODWILL GESTURE. Both move money to a customer; only the first rests on an asserted entitlement and produces a stock consequence. A goodwill credit issued to settle a complaint with no goods coming back is `retail_hospitality.guest-feedback`'s.",
+      "Unlabelled prose: a customer writing that they have posted an item back, a supervisor's note authorising a till refund, a chaser to a manufacturer about an unanswered claim. No header block, no grid, no reference - and frequently the most sensitive files in the set.",
+      "Reading a SCANNED OR PHOTOGRAPHED returns book, a signed refund docket, a till refund slip, or a customer's photograph of a fault. Handwriting is often the whole content and OCR confidence on it is low; a photograph of a broken item is not by itself a claim record.",
+      "A returns, warranty or consumer-rights vocabulary in a language the deterministic structure catalogue does not cover.",
+      "In every case above, abstention is the required outcome when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE DOCUMENT-TYPE WORDS THEMSELVES - return, refund, credit, warranty, claim, RMA, chargeback - standing alone. This is the row's own most dangerous token and the direct answer to the charge that it is a work_type value: its parent schema's never-alone list already says that a document-type word is “a value of a function dimension, and a row resting on one is the schema's default template wearing a name.” `Refund.pdf` may be a merchant's decision, a customer's confirmation, a tax refund, a supplier credit, a policy template, or a screenshot of an app. The word is never the evidence; the entitlement-against-disposition pairing is.",
+      "A BARE REFERENCE NUMBER of any shape - `88231`, `RMA-0417`, `112-4457889-3325061`. Read across from the parent schema's rule on bare tokens: a reference is only evidence when it sits in a slot literally labelled as a return, claim or dispute identity AND a decision or a reason slot sits beside it.",
+      "A NEGATIVE CURRENCY AMOUNT, or a credit line in a table. Money coming back out is finance, `retail_hospitality.pos-reporting`, or `retail_hospitality.supplier-order` before it is this row. What fires here is the paired STOCK consequence, not the sign of the number.",
+      "A REASON WORD - faulty, damaged, wrong size, unwanted - standing alone. These are values of a reason facet. `Faulty.jpg` is a photograph of a broken thing until a case structure claims it.",
+      "A CUSTOMER'S OR CLAIMANT'S NAME. This must never anchor a group and must never become a folder level, both because “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” and because a returns tree branched on customer names would publish a consumer database into the user's directory.",
+      "A RETURNS POLICY OR WARRANTY TERMS DOCUMENT, standing alone. It is the entitlement basis a case CITES, not a case. Treated alone it is business_operations governance material, and this row must not activate on it - see file_examples.",
+      "A MANUFACTURER'S OR RETAILER'S BRAND NAME on a claim-shaped document. The same brand appears as the seller adjudicating, the manufacturer being claimed against, a supplier issuing a credit, and a competitor named in a policy comparison."
+    ]
+  },
+  "work_types": [
+    "return authorisation - the RMA or RA record that opens a case, with reason and entitlement basis",
+    "inbound receipt and condition assessment - goods-back check, resaleable or not, missing accessories, quarantine",
+    "refund decision - the adjudication, its approver, the tender refunded and the amount",
+    "exchange or replacement record - the outbound unit issued against the returned one",
+    "repair-under-warranty record - the merchant's own repair or the referral onward to a manufacturer",
+    "return-to-vendor claim - the RTV consignment and the supplier or manufacturer credit sought against it",
+    "payment dispute file - the acquirer or platform case, the scheme reason code, the representment evidence pack and the outcome",
+    "returns register or analysis - one row per case across a period, with reason and disposition columns",
+    "recall-driven return record - units taken back under a safety notice (see open_question: no landed row claims recall execution)"
+  ],
+  "grouping_reasons": [
+    "ONE RETURN CASE across its whole trail: the authorisation, the inbound receipt and condition note, the customer's fault photograph, the decision, the credit or replacement, and the stock movement - joined by the return authorisation reference, never by the customer's name. “The documents are content-incoherent but purpose-coherent.”",
+    "ONE DISPUTE across its trail: the acquirer's notification, the evidence assembled, the representment submitted and the outcome letter - joined by the scheme case reference.",
+    "ONE RETURNED UNIT over a chain that crosses parties: the customer's claim to the merchant, the merchant's RTV to the supplier, and the credit that came back - joined by a serial or unit identity where one exists.",
+    "ONE PERIOD'S RETURNS AT ONE SITE: the register, the credit-note batch and the write-off list for one month at one trading unit. This is the reason most likely to be mis-drawn as a calendar; the occasion is the returns cycle at a site, not the month.",
+    "No group at all is a valid and common outcome. A lone return document with no register, no decision and no counterpart is a transactional document and belongs to Receipts and Confirmations."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the `retail_hospitality` schema with no field rows, and a dimension may only branch on a field the same schema declares. THE RECOMMENDATION IS THEREFORE HELD AS PROSE, AND ITS DIFFERENCE FROM THE PARENT'S DEFAULT IS THE WHOLE ARGUMENT FOR THIS ROW. The schema's default is: TRADING UNIT (site, venue or channel) where the corpus spans more than one, then TRADING OCCASION - named there as “the session, count, order cycle, booking, function or licensed premises the material belongs to” - then OPERATIONAL RECORD FUNCTION. This row recommends: TRADING UNIT, then THE RETURN CASE AS ITS OWN OCCASION, then function. The difference is at the OCCASION level, not the function level, and that is precisely what saves this row from being a work_type value of the default. A return case is none of the parent's five occasion shapes: it is opened by the CUSTOMER rather than by the operator, it carries an authorisation reference of its own that outlives and is separate from the sale reference, its centre is an ADJUDICATION of an asserted right rather than a count or a booking, and it settles a money ledger and a stock ledger with one decision. Most decisively, one case routinely has NO order to be filed under - a warranty claim on a gift, on transferred goods, or on a unit bought through another channel - so filing returns under the order they reverse leaves that material with no home at all. NOT TIME-FIRST, for the parent's reason: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The return date identifies the case; it does not root the tree. A PRODUCT must never become a dimension (a branch per SKU is the one-child failure the validator sentence rejects) and a CUSTOMER OR CLAIMANT must never become one (it would publish a member of the public's name into the directory tree, and the same sentence forbids using a person merely as a collector). The user may later reverse, flatten or remove any level; this is a recommendation, not a path.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "RMA register 2026-Q1 - Camden.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per case, with a column headed RMA ref and a separate column headed Order ref in which several cells are empty",
+        "a Reason column drawn from a short repeating enum, and an Entitlement column reading policy, statutory or warranty",
+        "a Condition on receipt column and a Disposition column reading restock, write-off or RTV",
+        "a Credit value column beside the disposition, so money and stock resolve on the same row",
+        "a site header and a quarter in the sheet name; no bank account number and no nominal code anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a site or return case as a stored fact; both depend on proposals awaiting R1c",
+        "that the empty Order ref cells are a data-quality defect - they are the orderless warranty claims and they are this row's strongest evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Return authorisation 88231-R1 - faulty kettle.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled return authorisation reference and a labelled original order reference",
+        "a purchase date, a stated twenty-four month term and an IN WARRANTY verdict slot",
+        "a decision block reading Replacement issued, with an approver's initials",
+        "a returns-address instruction and a note that the unit is to be quarantined on arrival",
+        "the customer named with a delivery address and a telephone number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "the customer's name as a group anchor or a folder level",
+        "that the warranty verdict is a legal determination of the customer's rights",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Chargeback case 55120 - representment pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming an acquirer case reference, a scheme dispute reason code and a response deadline",
+        "members named as order confirmation, proof of delivery, terms accepted at checkout and a cardholder correspondence log",
+        "a covering letter member naming the disputed amount and the transaction date",
+        "no member named as a settlement statement or an account reconciliation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "anything read by extracting the archive: “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+        "that the presence of card data makes this a finance record - the absent account identity and settlement structure is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Warranty claim SN44921 - customer proof of purchase.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed till receipt with a handwritten fault description across the top and a serial number circled",
+        "OCR confidence low across the handwriting and moderate across the printed receipt",
+        "no EXIF camera make, the image having arrived as an email attachment",
+        "the claim reference written in the same hand"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a capture date as a purchase date - the photograph's date is when the receipt was photographed",
+        "that a photographed receipt is the holder's own purchase receipt; it is a third party's, held as claim evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Refunds and credits March 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per refund with a date, an original order reference, a tender refunded and an amount",
+        "an approver column and a reason column",
+        "a restock flag column present for some rows and blank for goodwill rows",
+        "no nominal or posting code, and no bank or merchant account identity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is a finance ledger; the absent account identity and posting structure is the discriminator, and the presence of a restock flag is what pulls it here",
+        "that the goodwill rows belong to this row - those are retail_hospitality.guest-feedback's, and a single file can legitimately split",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE FW Complaint - order 55120 wrong size.eml",
+      "source_type": "email",
+      "observations": [
+        "a grievance in the customer's own words at the bottom of the thread",
+        "an apology and a goodwill offer in the middle",
+        "a return authorisation number issued at the top, with an inbound instruction and a refund-on-receipt undertaking",
+        "no attachment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the whole thread - the grievance, the apology and the goodwill offer are retail_hospitality.guest-feedback's; only the authorisation and what follows it are this row's",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Returns and refunds policy v3 - in-store and online.docx",
+      "source_type": "text_document",
+      "observations": [
+        "written in the second person to the customer, with headed sections on windows, exclusions and proof of purchase",
+        "a version number and an effective date in a document-control block",
+        "no unit, no customer, no reference and no decision anywhere in it",
+        "an approver and a review date in the control block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - this is the tempting false positive nearest to home. It is the ENTITLEMENT BASIS a case cites, not a case, and it is business_operations governance material with a document-control block",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Return label - 112-4457889-3325061.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a marketplace return authorisation reference and a barcode",
+        "one item, a reason reading no longer needed, and a drop-off instruction",
+        "addressed to the holder of the machine as the buyer",
+        "a refund-timing paragraph, and NO decision, NO approver, NO condition assessment and NO stock consequence anywhere",
+        "sitting in a Downloads folder beside order confirmations"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - THIS IS THE COLLISION FIXTURE. It carries an RMA reference and a reason code and is still the CUSTOMER'S side; this row is the operator's side only",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Credit note CN-4471 - Harlow Foods.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a food wholesaler's letterhead and a credit note reference",
+        "lines crediting the operator for a shortage against purchase order 4471",
+        "the money flows TO the operator, FROM a supplier",
+        "no return authorisation, no customer, and no outbound unit anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a credit note makes this a returns record - it is retail_hospitality.supplier-order's inbound-goods credit, and the discriminator is which party is owed",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RTV 0392 - Depot B - consignment and claim.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per returned-to-vendor unit with a SKU, a quantity and a fault code",
+        "a vendor claim reference and a credit-expected value",
+        "a consignment note number and a collection date",
+        "the originating customer RMA references carried across in a source column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that the consignment note makes this logistics' - logistics owns the movement leg, this row owns the claim against the vendor and the entitlement the customer RMAs created",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Repeat returners - review list Mar 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "named individuals with a count of returns, a total credited value and a flag column",
+        "free-text notes in several rows characterising the customer's behaviour",
+        "no order references and no dispositions",
+        "an internal distribution note in the header row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that a flag is a finding about a person; it is an internal assertion and must not be surfaced in a group summary",
+        "any customer name as a group anchor or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.guest-feedback",
+      "signal": "SAME FIXTURE BOTH SIDES: `RE FW Complaint - order 55120 wrong size.eml` - one thread carrying a grievance, an apology, a goodwill offer and a return authorisation number. This row owns THE GOODS-AND-MONEY MOVEMENT AND ITS ADJUDICATION - the return authorisation, the inbound receipt and condition assessment, the restock or write-off, the refund or replacement, and any onward claim to a manufacturer; the neighbour owns THE UTTERANCE AND THE REPLY - the grievance text, the acknowledgement, the final response, and a goodwill gesture as a reputational act with no goods coming back. Discriminated by THE RETURN AUTHORISATION AND ITS PAIRED STOCK CONSEQUENCE: present, the record is this row's; absent, with a case reference and a redress category instead, it is the neighbour's. The same thread is legitimately split and neither may claim the whole of it. RECIPROCAL AND AGREED: the neighbour's landed node already states that guest-feedback must not take an RA register, a refunds ledger or a warranty claim file, and this row correspondingly must not take a review, a survey export or a goodwill log keyed to grievance categories rather than to returned goods.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.warranty-claim",
+      "signal": "SAME FIXTURE BOTH SIDES: `Order 88421 return request - defective.pdf`, the fixture the neighbour's landed node names. This row owns THE MERCHANT'S OBLIGATION TO ITS BUYER - the order line, the entitlement window and policy, the refund or exchange decision, and the inventory receipt of the unit; the neighbour owns THE MANUFACTURER'S TECHNICAL FIELD-RETURN CHAIN - installed-unit identity, entitlement basis as a manufacturer's warranty, teardown and failure finding, and corrective-action linkage. Discriminated by WHETHER A FAILURE INVESTIGATION EXISTS: a teardown, a failure code assigned by engineering, or a link to a corrective action decides for the neighbour; a refund, an exchange and a restock decide for this row. RECIPROCAL AND AGREED, in the neighbour's own words on its own node: retail returns must not claim a failure-analysis dossier because a refund was issued, and that row must not claim a change-of-mind return because the policy document says warranty. Where one entity is both merchant and manufacturer, the neighbour's ruling holds and is followed here: the seam is evidence grammar, not organisation identity.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.ecommerce-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: a refund line inside `orders_export_2026-03-01_2026-03-31.csv`. The neighbour owns THE REFUND AS AN ORDER STATE - a financial-status value on a row inside a whole-period population export; this row owns THE RETURN AS ITS OWN CASE - an authorisation identity separate from the order identity, a reason code, a condition assessment, an entitlement asserted and a disposition decided. Discriminated by WHETHER A RETURN-AUTHORISATION IDENTITY EXISTS SEPARATELY FROM THE ORDER IDENTITY. RECIPROCAL AND AGREED, in the neighbour's own words: ecommerce-ops must not take an RMA file because the sale was online, and this row must not take a whole period order export because some of its rows show refunded.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BOTH SIDES: `Credit note CN-4471 - Harlow Foods.pdf`, and more generally any credit note in a trading corpus. The neighbour owns THE INBOUND-GOODS CREDIT - money owed TO the operator BY a supplier because a delivery was short, rejected or wrongly priced, keyed to the operator's own purchase order and sitting inside the PO-confirmation-GRN-credit cycle the parent schema names as its order-cycle structure. This row owns THE OUTBOUND-GOODS RETURN - a unit the operator SOLD coming back from a buyer under an asserted right, and the vendor claim the operator then raises for it. Discriminated by WHICH PARTY IS OWED AND WHICH DIRECTION THE GOODS TRAVELLED: a credit note with a purchase-order reference and no return authorisation is the neighbour's; a vendor claim carrying customer RMA references across into a source column, as in `RTV 0392 - Depot B - consignment and claim.xlsx`, is this row's. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Refunds and credits March 2026.csv`. finance owns THE ACCOUNT AND THE LEDGER - a bank, merchant or acquirer account identity, a posting or nominal code, a settlement statement, a VAT or bookkeeping period into which a refund or a chargeback eventually posts, with `finance.small-business-bookkeeping` competing hardest. This row owns THE CASE AND ITS ADJUDICATION - why the money moved, under which right, and what happened to the goods. Discriminated by ACCOUNT IDENTITY PLUS POSTING STRUCTURE against RETURN-AUTHORISATION IDENTITY PLUS A PAIRED STOCK CONSEQUENCE: the restock flag is the single column that decides the shared fixture for this row. RETAIL_HOSPITALITY.RETURNS-WARRANTY MUST NOT TAKE a merchant settlement statement or a chargeback provision in a set of accounts; FINANCE MUST NOT reduce a dispute file to a transaction reversal, because the entitlement and the disposition it would discard are the whole reason the file exists. finance is a safety schema, so where both are live the protective ordering runs first. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "SAME FIXTURE BOTH SIDES: the return leg's consignment paperwork inside `RTV 0392 - Depot B - consignment and claim.xlsx`. logistics owns THE MOVEMENT - consignment and manifest identity, carrier, route, and proof that a carriage obligation was discharged; this row owns THE ENTITLEMENT AND THE ADJUDICATION at either end of that movement. Discriminated by WHETHER THE RECORD IS KEYED TO A CONSIGNMENT OR TO A RETURN AUTHORISATION AND A CLAIM VALUE. RECIPROCAL AND ALREADY AGREED FROM THE OTHER SIDE: the landed `logistics` schema states that retail_hospitality.returns-warranty keeps the customer's return entitlement while logistics keeps only the return leg's movement. This row correspondingly must not take a carrier's manifest, a reverse-logistics rate card or a proof-of-delivery file.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Returns and refunds policy v3 - in-store and online.docx`, and with it the warranty terms, the returns SOP and the customer-charter page. business_operations owns THE GOVERNANCE INSTRUMENT - a versioned, approved, review-dated policy addressed to no one in particular, which is the entitlement basis a case cites; this row owns THE CASE THAT CITES IT - one unit, one customer, one decision. Discriminated by WHETHER A UNIT, A CUSTOMER AND A DECISION ARE PRESENT: a document-control block with no case particulars is the neighbour's. Named sub-seam: `business_operations.customer-account-management` owns an ongoing NAMED B2B relationship and its account-level claims history; this row owns the individual return case even when it arises inside such an account, and must not take an account plan or a service-level review because a return is discussed in it. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "SAME FIXTURE BOTH SIDES: a write-off line. `retail_hospitality.stocktake` owns THE COUNT-AGAINST-BOOK - a variance discovered by counting, where the cause is unknown and shrinkage is the residual explanation; this row owns THE WRITE-OFF WITH A KNOWN CAUSE AND A NAMED CASE - a specific returned unit judged unsaleable under a specific authorisation. Discriminated by WHETHER THE STOCK MOVEMENT CARRIES A RETURN AUTHORISATION REFERENCE: with one, it is this row's disposition; without one, it is a count variance. Neither may take the other's aggregate: a quarterly shrinkage report is not a returns register, and a returns register is not a stock count. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The primary fallthrough, and 00 names this row's exact material: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” The collision fixture `Return label - 112-4457889-3325061.pdf`, any customer-side refund confirmation, and any isolated credit note with no case around it belong here. This row activates on CASES and POPULATIONS; the lone transactional document is a residual's business.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when returns material turns out to be a dossier about named members of the public rather than an operating record - `Repeat returners - review list Mar 2026.xlsx`, a chargeback pack carrying cardholder correspondence, a claim file joining a named consumer to a payment dispute. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a returns-shaped file whose SIDE is unresolved, or whose handwriting OCR could not read - a scanned refund docket, an RMA-referenced PDF that may be either copy. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a durable standalone entitlement document with no case around it - a warranty certificate filed against a future claim, an extended-cover confirmation, the returns policy itself when no governance corpus exists to hold it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected dispute pack or an unreadable returns export from a platform. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherited from the parent schema, and RAISED by a delta specific to this row rather than merely restated. The parent's posture rests on the volume of ordinary third-party personal data a trading operation produces. This row adds three things the parent's other templates do not produce. FIRST, it joins a named consumer to a PAYMENT INSTRUMENT AND A DISPUTE: a chargeback file routinely carries a card token or last four, the acquirer's case, the cardholder's own correspondence, and the customer's evidence uploads, which are frequently photographs taken inside their home. SECOND, it produces SUSPICION RECORDS ABOUT CUSTOMERS - repeat-returner lists, refund-abuse flags, free-text characterisations of a member of the public's behaviour - a category the parent names for STAFF, in till exception reports, but not for the public. An internal flag on a named private individual must never surface in a general group summary. THIRD, warranty and claim files carry PROOF-OF-PURCHASE EVIDENCE BELONGING TO SOMEBODY ELSE - a photographed till receipt, sometimes a bank card image, sometimes an address label - held by the operator as evidence, never as the holder's own record. The design is binding: “Privacy policy must be enforced before content reaches any model or external connector.” Two honesty notes so this value is not read as more than it is. It does not invent a handling class; only none and potentially_sensitive are available here and P7 owns the classes. And it does not claim every file in this row is sensitive - an RTV consignment sheet, a reason-code analysis and a returns policy carry no person - the posture exists because the sensitive members arrive inside the same exports and the same case folders as the safe ones and cannot be separated at recognition time. This row does not carry is_safety_domain and does not ask for it; it asks that whatever mechanism forces P7 ahead of a model path for third-party personal data covers it, which is the parent's NJ-RH-4 and is repeated here as NJ-RW-6.",
+  "open_question": "Six, recorded rather than smoothed. NJ-RW-1 (the sharpest, and the one the node test turns on): is the RETURN CASE a value of the parent schema's proposed `trading_occasion` key, or a key of its own? This row's reading is that `trading_occasion` should be WIDENED to admit it, because a return case is a bounded, dated, referenced occurrence exactly as a booking or a count is - and this row deliberately does NOT mint `return_case`, `rma`, `claim` or `case_id`, which would be the synonym family the canonical list exists to prevent. The alternatives are: widen the key; mint one; or concede that returns file under the order they reverse, which this row argues fails outright because an orderless warranty claim would then have no home. Note the interaction with the parent's own NJ-RH-1-adjacent worry that `trading_occasion` may already be three concepts wearing one name; this row makes it four, and R1c should decide the whole set at once. NJ-RW-2: the CHARGEBACK. It is structurally this row's - asserted right, adjudication, outcome - but its counterparty is an acquirer rather than a customer and its outcome posts into `finance`. Alternatives: split at the acquirer boundary as this row proposes (the merchant's case file here, the settlement statement finance's); or give the whole dispute world to finance and narrow this row's name. NJ-RW-3: THREE ROWS WEARING ONE NAME. `retail_hospitality.returns-warranty` covers consumer returns, warranty claims and payment disputes. This pass's reading is that one structure - entitlement asserted, condition assessed, disposition decided, money and stock settled together - genuinely spans all three, which is why it survived the charge that it is a work_type. R1c should test that hard rather than assume it, and if it fails, the likeliest correct outcome is that the warranty leg collapses into `manufacturing.warranty-claim` for merchants who are also manufacturers and into this row's default for merchants who are not. NJ-RW-4: RECALL EXECUTION. A merchant taking units back under a safety notice keeps a record that is structurally identical to this row's, but the notice itself is `government`'s or `manufacturing`'s and NO LANDED ROW CLAIMS THE MERCHANT'S EXECUTION OF IT. Alternatives: admit it here as a work_type value, as this row provisionally does; route it to `retail_hospitality.food-safety` where the goods are food; or leave it to the parent's default. NJ-RW-5: the RETURNS POLICY. This row holds that a versioned governance instrument is `business_operations`', but a case file legitimately GROUPS the policy version it relied on, and the product then holds a business_operations document inside a retail_hospitality group. R1c should say whether that is a grouping the engine may make. NJ-RW-6: whether the mechanism that forces P7 ahead of a model path reaches THIRD-PARTY personal data in a row that does not carry is_safety_domain - the parent's NJ-RH-4, sharper here because the data subjects are consumers in dispute with the holder."
+}
