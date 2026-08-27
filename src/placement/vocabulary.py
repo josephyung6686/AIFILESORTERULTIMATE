@@ -19,6 +19,10 @@ P10 froze; it mints none.
 from __future__ import annotations
 
 from database_agent.events import CORRECTION_SCOPES
+from eval_harness.vocabulary import (
+    BUDGET_STATES as P2_BUDGET_STATES,
+    OUTCOMES as P2_ENVELOPE_OUTCOMES,
+)
 from evidence_shape.vocabulary import RELIABILITY_STATES
 from facts.states import DIRECT, LLM_SUPPORTED, POSSIBLE, USER_CONFIRMED, VALIDATED
 from llm_harness.vocabulary import (
@@ -289,6 +293,27 @@ OUTLIER_ROUTES: tuple[str, ...] = (ROUTED_TO_NODE, ROUTED_TO_REVIEW_QUEUE)
 CANDIDATE_NODE_RETRIEVAL: str = "candidate_node_retrieval"
 PLACEMENT_SCORING: str = "placement_scoring"
 STAGE_IDS: tuple[str, ...] = (CANDIDATE_NODE_RETRIEVAL, PLACEMENT_SCORING)
+
+#: P2's envelope vocabulary, which is a DIFFERENT vocabulary from `OUTCOMES`
+#: above: `OUTCOMES` are values of P11's own record and P2 refuses every one of
+#: them in an envelope (`eval_harness/stage_output.py`'s `_FOREIGN_OUTCOMES`).
+#: P2 publishes the closed tuples and no named constant per member, so these are
+#: spelled here and pinned against P2's own tuples -- the same shape
+#: `grouping/vocabulary.py` uses for the identical problem. `not_implemented` and
+#: `error` are P2's and deliberately absent: P11 is built, and a stage that raised
+#: never reaches a writer at all.
+P2_PRODUCED: str = "produced"
+P2_ABSTAINED: str = "abstained"
+P2_DEFERRED: str = "deferred"
+P2_WITHIN_CEILING: str = "within_ceiling"
+P2_CEILING_REACHED: str = "ceiling_reached"
+
+assert {P2_PRODUCED, P2_ABSTAINED, P2_DEFERRED} <= set(P2_ENVELOPE_OUTCOMES)
+assert {P2_WITHIN_CEILING, P2_CEILING_REACHED} == set(P2_BUDGET_STATES)
+#: The pairing §8.6 forbids: a ceiling-reached stage is `deferred`, never
+#: `abstained`. Named here so the exclusion is a published decision rather than an
+#: absence, and so the two spellings cannot quietly become one string.
+assert P2_DEFERRED != P2_ABSTAINED
 
 DIMENSION_PLACEMENT: str = "placement"
 DIMENSION_RESIDUAL: str = "residual"
