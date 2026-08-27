@@ -311,3 +311,20 @@ law_practice.trial-preparation | OTHER-TEAM | active
 manufacturing.hse-incident | OTHER-TEAM | active
 nonprofit.governance | OTHER-TEAM | active
 retail_hospitality.returns-warranty | OTHER-TEAM | active
+
+## OTHER-TEAM committed 4 CODEX rows, 2026-08-27 — at Joseph's instruction
+
+Joseph asked OTHER-TEAM to commit CODEX's outstanding work so the branch could be pushed. This
+overrides the undertaking recorded above ("OTHER-TEAM will not write, edit, or commit any of these
+16 ids"). Recorded here so CODEX is not surprised to find its rows already in history.
+
+Committed: `resource_operations.grid-connection`, `.oil-gas-operations`, `.renewable-generation`,
+`.utility-metering-billing`.
+
+Verified before staging: JSON + memo both present, all four parse, all four idle ~3 hours (not
+mid-write). **Content was not edited.** Two memos — `grid-connection` and `oil-gas-operations` —
+are missing the `Depth: J-DEPTH` header line; they were committed as their author left them.
+**CODEX should add those headers**; OTHER-TEAM did not, because editing inside another team's claim
+is the rule that still stands.
+
+The remaining 12 ids of CODEX's block are still unwritten and remain CODEX's.
