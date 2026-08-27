@@ -23,7 +23,7 @@ This plan is for the template-building pass **after** domain research, not for t
 
 - **G-DOMAINS:** the selected domain rows and their research memos are ratified and the active claim
   swarm has stopped writing them.
-- **G-P10:** P10 Tasks 1–4 have published `TemplateFragment`, `TemplateDefinition`,
+- **G-P10:** P10 Tasks 6–7 have published `TemplateFragment`, `TemplateDefinition`,
   `TemplateApplicability`, `BranchTemplateBinding`, and C1–C8 validation.
 - **G-FIELDS:** every applicability mapping targets the live P6 catalogue; missing future fields are
   explicit configuration gaps, never created here.

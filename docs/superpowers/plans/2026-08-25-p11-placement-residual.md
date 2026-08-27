@@ -47,7 +47,7 @@ Read in this order before executing a task:
 | P1 supersession | `database_agent.supersede.mark_superseded(conn, table, *, old_id, new_id, reason)` keys on a `record_id` column and refuses a second supersede of the same row | Every P11 table carries `record_id`; Task 4 uses this, and writes no supersession of its own |
 | P1 ceilings | `database_agent.budget.CEILING_KEYS` already publishes `placement.max_retrieved_neighbors`, `placement.max_local_graph_neighborhood`, `placement.max_candidate_cluster_size`, `residual.max_files_per_review_batch`, `model.max_dossier_tokens_per_call`, `model.max_llm_calls_per_thousand_files`, `model.max_cost_per_scan` | All seven of SPEC:714-717's ceilings have a live key. Task 5 reads them; P11 adds no key and no default |
 | P1 learning | `database_agent.learning.learning_records(conn, scope, subject_id)` — **positional**, and `proposal_class` / `basis_key` are columns on the rows, filtered by the caller | Task 11 filters after the read, the way `llm_harness.eligibility` already does |
-| P2 stages | `eval_harness.vocabulary.STAGE_IDS` contains `candidate_node_retrieval` (`vocabulary.py:27`) and `placement_scoring` (`:28`); `DIMENSIONS` contains `placement` (`:41`) and `residual` (`:42`) | Task 18 emits exactly those two stages and hands both dimensions over as `DimensionValue`s |
+| P2 stages | `eval_harness.vocabulary.STAGE_IDS` contains `candidate_node_retrieval` (`vocabulary.py:27`) and `placement_scoring` (`:28`); `DIMENSIONS` contains `placement` (`:41`), `residual` (`:42`) and `retrieval` | Task 18 emits exactly those two stages, and **every stage it emits carries a `DimensionValue`** — `retrieval` on `candidate_node_retrieval` under a namespaced subject, `placement` or `residual` on `placement_scoring`. A stage with no dimension row is unattributable by construction (`eval_harness/attribution.py:30-39, :65-71`) |
 | P2 foreign-value guard | `eval_harness.stage_output._FOREIGN_OUTCOMES` (`stage_output.py:30-33`) already enumerates P11's seven record outcomes verbatim and refuses them in the envelope | Task 2 pins P11's `OUTCOMES` against it by test. P2 knew this vocabulary before P11 existed and the two must not drift |
 | P4 observations | `evidence_shape.store.observations_by_key(conn, observation_key) -> list[Observation]` is M14's resolver and returns a LIST — one key spans extractor versions | Every citation P11 stores is an `observation_key`; Task 3 forbids `observation_id` |
 | P6 facts | `facts.read_surface.facts_for(conn, *, file_id, content_hash, states=None, domain=None)`, `proposal_eligible(conn, *, file_id, content_hash)`, `is_destination_eligible(conn, *, field_key)` | Task 7 retrieves through those; a fact whose field is not destination-eligible never drives a candidate |
@@ -56,7 +56,7 @@ Read in this order before executing a task:
 | P7 policy | `privacy.policy.current_policy(conn, *, plan_version) -> Policy \| None`; `Policy.automatic_move_permissions: dict` is §8.4's explicit permission for a protected node | Task 10 reads it; a protected subject with no permitting entry is never `auto_eligible` |
 | P8 harness | Implemented. `llm_harness.harness.run_call(conn, request, *, gate, model_client, prompt, validation_dependencies, observed_at)`; Sites C and D are `llm_harness.placement_validation` | Tasks 12 and 15 supply authorities and transcribe verdicts. **P11 writes no site check** |
 | P8 export list | `src/llm_harness/__init__.py` exports eight names and **not** `SiteDependencies`, `CallDependencies`, `PlacementDependencies` or `ResidualDependencies` | P11 imports those from `llm_harness.sites`, `llm_harness.harness` and `llm_harness.placement_validation` and records the omission under [SPEC corrections](#spec-corrections) |
-| P9 groups | `src/grouping/` has `vocabulary`, `records`, `schema`, `config`, `seeds`, `embeddings`, `retrieval`. There is **no `store.py` and no `acceptance.py`**, so no published read returns an accepted group | **G-P9.** Tasks 13 and 14 build against `tests/p11/p9_fixtures.py` and fail explicitly, never against a source stub |
+| P9 groups | **Shipped.** `src/grouping/store.py` publishes `record_group`, `record_membership`, `memberships_for_group`, `current_group`; `src/grouping/acceptance.py` publishes `record_acceptance` and **`group_state_as_of(conn, *, group_id, plan_version_id) -> str`** (`acceptance.py:154`), which returns `accepted` / `rejected` as of a version and is exactly the published read this plan previously recorded as missing | **G-P9 is closed.** Task 13 calls `group_state_as_of` and `memberships_for_group` directly. `tests/p11/p9_fixtures.py` survives only as a *seeder* of real P9 rows — it constructs P9's own records and writes them through P9's own stores — and stands in for no read |
 | P9 acceptance shape | `group_acceptance(plan_version_id, group_id, membership_id, acceptance, review_state, …)` (`grouping/schema.py:140-159`); `grouping/vocabulary.py:31-32` says `accepted` and `rejected` are "Never stored" on a group | "Accepted" is resolved **as of P10's frozen plan version**, not read off `Group.state` |
 | P10 tree | Not implemented | **G-P10.** Tasks 6 onward build against `tests/p11/p10_fixtures.py`; the integration test fails explicitly until P10 ships |
 | P12 | Not implemented | P11 publishes `src/placement/fixtures.py` for it and imports nothing back |
@@ -66,7 +66,7 @@ Read in this order before executing a task:
 
 - **G-P1E:** Task 1 must be green before any task appends an event. Until then every P11 write path that logs raises `UnregisteredEventType`, which is correct and must not be worked around by writing a reserved name instead.
 - **G-P10:** Tasks 6–19 build deterministically against content-free frozen-tree fixtures. `tests/integration/test_p11_p10_tree.py` imports P10's public frozen-tree read and must fail with an ImportError until P10 ships. No module under `src/placement/` constructs a node.
-- **G-P9:** Tasks 13–14 build against `tests/p11/p9_fixtures.py`. Replacing that import with P9's acceptance read is a required integration test when P9's Task 9 lands.
+- **G-P9: CLOSED.** P9's acceptance read shipped. `placement/groups.py` calls `grouping.acceptance.group_state_as_of` and `grouping.store.memberships_for_group` directly; `tests/p11/p9_fixtures.py` seeds real P9 rows through P9's own writers and impersonates nothing. There is no longer a fixture-mediated P9 seam to swap.
 - **G-P8:** Tasks 12 and 15 import the live P8 surface. They are the only P11 modules permitted to. Before they run, the deterministic path (Tasks 6–11) is complete on its own, because §6.6 requires a unique direct match to be decided with **zero** model calls.
 - **G-P13:** Task 16 builds against `tests/p11/p13_fixtures.py`; no source stub impersonates P13.
 - **G-KNOWLEDGE:** A missing ceiling, support threshold, margin predicate, ask-versus-abstain selector, return-cycle limit or residual-set partition raises `ConfigurationRequired`. It never selects a built-in value. `src/placement/` contains no numeric literal other than `0` and `1`, asserted by runtime introspection in Task 20.
@@ -120,7 +120,7 @@ src/placement/events.py                      P11's §8.2 appends, one function p
 
 tests/p11/conftest.py                        real P1–P9 database fixture
 tests/p11/p10_fixtures.py                    frozen-tree contract fixture, tests only
-tests/p11/p9_fixtures.py                     accepted-group contract fixture, tests only
+tests/p11/p9_fixtures.py                     seeds REAL P9 rows through P9's writers, tests only
 tests/p11/p13_fixtures.py                    review_action fixture, tests only
 tests/p11/test_p11_*.py                      focused TDD suites
 tests/integration/test_p11_p10_tree.py       live P10 dependency gate
@@ -130,6 +130,16 @@ tests/integration/test_p11_p2_replay.py      replay-only stage outputs
 ```
 
 No task edits `planning/domains/`, deferred catalogues, prompts, `.superpowers/`, or any file under `src/llm_harness/`, `src/grouping/`, `src/privacy/`, `src/facts/` or `src/evidence_shape/`. Task 1 is the single exception and touches exactly one P1 file.
+
+### Test import convention
+
+**Every test module in this plan imports a sibling fixture as `from p11.<module> import …`, never `from tests.p11.<module> import …`.** This is not style; the second form does not resolve.
+
+`pyproject.toml:27-29` sets `testpaths = ["tests"]` and `pythonpath = ["src"]`. There is no `tests/__init__.py`, so under pytest's default prepend import mode the basedir pytest puts on `sys.path` is `tests/` itself, and `tests/p11/` — which Task 1 creates with an `__init__.py` — is importable as the top-level package `p11`. `tests` is not a package on that path, so `from tests.p11…` raises at collection.
+
+The live suite is unanimous: `grep -rn --include='*.py' 'from tests\.' tests/` returns **zero** hits across 3618 green tests, while `tests/p9/test_p9_learning.py:49` reads `from p9.p13_fixtures import …`, `tests/p9/test_p9_fixtures.py:216` reads `from p9.p8_fixtures import RECORDED_P8_VERDICTS`, and `tests/p8/` uses `from p8.conftest import …` ten times. `tests/p9/__init__.py` states the reason in P9's own words: *"`tests/` carries no top-level `__init__.py`, so pytest puts each test directory on `sys.path`. This file makes `tests/p9/conftest.py` importable as `p9.conftest` rather than as the top-level module `conftest`, the way `tests/p8/__init__.py` does for P8."*
+
+`tests/p11/__init__.py` (Task 1) is what makes `p11.conftest` unambiguous, and it is the reason P11 does **not** use P5's older bare `from conftest import FIXED_CLOCK` form: `tests/p1_contract.py:1-7` records that every `conftest.py` is imported as the top-level module `conftest`, so a second one shadows the first in `sys.modules` and the bare import silently resolves against the wrong file.
 
 ### Evidence and review UX contract
 
@@ -608,7 +618,16 @@ STAGE_IDS: tuple[str, ...] = (CANDIDATE_NODE_RETRIEVAL, PLACEMENT_SCORING)
 
 DIMENSION_PLACEMENT: str = "placement"
 DIMENSION_RESIDUAL: str = "residual"
-DIMENSIONS: tuple[str, ...] = (DIMENSION_PLACEMENT, DIMENSION_RESIDUAL)
+#: §8.5's *"Retrieval quality: for sparse files, did the correct anchors appear in
+#: the top candidate neighborhood?"* -- which is what §6.2 does, in the design's
+#: own words. P9 already measures its own retrieval stage under this name, and
+#: two stages sharing one dimension is the shape §8.5 already has: its ten
+#: dimensions are a shorter and separate list from its ten stages on purpose. The
+#: two are kept apart by SUBJECT namespace, not by an eleventh dimension.
+DIMENSION_RETRIEVAL: str = "retrieval"
+DIMENSIONS: tuple[str, ...] = (
+    DIMENSION_PLACEMENT, DIMENSION_RESIDUAL, DIMENSION_RETRIEVAL,
+)
 
 # --- events ---------------------------------------------------------------------
 
@@ -845,9 +864,13 @@ def test_a_residual_decision_parses_with_no_residual_specific_branch():
         decision_depth=DecisionDepth(node_depth=0, supported_depth=0,
                                      unsupported_levels=()),
         confidence_class=v.ABSTAIN_NO_SUPPORTED_DESTINATION,
+        # `margin_over_next=None` REQUIRES `true_vacuous`: `TwoCondition`
+        # refuses a null margin under any other value, because a measured margin
+        # with no number is a comparison nobody made. This residual file had one
+        # candidate and no next-best, so vacuous is also the true answer.
         two_condition=_two_condition(meets_threshold=False, verdict="weak",
                                      margin_over_next=None,
-                                     meets_margin=v.MARGIN_FALSE),
+                                     meets_margin=v.MARGIN_TRUE_VACUOUS),
         residual=ResidualContext(set_id="s1", set_decision=v.REVIEW_WITH_MODEL,
                                  lifecycle_policy_ref=None),
     )
@@ -1431,6 +1454,8 @@ class AmbiguousCurrentDecision(RuntimeError): ...
 
 **Why the forward link is load-bearing.** SPEC:704-710: the chain must be followable *forward* as well as backward, because §8.8's *"twenty-three files now require renewed review because their previous destination no longer exists"* diff walks **from** a superseded decision **to** its replacement, which `supersedes` alone cannot express. `mark_superseded` already does both halves and refuses a second supersede of the same row, so P11 writes no supersession logic of its own.
 
+**The write order is forced, not chosen.** `one_current_placement_decision` is a partial unique index over unsuperseded rows. Inserting the replacement before superseding the predecessor puts two live rows for one `(plan_version, subject_ref)` in the table, and SQLite refuses that insert — so `mark_superseded` is never reached. `record_decision` therefore **supersedes first and inserts second**, inside one `transaction(conn)`, which is exactly what `grouping/acceptance.py:76-80` does and says: *"Supersede first. The unique index is over unsuperseded rows, so linking after the insert would mean two current opinions existed for the length of one statement — and the database would refuse the insert that was about to resolve it."*
+
 - [ ] **Step 1: Write the failing store tests**
 
 ```python
@@ -1444,6 +1469,7 @@ from database_agent.budget import all_ceilings
 from database_agent.db import create_schema
 from eval_harness.run import ANALYSIS_TIERS, record_version_tuple, start_run
 from eval_harness.store import create_eval_schema
+from grouping.schema import create_grouping_schema
 
 from placement.schema import create_placement_schema
 
@@ -1452,8 +1478,12 @@ FIXED_CLOCK = "2026-08-27T00:00:00Z"
 
 @pytest.fixture()
 def p11_conn(conn):
+    # P9's tables are created because P11 reads them for real (G-P9 is closed):
+    # `group_state_as_of` and `memberships_for_group` query `group_acceptance`
+    # and `memberships`, and a test against an absent table would prove nothing.
     create_schema(conn)
     create_eval_schema(conn)
+    create_grouping_schema(conn)
     create_placement_schema(conn)
     return conn
 
@@ -1497,8 +1527,8 @@ from placement.store import (
     AmbiguousCurrentDecision, current_decision, decision_history,
     decisions_for_plan, record_decision, subject_ref_of,
 )
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.test_p11_records import _decision
+from p11.conftest import FIXED_CLOCK
+from p11.test_p11_records import _decision
 
 
 def _write(conn, decision, **overrides):
@@ -1996,11 +2026,15 @@ def _from_row(row: sqlite3.Row) -> PlacementDecision:
 def record_decision(conn: sqlite3.Connection, decision: PlacementDecision, *,
                     component_version: str, observed_at: str,
                     supersede_reason: str | None = None) -> str:
-    """Append one decision, link its predecessor, and log it. One transaction.
+    """Link the predecessor, append the decision, and log it. ONE transaction.
 
-    The event and the row commit together. A decision row with no event is a
-    placement §8.2 cannot explain; an event with no row is a claim about a
-    decision that does not exist.
+    The supersede, the row and the event commit together, and the order inside
+    is forced by the partial unique index rather than chosen (see the comment
+    below). Two transactions where one is needed is a defect this project has
+    shipped before: a decision row with no event is a placement §8.2 cannot
+    explain, an event with no row is a claim about a decision that does not
+    exist, and a supersede that committed without its replacement leaves a
+    subject with no current decision at all.
     """
     subject_ref = subject_ref_of(decision.subject)
     with transaction(conn):
@@ -2020,6 +2054,31 @@ def record_decision(conn: sqlite3.Connection, decision: PlacementDecision, *,
                 "superseding a decision requires the reason it was superseded "
                 "(§8.2); the prior row stays readable and says why"
             )
+        # SUPERSEDE FIRST, THEN INSERT. `one_current_placement_decision` is a
+        # partial unique index over UNSUPERSEDED rows, so inserting the new row
+        # while the old one is still live puts two current decisions for one
+        # subject in the table for the length of one statement -- and SQLite
+        # refuses the very insert that was about to resolve it. Verified: the
+        # other order raises `IntegrityError: UNIQUE constraint failed:
+        # placement_decisions.plan_version, placement_decisions.subject_ref`
+        # before `mark_superseded` is ever reached.
+        #
+        # This is P9's rule, in P9's own words at `grouping/acceptance.py:77-80`:
+        # "Supersede first. The unique index is over unsuperseded rows, so
+        # linking after the insert would mean two current opinions existed for
+        # the length of one statement."
+        #
+        # `mark_superseded` still writes BOTH halves and still runs every guard
+        # -- reason required, no self-supersede, predecessor exists, predecessor
+        # not already superseded, no cycle. Its `UPDATE ... SET supersedes` on
+        # the not-yet-inserted new row is a no-op, and the INSERT below carries
+        # `supersedes` as a column value, so the forward link §8.8's diff walks
+        # is established either way. P11 writes no supersession logic of its own.
+        if decision.supersedes is not None:
+            mark_superseded(
+                conn, "placement_decisions", old_id=decision.supersedes,
+                new_id=decision.decision_id, reason=supersede_reason,
+            )
         conn.execute(
             "INSERT INTO placement_decisions (record_id, subject_ref, plan_version, "
             "origin_stage, outcome, node_id, group_plan_id, returned_from, "
@@ -2034,11 +2093,6 @@ def record_decision(conn: sqlite3.Connection, decision: PlacementDecision, *,
                 decision.supersedes,
             ),
         )
-        if decision.supersedes is not None:
-            mark_superseded(
-                conn, "placement_decisions", old_id=decision.supersedes,
-                new_id=decision.decision_id, reason=supersede_reason,
-            )
         placement_events.recommendation_emitted(
             conn, decision, component_version=component_version,
             observed_at=observed_at,
@@ -2395,11 +2449,11 @@ git commit -m "feat(p11): read every placement limit and inject every threshold"
 
 ```python
 class FrozenTreeRequired(RuntimeError): ...
-class NodeIdReserved(ValueError): ...
 
 @dataclass(frozen=True)
 class IndexEntry:
-    node_id: str; plan_version: str; node_role: str; disposition: str | None
+    node_id: str; origin_node_id: str; plan_version: str
+    node_role: str; disposition: str | None
     display_label: str; parent_node_id: str | None; root_anchor: str
     depth: int; ancestor_labels: tuple[str, ...]
     template_fields: tuple[str, ...]; expected_values: tuple[tuple[str, str], ...]
@@ -2414,13 +2468,14 @@ def build_destination_index(conn, tree, *, component_version, observed_at) -> tu
 def legal_node_ids(conn, *, plan_version: str) -> frozenset[str]: ...
 def node_exists(conn, *, plan_version: str): ...   # returns P8's Callable[[str, str], bool]
 def entry_for(conn, *, plan_version: str, node_id: str) -> IndexEntry | None: ...
+def entries_for_plan(conn, *, plan_version: str) -> tuple[IndexEntry, ...]: ...
 ```
 
 **Done-means:** 2 (SPEC:614-619), 3 (SPEC:620-622); Contract out §2 (SPEC:488-504); SPEC:130-137.
 
 **The one thing this task exists to make impossible.** SPEC:134-137: *"**Node existence is not legality.** The legal set is exactly `{node_id : plan_version = frozen version, accepts_placement = true}`; a node that exists with `accepts_placement = false` is visible context, never a destination."* An entry is built only for a node that clears both, so §5.10's guarantee that a user may leave a folder alone holds at the **retrieval** layer and not merely at validation. `node_exists` is the closure P11 hands P8 as an authority, so P8's `NODE_NOT_IN_FROZEN_TREE` check and P11's index answer the same question from one source.
 
-**One reserved id.** `src/llm_harness/placement_validation.py:239` reads `if payload.get("generic_hub") is True or destination == "node-hub":`. `"node-hub"` is a P8 fixture id (`llm_harness/fixtures.py:346`) that reached production Site C logic, so any real frozen node named `node-hub` would be scored `weak` forever. Until P8 removes it, indexing such a node raises `NodeIdReserved` rather than shipping a destination that can never be accepted. This is reported to P8's owner and recorded under [SPEC corrections](#spec-corrections).
+**No node id is reserved here.** `src/llm_harness/placement_validation.py:239` reads `if payload.get("generic_hub") is True or destination == "node-hub":`, and `"node-hub"` is a P8 fixture id (`llm_harness/fixtures.py:356`) that reached production Site C logic. **P8 removes the literal; P11 adds nothing** (`planning/38-p10-p11-connection-contract.md` §6). The one fixture that produces `GENERIC_HUB_ONLY` already sets `generic_hub: True`, so the literal is dead weight in the only case it was written for and deleting it changes no recorded outcome. A reserved-id list inside the index would be a P8 implementation detail refusing a folder name for a reason the user could never be told — the same defect P9 guards against in `tests/p9/test_p9_graph.py:226`. **Ordering gate:** P8's removal lands before this task.
 
 - [ ] **Step 1: Write the frozen-tree fixture**
 
@@ -2433,19 +2488,50 @@ it does not: a source stub here would be P11 deciding what a node is, which is
 P10's to say. Replacing this import with P10's public frozen-tree read is a
 required integration test when P10 ships.
 
-The field list is P10 SPEC Contract out §1 in full -- twenty-one fields --
+Every record here MIRRORS P10's real one, field for field, and invents nothing:
+`Node`, `ExpectedValue`, `TemplateContext`, `NodeContext`, `AnchorExcerpt`,
+`Restrictions`, `DestinationProfile`, `FreezeRecord` and `FrozenTree` are P10's,
+declared here only because `tree_design` is unbuilt. At the swap this module is
+deleted and every name is imported from `tree_design.records`,
+`tree_design.profiles` and `tree_design.freeze` unchanged. `tree_with()` is the
+only thing in this file P11 owns.
+
+The node field list is P10 SPEC Contract out §1 in full -- twenty-two fields --
 including the five P11's own SPEC Contract-in omits. `refinement_disposition` is
 the one that matters most: it is the user's own answer to whether a branch is
 shallow ON PURPOSE, and §6.7 and `decision_depth.unsupported_levels` are decisions
-about exactly that. P11 reading it beats P11 re-deriving it.
+about exactly that. P11 reading it beats P11 re-deriving it. It is `str | None` on
+the record because a DRAFT node may not carry one yet; `frozen_tree` guarantees it
+non-`None` on every node it returns, which is why the index may read it as a `str`.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class FrozenNode:
+class ExpectedValue:
+    """One `field = value` assertion a level makes (§6.1). P10's record."""
+
+    field: str
+    value: str
+
+
+@dataclass(frozen=True)
+class TemplateContext:
+    """Which branch-local composition, and which level of it, produced a node."""
+
+    binding_id: str
+    template_id: str
+    template_version: int
+    dimension_index: int
+    fragment_id: str | None = None
+    fragment_version: int | None = None
+
+
+@dataclass(frozen=True)
+class Node:
     node_id: str
     plan_version_id: str
     node_type: str
@@ -2454,18 +2540,50 @@ class FrozenNode:
     root_anchor: str
     ordinal: int
     associated_group_ids: tuple[str, ...]
-    template_context: dict | None
-    dimension_role: str | None
-    dimension: str | None
-    expected_values: tuple[dict, ...]
     explanation: str
-    existing_path: str | None
+    node_role: str
+    accepts_placement: bool
     handling_class: str
+    origin_node_id: str
+    template_context: TemplateContext | None = None
+    dimension_role: str | None = None
+    dimension: str | None = None
+    expected_values: tuple[ExpectedValue, ...] = ()
+    existing_path: str | None = None
+    disposition: str | None = None
+    refinement_disposition: str | None = None
+    refinement_reason: str | None = None
+    protected_movement_permitted: bool = False
+
+
+@dataclass(frozen=True)
+class NodeContext:
+    """One ancestor or child, as §6.1's "parent and child meanings". P10's."""
+
+    node_id: str
+    display_label: str
+    dimension: str | None
+    expected_values: tuple[ExpectedValue, ...]
+
+
+@dataclass(frozen=True)
+class AnchorExcerpt:
+    """A P9 direct anchor's cited evidence, addressed by P4's durable handle.
+
+    It carries `node_id` beside `observation_key` because §6.1 asks for anchor
+    evidence PER NODE; a bare key tuple cannot say which node an excerpt anchors.
+    """
+
+    observation_key: str
+    node_id: str
+
+
+@dataclass(frozen=True)
+class Restrictions:
+    handling_class: str
+    accepts_placement: bool
     node_role: str
     disposition: str | None
-    accepts_placement: bool
-    refinement_disposition: str
-    refinement_reason: str
 
 
 @dataclass(frozen=True)
@@ -2475,73 +2593,142 @@ class DestinationProfile:
     node_id: str
     display_label: str
     domains: tuple[str, ...]
+    template_binding: str | None
     template_fields: tuple[str, ...]
-    expected_values: tuple[dict, ...]
-    parent_context: tuple[str, ...]
-    child_context: tuple[str, ...]
+    expected_values: tuple[ExpectedValue, ...]
+    parent_context: tuple[NodeContext, ...]
+    child_context: tuple[NodeContext, ...]
     accepted_group_ids: tuple[str, ...]
     group_labels: tuple[str, ...]
     representative_files: tuple[str, ...]
-    anchor_excerpt_keys: tuple[str, ...]
+    anchor_files: tuple[str, ...]
+    anchor_excerpts: tuple[AnchorExcerpt, ...]
     known_document_types: tuple[str, ...]
     known_exclusions: tuple[str, ...]
     user_edits: tuple[str, ...]
-    restrictions: dict
+    restrictions: Restrictions
+
+
+@dataclass(frozen=True)
+class FreezeRecord:
+    """§8.8's adopted-plan-version record. Ids and configuration only -- P10's."""
+
+    plan_version_id: str
+    created_at: str
+    node_ids: tuple[str, ...]
+    legal_destination_ids: frozenset[str]
+    template_bindings: tuple[str, ...]
+    labels_and_aliases: Mapping[str, tuple[str, ...]]
+    residual_configuration: Mapping[str, str]
+    shared_material_policy_ids: tuple[str, ...]
+    cross_folder_moves: bool
+    selection_id: str
 
 
 @dataclass(frozen=True)
 class FrozenTree:
-    plan_version: str
-    nodes: tuple[FrozenNode, ...]
+    """P10's hand-over bundle. `frozen_tree(conn, *, plan_version)` returns it.
+
+    `shared_material_policy` is the resolved VALUE, not one of
+    `FreezeRecord.shared_material_policy_ids`: §6.9 makes P11 branch on which of
+    four rules applies, and an id list cannot tell it which.
+    """
+
+    plan_version_id: str
+    freeze_record: FreezeRecord
+    nodes: tuple[Node, ...]
     profiles: tuple[DestinationProfile, ...]
     shared_material_policy: str
-    scoped_general_parents: tuple[str, ...] = field(default=())
+    shared_material_policy_scope: str | None = None
 
 
-def _node(**overrides) -> FrozenNode:
+def _node(**overrides) -> Node:
     values = dict(
         node_id="n-course", plan_version_id="plan-1", node_type="proposed",
         display_label="PHYS1401", parent_node_id="n-academics",
         root_anchor="root_documents", ordinal=1,
         associated_group_ids=("g-phys1401",),
-        template_context={"template_id": "academic-coursework",
-                          "template_version": 1, "dimension_index": 2},
+        template_context=TemplateContext(
+            binding_id="tb-academic-coursework",
+            template_id="academic-coursework", template_version=1,
+            dimension_index=2),
         dimension_role="course", dimension="subject",
-        expected_values=({"field": "subject", "value": "PHYS1401"},),
+        expected_values=(ExpectedValue(field="subject", value="PHYS1401"),),
         explanation="Six files in the accepted PHYS1401 group carry subject = PHYS1401.",
         existing_path=None, handling_class="personal_non_sensitive",
         node_role="ordinary", disposition=None, accepts_placement=True,
+        protected_movement_permitted=False,
         refinement_disposition="refined",
         refinement_reason="The course has enough populated work types for this level.",
     )
     values.update(overrides)
-    return FrozenNode(**values)
+    # P10 mints a new `node_id` per plan version and records lineage in
+    # `origin_node_id` (P10 OQ5). In plan-1 every node IS its own origin, so the
+    # default follows `node_id` rather than a fixed literal; a later version
+    # overrides it explicitly and that is what Task 17 matches on.
+    values.setdefault("origin_node_id", values["node_id"])
+    return Node(**values)
 
 
-def _profile(node: FrozenNode, **overrides) -> DestinationProfile:
+#: `n-academics` as a parent, in P10's `NodeContext` shape. §6.1 asks for the
+#: parent's MEANING -- its dimension and expected values -- not just its label,
+#: which is why the profile carries a record here and a bare string nowhere.
+_ACADEMICS_CONTEXT = NodeContext(
+    node_id="n-academics", display_label="Academics", dimension=None,
+    expected_values=(),
+)
+
+
+def _profile(node: Node, **overrides) -> DestinationProfile:
     values = dict(
         node_id=node.node_id, display_label=node.display_label,
-        domains=("academic",), template_fields=("subject", "work_type"),
-        expected_values=node.expected_values, parent_context=("Academics",),
+        domains=("academic",), template_binding="tb-academic-coursework",
+        template_fields=("subject", "work_type"),
+        expected_values=node.expected_values,
+        parent_context=(_ACADEMICS_CONTEXT,),
         child_context=(), accepted_group_ids=node.associated_group_ids,
         group_labels=("PHYS1401 course",), representative_files=("f-syllabus",),
-        anchor_excerpt_keys=("obs-syllabus",),
+        anchor_files=("f-syllabus",),
+        anchor_excerpts=(AnchorExcerpt(observation_key="obs-syllabus",
+                                       node_id=node.node_id),),
         known_document_types=("syllabus",), known_exclusions=(), user_edits=(),
-        restrictions={"handling_class": node.handling_class,
-                      "accepts_placement": node.accepts_placement,
-                      "disposition": node.disposition},
+        restrictions=Restrictions(handling_class=node.handling_class,
+                                  accepts_placement=node.accepts_placement,
+                                  node_role=node.node_role,
+                                  disposition=node.disposition),
     )
     values.update(overrides)
     return DestinationProfile(**values)
 
 
-#: The walking skeleton's tree. B8(b) gives it a SECOND placeable node on purpose,
-#: so the margin path is exercised rather than bypassed.
-NODES: tuple[FrozenNode, ...] = (
+#: The walking skeleton's tree. B8(b) (`planning/04-resolutions.md:143-146`) gives
+#: it a SECOND RETRIEVABLE node on purpose, so the margin path is exercised rather
+#: than bypassed.
+#:
+#: `n-course-alt` is NOT that node. Its expected `subject = PHYS1402` CONTRADICTS
+#: the skeleton file's `subject = PHYS1401`, so `retrieve` suppresses it as a
+#: conflict (`retrieval.py`'s `contradicted` branch) and it never becomes a
+#: candidate. It earns its place proving §6.3's suppression and populating
+#: `conflicts_considered`, but a suppressed node measures no margin.
+#:
+#: `n-course-shared` is the second CANDIDATE. It carries no expected value, so it
+#: can never be contradicted, and it is reached through the accepted-group channel
+#: — which is §6.9's own "Shared Application Materials" shape one level down. With
+#: the skeleton's evidence it scores `2/7` against `n-course`'s `5/7`, giving a
+#: measured margin of `0.4286` that clears a `0.2` threshold on the numbers rather
+#: than by vacuity.
+NODES: tuple[Node, ...] = (
     _node(),
     _node(node_id="n-course-alt", display_label="PHYS1402", ordinal=2,
           associated_group_ids=("g-phys1402",),
-          expected_values=({"field": "subject", "value": "PHYS1402"},)),
+          expected_values=(ExpectedValue(field="subject", value="PHYS1402"),)),
+    _node(node_id="n-course-shared", display_label="Shared Course Materials",
+          ordinal=3, associated_group_ids=("g-shared",),
+          dimension_role=None, dimension=None, expected_values=(),
+          node_role="shared-material",
+          explanation="Material shared across courses, reached by accepted group.",
+          refinement_disposition="shallow-by-choice",
+          refinement_reason="Shared material is one level by design (§6.9)."),
     _node(node_id="n-academics", display_label="Academics",
           parent_node_id=None, ordinal=0, associated_group_ids=(),
           dimension_role=None, dimension=None, expected_values=(),
@@ -2552,10 +2739,14 @@ NODES: tuple[FrozenNode, ...] = (
           associated_group_ids=(), dimension_role=None, dimension=None,
           expected_values=(), refinement_disposition="shallow-by-choice",
           refinement_reason="§5.9's scoped fallback under a meaningful parent."),
+    # No `existing_path`: P10's `Node.__post_init__` raises `MalformedTreeRecord`
+    # when one is set on a node whose `node_type != existing`, and ignoring a
+    # folder RECLASSIFIES it away from `existing`. §5.10's guarantee is carried
+    # by `accepts_placement = false`, which is the field the index reads.
     _node(node_id="n-ignored", display_label="Old Downloads",
           node_type="ignored", parent_node_id=None, ordinal=8,
           associated_group_ids=(), dimension_role=None, dimension=None,
-          expected_values=(), existing_path="/Users/x/Old Downloads",
+          expected_values=(),
           accepts_placement=False, refinement_disposition="shallow-by-choice",
           refinement_reason="The user chose to leave this folder untouched (§5.10)."),
     _node(node_id="n-review-later", display_label="To Sort",
@@ -2567,11 +2758,26 @@ NODES: tuple[FrozenNode, ...] = (
           refinement_reason="Review Later mapped onto an existing folder (§7.4)."),
 )
 
+#: Invariant 3 of the seam contract: the freeze record's legal set IS the set of
+#: nodes that accept placement. `build_destination_index` asserts the index equals
+#: it, so a fixture that let the two drift would hide the defect the assert exists
+#: to catch.
+FREEZE_RECORD = FreezeRecord(
+    plan_version_id="plan-1", created_at="2026-01-01T00:00:00Z",
+    node_ids=tuple(node.node_id for node in NODES),
+    legal_destination_ids=frozenset(
+        node.node_id for node in NODES if node.accepts_placement),
+    template_bindings=("tb-academic-coursework",),
+    labels_and_aliases={}, residual_configuration={},
+    shared_material_policy_ids=("smp-1",), cross_folder_moves=False,
+    selection_id="sel-1",
+)
+
 FROZEN_TREE = FrozenTree(
-    plan_version="plan-1", nodes=NODES,
+    plan_version_id="plan-1", freeze_record=FREEZE_RECORD, nodes=NODES,
     profiles=tuple(_profile(node) for node in NODES),
-    shared_material_policy="mandatory_review",
-    scoped_general_parents=("n-academics",),
+    shared_material_policy="mandatory-review",
+    shared_material_policy_scope=None,
 )
 
 
@@ -2593,11 +2799,11 @@ import pytest
 
 from placement import vocabulary as v
 from placement.index import (
-    FrozenTreeRequired, NodeIdReserved, build_destination_index, entry_for,
-    legal_node_ids, node_exists,
+    FrozenTreeRequired, build_destination_index, entry_for, legal_node_ids,
+    node_exists,
 )
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE, tree_with
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE, tree_with
 
 BUILD = dict(component_version="P11-test", observed_at=FIXED_CLOCK)
 
@@ -2610,8 +2816,8 @@ def test_an_ignored_node_is_never_retrievable(p11_conn):
     legal = legal_node_ids(p11_conn, plan_version="plan-1")
     assert "n-ignored" not in legal
     assert entry_for(p11_conn, plan_version="plan-1", node_id="n-ignored") is None
-    assert {"n-course", "n-course-alt", "n-academics", "n-general",
-            "n-review-later"} == legal
+    assert {"n-course", "n-course-alt", "n-course-shared", "n-academics",
+            "n-general", "n-review-later"} == legal
 
 
 def test_node_exists_is_the_authority_p8_receives(p11_conn):
@@ -2678,11 +2884,26 @@ def test_a_missing_shared_material_policy_fails_closed(p11_conn):
         build_destination_index(p11_conn, tree_with(shared_material_policy=""), **BUILD)
 
 
-def test_the_p8_fixture_id_cannot_be_a_real_node(p11_conn):
-    reserved = replace(FROZEN_TREE.nodes[0], node_id="node-hub")
-    tree = tree_with(nodes=(reserved,) + FROZEN_TREE.nodes[1:])
-    with pytest.raises(NodeIdReserved):
-        build_destination_index(p11_conn, tree, **BUILD)
+def test_the_index_is_provably_the_freeze_records_projection(p11_conn):
+    # §4.4 of the seam contract: ONE legality authority. P10's
+    # `freeze_record.legal_destination_ids` decides; P11's index projects. Two
+    # sources that can disagree is the defect the contract forbids, so a tree
+    # whose record and nodes disagree fails closed rather than publishing a
+    # second opinion.
+    record = replace(FROZEN_TREE.freeze_record,
+                     legal_destination_ids=frozenset({"n-course"}))
+    with pytest.raises(FrozenTreeRequired):
+        build_destination_index(p11_conn, tree_with(freeze_record=record), **BUILD)
+
+
+def test_an_entry_carries_the_lineage_task_17_matches_on(p11_conn):
+    # P10 mints a new `node_id` per plan version (its OQ5) and records lineage in
+    # `origin_node_id`. Matching a decision across versions on `node_id` would
+    # mark EVERY decision for renewed review after any tree edit, including a
+    # pure rename — which §8.8 forbids. The lineage must reach the index.
+    build_destination_index(p11_conn, FROZEN_TREE, **BUILD)
+    entry = entry_for(p11_conn, plan_version="plan-1", node_id="n-course")
+    assert entry.origin_node_id == "n-course"
 
 
 def test_building_an_entry_appends_its_event(p11_conn):
@@ -2707,7 +2928,7 @@ frozen node is, which is the one thing SPEC:102 says P11 does not own.
 from __future__ import annotations
 
 from placement.index import build_destination_index
-from tests.p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK
 
 
 def test_p11_indexes_p10s_live_frozen_tree(p11_conn):
@@ -2760,24 +2981,14 @@ from database_agent.db import transaction
 from placement import events as placement_events
 from placement.vocabulary import DISPOSITIONS, NODE_ROLES, RESIDUAL_ROLE, check
 
-#: A P8 fixture id that reached production Site C logic
-#: (`llm_harness/placement_validation.py:239`). A real node with this id would be
-#: scored `weak` forever, so P11 refuses to index one rather than publish a
-#: destination that can never be accepted.
-RESERVED_NODE_IDS: frozenset[str] = frozenset({"node-hub"})
-
-
 class FrozenTreeRequired(RuntimeError):
     """The tree P11 was handed is not a complete frozen tree. Never a partial index."""
-
-
-class NodeIdReserved(ValueError):
-    """A frozen node carries an id another part has taken. Refused before indexing."""
 
 
 @dataclass(frozen=True)
 class IndexEntry:
     node_id: str
+    origin_node_id: str
     plan_version: str
     node_role: str
     disposition: str | None
@@ -2833,21 +3044,29 @@ def _entry(node, profile, by_id) -> IndexEntry:
             "on every other role"
         )
     return IndexEntry(
-        node_id=node.node_id, plan_version=node.plan_version_id,
+        node_id=node.node_id, origin_node_id=node.origin_node_id,
+        plan_version=node.plan_version_id,
         node_role=node.node_role, disposition=node.disposition,
         display_label=node.display_label, parent_node_id=node.parent_node_id,
         root_anchor=node.root_anchor, depth=depth, ancestor_labels=ancestors,
         template_fields=tuple(profile.template_fields),
+        # `ExpectedValue` is P10's frozen dataclass, not a mapping: `item["field"]`
+        # would raise `TypeError` on the first real node.
         expected_values=tuple(
-            (item["field"], item["value"]) for item in node.expected_values
+            (item.field, item.value) for item in node.expected_values
         ),
         accepted_group_ids=tuple(profile.accepted_group_ids),
         group_labels=tuple(profile.group_labels),
         representative_files=tuple(profile.representative_files),
-        anchor_excerpt_keys=tuple(profile.anchor_excerpt_keys),
+        # The index FLATTENS what P10 publishes; it never assumes it arrived flat.
+        # `AnchorExcerpt` carries `node_id` beside `observation_key` because §6.1
+        # wants anchor evidence per node, and the entry keeps only the keys it
+        # scores on -- a projection of P10's record, not a rival shape for it.
+        anchor_excerpt_keys=tuple(
+            excerpt.observation_key for excerpt in profile.anchor_excerpts),
         known_document_types=tuple(profile.known_document_types),
-        parent_context=tuple(profile.parent_context),
-        child_context=tuple(profile.child_context),
+        parent_context=tuple(c.display_label for c in profile.parent_context),
+        child_context=tuple(c.display_label for c in profile.child_context),
         known_exclusions=tuple(profile.known_exclusions),
         user_edits=tuple(profile.user_edits),
         handling_class=node.handling_class,
@@ -2859,7 +3078,7 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
                             component_version: str,
                             observed_at: str) -> tuple[IndexEntry, ...]:
     """Build one entry per legal node. Nothing partial reaches the table."""
-    if not getattr(tree, "plan_version", ""):
+    if not getattr(tree, "plan_version_id", ""):
         raise FrozenTreeRequired("an index projects one frozen plan version")
     if not getattr(tree, "shared_material_policy", ""):
         raise FrozenTreeRequired(
@@ -2868,13 +3087,6 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
             "P11 would have to pick an institution"
         )
     by_id = {node.node_id: node for node in tree.nodes}
-    reserved = sorted(set(by_id) & RESERVED_NODE_IDS)
-    if reserved:
-        raise NodeIdReserved(
-            f"{reserved} is spelled into P8's Site C logic as a generic hub "
-            "(llm_harness/placement_validation.py:239); a node with this id would "
-            "score `weak` on every call, so it is refused rather than indexed"
-        )
     profiles = {profile.node_id: profile for profile in tree.profiles}
     missing = sorted(node_id for node_id in by_id if node_id not in profiles)
     if missing:
@@ -2888,6 +3100,21 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
         _entry(node, profiles[node.node_id], by_id)
         for node in tree.nodes if node.accepts_placement
     )
+    # ONE legality authority, and this line is what keeps it one. P10's freeze
+    # record decides the legal set (`freeze_record.legal_destination_ids`); this
+    # index is its PROJECTION and must be provably equal. Two callables that can
+    # answer the same question differently is the defect
+    # `planning/22-p1-p7-connection-contract.md` §6 check 5 names: "exactly one
+    # part writes each concept". `legal_node_ids` reads this table, so if the two
+    # ever drifted P8's `NODE_NOT_IN_FROZEN_TREE` would fire on a legal node and
+    # look like a model error.
+    indexed = {entry.node_id for entry in entries}
+    if indexed != set(tree.freeze_record.legal_destination_ids):
+        raise FrozenTreeRequired(
+            "the index disagrees with the freeze record's legal set: "
+            f"{sorted(indexed ^ set(tree.freeze_record.legal_destination_ids))} "
+            "differ; P10 owns legality and P11 only projects it"
+        )
     with transaction(conn):
         for entry in entries:
             conn.execute(
@@ -2958,7 +3185,7 @@ def entries_for_plan(conn: sqlite3.Connection, *,
 
 Run: `python3 -m pytest -q tests/p11/test_p11_index.py`
 
-Expected: PASS, 10 tests. Run the gate separately and confirm it still fails for the right reason:
+Expected: PASS, 11 tests. Run the gate separately and confirm it still fails for the right reason:
 
 Run: `python3 -m pytest -q tests/integration/test_p11_p10_tree.py`
 
@@ -3022,8 +3249,8 @@ from placement.config import PlacementLimits
 from placement.index import build_destination_index
 from placement.records import MatchingFact, Subject
 from placement.retrieval import CHANNELS, retrieve
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE
 
 LIMITS = PlacementLimits(
     max_retrieved_neighbors=4, max_local_graph_neighborhood=8,
@@ -3373,8 +3600,8 @@ from placement.graph import (
 from placement.index import build_destination_index, entry_for
 from placement.records import MatchingFact, Subject
 from placement.retrieval import Candidate, DIRECT_FACT, SEMANTIC_NEIGHBOUR
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE
 
 LIMITS = PlacementLimits(
     max_retrieved_neighbors=4, max_local_graph_neighborhood=3,
@@ -3667,7 +3894,11 @@ def needs_model_call(assessment) -> bool: ...
 
 **Which P8 checks this task is therefore not writing.** All of Site C's fifteen. In particular `BELOW_SUPPORT_THRESHOLD`, `INSUFFICIENT_MARGIN` and `GENERIC_HUB_ONLY` (`placement_validation.py:241-254`, `:239`) are P8's, applied to a *model's* answer. What this task computes is the deterministic `support` and `next_support` the dossier carries (§6.6's "deterministic scores") and the verdict for the case where **no model is called at all**. SPEC:473-475 is the sentence that makes that a P11 field: *"A deterministic exact-fact match (§6.6) issues no model call and still records a verdict in this vocabulary."*
 
-**B8(b), which is the walking skeleton's own shape.** With one legal candidate there is no next-best, so `margin_over_next` is null and `meets_margin` is `true_vacuous` — true by vacuity, not by measurement, and distinguishable in the record so a reviewer and a P2 replay can tell the two apart. The support threshold *stays binding*: a file that clears no threshold abstains **even though that one destination is the only one available**, because the scarcity of destinations is not evidence about the file.
+**B8(b), both halves.** With one legal candidate there is no next-best, so `margin_over_next` is null and `meets_margin` is `true_vacuous` — true by vacuity, not by measurement, and distinguishable in the record so a reviewer and a P2 replay can tell the two apart. The support threshold *stays binding*: a file that clears no threshold abstains **even though that one destination is the only one available**, because the scarcity of destinations is not evidence about the file.
+
+That is the degenerate rule, and it is only half of B8(b). `planning/04-resolutions.md:143-146` also says: *"**The skeleton gains a second frozen node**, so the margin path is genuinely exercised rather than bypassed. A skeleton that never tests the margin does not prove the seam it exists to prove."* Task 19's walking skeleton therefore retrieves **two** candidates and records a **measured** margin — which is why `unique_direct_match` is keyed on §6.6's "the facts uniquely match one path" and not on the candidate set having size one. The two requirements are jointly satisfiable only under that reading.
+
+**The scale is 7ths, and the fixtures are chosen against it.** `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7`, so a direct fact alone scores `3/7 ≈ 0.4286`, a direct fact plus an accepted group `5/7 ≈ 0.7143`, and an accepted group alone `2/7 ≈ 0.2857`. Any fixture threshold above `3/7` makes a direct-fact-only candidate unplaceable; any threshold at or below `2/7` lets a group-only candidate place. Every `SupportPolicy` in this plan's tests is picked inside that band and the arithmetic is stated where it is picked.
 
 - [ ] **Step 1: Write the failing scoring tests**
 
@@ -3687,8 +3918,18 @@ from placement.retrieval import (
 )
 from placement.scoring import assess, needs_model_call
 
+# The threshold is 0.4, and the number is derived rather than picked. `assess`
+# normalises by `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7`, so the highest score a
+# candidate carrying ONLY the direct-fact channel can reach is
+# `1.0 * 3 / 7 = 0.4285714…`. `_candidate()`'s default channels are
+# `(DIRECT_FACT,)`, so a threshold of 0.5 would make every test in this module
+# that expects a placement arithmetically impossible: the strongest evidence the
+# fixture carries would still abstain. 0.4 sits below 3/7 and above the
+# accepted-group-only score of `2/7 = 0.2857…`, so `test_one_high_frequency_
+# entity_stays_uncertain` and the two semantic-only tests still fail the
+# threshold, which is what they exist to prove.
 POLICY = SupportPolicy(policy_id="fixture-v1", support_scale_max=1.0,
-                       minimum_support_threshold=0.5, margin_threshold=0.2)
+                       minimum_support_threshold=0.4, margin_threshold=0.2)
 
 
 def _fact(value="PHYS1401"):
@@ -3953,12 +4194,38 @@ def assess(retrieval, graphs, *, policy: SupportPolicy) -> Assessment:
         )
 
     reason = _reason(best, retrieval, meets_threshold, meets_margin)
+    # §6.6's own words: "If a file's validated facts UNIQUELY MATCH ONE FROZEN
+    # PATH, deterministic matching is faster, cheaper, and more stable"
+    # (`planning/01-product-design-structured.md:1189-1191`). Uniqueness is a
+    # property of the FACTS -- exactly one candidate carries the direct-fact
+    # channel -- not of the candidate set's size. Keying it on "there was only
+    # one candidate at all" would make B8(b) unsatisfiable: B8(b) requires the
+    # skeleton to carry a second node so the margin is exercised rather than
+    # vacuous, and no assessment can have both a measured margin and a candidate
+    # set of one.
+    #
+    # `typed_support` is deliberately NOT required. §6.5's bar is about a target
+    # "connected ONLY by generic similarity or one high-frequency entity"
+    # (`:1183-1185`) -- it disqualifies similarity-based support, not a direct
+    # fact match. Requiring a graph anchor here would mean a syllabus whose
+    # subject fact names exactly one course could never be decided
+    # deterministically, which is the case §6.6 exists to keep off the model.
+    # Semantic-only and generic-hub candidates remain excluded because neither
+    # carries `DIRECT_FACT` at all.
+    #
+    # Both §6.10 conditions still gate it: a unique direct match that falls short
+    # of the support threshold, or that a runner-up crowds inside the margin, is
+    # not decided here and goes to the model or abstains.
+    direct_fact_candidates = tuple(
+        candidate for candidate in retrieval.candidates
+        if DIRECT_FACT in candidate.channels
+    )
     unique_direct = bool(
         best is not None
-        and runner_up is None
-        and DIRECT_FACT in _channels_of(retrieval, best.node_id)
-        and best.typed_support
+        and len(direct_fact_candidates) == 1
+        and direct_fact_candidates[0].node_id == best.node_id
         and meets_threshold
+        and meets_margin != MARGIN_FALSE
     )
 
     if reason is None:
@@ -3994,13 +4261,6 @@ def assess(retrieval, graphs, *, policy: SupportPolicy) -> Assessment:
         unique_direct_match=unique_direct, abstention_reason=reason,
         confidence_class=confidence,
     )
-
-
-def _channels_of(retrieval, node_id: str) -> tuple[str, ...]:
-    for candidate in retrieval.candidates:
-        if candidate.node_id == node_id:
-            return candidate.channels
-    return ()
 
 
 def needs_model_call(assessment: Assessment) -> bool:
@@ -4062,9 +4322,12 @@ class PolicyRequired(RuntimeError): ...
 
 def privacy_state_for(conn, *, file_id, content_hash, plan_version) -> PrivacyState: ...
 def review_policy_for(*, privacy_state, two_condition, group_support,
-                      unique_direct_match) -> str: ...
+                      unique_direct_match, automatic_move_permitted=False) -> str: ...
 def may_assemble_dossier(privacy_state) -> bool: ...
+def blocked_policy() -> str: ...
 ```
+
+`automatic_move_permitted` is in the signature because §8.4's permission lives on `Policy.automatic_move_permissions`, which the caller reads once per plan version rather than once per file. Task 19's pipeline supplies it from `PipelineInputs`; the tests supply it directly.
 
 **Done-means:** SPEC:208-212, SPEC:372-377, SPEC:751-758's privacy half, §8.4.
 
@@ -4354,10 +4617,12 @@ class Suppression:
     node_id: str; scope: str; subject_id: str; basis_key: str; event_id: int
 
 def basis_key_for(*, subject_ref: str, node_id: str) -> str: ...
-def suppressed_nodes(conn, *, subject_ref, node_ids, scopes) -> tuple[Suppression, ...]: ...
+def suppressed_nodes(conn, *, subject_ref, node_ids, scopes,
+                     corpus_subject_id=None, proposal_class=PLACEMENT
+                     ) -> tuple[Suppression, ...]: ...
 def record_correction(conn, *, decision, action, polarity, scope, subject_id,
                       basis_key, user_id, component_version, observed_at,
-                      explanation) -> int: ...
+                      explanation, proposal_class=PLACEMENT) -> int: ...
 ```
 
 **Done-means:** SPEC:751-758, SPEC:745-749, SPEC:736-743.
@@ -4469,7 +4734,7 @@ def test_the_two_proposal_classes_are_the_specs_two():
 
 
 def test_a_correction_carries_its_scope_and_its_evidence(p11_conn):
-    from tests.p11.test_p11_records import _decision
+    from p11.test_p11_records import _decision
 
     record_correction(
         p11_conn, decision=_decision(), action="change_destination",
@@ -4725,8 +4990,8 @@ from placement.p8_seam import (
     site_dependencies, to_p8_conflicts, transcribe,
 )
 from placement.records import ConflictConsidered
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE
 
 POLICY = SupportPolicy(policy_id="fixture-v1", support_scale_max=1.0,
                        minimum_support_threshold=0.5, margin_threshold=0.2)
@@ -4944,8 +5209,8 @@ from llm_harness.records import P8Verdict
 from placement.config import SupportPolicy
 from placement.index import build_destination_index
 from placement.p8_seam import placement_authorities
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE
 
 POLICY = SupportPolicy(policy_id="integration-v1", support_scale_max=1.0,
                        minimum_support_threshold=0.0, margin_threshold=0.0)
@@ -5212,7 +5477,7 @@ git commit -m "feat(p11): supply P8's authorities and write none of its checks"
 - Create: `src/placement/groups.py`
 - Create: `tests/p11/test_p11_groups.py`
 
-**Consumes:** `tests/p11/p9_fixtures` (until P9's acceptance read ships), `placement.scoring.assess`, `placement.index.entry_for`.
+**Consumes:** `grouping.acceptance.group_state_as_of`, `grouping.store.memberships_for_group`, `grouping.vocabulary.ACCEPTED`, `placement.scoring.assess`, `placement.index.entry_for`. `tests/p11/p9_fixtures` seeds the rows and stands in for nothing.
 
 **Produces:**
 
@@ -5232,8 +5497,15 @@ class GroupPlan:
     member_decisions: tuple[PlacementDecision, ...]
     excluded_outliers: tuple[ExcludedOutlier, ...]
 
+@dataclass(frozen=True)
+class AcceptedGroup:
+    group_id: str; plan_version: str; state: str; memberships: tuple
+
+class GroupNotAcceptedInVersion(LookupError): ...
+
 SHARED_MATERIAL_POLICIES: tuple[str, ...]
 
+def accepted_group_as_of(conn, *, group_id, plan_version) -> AcceptedGroup: ...
 def confirm_shared_parent(member_parents, *, policy) -> str | None: ...
 def excluded_outlier_for(membership, *, routed_node_id) -> ExcludedOutlier: ...
 def resolve_multi_home(*, candidate_node_ids, shared_material_policy,
@@ -5242,7 +5514,7 @@ def resolve_multi_home(*, candidate_node_ids, shared_material_policy,
 
 **Done-means:** 8 (SPEC:639-642), 9 (SPEC:643-645); Contract out §3 (SPEC:506-521); SPEC:163-181.
 
-**"Accepted" is not a field on P9's `Group`.** `src/grouping/vocabulary.py:31-32` says of `accepted` and `rejected`: *"The two values `group_state_as_of` adds at read time. Never stored."* Acceptance is resolved from `group_acceptance(plan_version_id, group_id, membership_id, …)` (`grouping/schema.py:140-159`) **as of P10's frozen plan version**. P11 reads it that way and never off `Group.state`, which would give the wrong answer the moment a group is accepted in one version and rejected in the next.
+**"Accepted" is not a field on P9's `Group`, and P9 already publishes the read.** `src/grouping/vocabulary.py:31-32` says of `accepted` and `rejected`: *"The two values `group_state_as_of` adds at read time. Never stored."* The read is live: `grouping/acceptance.py:154` publishes `group_state_as_of(conn, *, group_id, plan_version_id) -> str`, and `grouping/store.py:266` publishes `memberships_for_group(conn, group_id)`. `accepted_group_as_of` calls both and adds one thing P9 deliberately does not: it **refuses the fallback**. When a version holds no opinion, `group_state_as_of` returns the group's SHARED state (`acceptance.py:165-170`) — `supported`, not `accepted` — and reading that as consent is exactly how a group nobody accepted gets placed. Verified live: after seeding, plan-1 returns `accepted` and plan-2 returns `supported`.
 
 **Outliers are a field, not a list.** SPEC:166 says "identified outliers"; P9 publishes `Membership.outlier_flag ∈ {engine-flagged, model-flagged, both, none}` (`grouping/vocabulary.py:70-77`). `excluded_outliers[]` is derived from it plus the member's own conflicts.
 
@@ -5252,37 +5524,44 @@ def resolve_multi_home(*, candidate_node_ids, shared_material_policy,
 
 ```python
 # tests/p11/p9_fixtures.py
-"""A test-only stand-in for P9's accepted-group read. TESTS ONLY.
+"""Seeds REAL P9 rows for P11's group tests. TESTS ONLY.
 
-`src/grouping/` ships `vocabulary`, `records`, `schema`, `config`, `seeds`,
-`embeddings` and `retrieval`, and no `store` or `acceptance`, so there is no
-published read that returns an accepted group as of a plan version. This fixture
-is that read's shape, built from P9's OWN live records so it cannot drift from
-them: `Group`, `Membership` and `GroupAcceptance` are imported, not restated.
+This is NOT a stand-in for a P9 read. P9's acceptance read shipped:
+`grouping.acceptance.group_state_as_of(conn, *, group_id, plan_version_id)`
+(`acceptance.py:154`) returns `accepted` or `rejected` as of a plan version, and
+`grouping.store.memberships_for_group(conn, group_id)` (`store.py:266`) returns
+the members. `placement/groups.py` calls both directly.
 
-`src/placement/` may never import this module and a test asserts it does not.
+What this module does is build P9's own records -- `Group`, `Membership`,
+`GroupAcceptance`, imported and never restated -- and write them through P9's own
+writers (`record_group`, `record_membership`, `record_acceptance`), so a P11 test
+runs against rows a real P9 run would have produced. A shape change in P9 breaks
+this at import, which is the point.
+
+`src/placement/` may never import this module and a test asserts it does not: the
+prohibition is about a SOURCE module importing test code, and it stands whether or
+not the part it seeds exists.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from grouping.records import AnchorFact, Group, GroupAcceptance, Membership, Support
+from facts.states import VALIDATED
+from grouping.acceptance import record_acceptance
+from grouping.records import (
+    AnchorFact, Conflict, Group, GroupAcceptance, Membership, Support,
+)
+from grouping.store import record_group, record_membership
 from grouping.vocabulary import (
     ACCEPTED, CONTEXT_SUPPORTED, COHERENT, DIRECT_ANCHOR, ENGINE, ENGINE_FLAGGED,
     INCLUDED, NOT_FLAGGED, PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT,
-    STRONGLY_IDENTIFIED_FILE, SUPPORTED, USER, USER_ATTACHED, VALIDATED,
+    STRONGLY_IDENTIFIED_FILE, SUPPORTED, USER, USER_ATTACHED,
 )
 
 T0 = "2026-08-27T00:00:00Z"
 
-
-@dataclass(frozen=True)
-class AcceptedGroup:
-    """What P11 needs from P9, resolved AS OF one plan version."""
-
-    group: Group
-    memberships: tuple[Membership, ...]
-    acceptance: GroupAcceptance
+# `VALIDATED` is P6's reliability state and is imported from `facts.states`.
+# `grouping.vocabulary` does NOT publish it -- it has `VALIDATED_SHARED_FACT`
+# (a seed kind) and `VALIDATION` (a failure stage), and importing either as
+# `AnchorFact.reliability_state` would put a seed kind in a reliability field.
 
 
 def _membership(file_id, *, basis=DIRECT_ANCHOR, outlier=NOT_FLAGGED,
@@ -5319,10 +5598,9 @@ MEMBERSHIPS = (
     _membership("f-transcript", basis=CONTEXT_SUPPORTED),
     _membership("f-scan", basis=USER_ATTACHED),
     _membership("f-duke-essay", outlier=ENGINE_FLAGGED,
-                conflicts=(__import__("grouping.records", fromlist=["Conflict"])
-                           .Conflict(kind="target_school",
-                                     competing_values=("Columbia", "Duke"),
-                                     file_ids=("f-duke-essay",)),)),
+                conflicts=(Conflict(kind="target_school",
+                                    competing_values=("Columbia", "Duke"),
+                                    file_ids=("f-duke-essay",)),)),
 )
 
 ACCEPTANCE = GroupAcceptance(
@@ -5331,17 +5609,28 @@ ACCEPTANCE = GroupAcceptance(
     user_edited_label=None, aliases=(), review_decision_ref=None,
     decided_by=USER, created_at=T0)
 
-ACCEPTED_COLUMBIA = AcceptedGroup(
-    group=COLUMBIA_GROUP, memberships=MEMBERSHIPS, acceptance=ACCEPTANCE)
+GROUP_ID: str = COLUMBIA_GROUP.group_id
 
 
-def accepted_groups(*, plan_version: str) -> tuple[AcceptedGroup, ...]:
-    """The read P9's Task 9 will publish. Acceptance is AS OF a plan version:
-    `accepted` is never stored on a group (`grouping/vocabulary.py:31-32`)."""
-    if plan_version != ACCEPTANCE.plan_version_id:
-        return ()
-    return (ACCEPTED_COLUMBIA,)
+def seed_accepted_columbia(conn) -> str:
+    """Write the group, its four memberships and its acceptance THROUGH P9.
+
+    Nothing here is a stand-in read. After this call,
+    `grouping.acceptance.group_state_as_of(conn, group_id=GROUP_ID,
+    plan_version_id="plan-1")` returns `accepted` and
+    `grouping.store.memberships_for_group(conn, GROUP_ID)` returns the four
+    members -- which is precisely what `placement.groups` consumes.
+    """
+    record_group(conn, COLUMBIA_GROUP)
+    for membership in MEMBERSHIPS:
+        record_membership(conn, membership)
+    record_acceptance(conn, ACCEPTANCE)
+    return GROUP_ID
 ```
+
+`tests/p11/conftest.py`'s `p11_conn` fixture therefore also calls
+`grouping.schema.create_grouping_schema(conn)`, because P11's group tests now read
+real P9 tables rather than a module-level constant.
 
 - [ ] **Step 2: Write the failing group tests**
 
@@ -5352,19 +5641,44 @@ from __future__ import annotations
 
 import pytest
 
-from grouping.vocabulary import ENGINE_FLAGGED, USER_ATTACHED
+from grouping.vocabulary import ENGINE_FLAGGED, SUPPORTED, USER_ATTACHED
 
 from placement import vocabulary as v
 from placement.groups import (
-    AskOrAbstainSelectorRequired, SHARED_MATERIAL_POLICIES,
-    SharedMaterialPolicyRequired, confirm_shared_parent, resolve_multi_home,
+    AskOrAbstainSelectorRequired, GroupNotAcceptedInVersion,
+    SHARED_MATERIAL_POLICIES, SharedMaterialPolicyRequired,
+    accepted_group_as_of, confirm_shared_parent, excluded_outlier_for,
+    resolve_multi_home,
 )
-from tests.p11.p9_fixtures import ACCEPTED_COLUMBIA, accepted_groups
+from p11.p9_fixtures import GROUP_ID, seed_accepted_columbia
 
 
-def test_acceptance_is_resolved_as_of_a_plan_version(p11_conn):
-    assert accepted_groups(plan_version="plan-1") == (ACCEPTED_COLUMBIA,)
-    assert accepted_groups(plan_version="plan-2") == ()
+@pytest.fixture()
+def seeded(p11_conn):
+    seed_accepted_columbia(p11_conn)
+    return p11_conn
+
+
+def test_acceptance_is_resolved_as_of_a_plan_version(seeded):
+    # Through P9's OWN read. `accepted` is never stored on a group
+    # (`grouping/vocabulary.py:31-32`), so asking `Group.state` would answer
+    # `supported` in every version and P11 would place a group nobody accepted.
+    accepted = accepted_group_as_of(seeded, group_id=GROUP_ID,
+                                    plan_version="plan-1")
+    assert accepted.state == "accepted"
+    assert len(accepted.memberships) == 4
+    # plan-2 holds no opinion, so P9 falls back to the SHARED state. It is not
+    # an empty result and it is not `accepted`; P11 refuses rather than reading
+    # the fallback as consent.
+    with pytest.raises(GroupNotAcceptedInVersion):
+        accepted_group_as_of(seeded, group_id=GROUP_ID, plan_version="plan-2")
+
+
+def test_the_shared_state_is_never_mistaken_for_acceptance(seeded):
+    from grouping.acceptance import group_state_as_of
+
+    assert group_state_as_of(seeded, group_id=GROUP_ID,
+                             plan_version_id="plan-2") == SUPPORTED
 
 
 def test_the_shared_parent_is_confirmed_before_any_member_is_classified():
@@ -5372,37 +5686,44 @@ def test_the_shared_parent_is_confirmed_before_any_member_is_classified():
     # placed first would be placed against no shared context at all.
     parent = confirm_shared_parent(
         {"f-essay": "n-columbia", "f-transcript": "n-columbia"},
-        policy="shared_branch")
+        policy="shared-branch")
     assert parent == "n-columbia"
 
 
 def test_members_disagreeing_on_the_parent_confirm_none():
     assert confirm_shared_parent(
         {"f-essay": "n-columbia", "f-transcript": "n-duke"},
-        policy="shared_branch") is None
+        policy="shared-branch") is None
 
 
-def test_a_conflicting_member_is_excluded_and_says_why():
+def test_a_conflicting_member_is_excluded_and_says_why(seeded):
     # Done-means 8: the conflicting-institution essay is an outlier with its
     # conflicting fact recorded, routed to a legal branch or the review queue.
-    outlier = next(m for m in ACCEPTED_COLUMBIA.memberships
+    accepted = accepted_group_as_of(seeded, group_id=GROUP_ID,
+                                    plan_version="plan-1")
+    outlier = next(m for m in accepted.memberships
                    if m.outlier_flag == ENGINE_FLAGGED)
     assert outlier.conflicts
     assert outlier.conflicts[0].kind == "target_school"
     assert set(outlier.conflicts[0].competing_values) == {"Columbia", "Duke"}
+    excluded = excluded_outlier_for(outlier, routed_node_id=None)
+    assert excluded.routed_to == v.ROUTED_TO_REVIEW_QUEUE
+    assert "Columbia" in excluded.conflicting_fact
 
 
-def test_a_user_attached_member_still_reaches_group_placement():
+def test_a_user_attached_member_still_reaches_group_placement(seeded):
     # M12 and P9 invariant 5: an unreadable file's ONLY basis is user-attached,
     # and those files reach §6.8. Dropping them here would lose them silently.
-    bases = {m.basis for m in ACCEPTED_COLUMBIA.memberships}
+    accepted = accepted_group_as_of(seeded, group_id=GROUP_ID,
+                                    plan_version="plan-1")
+    bases = {m.basis for m in accepted.memberships}
     assert USER_ATTACHED in bases
 
 
 def test_a_shared_branch_is_preferred_when_one_is_approved():
     outcome, payload = resolve_multi_home(
         candidate_node_ids=("n-columbia", "n-duke"),
-        shared_material_policy="shared_branch", shared_branch_node_id="n-apps",
+        shared_material_policy="shared-branch", shared_branch_node_id="n-apps",
         ask_or_abstain=None)
     assert outcome == v.PLACE
     assert payload == "n-apps"
@@ -5413,11 +5734,11 @@ def test_with_no_shared_branch_the_selector_decides_and_is_injected():
     # no selector. Building one here would answer it in code.
     with pytest.raises(AskOrAbstainSelectorRequired):
         resolve_multi_home(candidate_node_ids=("n-columbia", "n-duke"),
-                           shared_material_policy="mandatory_review",
+                           shared_material_policy="mandatory-review",
                            shared_branch_node_id=None, ask_or_abstain=None)
     outcome, payload = resolve_multi_home(
         candidate_node_ids=("n-columbia", "n-duke"),
-        shared_material_policy="mandatory_review", shared_branch_node_id=None,
+        shared_material_policy="mandatory-review", shared_branch_node_id=None,
         ask_or_abstain=lambda ids: v.ASK_USER)
     assert outcome == v.ASK_USER
     assert payload == ("n-columbia", "n-duke")
@@ -5426,7 +5747,7 @@ def test_with_no_shared_branch_the_selector_decides_and_is_injected():
 def test_abstaining_names_no_shared_branch_as_the_reason():
     outcome, payload = resolve_multi_home(
         candidate_node_ids=("n-columbia", "n-duke"),
-        shared_material_policy="mandatory_review", shared_branch_node_id=None,
+        shared_material_policy="mandatory-review", shared_branch_node_id=None,
         ask_or_abstain=lambda ids: v.ABSTAIN)
     assert outcome == v.ABSTAIN
     assert payload == v.NO_SHARED_BRANCH
@@ -5438,7 +5759,7 @@ def test_one_institution_is_never_chosen_over_another():
     for selector in (lambda ids: v.ASK_USER, lambda ids: v.ABSTAIN):
         outcome, payload = resolve_multi_home(
             candidate_node_ids=("n-columbia", "n-duke"),
-            shared_material_policy="mandatory_review",
+            shared_material_policy="mandatory-review",
             shared_branch_node_id=None, ask_or_abstain=selector)
         assert payload not in ("n-columbia", "n-duke")
 
@@ -5452,7 +5773,7 @@ def test_a_missing_shared_material_policy_fails_closed():
 
 def test_the_four_policies_are_69s_own_four():
     assert SHARED_MATERIAL_POLICIES == (
-        "shared_branch", "primary_home", "reference_or_alias", "mandatory_review")
+        "shared-branch", "primary-home", "reference-or-alias", "mandatory-review")
 
 
 def test_the_alias_convention_is_not_a_filesystem_instruction():
@@ -5461,7 +5782,7 @@ def test_the_alias_convention_is_not_a_filesystem_instruction():
     # mutation. P11 names a node either way and produces no link.
     outcome, payload = resolve_multi_home(
         candidate_node_ids=("n-columbia", "n-duke"),
-        shared_material_policy="reference_or_alias",
+        shared_material_policy="reference-or-alias",
         shared_branch_node_id="n-apps", ask_or_abstain=None)
     assert outcome == v.PLACE
     assert payload == "n-apps"
@@ -5475,7 +5796,12 @@ def test_placement_never_imports_the_p9_fixture():
     for path in sorted(root.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("tests"):
+            # `tests/` carries no top-level `__init__.py`, so pytest puts `tests/`
+            # on `sys.path` and the fixture packages are importable as `p11.*`,
+            # never as `tests.p11.*`. The guard names the live spelling, because a
+            # guard checking a prefix nothing produces catches nothing.
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                    ("p11.", "p11", "tests")):
                 raise AssertionError(f"{path.name}:{node.lineno} imports a fixture")
 ```
 
@@ -5509,26 +5835,35 @@ question 6 and stays open -- the selector is injected, and its absence refuses.
 """
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
+
+from grouping.acceptance import group_state_as_of
+from grouping.store import memberships_for_group
+from grouping.vocabulary import ACCEPTED
 
 from placement.vocabulary import (
     ABSTAIN, ASK_USER, NO_SHARED_BRANCH, PLACE, ROUTED_TO_NODE,
     ROUTED_TO_REVIEW_QUEUE, check,
 )
 
-SHARED_BRANCH: str = "shared_branch"
-PRIMARY_HOME: str = "primary_home"
-REFERENCE_OR_ALIAS: str = "reference_or_alias"
-MANDATORY_REVIEW: str = "mandatory_review"
+SHARED_BRANCH: str = "shared-branch"
+PRIMARY_HOME: str = "primary-home"
+REFERENCE_OR_ALIAS: str = "reference-or-alias"
+MANDATORY_REVIEW: str = "mandatory-review"
 
 #: §6.9's four: "a shared branch, a primary-home convention, a reference or alias
-#: convention, or mandatory review". P10 records which one at freeze.
+#: convention, or mandatory review". P10 records which one at freeze, and the
+#: VALUES are P10's spelling -- hyphenated, like every other value in P10's node
+#: vocabulary (`scoped-general`, `shared-material`, `review-only`). Underscored
+#: here, `resolve_multi_home` would match none of them and every multi-home file
+#: would fall through every branch with nothing raising.
 SHARED_MATERIAL_POLICIES: tuple[str, ...] = (
     SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS, MANDATORY_REVIEW,
 )
 
 #: The three that resolve to one approved node when the tree offers one. Under
-#: `mandatory_review` the tree deliberately offers none, which is the policy.
+#: `mandatory-review` the tree deliberately offers none, which is the policy.
 _BRANCH_BEARING: frozenset[str] = frozenset(
     {SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS}
 )
@@ -5540,6 +5875,47 @@ class SharedMaterialPolicyRequired(RuntimeError):
 
 class AskOrAbstainSelectorRequired(RuntimeError):
     """SPEC Open question 6 is open; the design gives no selector and nor does P11."""
+
+
+class GroupNotAcceptedInVersion(LookupError):
+    """This plan version has not accepted this group. Not an error; a state."""
+
+
+@dataclass(frozen=True)
+class AcceptedGroup:
+    """One P9 group as this plan version sees it. Read, never reconstructed."""
+
+    group_id: str
+    plan_version: str
+    state: str
+    memberships: tuple
+
+
+def accepted_group_as_of(conn: sqlite3.Connection, *, group_id: str,
+                         plan_version: str) -> AcceptedGroup:
+    """P9's own read, asked as of P10's frozen plan version.
+
+    `accepted` is NOT a field on `Group`: `grouping/vocabulary.py:31-32` says of
+    `accepted` and `rejected` that they are "the two values `group_state_as_of`
+    adds at read time. Never stored." Reading `Group.state` instead would answer
+    `supported` in every version, and P11 would place a group nobody accepted.
+
+    A version holding no opinion is not an empty result -- `group_state_as_of`
+    falls back to the SHARED state (`acceptance.py:154-170`) -- so the fallback
+    is refused explicitly here rather than read as consent.
+    """
+    state = group_state_as_of(conn, group_id=group_id,
+                              plan_version_id=plan_version)
+    if state != ACCEPTED:
+        raise GroupNotAcceptedInVersion(
+            f"group {group_id!r} is {state!r} as of {plan_version!r}, not "
+            f"{ACCEPTED!r}. §6.8 places ACCEPTED groups; a shared lifecycle "
+            "state is what the group is, not what this version decided about it"
+        )
+    return AcceptedGroup(
+        group_id=group_id, plan_version=plan_version, state=state,
+        memberships=tuple(memberships_for_group(conn, group_id)),
+    )
 
 
 @dataclass(frozen=True)
@@ -5726,7 +6102,7 @@ from placement.residual import (
     ResidualSetDecision, SetDecisionRequired, model_calls_permitted,
     record_set_decision, require_set_decision, surface_residual_sets,
 )
-from tests.p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK
 
 LIMITS = PlacementLimits(
     max_retrieved_neighbors=4, max_local_graph_neighborhood=8,
@@ -6151,8 +6527,8 @@ from placement.residual import (
     check_return_cycle, link_return, outcome_for_action,
 )
 from placement.store import record_decision
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.test_p11_records import _decision
+from p11.conftest import FIXED_CLOCK
+from p11.test_p11_records import _decision
 
 
 def _permissive(*_a, **_k):
@@ -6605,12 +6981,12 @@ from placement.review import (
     BulkMembersRequired, P11_ACTIONS, P11_SURFACES, UnroutedSurface,
     apply_review_action, correction_scope_of, routes_to_p10,
 )
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11 import p13_fixtures as p13
+from p11.conftest import FIXED_CLOCK
+from p11 import p13_fixtures as p13
 
 
 def _factory(**_kwargs):
-    from tests.p11.test_p11_records import _decision
+    from p11.test_p11_records import _decision
     return _decision
 
 
@@ -6662,8 +7038,33 @@ def test_a_rejection_is_a_negative_example_at_the_scope_the_user_chose(p11_conn)
 
 
 def test_changing_a_destination_authors_a_new_decision(p11_conn):
+    # The decision the user is revising must EXIST before it can be superseded:
+    # `mark_superseded` raises `KeyError` on an unknown `old_id`. P13's
+    # `subject_ref` on a placement surface is that decision's record id.
+    from placement.store import record_decision
+    from p11.test_p11_records import _decision
+
+    record_decision(p11_conn, _decision(decision_id="d1"),
+                    component_version="P11-test", observed_at=FIXED_CLOCK)
     ids = _apply(p11_conn, p13.change_destination())
     assert len(ids) == 1
+    row = p11_conn.execute(
+        "SELECT superseded_by, supersede_reason FROM placement_decisions "
+        "WHERE record_id = 'd1'").fetchone()
+    assert row["superseded_by"] == ids[0]
+    assert "change_destination" in row["supersede_reason"]
+
+
+def test_changing_a_destination_with_no_prior_decision_supersedes_nothing(p11_conn):
+    # A first decision about a subject has no predecessor. Passing the action's
+    # `subject_ref` through as `supersedes` regardless would hand
+    # `mark_superseded` an id that is not in the table.
+    ids = _apply(p11_conn, p13.change_destination())
+    assert len(ids) == 1
+    row = p11_conn.execute(
+        "SELECT supersedes FROM placement_decisions WHERE record_id = ?",
+        (ids[0],)).fetchone()
+    assert row["supersedes"] is None
 
 
 def test_a_bulk_acceptance_enumerates_every_member(p11_conn):
@@ -6868,7 +7269,8 @@ def apply_review_action(conn: sqlite3.Connection, action, *, decision_factory,
         subjects = members or (subject_id,)
         for member in subjects:
             record_correction(
-                conn, decision=_decision_for(decision_factory, action, member),
+                conn, decision=_decision_for(conn, decision_factory, action,
+                                             member),
                 action=action.action, polarity=polarity, scope=scope,
                 subject_id=member if members else subject_id,
                 basis_key=basis_key_for(subject_ref=str(member),
@@ -6897,7 +7299,7 @@ def apply_review_action(conn: sqlite3.Connection, action, *, decision_factory,
     if action.action in _AUTHORS_A_DECISION and not routes_to_p10(action):
         from placement.store import record_decision
 
-        decision = _decision_for(decision_factory, action, subject_id)
+        decision = _decision_for(conn, decision_factory, action, subject_id)
         record_decision(conn, decision, component_version=component_version,
                         observed_at=observed_at,
                         supersede_reason=(f"user {action.action} on "
@@ -6907,7 +7309,25 @@ def apply_review_action(conn: sqlite3.Connection, action, *, decision_factory,
     return tuple(written)
 
 
-def _decision_for(decision_factory, action, subject_id):
+def _predecessor(conn, action) -> str | None:
+    """The LIVE decision this action revises, or None.
+
+    P13's `subject_ref` on a placement surface is the id of the decision the user
+    was looking at (`presented_state_ref` names the event; `subject_ref` names the
+    record). It is passed to `mark_superseded` as `old_id`, which raises
+    `KeyError` for a record that is not in the table -- so a first decision about
+    a subject, or an action whose predecessor was already superseded, must resolve
+    to None rather than to a plausible-looking string. Inventing a predecessor is
+    how a user gesture becomes an unwritable decision.
+    """
+    row = conn.execute(
+        "SELECT record_id FROM placement_decisions WHERE record_id = ? "
+        "AND superseded_by IS NULL", (action.subject_ref,),
+    ).fetchone()
+    return None if row is None else row["record_id"]
+
+
+def _decision_for(conn, decision_factory, action, subject_id):
     """The decision this action produces, built by the caller's factory.
 
     The factory is the pipeline's, because authoring a decision needs the whole
@@ -6915,9 +7335,11 @@ def _decision_for(decision_factory, action, subject_id):
     P11's receiver decides WHETHER a decision is authored; the pipeline decides
     what it says.
     """
+    supersedes = (_predecessor(conn, action)
+                  if action.action == CHANGE_DESTINATION else None)
     return decision_factory(
         decision_id=f"{action.action_id}:{subject_id}",
-        supersedes=action.subject_ref if action.action == CHANGE_DESTINATION else None,
+        supersedes=supersedes,
     )
 ```
 
@@ -6940,7 +7362,7 @@ git commit -m "feat(p11): receive P13 actions and author only what they produce"
 - Create: `src/placement/versions.py`
 - Create: `tests/p11/test_p11_versions.py`
 
-**Consumes:** `placement.store.decisions_for_plan`, `placement.index.legal_node_ids`, `llm_harness.placement_validation.revalidate_for_plan`.
+**Consumes:** `placement.store.decisions_for_plan`, `placement.index.entries_for_plan`, `llm_harness.placement_validation.revalidate_for_plan`.
 
 **Produces:**
 
@@ -6952,15 +7374,26 @@ class VersionDiff:
     carried_unchanged: tuple[str, ...]
     removed_node_ids: tuple[str, ...]
 
-def reproject(conn, *, from_plan_version, to_plan_version) -> VersionDiff: ...
+def reproject(conn, *, from_plan_version, to_plan_version,
+              revalidation_inputs=None) -> VersionDiff: ...
 def learned_preferences_still_applicable(conn, *, plan_version, suppressions) -> tuple: ...
 ```
+
+**`revalidate_for_plan` is called here, and this is the only place it belongs.** It re-validates a *stored* P8 verdict against a new plan version and a new evidence snapshot — §8.8's question, not §6.12's, which is why Task 19's per-file pipeline does not call it. This task declared it under **Consumes** and never called it; `reproject` now does, through `_revalidates`.
+
+**OPEN — P11 stores no verdict id.** `PlacementDecision`'s thirty fields include no `verdict_id`, `llm_response_ref` or dossier reference, so P11 cannot supply `previous_verdict_id`, `dossier` or `response_bytes` from its own record. They arrive as an injected `revalidation_inputs` mapping from the caller that made the call, which is this plan's standing idiom for a value P11 cannot know. Making P11 self-sufficient here means adding a field to SPEC Contract out §1, which is a contract revision and not an implementation decision. Recorded under [SPEC corrections](#spec-corrections).
 
 **Done-means:** 16 (SPEC:670-671); SPEC:765-787.
 
 **The one sentence this task implements.** SPEC:782-787: *"Decisions whose destination node no longer exists are marked as requiring renewed review and appear in the version diff (§8.8's own example: **twenty-three files now require renewed review because their previous destination no longer exists**). Decisions are **never** silently remapped onto a renamed or relocated node, and a new plan **never** silently reclassifies or moves files already placed under an earlier one. Learned preferences carry across versions but their application is filtered by whether the node they reference still exists."*
 
-**Renaming is the trap.** A renamed node keeps its `node_id` (P10 SPEC: *"Renaming a node rewrites `display_label` only"*), so a rename correctly carries the decision. A *relocated* node also keeps its id, and the decision correctly carries — but the path P12 composes changes, which is P12's problem and not a remap. What must never happen is a decision whose node was **removed** being matched onto a similar surviving node, and that is what `reproject` refuses to do: it marks and it never matches.
+**Node identity is the trap, and `node_id` is not it.** P10 answered its OQ5 by minting a **new `node_id` for every plan version** and recording lineage in `origin_node_id` (`planning/38-p10-p11-connection-contract.md` §5.2; P10's own `test_a_copied_node_keeps_its_lineage_and_gets_a_new_identity` asserts `before["n_root"].node_id != after["n_root"].node_id`). So **no `node_id` survives a draft.** Matching a stored decision to the new version on `node_id` would find nothing for any node — and every decision, including one whose node was merely *renamed*, would be marked `requiring_renewed_review`.
+
+That outcome is forbidden by the sentence this task implements. §8.8's diff *"may state that Applications was renamed to Admissions, Research moved under Projects, Reference Clips was added, the Academic template changed … or **twenty-three files** now require renewed review because their previous destination no longer exists"* (`planning/01-product-design-structured.md:1889-1892`). Twenty-three is a **subset**, not all: a diff that distinguishes *renamed*, *moved* and *added* from *no longer exists* requires an identity that survives a rename, and under P10's minting the only such identity is `origin_node_id`.
+
+**So `reproject` matches on `origin_node_id` and never on `node_id`.** A decision names a `node_id` because it was made against one version and belongs to it; re-projection resolves `decision.destination.node_id → plan-N entry → origin_node_id → plan-N+1 entry`, and marks for renewed review **only when no successor shares that origin**. A rename changes `display_label` and mints a new id, and the decision still carries. A relocation changes `parent_node_id` and mints a new id, and the decision still carries — the path P12 composes changes, which is P12's problem and not a remap. What must never happen is a decision whose node was **removed** being matched onto a similar surviving node, and that is what `reproject` refuses to do: it marks and it never matches.
+
+This is also why it is the minimal change. OQ5 stays genuinely open: if ids later become stable then `origin_node_id == node_id` and not one line here moves.
 
 - [ ] **Step 1: Write the failing version tests**
 
@@ -6978,27 +7411,53 @@ from placement.index import build_destination_index
 from placement.records import Subject
 from placement.store import record_decision
 from placement.versions import reproject
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE, tree_with
-from tests.p11.test_p11_records import _decision
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE, tree_with
+from p11.test_p11_records import _decision
+
+
+def _minted(node, **overrides):
+    """P10 mints a NEW node_id per plan version and keeps lineage in origin.
+
+    Every helper below goes through here, because a v2 fixture that reused v1's
+    ids would be testing a world P10 does not build and would hide the exact
+    defect this task exists to prevent.
+    """
+    return replace(node, plan_version_id="plan-2",
+                   node_id=f"{node.node_id}@2",
+                   origin_node_id=node.origin_node_id, **overrides)
 
 
 def _v2_without_the_course_node():
     survivors = tuple(node for node in FROZEN_TREE.nodes
                       if node.node_id != "n-course")
+    minted = tuple(_minted(node) for node in survivors)
+    profiles = tuple(
+        replace(p, node_id=f"{p.node_id}@2")
+        for p in FROZEN_TREE.profiles if p.node_id != "n-course")
     return tree_with(
-        plan_version="plan-2",
-        nodes=tuple(replace(node, plan_version_id="plan-2") for node in survivors),
-        profiles=tuple(p for p in FROZEN_TREE.profiles if p.node_id != "n-course"))
+        plan_version_id="plan-2", nodes=minted, profiles=profiles,
+        freeze_record=replace(
+            FROZEN_TREE.freeze_record, plan_version_id="plan-2",
+            node_ids=tuple(n.node_id for n in minted),
+            legal_destination_ids=frozenset(
+                n.node_id for n in minted if n.accepts_placement)))
 
 
 def _v2_with_a_rename():
     renamed = tuple(
-        replace(node, plan_version_id="plan-2",
-                display_label="PHYS 1401 — Mechanics"
+        _minted(node, display_label="PHYS 1401 — Mechanics"
                 if node.node_id == "n-course" else node.display_label)
         for node in FROZEN_TREE.nodes)
-    return tree_with(plan_version="plan-2", nodes=renamed)
+    profiles = tuple(replace(p, node_id=f"{p.node_id}@2")
+                     for p in FROZEN_TREE.profiles)
+    return tree_with(
+        plan_version_id="plan-2", nodes=renamed, profiles=profiles,
+        freeze_record=replace(
+            FROZEN_TREE.freeze_record, plan_version_id="plan-2",
+            node_ids=tuple(n.node_id for n in renamed),
+            legal_destination_ids=frozenset(
+                n.node_id for n in renamed if n.accepts_placement)))
 
 
 def _indexed(conn, tree):
@@ -7033,16 +7492,40 @@ def test_a_removed_node_is_never_matched_onto_a_similar_survivor(p11_conn):
     assert [r["node_id"] for r in rows] == []
 
 
-def test_a_renamed_node_carries_the_decision_because_the_id_did_not_change(p11_conn):
-    # P10: "Renaming a node rewrites `display_label` only". A rename is not a
-    # removal and must not send twenty-three files back to review.
+def test_a_renamed_node_carries_the_decision_on_its_lineage_not_its_id(p11_conn):
+    # The load-bearing test of this task. P10 mints a NEW node_id in plan-2, so
+    # `n-course` does not exist there and an id match would find nothing. §8.8
+    # forbids that outcome by name: a rename is not a removal and must not send
+    # twenty-three files back to review. `origin_node_id` is what survives.
     _indexed(p11_conn, FROZEN_TREE)
     record_decision(p11_conn, _decision(decision_id="d1"),
                     component_version="P11-test", observed_at=FIXED_CLOCK)
-    _indexed(p11_conn, _v2_with_a_rename())
+    v2 = _v2_with_a_rename()
+    _indexed(p11_conn, v2)
+    assert {node.node_id for node in v2.nodes}.isdisjoint(
+        {node.node_id for node in FROZEN_TREE.nodes})   # nothing survives by id
     diff = reproject(p11_conn, from_plan_version="plan-1",
                      to_plan_version="plan-2")
     assert diff.requiring_renewed_review == ()
+    assert diff.carried_unchanged == ("d1",)
+
+
+def test_a_moved_node_carries_the_decision_too(p11_conn):
+    # A relocation also mints a new id, and the decision still carries. What
+    # changes is the path P12 composes from the new parent chain, which is P12's
+    # to compose and not a remap.
+    _indexed(p11_conn, FROZEN_TREE)
+    record_decision(p11_conn, _decision(decision_id="d1"),
+                    component_version="P11-test", observed_at=FIXED_CLOCK)
+    moved = _v2_with_a_rename()
+    relocated = tuple(
+        replace(node, parent_node_id=None) if node.origin_node_id == "n-course"
+        else node for node in moved.nodes)
+    _indexed(p11_conn, tree_with(
+        plan_version_id="plan-2", nodes=relocated, profiles=moved.profiles,
+        freeze_record=moved.freeze_record))
+    diff = reproject(p11_conn, from_plan_version="plan-1",
+                     to_plan_version="plan-2")
     assert diff.carried_unchanged == ("d1",)
 
 
@@ -7120,16 +7603,27 @@ replaced it -- and matching onto it is the "silent reclassification" §8.8
 prohibits by name. §8.8's own example is a COUNT of files needing review, not a
 count of files quietly moved.
 
-A rename is not a removal. P10 rewrites `display_label` and keeps `node_id`, so a
-rename carries the decision and produces no review at all; the label the user now
-sees is composed by P12 from the new chain.
+"Still exists" is a question about LINEAGE, not about `node_id`. P10 mints a new
+`node_id` for every plan version and records the lineage in `origin_node_id`
+(its OQ5; `planning/38-p10-p11-connection-contract.md` §5.2). Matching on
+`node_id` would therefore find no successor for ANY node and mark every decision
+for renewed review after any tree edit at all -- including a pure rename, which
+§8.8 forbids by name. So the match runs
+`decision.destination.node_id -> from-version entry -> origin_node_id ->
+to-version entry`, and a decision is marked only when NO successor shares that
+origin.
+
+A rename is not a removal, and neither is a move. P10 rewrites `display_label`
+(or `parent_node_id`) and mints a new id; the origin is unchanged, so the decision
+carries and produces no review at all. The label and path the user now sees are
+composed by P12 from the new chain.
 """
 from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
 
-from placement.index import legal_node_ids
+from placement.index import entries_for_plan
 from placement.store import decisions_for_plan
 from placement.vocabulary import PLACE
 
@@ -7149,9 +7643,32 @@ class VersionDiff:
 
 
 def reproject(conn: sqlite3.Connection, *, from_plan_version: str,
-              to_plan_version: str) -> VersionDiff:
-    """Which decisions survive the new version, and which need the user again."""
-    surviving = legal_node_ids(conn, plan_version=to_plan_version)
+              to_plan_version: str, revalidation_inputs=None) -> VersionDiff:
+    """Which decisions survive the new version, and which need the user again.
+
+    `revalidation_inputs` is an optional mapping `decision_id -> dict`, one entry
+    per decision that was decided by a MODEL. A deterministic decision has no P8
+    verdict and nothing to re-validate, which is why the mapping is sparse rather
+    than a field on every record. Each entry supplies exactly the keywords
+    `llm_harness.placement_validation.revalidate_for_plan` requires --
+    `previous_verdict_id`, `dossier`, `response_bytes`, `evidence_resolver`,
+    `contradicts`, `dependencies`, `model_id`, `prompt_fingerprint`,
+    `dossier_builder`, `release_audit_id` -- because P11 stores none of them and
+    the caller that made the call holds them all.
+
+    A verdict that re-validates as unavailable or refused joins
+    `requiring_renewed_review` beside the removed-node cases: the node survived,
+    but the judgement about it did not, and §8.8 says a new plan never silently
+    carries a placement whose basis no longer holds.
+    """
+    # The two maps this whole function turns on. `origin_of` reads the version
+    # the decisions were made against; `successors` reads the new one. Neither is
+    # keyed on `node_id` across the boundary, because P10 mints a new one per
+    # version and an id match would find nothing for any node.
+    origin_of = {entry.node_id: entry.origin_node_id
+                 for entry in entries_for_plan(conn, plan_version=from_plan_version)}
+    successors = {entry.origin_node_id
+                  for entry in entries_for_plan(conn, plan_version=to_plan_version)}
     needs_review: list[str] = []
     carried: list[str] = []
     removed: set[str] = set()
@@ -7162,17 +7679,60 @@ def reproject(conn: sqlite3.Connection, *, from_plan_version: str,
             # one until the evidence changes.
             continue
         node_id = decision.destination.node_id
-        if node_id in surviving:
+        # A decision whose own node is not in the from-version index at all has
+        # no lineage to follow, which is itself a reason to ask the user again.
+        origin = origin_of.get(node_id)
+        if origin is None or origin not in successors:
+            needs_review.append(decision.decision_id)
+            removed.add(node_id)
+            continue
+        if _revalidates(conn, decision, to_plan_version, revalidation_inputs):
             carried.append(decision.decision_id)
         else:
             needs_review.append(decision.decision_id)
-            removed.add(node_id)
     return VersionDiff(
         from_plan_version=from_plan_version, to_plan_version=to_plan_version,
         requiring_renewed_review=tuple(needs_review),
         carried_unchanged=tuple(carried),
         removed_node_ids=tuple(sorted(removed)),
     )
+
+
+def _revalidates(conn, decision, to_plan_version: str, inputs) -> bool:
+    """P8 re-checks its own verdict against the new version. P11 re-checks nothing.
+
+    `revalidate_for_plan` is P8's (`placement_validation.py:528`) and records the
+    new verdict itself at `:614`. P11 supplies the current plan version and the
+    current evidence snapshot and reads the answer -- the same authorities-in,
+    verdict-out shape as Site C, one version later.
+    """
+    entry = (inputs or {}).get(decision.decision_id)
+    if entry is None:
+        # No model verdict backs this decision, so there is nothing to
+        # re-validate and the node's survival is the whole question.
+        return True
+    from llm_harness.placement_validation import revalidate_for_plan
+    from llm_harness.records import ValidationUnavailable
+
+    from placement.p8_seam import evidence_snapshot_id_for
+    from placement.vocabulary import VERDICTS
+
+    result = revalidate_for_plan(
+        conn, current_plan_version=to_plan_version,
+        current_evidence_snapshot_id=evidence_snapshot_id_for(
+            plan_version=to_plan_version,
+            observation_keys=tuple(f.evidence_ref
+                                   for f in decision.matching_facts)),
+        observed_at=entry["observed_at"], **{
+            key: entry[key] for key in (
+                "previous_verdict_id", "dossier", "response_bytes",
+                "evidence_resolver", "contradicts", "dependencies", "model_id",
+                "prompt_fingerprint", "dossier_builder", "release_audit_id")
+        })
+    if isinstance(result, ValidationUnavailable):
+        return False
+    # VERDICTS[0] and VERDICTS[1] are the two accepting outcomes.
+    return result.outcome in VERDICTS[:2]
 
 
 def learned_preferences_still_applicable(conn: sqlite3.Connection, *,
@@ -7183,16 +7743,28 @@ def learned_preferences_still_applicable(conn: sqlite3.Connection, *,
     the user decided, and it is preserved -- it is simply not applied, because
     there is nothing left for it to suppress. Deleting it instead would lose the
     reason if the node ever came back.
+
+    "Still exists" is the same lineage question `reproject` asks, and for the same
+    reason: a suppression recorded against an earlier version names that version's
+    `node_id`, which P10's per-version minting guarantees is absent from the new
+    one. Filtered on `node_id`, EVERY learned preference would silently stop
+    applying at the first tree edit -- the opposite of "preferences carry across
+    versions". So the filter matches either identity: a suppression whose id is a
+    current node id, or one whose id is an earlier node with a surviving origin.
     """
-    surviving = legal_node_ids(conn, plan_version=plan_version)
-    return tuple(item for item in suppressions if item.node_id in surviving)
+    entries = entries_for_plan(conn, plan_version=plan_version)
+    surviving_ids = {entry.node_id for entry in entries}
+    surviving_origins = {entry.origin_node_id for entry in entries}
+    return tuple(item for item in suppressions
+                 if item.node_id in surviving_ids
+                 or item.node_id in surviving_origins)
 ```
 
 - [ ] **Step 4: Run and verify GREEN**
 
 Run: `python3 -m pytest -q tests/p11/test_p11_versions.py`
 
-Expected: PASS, 6 tests. `test_a_removed_node_is_never_matched_onto_a_similar_survivor` is the load-bearing one: `n-course-alt` survives and looks like a plausible home, and the assertion is that nothing was written naming it.
+Expected: PASS, 7 tests. Two are load-bearing and fail together if identity is taken from `node_id`: `test_a_renamed_node_carries_the_decision_on_its_lineage_not_its_id`, because plan-2's ids are all new and an id match would send every decision back to review; and `test_a_removed_node_is_never_matched_onto_a_similar_survivor`, because `n-course-alt` survives and looks like a plausible home, and the assertion is that nothing was written naming it.
 
 - [ ] **Step 5: Commit**
 
@@ -7215,6 +7787,7 @@ git commit -m "feat(p11): mark on a new version and never remap a decision"
 ```python
 def envelope_for(decision) -> tuple[str, str]: ...          # (outcome, budget_state)
 def dimension_for(decision) -> DimensionValue: ...
+def candidate_subject_ref(plan_version: str, subject_ref: str) -> str: ...
 def emit_retrieval_stage(conn, *, run_id, retrieval, version_tuple_ref, inputs) -> int: ...
 def emit_scoring_stage(conn, *, run_id, decision, version_tuple_ref, inputs) -> int: ...
 ```
@@ -7225,7 +7798,11 @@ def emit_scoring_stage(conn, *, run_id, decision, version_tuple_ref, inputs) -> 
 
 **The row that must not collapse.** SPEC:280-288: a budget deferral is `deferred` with `ceiling_reached` and is **never** `abstained`, *"even though both are carried on a record whose own `outcome` reads `abstain`"*. Scored as `abstained`, P2 would grade a ceiling-truncated run `abstained_correctly` or `abstained_incorrectly` — a judgement about evidence — when no judgement was made. `record_stage_output` enforces the pairing itself (`stage_output.py:112-118`), so a wrong mapping here fails at the writer rather than during comparison.
 
-**A correct abstention passes both dimensions.** SPEC:583-585 and Done-means 11. `placement` and `residual` are P2 *dimensions* with no same-named stage for the second (`eval_harness/vocabulary.py:6-7` records that as P2's own open question), so P11 attaches the `residual` dimension to `placement_scoring` and says so, rather than inventing a stage P2's closed ten does not contain.
+**A correct abstention passes both dimensions.** SPEC:583-585 and Done-means 11. `placement` and `residual` are P2 *dimensions* with no same-named stage for the second (`eval_harness/vocabulary.py:5-11` records that as P2's own open question), so P11 attaches the `residual` dimension to `placement_scoring` and says so, rather than inventing a stage P2's closed ten does not contain.
+
+**Every stage this task emits carries a dimension value, or it is not measurable at all.** `src/eval_harness/attribution.py` reads **only** `stage_dimension_value` rows — to decide which stage emitted a failing assertion (`:65-71`) and which stages qualify as ancestors (`:30-39`). A stage that writes none can be neither. So `candidate_node_retrieval` carries the **`retrieval`** dimension, which §8.5 names for it directly: *"Retrieval quality: for sparse files, did the correct anchors appear in the top candidate neighborhood?"* (`planning/01-product-design-structured.md:1757-1758`). Two stages sharing one dimension is the shape §8.5 already has — its ten dimensions are a shorter and separate list from its ten stages on purpose — so no eleventh dimension is invented.
+
+**And its subject must be namespaced, or the write raises.** `stage_dimension_value` is keyed `PRIMARY KEY (run_id, dimension, subject_ref)` (`src/eval_harness/stage_output.py:59`). Two consequences, both fatal to the naive version: `candidate_node_retrieval` cannot carry the `placement` dimension for the same subject as `placement_scoring`, because the second `INSERT` raises `IntegrityError`; and `retrieval` is already P9's dimension for its own retrieval stage (`src/grouping/stage_output.py:56-60`), so a full-pipeline replay in which P9 and P11 both key a `retrieval` row on the same file raises too. Hence `subject_ref = f"candidates:{plan_version}:{subject_ref}"` on **both** the envelope and the `DimensionValue` — they must be equal, because `_stage_verdicts` keys on the dimension row's and `_edges` on the envelope's — and `placement_scoring.inputs` gains that same ref, because the ancestor walk only reaches a stage named in `inputs[]`. With both halves, an assertion on `(retrieval, candidates:plan-1:file:f1:h1)` graded `divergent` attributes to `candidate_node_retrieval` (stage order 8) rather than to `placement_scoring` (order 9), which is what §8.5 asks for. Decided in `planning/38-p10-p11-connection-contract.md` §7.
 
 - [ ] **Step 1: Write the failing stage tests**
 
@@ -7242,7 +7819,7 @@ from eval_harness.vocabulary import DIMENSIONS, STAGE_IDS as P2_STAGE_IDS
 from placement import vocabulary as v
 from placement.records import ResidualContext
 from placement.stage_output import dimension_for, envelope_for
-from tests.p11.test_p11_records import _decision
+from p11.test_p11_records import _decision
 
 
 def _residual(outcome):
@@ -7324,11 +7901,26 @@ And the replay gate:
 """P11 → P2, through the live writer. Replay only; there is no live run kind."""
 from __future__ import annotations
 
-from eval_harness.stage_output import dimension_values, stage_outputs
+import json
+
+import pytest
+
+from eval_harness.stage_output import (
+    DimensionValue, dimension_values, record_stage_output, stage_outputs,
+)
 
 from placement import vocabulary as v
-from placement.stage_output import emit_scoring_stage
-from tests.p11.test_p11_records import _decision
+from placement.retrieval import Retrieval
+from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
+from p11.test_p11_records import _decision
+
+
+@pytest.fixture
+def a_retrieval():
+    """One candidate set, keyed on the same subject the decision below uses."""
+    return Retrieval(subject_ref="file:f1:h1", plan_version="plan-1",
+                     candidates=(), conflicts=(),
+                     semantic_only_node_ids=frozenset())
 
 
 def test_a_placement_stage_round_trips_with_its_dimension(p11_conn, p2_run_id,
@@ -7341,6 +7933,66 @@ def test_a_placement_stage_round_trips_with_its_dimension(p11_conn, p2_run_id,
     assert rows[0]["outcome"] == "produced"
     values = dimension_values(p11_conn, p2_run_id, dimension=v.DIMENSION_PLACEMENT)
     assert len(values) == 1
+
+
+def test_the_retrieval_stage_is_attributable_at_all(p11_conn, p2_run_id,
+                                                    p11_version_tuple,
+                                                    a_retrieval):
+    # `eval_harness/attribution.py` reads ONLY `stage_dimension_value` rows, both
+    # to name the stage that emitted a failing assertion (:65-71) and to qualify
+    # ancestors (:30-39). A retrieval stage with no dimension row is invisible to
+    # both, so a placement error that began in retrieval could never be measured
+    # as one. This is the test that fails if the DimensionValue is dropped.
+    emit_retrieval_stage(p11_conn, run_id=p2_run_id, retrieval=a_retrieval,
+                         version_tuple_ref=p11_version_tuple, inputs=())
+    values = dimension_values(p11_conn, p2_run_id, dimension=v.DIMENSION_RETRIEVAL)
+    assert len(values) == 1
+    assert values[0]["subject_ref"] == "candidates:plan-1:file:f1:h1"
+
+
+def test_the_envelope_and_the_dimension_share_one_subject_ref(p11_conn, p2_run_id,
+                                                              p11_version_tuple,
+                                                              a_retrieval):
+    # `_stage_verdicts` keys on the dimension row's subject_ref while `_edges`
+    # keys on the envelope's. Unequal, the stage is measured and unreachable.
+    emit_retrieval_stage(p11_conn, run_id=p2_run_id, retrieval=a_retrieval,
+                         version_tuple_ref=p11_version_tuple, inputs=())
+    rows = stage_outputs(p11_conn, p2_run_id, stage_id=v.CANDIDATE_NODE_RETRIEVAL)
+    values = dimension_values(p11_conn, p2_run_id, dimension=v.DIMENSION_RETRIEVAL)
+    assert rows[0]["subject_ref"] == values[0]["subject_ref"]
+
+
+def test_scoring_names_the_retrieval_stage_as_an_input(p11_conn, p2_run_id,
+                                                       p11_version_tuple,
+                                                       a_retrieval):
+    # The ancestor walk reaches a stage only through `inputs[]`. Without this,
+    # a retrieval-origin error would attribute to `placement_scoring` (order 9)
+    # rather than `candidate_node_retrieval` (order 8).
+    emit_retrieval_stage(p11_conn, run_id=p2_run_id, retrieval=a_retrieval,
+                         version_tuple_ref=p11_version_tuple, inputs=())
+    emit_scoring_stage(p11_conn, run_id=p2_run_id, decision=_decision(),
+                       version_tuple_ref=p11_version_tuple, inputs=("group:g1",))
+    rows = stage_outputs(p11_conn, p2_run_id, stage_id=v.PLACEMENT_SCORING)
+    assert "candidates:plan-1:file:f1:h1" in json.loads(rows[0]["inputs"])
+
+
+def test_p9_and_p11_retrieval_rows_coexist_in_one_run(p11_conn, p2_run_id,
+                                                      p11_version_tuple,
+                                                      a_retrieval):
+    # `stage_dimension_value` is keyed (run_id, dimension, subject_ref) and P9
+    # already writes `retrieval` rows keyed on the bare file. Un-namespaced, this
+    # second write raises IntegrityError in every full-pipeline replay.
+    record_stage_output(
+        p11_conn, run_id=p2_run_id, stage_id="grouping_retrieval",
+        subject_ref="file:f1:h1", outcome="produced", payload=None,
+        version_tuple_ref=p11_version_tuple, inputs=(),
+        budget_state="within_ceiling",
+        dimension_values=(DimensionValue(dimension="retrieval",
+                                         subject_ref="file:f1:h1",
+                                         outcome="produced", value={}),))
+    emit_retrieval_stage(p11_conn, run_id=p2_run_id, retrieval=a_retrieval,
+                         version_tuple_ref=p11_version_tuple, inputs=())
+    assert len(dimension_values(p11_conn, p2_run_id, dimension="retrieval")) == 2
 
 
 def test_a_lower_ceiling_produces_deferrals_and_no_divergences(
@@ -7396,7 +8048,7 @@ from eval_harness.stage_output import DimensionValue, record_stage_output
 
 from placement.vocabulary import (
     ABSTAIN, BUDGET_DEFERRED, CANDIDATE_NODE_RETRIEVAL, DIMENSION_PLACEMENT,
-    DIMENSION_RESIDUAL, PLACEMENT_SCORING, RESIDUAL,
+    DIMENSION_RESIDUAL, DIMENSION_RETRIEVAL, PLACEMENT_SCORING, RESIDUAL,
 )
 
 PRODUCED: str = "produced"
@@ -7445,13 +8097,49 @@ def dimension_for(decision) -> DimensionValue:
     )
 
 
+def candidate_subject_ref(plan_version: str, subject_ref: str) -> str:
+    """The namespaced subject `candidate_node_retrieval` is measured under.
+
+    `stage_dimension_value` declares `PRIMARY KEY (run_id, dimension,
+    subject_ref)` (`eval_harness/stage_output.py:59`), and `retrieval` is already
+    P9's dimension for its own retrieval stage (`grouping/stage_output.py:56-60`).
+    An un-namespaced ref would make a full-pipeline replay raise `IntegrityError`
+    the moment P9 and P11 both keyed a `retrieval` row on the same file.
+
+    The `plan_version` in the key is not decoration. `retrieval` sits in
+    `SHARED_EVIDENCE_DIMENSIONS` (`eval_harness/vocabulary.py:48`) while P11's
+    candidate retrieval is plan-scoped by construction -- it retrieves only the
+    legal destinations of one frozen version. Keying on the version means two plan
+    versions produce two measurements rather than one contested row.
+    """
+    return f"candidates:{plan_version}:{subject_ref}"
+
+
 def emit_retrieval_stage(conn: sqlite3.Connection, *, run_id: str, retrieval,
                          version_tuple_ref: str, inputs) -> int:
-    """§6.2's stage. Its subject is the file or group a candidate set was for."""
+    """§6.2's stage. Its subject is the file or group a candidate set was for.
+
+    It carries a `DimensionValue` because a stage that writes none is
+    structurally unattributable: `eval_harness/attribution.py` reads ONLY
+    `stage_dimension_value` rows to decide both which stage emitted a failing
+    assertion (`:65-71`) and which stages qualify as ancestors (`:30-39`). Without
+    one, a placement error that began in retrieval could never be measured as a
+    retrieval error, no matter what P2 did.
+
+    The dimension is `retrieval`, and the design settles which one: §8.5's list
+    reads *"Retrieval quality: for sparse files, did the correct anchors appear in
+    the top candidate neighborhood?"* (`01-product-design-structured.md:1757-1758`)
+    -- which is this stage, in the design's own words. §8.5's ten dimensions are a
+    shorter and separate list from its ten stages ON PURPOSE, so two stages sharing
+    one dimension is the shape the design already has, and no eleventh dimension is
+    invented to avoid it.
+    """
     produced = PRODUCED if retrieval.candidates else ABSTAINED
+    subject_ref = candidate_subject_ref(retrieval.plan_version,
+                                        retrieval.subject_ref)
     return record_stage_output(
         conn, run_id=run_id, stage_id=CANDIDATE_NODE_RETRIEVAL,
-        subject_ref=retrieval.subject_ref, outcome=produced,
+        subject_ref=subject_ref, outcome=produced,
         payload=json.dumps({
             "plan_version": retrieval.plan_version,
             "retrieved": [c.node_id for c in retrieval.candidates],
@@ -7461,6 +8149,20 @@ def emit_retrieval_stage(conn: sqlite3.Connection, *, run_id: str, retrieval,
         }, sort_keys=True),
         version_tuple_ref=version_tuple_ref, inputs=list(inputs),
         budget_state=WITHIN_CEILING,
+        # The envelope's subject_ref and the dimension row's must be EQUAL:
+        # `_stage_verdicts` keys on the dimension row's while `_edges` keys on the
+        # envelope's, so a mismatch attributes nothing.
+        dimension_values=(DimensionValue(
+            dimension=DIMENSION_RETRIEVAL, subject_ref=subject_ref,
+            outcome=produced,
+            value={
+                "plan_version": retrieval.plan_version,
+                "retrieved": [c.node_id for c in retrieval.candidates],
+                "suppressed": sorted({n for c in retrieval.conflicts
+                                      for n in c.suppressed_node_ids}),
+                "semantic_only": sorted(retrieval.semantic_only_node_ids),
+            },
+        ),),
     )
 
 
@@ -7472,13 +8174,21 @@ def emit_scoring_stage(conn: sqlite3.Connection, *, run_id: str, decision,
     `factual_validation` stage outputs this decision consumed. Naming them is
     what lets P2 attribute a placement error to the stage it began in, rather
     than to the last stage that touched the file.
+
+    `candidate_node_retrieval`'s own ref is appended here rather than left to the
+    caller, because the ancestor walk reaches a stage ONLY through `inputs[]`
+    (`eval_harness/attribution.py:30-39`). Emitting a dimension value from the
+    retrieval stage and then omitting it from this list would leave the stage
+    measured and still unreachable -- both halves are required.
     """
     from placement.store import subject_ref_of
 
     outcome, budget_state = envelope_for(decision)
+    subject_ref = subject_ref_of(decision.subject)
+    retrieval_ref = candidate_subject_ref(decision.plan_version, subject_ref)
     return record_stage_output(
         conn, run_id=run_id, stage_id=PLACEMENT_SCORING,
-        subject_ref=subject_ref_of(decision.subject), outcome=outcome,
+        subject_ref=subject_ref, outcome=outcome,
         payload=json.dumps({
             "decision_id": decision.decision_id,
             "plan_version": decision.plan_version,
@@ -7487,7 +8197,8 @@ def emit_scoring_stage(conn: sqlite3.Connection, *, run_id: str, decision,
             "review_policy": decision.review_policy,
             "deferred_stage": decision.deferred_stage,
         }, sort_keys=True),
-        version_tuple_ref=version_tuple_ref, inputs=list(inputs),
+        version_tuple_ref=version_tuple_ref,
+        inputs=[*inputs, retrieval_ref],
         budget_state=budget_state,
         dimension_values=(dimension_for(decision),),
     )
@@ -7497,7 +8208,7 @@ def emit_scoring_stage(conn: sqlite3.Connection, *, run_id: str, decision,
 
 Run: `python3 -m pytest -q tests/p11/test_p11_stage_output.py tests/integration/test_p11_p2_replay.py`
 
-Expected: PASS, 10 tests. `test_a_budget_deferral_is_deferred_and_never_abstained` and its replay counterpart are the pair that would both fail if the third row of SPEC's mapping table collapsed into the second — which is the failure P2 Done-means 6 depends on not happening.
+Expected: PASS, 14 tests. `test_a_budget_deferral_is_deferred_and_never_abstained` and its replay counterpart are the pair that would both fail if the third row of SPEC's mapping table collapsed into the second — which is the failure P2 Done-means 6 depends on not happening. `test_the_retrieval_stage_is_attributable_at_all` and `test_scoring_names_the_retrieval_stage_as_an_input` are the pair that fail if either half of §7's fix is dropped: a dimension row with no `inputs[]` entry is measured and unreachable, and an `inputs[]` entry with no dimension row is reachable and unmeasured.
 
 - [ ] **Step 5: Commit**
 
@@ -7525,18 +8236,53 @@ class PipelineInputs:      # every injection, none defaulted
     plan_version: str; tree: object; policy: SupportPolicy; limits: PlacementLimits
     partition: object; ask_or_abstain: object; max_return_cycles: int | None
     gate: object; model_client: object; prompt: object; call_dependencies: object
+    model_call_request: object       # P7 builds it; P11 holds the builder
+    chosen_node_of: object           # verdict -> node_id, injected (see OPEN below)
+    sensitivity_policy: object       # P7's answer for this release
     automatic_move_permitted: bool
+
+    def model_path_available(self) -> bool: ...
+
+@dataclass(frozen=True)
+class CorpusResult:
+    decisions: tuple[PlacementDecision, ...]
+    group_plans: tuple[GroupPlan, ...]
+    residual_sets: tuple[ResidualSet, ...]
+    residual_decisions: tuple[PlacementDecision, ...]
+    unplaced_file_ids: tuple[str, ...]
 
 STEPS: tuple[str, ...]     # §6.12's nine, in §6.12's order
 
 def place_file(conn, *, subject, inputs, evidence, component_version, observed_at) -> PlacementDecision: ...
-def run_corpus(conn, *, subjects, inputs, evidence_for, component_version, observed_at) -> tuple: ...
+def place_group(conn, *, group_id, inputs, evidence_for, component_version, observed_at) -> GroupPlan: ...
+def run_residual_file(conn, *, subject, set_id, inputs, evidence, action, target,
+                      component_version, observed_at) -> PlacementDecision: ...
+def run_corpus(conn, *, subjects, group_ids, inputs, evidence_for,
+               component_version, observed_at) -> CorpusResult: ...
 def golden_decisions() -> tuple[PlacementDecision, ...]: ...
 ```
 
 **Done-means:** the whole of Done means (SPEC:605-671), exercised end to end.
 
-**The spine is §6.12's nine steps**, from `planning/01-product-design-structured.md:1295-1306`, and `STEPS` names them in that order so the pipeline's shape is checkable against the design rather than against itself. Steps 1–2 are P10's and step 8 is P8's; the pipeline calls into them and owns 3–7 and 9.
+**The spine is §6.12's nine steps**, from `planning/01-product-design-structured.md:1295-1306`, and `STEPS` names them in that order so the pipeline's shape is checkable against the design rather than against itself. Steps 1–2 are P10's; the pipeline owns 3–7 and 9 and reaches step 8 through P8.
+
+**What this task orchestrates, step by step.** Tasks 6–18 published nineteen components; before this repair the pipeline called seven of them and the rest had no caller at all. Each row below names the step, the component, and the design sentence that puts it there.
+
+| §6.12 step | Owner | Wired by |
+|---|---|---|
+| 1 freeze the approved tree | P10 | `PipelineInputs.tree`, indexed by `build_destination_index` before any file is placed (Done-means 3) |
+| 2 profile each node | P10 | same |
+| 3 retrieve legal candidates | P11 | `retrieval.retrieve`, inside `place_file` |
+| 4 build the local graph | P11 | `graph.build_node_local_graph`, per candidate |
+| 5 remove impossible/conflicting nodes | P11 | retrieval's own suppression **plus** `learning.suppressed_nodes` (§8.7, before any `place`) |
+| 6 child / parent / fallback / none | P11 | `scoring.assess` |
+| **7 the LLM judges bounded ambiguity** | P8, called by P11 | **`_judge_with_model` → `p8_seam.call_placement` → `run_call`** |
+| **8 the validator checks evidence** | P8 | runs **inside** `run_call`; P11 supplies the four authorities and never re-checks |
+| 9 a reviewable plan | P11 | `run_corpus` → `CorpusResult`, then §7's residual stage |
+
+**`record_cd_verdict` is P8's to call, not P11's.** `harness.py:245-253` shows `_record_verdicts` calling `record_cd_verdict` itself for every `C_placement` and `D_residual` verdict, and `placement_validation.py:614` shows `revalidate_for_plan` doing the same. P11 calling it as well would write the row twice. What P11 owes is the input that call needs: `DossierRequest.evidence_snapshot_id`, which `harness.py:154-165` refuses a C or D request without **before the spend**. `_judge_with_model` mints it with `p8_seam.evidence_snapshot_id_for` and puts it on the request, which is how P11 reaches `record_cd_verdict` correctly — through P8, once.
+
+**`revalidate_for_plan` belongs to Task 17, and it is wired there.** It re-validates a *stored* verdict against a new plan version and evidence snapshot, which is §8.8's question, not §6.12's. Task 17 declared it under **Consumes** and never called it; that is now fixed. See [Task 17](#task-17-re-project-on-a-new-plan-version-and-remap-nothing) and the OPEN item it records.
 
 - [ ] **Step 1: Write the failing walking-skeleton test**
 
@@ -7554,39 +8300,69 @@ from privacy.policy import Policy, set_policy
 
 from placement import vocabulary as v
 from placement.config import CEILINGS, SupportPolicy, placement_limits
+from placement.index import build_destination_index
 from placement.pipeline import STEPS, PipelineInputs, place_file
 from placement.records import MatchingFact, Subject
-from tests.p11.conftest import FIXED_CLOCK
-from tests.p11.p10_fixtures import FROZEN_TREE
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE
 
+# 0.50 sits ABOVE a direct fact alone (3/7 = 0.4286) and BELOW a direct fact plus
+# an accepted group (5/7 = 0.7143). Both halves are asserted below, so a threshold
+# moved out of that band fails loudly instead of turning every placement into an
+# abstention.
 POLICY = SupportPolicy(policy_id="skeleton-v1", support_scale_max=1.0,
                        minimum_support_threshold=0.5, margin_threshold=0.2)
+
+
+def _classify(conn, *, file_id="f1", content_hash="h1"):
+    """One P7 classification. Absent, `place_file` blocks -- which is correct."""
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class="personal_non_sensitive", protected=False,
+        basis="detector", evidence_refs=("obs-1",), reliability_state="direct",
+        observed_at=FIXED_CLOCK))
+
+
+def _partition(file_ids):
+    """§7.5's partition, injected. P11 invents no set names (Open question 10)."""
+    return (
+        {"label": "Unassociated", "member_file_ids": tuple(file_ids),
+         "representative_examples": tuple(file_ids[:1]),
+         "file_type_distribution": (("pdf", len(file_ids)),),
+         "age_range": ("2026-01-01", "2026-08-01"),
+         "evidence_availability": "ocr_present",
+         "sensitivity_status": "public_low", "weak_graph_neighbours": (),
+         "reason_not_placed": "no direct fact reached any legal destination"},
+    ) if file_ids else ()
 
 
 @pytest.fixture()
 def skeleton(p11_conn):
     for key in CEILINGS.values():
         set_ceiling(p11_conn, key, 8)
-    ClassificationStore(p11_conn).write(ClassificationRecord(
-        file_id="f1", content_hash="h1",
-        handling_class="personal_non_sensitive", protected=False,
-        basis="detector", evidence_refs=("obs-1",), reliability_state="direct",
-        observed_at=FIXED_CLOCK))
+    _classify(p11_conn)
     set_policy(p11_conn, Policy(
         policy_version="pol-1", operation_mode="hybrid", consent_grants=(),
         redaction_settings={}, automatic_move_permissions={},
         plan_version="plan-1", set_at=FIXED_CLOCK),
         component_version="P7-test", user_id="u1", reason="skeleton fixture")
+    build_destination_index(p11_conn, FROZEN_TREE,
+                            component_version="P11-test",
+                            observed_at=FIXED_CLOCK)
     return p11_conn
 
 
 def _inputs(conn, **overrides):
+    # Every model injection is None: this is a DETERMINISTIC-ONLY run, which §6.6
+    # makes a legal run, and `model_path_available()` returns False so step 7 is
+    # skipped rather than attempted and failed. The model path has its own test.
     values = dict(
         plan_version="plan-1", tree=FROZEN_TREE, policy=POLICY,
         limits=placement_limits(conn),
         partition=None, ask_or_abstain=lambda ids: v.ABSTAIN,
         max_return_cycles=1, gate=None, model_client=None, prompt=None,
-        call_dependencies=None, automatic_move_permitted=False,
+        call_dependencies=None, model_call_request=None, chosen_node_of=None,
+        sensitivity_policy=None, automatic_move_permitted=False,
     )
     values.update(overrides)
     return PipelineInputs(**values)
@@ -7604,6 +8380,27 @@ def _evidence(**overrides):
     return values
 
 
+#: The evidence that makes the skeleton place, and the arithmetic that makes it
+#: place. `assess` normalises by `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7`:
+#:
+#:   n-course        direct_fact(3) + accepted_group(2) = 5/7 = 0.7143
+#:   n-course-shared                  accepted_group(2) = 2/7 = 0.2857
+#:   n-course-alt    expected subject = PHYS1402 contradicts the file's
+#:                   PHYS1401, so retrieval SUPPRESSES it -- a conflict, not a
+#:                   candidate, and it populates `conflicts_considered`.
+#:
+#:   support 0.7143 >= threshold 0.50              -> meets_threshold
+#:   margin  5/7 - 2/7 = 3/7 = 0.4286 >= 0.20      -> meets_margin = "true"
+#:   exactly one candidate carries direct_fact     -> unique_direct_match
+#:
+#: The direct fact ALONE scores 3/7 = 0.4286, which is BELOW the 0.50 threshold.
+#: The accepted-group channel is what carries it over, and B8(b)'s second node is
+#: what makes the margin measured instead of vacuous. Both are load-bearing: drop
+#: the group and this file abstains; drop the second candidate and §6.10's margin
+#: condition is satisfied by vacuity, which B8(b) says a skeleton must not do.
+PLACING_GROUPS: tuple[str, ...] = ("g-phys1401", "g-shared")
+
+
 SUBJECT = Subject(kind=v.FILE, file_id="f1", content_hash="h1", group_id=None,
                   member_file_ids=())
 
@@ -7617,8 +8414,8 @@ def test_the_pipeline_names_612s_nine_steps_in_612s_order():
 def test_a_unique_direct_match_is_placed_with_zero_model_calls(skeleton):
     decision = place_file(
         skeleton, subject=SUBJECT, inputs=_inputs(skeleton),
-        evidence=_evidence(), component_version="P11-test",
-        observed_at=FIXED_CLOCK)
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
     assert decision.outcome == v.PLACE
     assert decision.destination.node_id == "n-course"
     assert decision.destination.node_role == v.ORDINARY
@@ -7626,6 +8423,41 @@ def test_a_unique_direct_match_is_placed_with_zero_model_calls(skeleton):
     assert decision.review_policy == v.AUTO_ELIGIBLE
     assert skeleton.execute(
         "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_the_skeletons_margin_is_measured_and_never_vacuous(skeleton):
+    # B8(b): "The skeleton gains a second frozen node, so the margin path is
+    # genuinely exercised rather than bypassed." This is the assertion that
+    # makes that true rather than intended.
+    decision = place_file(
+        skeleton, subject=SUBJECT, inputs=_inputs(skeleton),
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+    two = decision.two_condition
+    assert two.meets_margin == v.MARGIN_TRUE          # measured, not true_vacuous
+    assert two.margin_over_next == pytest.approx(3 / 7)   # 5/7 - 2/7
+    assert two.support_score == pytest.approx(5 / 7)
+    assert two.meets_threshold is True
+    assert [a.node_id for a in decision.alternatives] == [
+        "n-course", "n-course-shared"]
+    # And the suppressed node is visible, so the review surface can answer
+    # "why not PHYS1402?" (§6.3, Done-means 4).
+    assert "n-course-alt" in {node for conflict in decision.conflicts_considered
+                              for node in conflict.suppressed_node_ids}
+
+
+def test_the_direct_fact_alone_does_not_clear_the_threshold(skeleton):
+    # The other half of the arithmetic, asserted rather than assumed: 3/7 is
+    # below 0.50, so a file with the fact and no group support abstains. A
+    # threshold the strongest available evidence cannot reach would make every
+    # placement in this plan unreachable, and this test is what would catch it.
+    decision = place_file(
+        skeleton, subject=SUBJECT, inputs=_inputs(skeleton),
+        evidence=_evidence(), component_version="P11-test",
+        observed_at=FIXED_CLOCK)
+    assert decision.outcome == v.ABSTAIN
+    assert decision.two_condition.support_score == pytest.approx(3 / 7)
+    assert decision.two_condition.meets_threshold is False
 
 
 def test_a_mathematical_looking_file_never_produces_math_stuff(skeleton):
@@ -7652,8 +8484,8 @@ def test_a_file_resembling_an_ignored_folder_abstains(skeleton):
 def test_the_decision_is_stored_and_its_event_appended(skeleton):
     decision = place_file(
         skeleton, subject=SUBJECT, inputs=_inputs(skeleton),
-        evidence=_evidence(), component_version="P11-test",
-        observed_at=FIXED_CLOCK)
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
     row = skeleton.execute(
         "SELECT record_id, node_id FROM placement_decisions").fetchone()
     assert row["record_id"] == decision.decision_id
@@ -7675,7 +8507,148 @@ def test_an_unclassified_file_is_blocked_and_not_placed(p11_conn):
         place_file(p11_conn, subject=SUBJECT, inputs=_inputs(p11_conn),
                    evidence=_evidence(), component_version="P11-test",
                    observed_at=FIXED_CLOCK)
+
+
+# --- the orchestration §6.12 step 9 and §7 actually require ---------------------
+
+
+def test_the_steps_map_names_a_caller_for_every_step_p11_owns():
+    # The spine is only checkable if each step it claims has a callable behind
+    # it. Steps 1-2 are P10's and 8 is P8's; 3, 4, 5, 6, 7 and 9 are P11's.
+    import inspect
+
+    from placement import pipeline
+
+    source = inspect.getsource(pipeline)
+    for call in ("retrieve(", "build_node_local_graph(", "suppressed_nodes(",
+                 "assess(", "_judge_with_model(", "surface_residual_sets("):
+        assert call in source, call
+
+
+def test_run_corpus_places_groups_before_files_and_surfaces_the_rest(skeleton):
+    from p11.p9_fixtures import GROUP_ID, seed_accepted_columbia
+    from placement.pipeline import run_corpus
+
+    seed_accepted_columbia(skeleton)
+    for file_id in ("f-essay", "f-transcript", "f-scan", "f-duke-essay"):
+        _classify(skeleton, file_id=file_id, content_hash=f"h-{file_id}")
+
+    result = run_corpus(
+        skeleton, subjects=(SUBJECT,), group_ids=(GROUP_ID,),
+        inputs=_inputs(skeleton, partition=_partition),
+        evidence_for=lambda file_id: _evidence(
+            group_ids=PLACING_GROUPS if file_id == "f1" else ()),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+
+    # §6.8 ran: one plan, and the outlier P9 flagged is excluded and explained.
+    assert len(result.group_plans) == 1
+    assert result.group_plans[0].excluded_outliers
+    assert {o.file_id for o in result.group_plans[0].excluded_outliers} == {
+        "f-duke-essay"}
+    # Every member decision carries the plan's id, so a review surface shows ONE
+    # plan and not four unrelated file moves (§6.8).
+    assert {d.group_plan_id for d in result.group_plans[0].member_decisions} == {
+        result.group_plans[0].group_plan_id}
+    # §6 ran for the standalone file too, and it placed.
+    assert any(d.outcome == v.PLACE and d.subject.file_id == "f1"
+               for d in result.decisions)
+    # §7.5 ran SECOND, over exactly what §6 could not place.
+    assert result.residual_sets
+    assert set(result.unplaced_file_ids) <= {
+        d.subject.file_id for d in result.decisions if d.outcome != v.PLACE}
+
+
+def test_a_surfaced_set_with_no_decision_issues_no_model_call(skeleton):
+    # §7.6, SPEC:545-547. Surfaced-and-undecided is the state the gate exists to
+    # make visible, and `run_corpus` must leave it alone rather than proceed.
+    from placement.pipeline import run_corpus
+
+    result = run_corpus(
+        skeleton, subjects=(SUBJECT,), group_ids=(),
+        inputs=_inputs(skeleton, partition=_partition),
+        evidence_for=lambda file_id: _evidence(),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+    assert result.residual_sets
+    assert result.residual_decisions == ()
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_the_model_path_is_reached_when_the_deterministic_one_is_ambiguous(
+        skeleton, monkeypatch):
+    # §6.12 step 7. Two candidates inside the margin, so `needs_model_call` is
+    # True and the pipeline must actually CALL P8 rather than abstain silently.
+    import placement.pipeline as pipeline
+
+    called = {}
+
+    def _fake_call(conn, request, **kwargs):
+        called["site"] = request.call_site
+        called["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        called["snapshot"] = request.evidence_snapshot_id
+        return _accepting_verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    decision = pipeline.place_file(
+        skeleton, subject=SUBJECT,
+        inputs=_inputs(skeleton, gate=object(), model_client=object(),
+                       prompt=object(), call_dependencies=_call_dependencies(),
+                       model_call_request=lambda **_k: object(),
+                       chosen_node_of=lambda _verdict: "n-course-shared",
+                       sensitivity_policy=lambda *_a, **_k: True),
+        evidence=_evidence(group_ids=("g-shared",),
+                           semantic_neighbours=("n-general",)),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+
+    assert called["site"] == "C_placement"
+    # The single most load-bearing value P11 hands P8: Site C rejects anything
+    # outside it as INVENTED_NODE, and it is P11's index, never the caller's.
+    assert "n-course" in called["allowed"]
+    assert "n-ignored" not in called["allowed"]
+    # Required BEFORE the spend (harness.py:154-165) and minted by nobody else.
+    assert called["snapshot"].startswith("snap-")
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course-shared"
+    assert decision.confidence_class == v.CONTEXT_SUPPORTED_GROUP_MATCH
+    assert decision.review_policy == v.REVIEW_REQUIRED
+
+
+def test_a_model_choice_outside_the_frozen_tree_places_nothing(skeleton,
+                                                               monkeypatch):
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: _accepting_verdict())
+    with pytest.raises(ValueError):
+        pipeline.place_file(
+            skeleton, subject=SUBJECT,
+            inputs=_inputs(skeleton, gate=object(), model_client=object(),
+                           prompt=object(),
+                           call_dependencies=_call_dependencies(),
+                           model_call_request=lambda **_k: object(),
+                           chosen_node_of=lambda _v: "n-invented",
+                           sensitivity_policy=lambda *_a, **_k: True),
+            evidence=_evidence(group_ids=("g-shared",),
+                               semantic_neighbours=("n-general",)),
+            component_version="P11-test", observed_at=FIXED_CLOCK)
 ```
+
+`_accepting_verdict()` returns a real `llm_harness.records.P8Verdict` with
+`outcome = accept_context_supported`, and `_call_dependencies()` returns a real
+`llm_harness.harness.CallDependencies` with the caller's halves filled and
+`site_dependencies` / `allowed_vocabulary` left `None` — precisely so the assertion
+above proves the pipeline set them. `_partition` is the same injected partition
+Task 14's suite uses. `_classify` is `test_p11_privacy.py`'s helper, parameterised
+by file id.
+
+Monkeypatching `call_placement` is deliberate and is the *only* place this plan
+fakes a P8 call: `run_call` needs a live `Gate`, a `ModelClient` and a released
+transport, all of which are P7's and P8's to construct. What is under test here is
+that P11 **reaches** step 7 with the right request — the call site, the allowed
+vocabulary and the evidence snapshot — and that it transcribes the verdict rather
+than re-deciding it. Whether P8's own checks work is
+`tests/integration/test_p11_p8_seam.py`'s job, and that suite uses the live
+validator with no fake at all.
 
 And the P12 boundary:
 
@@ -7736,21 +8709,44 @@ moving either later would make a spend or a placement happen first.
 """
 from __future__ import annotations
 
+import dataclasses
 import sqlite3
 from dataclasses import dataclass
 
+from llm_harness.harness import DossierRequest
+from llm_harness.vocabulary import (
+    C_PLACEMENT, D_RESIDUAL, SEVERAL_LEGAL_NODES_PLAUSIBLE,
+    USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
+)
+
 from placement.config import PlacementLimits, SupportPolicy, require_policy
 from placement.graph import build_node_local_graph
-from placement.index import entry_for
-from placement.learning import suppressed_nodes
+from placement.groups import (
+    AcceptedGroup, ExcludedOutlier, GroupPlan, accepted_group_as_of,
+    confirm_shared_parent, excluded_outlier_for, resolve_multi_home,
+)
+from placement.index import entry_for, legal_node_ids
+from placement.learning import basis_key_for, suppressed_nodes
+from placement.p8_seam import (
+    call_placement, evidence_snapshot_id_for, placement_authorities,
+    residual_authorities, site_dependencies, to_p8_conflicts, transcribe,
+)
 from placement.privacy import may_assemble_dossier, privacy_state_for, review_policy_for
-from placement.records import DecisionDepth, Destination, PlacementDecision
+from placement.records import (
+    DecisionDepth, Destination, PlacementDecision, ResidualContext,
+)
+from placement.residual import (
+    ResidualSet, check_return_cycle, model_calls_permitted, outcome_for_action,
+    require_set_decision, surface_residual_sets,
+)
 from placement.retrieval import retrieve
 from placement.scoring import assess, needs_model_call
 from placement.store import record_decision, subject_ref_of
 from placement.vocabulary import (
-    ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, CONTEXT_SUPPORTED, DIRECT, PLACE,
-    PLACEMENT, PRIVACY_BLOCKED,
+    ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
+    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, MARK_STATE,
+    NO_SHARED_BRANCH, PLACE, PLACEMENT, PRIVACY_BLOCKED, RESIDUAL,
+    RETURN_TO_PLACEMENT, SHARED_MATERIAL_DECISION,
 )
 
 #: §6.12's nine, in §6.12's order. Steps 1-2 are P10's and step 8 is P8's; naming
@@ -7781,6 +8777,9 @@ class PipelineInputs:
     model_client: object
     prompt: object
     call_dependencies: object
+    model_call_request: object
+    chosen_node_of: object
+    sensitivity_policy: object
     automatic_move_permitted: bool
 
     def __post_init__(self) -> None:
@@ -7792,11 +8791,46 @@ class PipelineInputs:
                 "limits is a run under a bound nobody chose"
             )
 
+    def model_path_available(self) -> bool:
+        """Whether step 7 can run at all. A deterministic-only run is legal.
+
+        §6.6 decides a unique direct match with zero model calls, so a run with
+        no model injections is a correct run and must not look like a failure.
+        What is NOT legal is discovering the injections are missing after a
+        dossier has been assembled, which is why this is asked before one is.
+        """
+        return None not in (self.gate, self.model_client, self.prompt,
+                            self.call_dependencies, self.model_call_request,
+                            self.chosen_node_of, self.sensitivity_policy)
+
+
+@dataclass(frozen=True)
+class CorpusResult:
+    """§6.12 step 9: "a reviewable plan of exact placements, shallow placements,
+    scoped fallbacks, and abstentions" -- plus what §7 then did with the rest.
+
+    One object, so a review surface does not have to run the pipeline twice to
+    learn what happened, and so `unplaced_file_ids` is a fact the run produced
+    rather than something the caller re-derives by filtering.
+    """
+
+    decisions: tuple[PlacementDecision, ...]
+    group_plans: tuple
+    residual_sets: tuple
+    residual_decisions: tuple[PlacementDecision, ...]
+    unplaced_file_ids: tuple[str, ...]
+
 
 def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
-               evidence, component_version: str,
-               observed_at: str) -> PlacementDecision:
-    """One file through steps 3-7 and 9. Step 8 runs inside P8 when it is needed."""
+               evidence, component_version: str, observed_at: str,
+               group_plan_id: str | None = None) -> PlacementDecision:
+    """One file through steps 3-7 and 9. Step 8 runs inside P8 when it is needed.
+
+    `group_plan_id` is passed in rather than patched on afterwards, because the
+    STORED row has to carry it: `GroupPlan` asserts every member decision shares
+    the plan's id, and a row written without it would make the review surface
+    show several unrelated file moves while the in-memory plan looked correct.
+    """
     subject_ref = subject_ref_of(subject)
 
     # §8.4, before anything a model could see exists.
@@ -7816,11 +8850,16 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     )
 
     # §8.7, before any `place` is emitted.
+    # `file` only. `learning._subject_ids` keys the file scope on the file id and
+    # returns nothing for `node`, `template`, `domain` or `corpus`, because P11
+    # cannot know which node or domain a user meant -- those need their own
+    # `corpus_subject_id`, supplied by the caller that recorded them. Passing
+    # `node` here would look like a wider check and perform none.
     rejected = {
         hit.node_id for hit in suppressed_nodes(
             conn, subject_ref=subject_ref,
             node_ids=tuple(c.node_id for c in retrieval.candidates),
-            scopes=("file", "node"),
+            scopes=("file",),
         )
     }
     if rejected:
@@ -7848,37 +8887,79 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # Step 6.
     assessment = assess(retrieval, graphs, policy=inputs.policy)
 
-    # Step 7, only for a bounded ambiguity, and only if the gate allows it.
-    if needs_model_call(assessment) and not may_assemble_dossier(privacy):
-        return _abstention(conn, subject=subject, inputs=inputs,
-                           assessment=assessment, retrieval=retrieval,
-                           privacy=privacy, reason=PRIVACY_BLOCKED,
-                           component_version=component_version,
-                           observed_at=observed_at)
+    # Steps 7 and 8. Only for a bounded ambiguity, only if §8.4's gate allows a
+    # dossier, and only if the caller supplied the model path. Step 8 -- the
+    # validator -- runs INSIDE `run_call`; P11 supplies authorities and reads a
+    # verdict, and re-checks none of Site C's fifteen.
+    chosen_node_id: str | None = None
+    if needs_model_call(assessment):
+        if not may_assemble_dossier(privacy):
+            return _abstention(conn, subject=subject, inputs=inputs,
+                               assessment=assessment, retrieval=retrieval,
+                               privacy=privacy, reason=PRIVACY_BLOCKED,
+                               group_plan_id=group_plan_id,
+                               component_version=component_version,
+                               observed_at=observed_at)
+        if inputs.model_path_available():
+            verdict = _judge_with_model(
+                conn, subject=subject, inputs=inputs, retrieval=retrieval,
+                evidence=evidence, call_site=C_PLACEMENT,
+                observed_at=observed_at)
+            outcome, reason, deferred = transcribe(verdict, assessment=assessment)
+            if outcome != PLACE:
+                return _abstention(
+                    conn, subject=subject, inputs=inputs, assessment=assessment,
+                    retrieval=retrieval, privacy=privacy, reason=reason,
+                    deferred_stage=deferred, group_plan_id=group_plan_id,
+                    component_version=component_version,
+                    observed_at=observed_at)
+            # The model chose among P11's candidates; which one it chose is read
+            # back through the injected resolver, because `P8Verdict` names a
+            # `claim_ref` and not a destination. See the OPEN item in
+            # [SPEC corrections](#spec-corrections).
+            chosen_node_id = inputs.chosen_node_of(verdict)
+            if chosen_node_id not in legal_node_ids(
+                    conn, plan_version=inputs.plan_version):
+                raise ValueError(
+                    f"{chosen_node_id!r} is not a legal destination of "
+                    f"{inputs.plan_version!r}. P8 already refuses an invented "
+                    "node; reaching here means the resolver disagreed with the "
+                    "index, and P11 places nothing on a disagreement"
+                )
 
     # Step 9.
-    if assessment.abstention_reason is not None:
+    if chosen_node_id is None and assessment.abstention_reason is not None:
         return _abstention(conn, subject=subject, inputs=inputs,
                            assessment=assessment, retrieval=retrieval,
                            privacy=privacy,
                            reason=assessment.abstention_reason,
+                           group_plan_id=group_plan_id,
                            component_version=component_version,
                            observed_at=observed_at)
 
     best = assessment.scored[0]
-    entry = entry_for(conn, plan_version=inputs.plan_version, node_id=best.node_id)
+    node_id = chosen_node_id or best.node_id
+    entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
+    # A model-decided placement is a context-supported one by construction: the
+    # deterministic path had already declined to call it an exact match, which is
+    # the only reason a model was asked. Carrying `assessment.confidence_class`
+    # through unchanged would label a `place` "abstain: no supported destination"
+    # -- a record whose label contradicts its own outcome.
+    confidence = (CONTEXT_SUPPORTED_GROUP_MATCH if chosen_node_id is not None
+                  else assessment.confidence_class)
     decision = PlacementDecision(
         decision_id=f"{inputs.plan_version}:{subject_ref}:{observed_at}",
         plan_version=inputs.plan_version, supersedes=None, superseded_by=None,
         supersede_reason=None, created_at=observed_at, origin_stage=PLACEMENT,
-        returned_from=None, subject=subject, group_plan_id=None, outcome=PLACE,
+        returned_from=None, subject=subject, group_plan_id=group_plan_id,
+        outcome=PLACE,
         destination=Destination(node_id=entry.node_id, node_role=entry.node_role),
         return_target=None, marked_state=None, ask=None,
         decision_depth=DecisionDepth(node_depth=entry.depth,
                                      supported_depth=entry.depth,
                                      unsupported_levels=()),
         evidence_type=DIRECT if assessment.unique_direct_match else CONTEXT_SUPPORTED,
-        confidence_class=assessment.confidence_class,
+        confidence_class=confidence,
         matching_facts=_facts_of(retrieval, entry.node_id),
         group_support=None, graph_anchors=graphs[entry.node_id].anchors,
         conflicts_considered=retrieval.conflicts,
@@ -7890,7 +8971,8 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             group_support=None,
             unique_direct_match=assessment.unique_direct_match,
             automatic_move_permitted=inputs.automatic_move_permitted),
-        explanation=_explain(entry, assessment, retrieval),
+        explanation=_explain(entry, assessment, retrieval,
+                             model_decided=chosen_node_id is not None),
         residual=None,
     )
     record_decision(conn, decision, component_version=component_version,
@@ -7905,11 +8987,17 @@ def _facts_of(retrieval, node_id: str) -> tuple:
     return ()
 
 
-def _explain(entry, assessment, retrieval) -> str:
+def _explain(entry, assessment, retrieval, *, model_decided: bool = False) -> str:
     """§6.4 and §6.11: state the actual basis, claim no evidence the file lacks."""
     parts = [f"{entry.display_label} expects "
              + ", ".join(f"{field} = {value}"
                          for field, value in entry.expected_values)]
+    if model_decided:
+        # The user is entitled to know a model was involved: §6.11 says a direct
+        # and a context-supported placement "should not demand the same level of
+        # trust", which a reviewer can only apply if the record says which it is.
+        parts.append("chosen by the hierarchical destination judge from P11's "
+                     "legal candidates, and validated by P8")
     if retrieval.conflicts:
         parts.append(
             "ruled out " + ", ".join(
@@ -7923,14 +9011,29 @@ def _explain(entry, assessment, retrieval) -> str:
 
 
 def _abstention(conn, *, subject, inputs, assessment, retrieval, privacy,
-                reason: str, component_version: str,
-                observed_at: str) -> PlacementDecision:
-    """§6.10: a correct abstention is a successful outcome, and is recorded as one."""
+                reason: str, component_version: str, observed_at: str,
+                deferred_stage: str | None = None,
+                origin_stage: str = PLACEMENT, residual=None,
+                group_plan_id: str | None = None) -> PlacementDecision:
+    """§6.10: a correct abstention is a successful outcome, and is recorded as one.
+
+    `deferred_stage` is set only when `reason` is `budget_deferred`, and the
+    record enforces the pairing both ways. §8.6 requires a ceiling-truncated run
+    to render differently from "I looked and could not tell", and a deferral
+    recorded as a plain abstention is exactly the "understood and found
+    unimportant" impression the design forbids.
+    """
+    if (reason == BUDGET_DEFERRED) != (deferred_stage is not None):
+        raise ValueError(
+            "a budget deferral names the stage it was cut short at, and only a "
+            "budget deferral has one (§8.6)"
+        )
     decision = PlacementDecision(
         decision_id=f"{inputs.plan_version}:{subject_ref_of(subject)}:{observed_at}",
         plan_version=inputs.plan_version, supersedes=None, superseded_by=None,
-        supersede_reason=None, created_at=observed_at, origin_stage=PLACEMENT,
-        returned_from=None, subject=subject, group_plan_id=None, outcome=ABSTAIN,
+        supersede_reason=None, created_at=observed_at, origin_stage=origin_stage,
+        returned_from=None, subject=subject, group_plan_id=group_plan_id,
+        outcome=ABSTAIN,
         destination=None, return_target=None, marked_state=None, ask=None,
         decision_depth=DecisionDepth(node_depth=0, supported_depth=0,
                                      unsupported_levels=()),
@@ -7940,7 +9043,7 @@ def _abstention(conn, *, subject, inputs, assessment, retrieval, privacy,
         conflicts_considered=retrieval.conflicts,
         alternatives=assessment.alternatives,
         two_condition=assessment.two_condition, abstention_reason=reason,
-        deferred_stage=None, privacy=privacy,
+        deferred_stage=deferred_stage, privacy=privacy,
         review_policy=review_policy_for(
             privacy_state=privacy, two_condition=assessment.two_condition,
             group_support=None, unique_direct_match=False,
@@ -7949,12 +9052,492 @@ def _abstention(conn, *, subject, inputs, assessment, retrieval, privacy,
             f"No legal destination cleared §6.10's conditions ({reason}). "
             "Abstaining is the correct outcome; the evidence is retained and the "
             "file has not moved."),
+        residual=residual,
+    )
+    record_decision(conn, decision, component_version=component_version,
+                    observed_at=observed_at)
+    return decision
+
+
+# --- step 7: the hierarchical destination judge ---------------------------------
+
+
+def _judge_with_model(conn, *, subject, inputs, retrieval, evidence,
+                      call_site: str, observed_at: str):
+    """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
+
+    Everything here is either P11's own answer or a caller injection. The four
+    Site C authorities come from `p8_seam.placement_authorities`; the fifteen
+    Site C checks stay in `llm_harness/placement_validation.py` and P11 spells
+    none of their reason codes.
+
+    `allowed_vocabulary` is P11's legal candidate set and is the single most
+    load-bearing value handed over: Site C rejects any destination outside it as
+    `INVENTED_NODE` (`placement_validation.py:220-221`). It is set here rather
+    than taken from the caller's `CallDependencies`, because a caller-supplied
+    vocabulary is a caller-supplied answer to "which nodes exist", which is the
+    index's question.
+
+    `evidence_snapshot_id` is minted here because nothing else mints one and
+    `run_call` refuses a C or D request without it BEFORE the spend
+    (`harness.py:154-165`). `record_cd_verdict` is then called by P8 itself
+    (`harness.py:245-253`); P11 calling it too would write the row twice.
+    """
+    observation_keys = tuple(
+        fact.evidence_ref for candidate in retrieval.candidates
+        for fact in candidate.matching_facts if fact.evidence_ref
+    )
+    snapshot = evidence_snapshot_id_for(plan_version=inputs.plan_version,
+                                        observation_keys=observation_keys)
+    subject_ref = subject_ref_of(subject)
+    legal = sorted(legal_node_ids(conn, plan_version=inputs.plan_version))
+    if call_site == C_PLACEMENT:
+        sites = site_dependencies(placement=placement_authorities(
+            conn, plan_version=inputs.plan_version, policy=inputs.policy,
+            sensitivity_policy=inputs.sensitivity_policy))
+    else:
+        sites = site_dependencies(residual=residual_authorities(
+            conn, plan_version=inputs.plan_version, approved_target_ids=legal,
+            sensitivity_policy=inputs.sensitivity_policy))
+
+    dependencies = dataclasses.replace(
+        inputs.call_dependencies,
+        site_dependencies=sites,
+        allowed_vocabulary=legal,
+        proposal_class=PLACEMENT if call_site == C_PLACEMENT else RESIDUAL,
+        basis_key=basis_key_for(subject_ref=subject_ref,
+                                node_id=retrieval.candidates[0].node_id),
+        learning_scope="file", learning_subject_id=subject.file_id,
+    )
+    request = DossierRequest(
+        call_site=call_site, subject_ref=subject_ref,
+        # P8's controlled reason, imported and not retyped. §6.6 lists six
+        # circumstances that make a call eligible and P8 publishes a constant
+        # for each; spelling one here would be a seventh vocabulary.
+        eligibility_reason=(SEVERAL_LEGAL_NODES_PLAUSIBLE
+                            if call_site == C_PLACEMENT
+                            else USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW),
+        evidence_items=tuple(evidence["facts"]),
+        conflicts=to_p8_conflicts(retrieval.conflicts),
+        # P7 builds the release request; P11 holds the builder and never a
+        # `Gate`. Assembling it here, after `may_assemble_dossier` answered, is
+        # what keeps §8.4's gate on the right side of the spend.
+        model_call_request=inputs.model_call_request(
+            subject_ref=subject_ref, evidence_items=tuple(evidence["facts"]),
+            max_dossier_tokens=inputs.limits.max_dossier_tokens),
+        plan_version=inputs.plan_version, evidence_snapshot_id=snapshot,
+    )
+    return call_placement(
+        conn, request, gate=inputs.gate, model_client=inputs.model_client,
+        prompt=inputs.prompt, call_dependencies=dependencies,
+        observed_at=lambda: observed_at,
+    )
+
+
+# --- §6.8 and §6.9: the group plan ----------------------------------------------
+
+
+def place_group(conn, *, group_id: str, inputs: PipelineInputs, evidence_for,
+                component_version: str, observed_at: str) -> GroupPlan:
+    """§6.8: confirm the shared parent FIRST, then classify members beneath it.
+
+    The ordering is the whole of §6.8. A member classified before the parent is
+    classified against no shared context, and the result is several unrelated
+    file moves presented as a plan.
+
+    Acceptance is read through P9 as of P10's frozen version
+    (`accepted_group_as_of`), never off `Group.state`.
+    """
+    accepted: AcceptedGroup = accepted_group_as_of(
+        conn, group_id=group_id, plan_version=inputs.plan_version)
+    group_plan_id = f"{inputs.plan_version}:{group_id}"
+
+    # Step one: the shared parent, from each member's own best destination.
+    member_parents: dict[str, str | None] = {}
+    provisional: dict[str, PlacementDecision] = {}
+    for membership in accepted.memberships:
+        subject = _member_subject(membership)
+        decision = place_file(
+            conn, subject=subject, inputs=inputs,
+            evidence=evidence_for(membership.file_id),
+            group_plan_id=group_plan_id,
+            component_version=component_version, observed_at=observed_at)
+        provisional[membership.file_id] = decision
+        member_parents[membership.file_id] = (
+            decision.destination.node_id if decision.destination else None)
+
+    shared_parent = confirm_shared_parent(
+        member_parents, policy=inputs.tree.shared_material_policy)
+
+    # Step two: outliers are excluded and explained, never forced in. P9 already
+    # flagged them and already holds the competing values; P11 records what P9
+    # found and routes the file (§6.8).
+    outliers: list[ExcludedOutlier] = []
+    members: list[PlacementDecision] = []
+    for membership in accepted.memberships:
+        decision = provisional[membership.file_id]
+        if membership.outlier_flag != "none":
+            outliers.append(excluded_outlier_for(
+                membership,
+                routed_node_id=(decision.destination.node_id
+                                if decision.destination else None)))
+            continue
+        members.append(decision)   # already carries `group_plan_id`, in the row
+
+    plan = GroupPlan(
+        group_plan_id=group_plan_id, plan_version=inputs.plan_version,
+        group_id=group_id, shared_parent_node_id=shared_parent,
+        member_decisions=tuple(members), excluded_outliers=tuple(outliers))
+    from placement import events as placement_events
+
+    placement_events.group_plan_emitted(
+        conn, group_plan_id=group_plan_id, group_id=group_id,
+        shared_parent_node_id=shared_parent,
+        component_version=component_version, observed_at=observed_at)
+    return plan
+
+
+def _member_subject(membership):
+    from placement.records import Subject
+
+    return Subject(kind="file", file_id=membership.file_id,
+                   content_hash=membership.content_hash, group_id=None,
+                   member_file_ids=())
+
+
+# --- §7: the residual stage ------------------------------------------------------
+
+
+def run_residual_file(conn, *, subject, set_id: str, inputs: PipelineInputs,
+                      evidence, action: str, target,
+                      component_version: str,
+                      observed_at: str) -> PlacementDecision:
+    """One §7.7 action, as one decision on the ONE record shape.
+
+    §7.6's gate is checked first and by refusal: `require_set_decision` raises
+    when the set has no decision, and `model_calls_permitted` is what decides
+    whether a per-file model call may be issued at all. A set the user chose to
+    leave in place produces zero calls (SPEC:547), and that is enforced here
+    rather than trusted to a caller.
+
+    §7.9's loop is bounded by an injection: `check_return_cycle` refuses without
+    `max_return_cycles`, because SPEC Open question 8 states no bound and an
+    unbounded loop is a replay that never terminates.
+    """
+    set_decision = require_set_decision(conn, plan_version=inputs.plan_version,
+                                        set_id=set_id)
+    outcome, qualifier = outcome_for_action(action, target=target)
+    if outcome == RETURN_TO_PLACEMENT:
+        check_return_cycle(conn, subject_ref=subject_ref_of(subject),
+                           max_return_cycles=inputs.max_return_cycles)
+    context = ResidualContext(set_id=set_id, set_decision=set_decision.choice,
+                              lifecycle_policy_ref=None)
+    return _residual_decision(
+        conn, subject=subject, inputs=inputs, outcome=outcome,
+        qualifier=qualifier, residual=context, evidence=evidence,
+        component_version=component_version, observed_at=observed_at)
+
+
+def run_corpus(conn, *, subjects, group_ids, inputs: PipelineInputs, evidence_for,
+               component_version: str, observed_at: str) -> CorpusResult:
+    """§6.12 step 9, over a corpus, then §7's separate stage.
+
+    The two-pass order is contractual, not stylistic. §7.1: residual is *"a
+    separate stage that runs only after normal group-aware classification has
+    been attempted"*, so every file and every accepted group goes through §6
+    first and only what §6 could not place reaches §7. `surface_residual_sets`
+    refuses a `placement_pass_complete=False` caller, so the ordering is enforced
+    by a raise rather than by this function remembering to do it.
+    """
+    decisions: list[PlacementDecision] = []
+    plans: list[GroupPlan] = []
+
+    # §6.8 before the per-file pass: a member's decision belongs to its group's
+    # plan, and a file placed alone first would be placed against no shared
+    # context. `place_group` writes the member decisions itself.
+    covered: set[str] = set()
+    for group_id in group_ids:
+        plan = place_group(conn, group_id=group_id, inputs=inputs,
+                           evidence_for=evidence_for,
+                           component_version=component_version,
+                           observed_at=observed_at)
+        plans.append(plan)
+        decisions.extend(plan.member_decisions)
+        covered.update(d.subject.file_id for d in plan.member_decisions)
+        covered.update(o.file_id for o in plan.excluded_outliers)
+
+    # §6.9. A file that belongs to two accepted packets is multi-home, and the
+    # design is explicit that the engine "should not arbitrarily choose one
+    # university" (`01-product-design-structured.md:1255-1259`). Detected here
+    # because it is a fact ACROSS group plans, which no single `place_group` can
+    # see. `resolve_multi_home` has no branch that returns a competing node, so
+    # "never pick an institution" is enforced by the function's shape.
+    homes: dict[str, list[str]] = {}
+    for plan in plans:
+        for decision in plan.member_decisions:
+            if decision.destination is not None:
+                homes.setdefault(decision.subject.file_id, []).append(
+                    decision.destination.node_id)
+    for file_id, node_ids in homes.items():
+        if len(set(node_ids)) < 2:
+            continue
+        outcome, payload = resolve_multi_home(
+            candidate_node_ids=tuple(sorted(set(node_ids))),
+            shared_material_policy=inputs.tree.shared_material_policy,
+            shared_branch_node_id=_shared_branch_of(conn, inputs),
+            ask_or_abstain=inputs.ask_or_abstain)
+        decisions.append(_multi_home_decision(
+            conn, file_id=file_id, inputs=inputs, outcome=outcome,
+            payload=payload, component_version=component_version,
+            observed_at=observed_at))
+
+    for subject in subjects:
+        if subject.file_id in covered:
+            continue
+        decisions.append(place_file(
+            conn, subject=subject, inputs=inputs,
+            evidence=evidence_for(subject.file_id),
+            component_version=component_version, observed_at=observed_at))
+
+    unplaced = tuple(d.subject.file_id for d in decisions
+                     if d.outcome != PLACE and d.subject.file_id)
+
+    # §7.5. The §6 pass is complete for the corpus, which is the only condition
+    # under which a file may be called residual.
+    sets: tuple[ResidualSet, ...] = surface_residual_sets(
+        conn, plan_version=inputs.plan_version, unplaced=unplaced,
+        partition=inputs.partition, limits=inputs.limits,
+        placement_pass_complete=True, component_version=component_version,
+        observed_at=observed_at)
+
+    # §7.6. Per-file residual work happens only for a set the user decided, and
+    # only when that decision asks for it. Everything else is left alone, which
+    # is the decision the user made.
+    residual_decisions: list[PlacementDecision] = []
+    for item in sets:
+        try:
+            set_decision = require_set_decision(
+                conn, plan_version=inputs.plan_version, set_id=item.set_id)
+        except Exception:
+            # Surfaced and not yet decided is a real, visible state -- it is the
+            # state §7.6's gate exists to make visible -- and not an error to
+            # swallow into a default.
+            continue
+        if not model_calls_permitted(set_decision):
+            continue
+        residual_decisions.extend(_review_set_with_model(
+            conn, item=item, inputs=inputs, evidence_for=evidence_for,
+            component_version=component_version, observed_at=observed_at))
+
+    return CorpusResult(
+        decisions=tuple(decisions), group_plans=tuple(plans),
+        residual_sets=sets, residual_decisions=tuple(residual_decisions),
+        unplaced_file_ids=unplaced)
+
+
+def _review_set_with_model(conn, *, item, inputs: PipelineInputs, evidence_for,
+                           component_version: str, observed_at: str):
+    """§7.7, per file, for a set whose decision asked for it and no other.
+
+    Site D is P8's; P11 supplies `approved_target_ids` and reads a disposition.
+    `outcome_for_action` maps that disposition onto one of §6's outcomes, which
+    is why a residual decision needs no field the §6 path does not already have.
+    """
+    from placement.records import Subject
+
+    written = []
+    for file_id in item.member_file_ids:
+        subject = Subject(kind="file", file_id=file_id,
+                          content_hash=_content_hash_of(conn, file_id),
+                          group_id=None, member_file_ids=())
+        privacy = privacy_state_for(conn, file_id=file_id,
+                                    content_hash=subject.content_hash,
+                                    plan_version=inputs.plan_version)
+        if not may_assemble_dossier(privacy):
+            # §8.4 before the dossier, on the residual path exactly as on the
+            # placement path. Protected material does not become releasable
+            # because the file reached §7 instead of §6.
+            continue
+        evidence = evidence_for(file_id)
+        retrieval = retrieve(
+            conn, subject=subject, plan_version=inputs.plan_version,
+            limits=inputs.limits, facts=evidence["facts"],
+            group_ids=evidence["group_ids"],
+            curated_folder_labels=evidence["curated_folder_labels"],
+            semantic_neighbours=evidence["semantic_neighbours"],
+            component_version=component_version, observed_at=observed_at)
+        verdict = _judge_with_model(
+            conn, subject=subject, inputs=inputs, retrieval=retrieval,
+            evidence=evidence, call_site=D_RESIDUAL, observed_at=observed_at)
+        written.append(run_residual_file(
+            conn, subject=subject, set_id=item.set_id, inputs=inputs,
+            evidence=evidence, action=verdict.disposition,
+            target=inputs.chosen_node_of(verdict),
+            component_version=component_version, observed_at=observed_at))
+    return written
+
+
+def _residual_decision(conn, *, subject, inputs, outcome, qualifier, residual,
+                       evidence, component_version, observed_at
+                       ) -> PlacementDecision:
+    """One §7 decision on the SAME thirty-field shape §6 uses (Done-means 1).
+
+    Exactly one outcome-shaped field is filled, chosen by `outcome`, because the
+    record refuses any other combination: `destination` on `place`,
+    `return_target` on `return_to_placement`, `marked_state` on `mark_state`,
+    `abstention_reason` on `abstain`, and none of the four on `leave_in_place`
+    or `mark_review_later` — whether those two result in a move is the Review
+    Later node's `disposition` (§7.4, set by P10), not this record's decision.
+    """
+    from placement.records import ReturnTarget
+
+    entry = (entry_for(conn, plan_version=inputs.plan_version, node_id=qualifier)
+             if outcome == PLACE else None)
+    privacy = privacy_state_for(conn, file_id=subject.file_id,
+                                content_hash=subject.content_hash,
+                                plan_version=inputs.plan_version)
+    two = _residual_two_condition(inputs)
+    decision = PlacementDecision(
+        decision_id=f"{inputs.plan_version}:{subject_ref_of(subject)}:{observed_at}:r",
+        plan_version=inputs.plan_version, supersedes=None, superseded_by=None,
+        supersede_reason=None, created_at=observed_at, origin_stage=RESIDUAL,
+        returned_from=None, subject=subject, group_plan_id=None, outcome=outcome,
+        destination=(Destination(node_id=entry.node_id,
+                                 node_role=entry.node_role)
+                     if entry is not None else None),
+        return_target=(ReturnTarget(kind=qualifier, id=subject.file_id)
+                       if outcome == RETURN_TO_PLACEMENT else None),
+        marked_state=qualifier if outcome == MARK_STATE else None, ask=None,
+        decision_depth=DecisionDepth(
+            node_depth=entry.depth if entry else 0,
+            supported_depth=entry.depth if entry else 0, unsupported_levels=()),
+        evidence_type=CONTEXT_SUPPORTED,
+        confidence_class=(CONTEXT_SUPPORTED_GROUP_MATCH if entry is not None
+                          else ABSTAIN_NO_SUPPORTED_DESTINATION),
+        matching_facts=tuple(evidence["facts"]) if entry is not None else (),
+        group_support=None, graph_anchors=(), conflicts_considered=(),
+        alternatives=(), two_condition=two,
+        abstention_reason=qualifier if outcome == ABSTAIN else None,
+        deferred_stage=None, privacy=privacy,
+        review_policy=review_policy_for(
+            privacy_state=privacy, two_condition=two, group_support=None,
+            unique_direct_match=False,
+            automatic_move_permitted=inputs.automatic_move_permitted),
+        explanation=(
+            f"Residual review of set {residual.set_id} returned {outcome!r}. "
+            "The set-level decision authorised this review and the file has not "
+            "moved."),
+        residual=residual,
+    )
+    record_decision(conn, decision, component_version=component_version,
+                    observed_at=observed_at)
+    return decision
+
+
+def _residual_two_condition(inputs: PipelineInputs):
+    """§6.10's figures on a §7 record. One shape means one set of figures.
+
+    SPEC:473-475 makes `verdict` a P11 field on every decision, so a residual
+    decision carries the thresholds it was judged under even though §7's
+    judgement was P8's. `meets_margin` is vacuous because the residual path
+    compares against no next-best destination.
+    """
+    from placement.records import TwoCondition
+    from placement.vocabulary import MARGIN_TRUE_VACUOUS, WEAK_VERDICT
+
+    return TwoCondition(
+        support_score=0.0,
+        support_threshold=inputs.policy.minimum_support_threshold,
+        meets_threshold=False, margin_over_next=None,
+        margin_threshold=inputs.policy.margin_threshold,
+        meets_margin=MARGIN_TRUE_VACUOUS, verdict=WEAK_VERDICT,
+        requires_review=True)
+
+
+def _shared_branch_of(conn, inputs: PipelineInputs) -> str | None:
+    """The frozen tree's shared-material node, if it froze one. P11 mints none.
+
+    §6.9's worked example: *"If no shared branch exists, the system should not
+    arbitrarily choose one university."* So absence is answered with None and the
+    policy decides what happens next, rather than P11 producing a branch.
+    """
+    for node in inputs.tree.nodes:
+        if node.node_role == "shared-material" and node.accepts_placement:
+            return node.node_id
+    return None
+
+
+def _multi_home_decision(conn, *, file_id, inputs, outcome, payload,
+                         component_version, observed_at) -> PlacementDecision:
+    """§6.9's answer as one decision: a shared branch, a question, or an abstention.
+
+    `payload` is the shared branch's node id for `place`, the competing ids for
+    `ask_user`, and `no_shared_branch` for `abstain` -- and it is NEVER one of the
+    competing institution nodes, because `resolve_multi_home` has no branch that
+    returns one.
+    """
+    from placement.records import Ask, Subject
+
+    subject = Subject(kind="file", file_id=file_id,
+                      content_hash=_content_hash_of(conn, file_id),
+                      group_id=None, member_file_ids=())
+    privacy = privacy_state_for(conn, file_id=file_id,
+                                content_hash=subject.content_hash,
+                                plan_version=inputs.plan_version)
+    two = _residual_two_condition(inputs)
+    entry = (entry_for(conn, plan_version=inputs.plan_version, node_id=payload)
+             if outcome == PLACE else None)
+    decision = PlacementDecision(
+        decision_id=f"{inputs.plan_version}:file:{file_id}:{observed_at}:mh",
+        plan_version=inputs.plan_version, supersedes=None, superseded_by=None,
+        supersede_reason=None, created_at=observed_at, origin_stage=PLACEMENT,
+        returned_from=None, subject=subject, group_plan_id=None, outcome=outcome,
+        destination=(Destination(node_id=entry.node_id,
+                                 node_role=entry.node_role)
+                     if entry is not None else None),
+        return_target=None, marked_state=None,
+        ask=(Ask(question="Which packet is this file's primary home?",
+                 options=tuple(payload)) if outcome == ASK_USER else None),
+        decision_depth=DecisionDepth(
+            node_depth=entry.depth if entry else 0,
+            supported_depth=entry.depth if entry else 0, unsupported_levels=()),
+        evidence_type=CONTEXT_SUPPORTED,
+        confidence_class=(SHARED_MATERIAL_DECISION if entry is not None
+                          else ABSTAIN_NO_SUPPORTED_DESTINATION),
+        matching_facts=(), group_support=None, graph_anchors=(),
+        conflicts_considered=(), alternatives=(), two_condition=two,
+        abstention_reason=(NO_SHARED_BRANCH if outcome == ABSTAIN else None),
+        deferred_stage=None, privacy=privacy,
+        review_policy=review_policy_for(
+            privacy_state=privacy, two_condition=two, group_support=None,
+            unique_direct_match=False,
+            automatic_move_permitted=inputs.automatic_move_permitted),
+        explanation=(
+            "This file has accepted membership in more than one packet. §6.9 "
+            "permits a shared branch, a question, or an abstention, and never an "
+            "arbitrary choice between the packets."),
         residual=None,
     )
     record_decision(conn, decision, component_version=component_version,
                     observed_at=observed_at)
     return decision
+
+
+def _content_hash_of(conn, file_id: str) -> str:
+    """P1 owns file identity; P11 asks rather than keeping a second copy."""
+    row = conn.execute(
+        "SELECT content_hash FROM files WHERE file_id = ?", (file_id,)).fetchone()
+    if row is None:
+        raise LookupError(
+            f"no file {file_id!r} in P1's `files`; a residual set naming a file "
+            "P1 has never seen is a set built from something other than the scan"
+        )
+    return row["content_hash"]
 ```
+
+Every §7 decision therefore lands in the same append-only table, under the same
+supersede rules, on the same thirty-field shape as every §6 decision — which is
+what Done-means 1 asks a consumer to be able to rely on.
 
 And the golden fixtures P12 and P13 will read:
 
@@ -8107,7 +9690,7 @@ Assert, over every module in `src/placement/`:
 - no bound int or float other than `0` and `1`, at module level **or** as a default argument, so a threshold cannot hide in a signature;
 - no string constant equal to any member of `llm_harness.vocabulary.ALL_REASON_CODES`, `SITE_C_REASON_CODES` or `SITE_D_REASON_CODES` — P8 owns those and a second speller is a second opinion;
 - no attribute named `path`, `resolved_path`, `existing_path`, `delete`, `expiry`, `ttl` or `disposable` on any published record;
-- no import of `llm_harness.records.Dossier`, `llm_harness.transport`, `privacy.gate.Gate`, or any module under `tests.`;
+- no import of `llm_harness.records.Dossier`, `llm_harness.transport`, `privacy.gate.Gate`, or any test fixture package — which is spelled `p11.*`, not `tests.p11.*` (see [Test import convention](#test-import-convention));
 - no call to `os.rename`, `os.replace`, `shutil.move`, `pathlib.Path.rename`, `open(..., "w")` or any other filesystem mutation — P11 moves nothing;
 - no construction of a P10 node, a P9 `Group` or `Membership`, or a P8 `Dossier`;
 - `subsystem = "P11"` appears in exactly one place (`placement/events.py`);
@@ -8120,7 +9703,7 @@ Assert, over every module in `src/placement/`:
 - P6 is reached only through `facts.read_surface`, and no P6 table is queried directly;
 - P4 citations are `observation_key` only, asserted by checking that no P11 field is named `observation_id`;
 - P2 receives only `candidate_node_retrieval` and `placement_scoring`, and `_FOREIGN_OUTCOMES` still equals `placement.vocabulary.OUTCOMES`;
-- P9 and P10 are consumed only through `tests/p11/p9_fixtures.py` and `tests/p11/p10_fixtures.py` until they ship, and `src/placement/` imports neither;
+- P9 is reached only through `grouping.acceptance.group_state_as_of`, `grouping.store.memberships_for_group` and `grouping.vocabulary`, and no P9 table is queried directly; P10 is consumed only through `tests/p11/p10_fixtures.py` until it ships, and `src/placement/` imports no fixture module;
 - P12 and P13 are consumed only through `src/placement/fixtures.py`, with no import back into `src/placement/`.
 
 - [ ] **Step 3: Add the mission guards**
@@ -8245,14 +9828,25 @@ from so a reader can check the reasoning rather than the outcome.
 | SPEC line | SPEC says | The plan does | Why |
 |---|---|---|---|
 | SPEC:335-336 | `evidence_type` is `user-confirmed`, `llm-supported` (hyphenated) | imports `user_confirmed` and `llm_supported` from `facts.states` | `evidence_shape/vocabulary.py:53-55` is the live spelling and five of the six values are P6's. Re-spelling two of a neighbour's six is the `subject`/`course` defect again. `context-supported` stays hyphenated because P8 and P9 both publish exactly that string |
-| SPEC:117-128 | fifteen P10 node fields | reads twenty-one, adding `plan_version_id`, `dimension_role`, `existing_path`, `refinement_disposition`, `refinement_reason` | P10 SPEC Contract out §1 publishes all twenty-one. `refinement_disposition` is the user's own answer to whether a branch is shallow on purpose, which is precisely §6.7's question; re-deriving it would be P11 second-guessing a recorded user choice |
+| SPEC:117-128 | fifteen P10 node fields | reads twenty-two, adding `plan_version_id`, `dimension_role`, `existing_path`, `refinement_disposition`, `refinement_reason`, `origin_node_id`, `protected_movement_permitted` | P10 SPEC Contract out §1 publishes them. `refinement_disposition` is the user's own answer to whether a branch is shallow on purpose, which is precisely §6.7's question; re-deriving it would be P11 second-guessing a recorded user choice. `origin_node_id` is load-bearing for a different reason: P10 mints a NEW `node_id` per plan version, so it is the only field a decision can be matched across versions on (§8.8, and `planning/38-p10-p11-connection-contract.md` §5.2) |
 | SPEC:683-693 | eight event appends | registers nine | SPEC:689 is one bullet carrying two state changes, and §7.6 gates model spend on the second. One name could not distinguish a surfaced-but-undecided set from a decided one — the exact state the gate exists to make visible. `src/database_agent/events.py:62-65` is corrected in the same commit |
 | SPEC:374 | `model_eligibility ∈ local_only \| dossier_permitted \| redacted` | derives them in `placement/privacy.py` from `Policy.operation_mode` and `ClassificationRecord.protected` | The three values have no producer anywhere: `grep -rn "local_only\|dossier_permitted" src/privacy/` finds nothing, and `redacted` collides with `privacy/vocabulary.py:217`'s display-facet value. The two things §8.4 actually decides from are the mode and the flag |
 | SPEC:214-229 | *"the dossier submission interface"* | imports `SiteDependencies`, `CallDependencies`, `PlacementDependencies` and `ResidualDependencies` from unexported module paths | `src/llm_harness/__init__.py` exports the eight names `planning/30-p8-p9-connection-contract.md:24-31` froze, and none of the four is among them. The contract records the same omission for P9 (`:74-76`) without amending the export list. **P8 owes an export decision**; until then P11 imports from `llm_harness.sites`, `llm_harness.harness` and `llm_harness.placement_validation` |
 | — | no SPEC assigns `evidence_snapshot_id` a producer | P11 mints it as a content address over `(plan_version, sorted observation_keys)` | `record_cd_verdict` requires it (`placement_validation.py:475-476`) and `run_call` now refuses a C or D request without one before the spend (`harness.py:154-165`). A content address is what makes two calls over the same evidence recognisable as a replay, and what `revalidate_for_plan` keys a re-validation on |
 | SPEC:50, SPEC:607 | §6.12's nine-step pipeline is *"reproduced under Done means"* | reproduces it in [Required execution order](#required-execution-order) from `planning/01-product-design-structured.md:1295-1306` | The SPEC does not in fact reproduce the nine steps anywhere. **The SPEC owes them.** |
 | SPEC:349-350 | `conflicts_considered[]` is `{kind, conflicting_value, suppressed_node_ids[], evidence_ref}` | keeps that shape and converts to P8's `Conflict(conflict_id, kind)` at the seam | Three records wear the word "conflict" — P9's `(kind, competing_values, file_ids)`, P8's `(conflict_id, kind)` and P11's four-field one. The conversion runs one way, in `p8_seam.to_p8_conflicts`, so nothing downstream has to guess which it holds |
-| — | nothing says a node id may be reserved | `placement/index.py` refuses to index a node called `node-hub` | `src/llm_harness/placement_validation.py:239` compares a destination to the literal `"node-hub"`, a P8 fixture id (`llm_harness/fixtures.py:346`) that reached production Site C logic. A real node with that id would score `weak` forever. **Reported to P8's owner**; the refusal is removed when P8's line is |
+| — | nothing says a node id may be reserved | **nothing** — no id is reserved | `src/llm_harness/placement_validation.py:239` compares a destination to the literal `"node-hub"`, a P8 fixture id (`llm_harness/fixtures.py:356`) that reached production Site C logic. `planning/38-p10-p11-connection-contract.md` §6 settles the owner: **P8 deletes the literal**, at zero behavioural cost, because the one fixture that produces `GENERIC_HUB_ONLY` already sets `generic_hub: True`. A reserved-id list inside P11 would refuse a folder name for a reason the user could never be told, so P11 adds none |
+
+### Cross-part dependencies this plan cannot close
+
+These are **not** P11 divergences. Each is a defect or gap in another part that P11's correctness depends on, recorded here so it is not lost between owners.
+
+| # | Where | What is wrong | What P11 does meanwhile | Owner |
+|---|---|---|---|---|
+| **X1** | `src/eval_harness/vocabulary.py:5-11` | **`candidate_node_retrieval` has no same-named `dimension`** — P11's own §6.2 stage. `STAGE_IDS` contains it; `DIMENSIONS` has no entry of that name, and P2's own comment recorded the question as open: *"whether the `retrieval` dimension covers candidate-node retrieval, or candidate-node retrieval gets its own dimension, is for the design to settle."* **Settled** by `planning/38-p10-p11-connection-contract.md` §7 from the design itself: §8.5's *"Retrieval quality: for sparse files, did the correct anchors appear in the top candidate neighborhood?"* (`01-product-design-structured.md:1757-1758`) is this stage in the design's own words, so the stage carries the existing `retrieval` dimension and no eleventh is invented. | Emits `candidate_node_retrieval` with a `retrieval` `DimensionValue` under `subject_ref = candidates:{plan_version}:{subject_ref}`, and names that same ref in `placement_scoring.inputs`. The namespace is required, not cosmetic: `stage_dimension_value` is keyed `(run_id, dimension, subject_ref)` (`eval_harness/stage_output.py:59`) and P9 already writes `retrieval` rows for its own stage, so a bare ref makes a full-pipeline replay raise `IntegrityError`. | **P2 owes the documentation change**: record that half of its Open question 1 is answered, and add a test that no two stages write the same `(dimension, subject_ref)` in one run. `residual`-with-no-stage stays open |
+| **X2** | `src/llm_harness/harness.py:348` | **`return verdicts[-1]` selects a verdict positionally.** `run_call` validates every claim in a response and returns the LAST verdict in the list, not the most severe. A multi-claim Site C response whose first claim is `reject` and whose last is `accept_direct` therefore returns `accept_direct` to the caller, and the rejection is recorded but never surfaced. | Task 12's `transcribe` and Task 19's `_judge_with_model` **assume a severity-selected verdict**: `transcribe` maps an accepting outcome straight to `PLACE`, so a positionally-selected accept becomes a placement whose first claim P8 refused. P11 writes no second selection of its own — a caller re-ranking P8's verdicts is the second-validator failure O7 forbids. **P11's Task 12 correctness depends on this P8 fix.** | **P8.** Until it lands, P11's transcription is correct only for single-claim responses |
+| **X3** | `llm_harness/records.P8Verdict` | **A verdict names a `claim_ref`, not a destination.** Nothing in `P8Verdict`'s thirteen fields says which node the model chose, and `run_call` does not return the response body. So a caller that asked P8 to judge among candidates cannot learn the answer from the verdict alone. | `PipelineInputs.chosen_node_of` is an injected resolver with no default, and the pipeline **refuses** a resolved node outside `legal_node_ids` rather than trusting it. **OPEN**: whether P8 should return the accepted claim's payload, or P11 should key its own claims, is a seam decision nobody has made | **P8 + P11 seam** |
+| **X4** | `placement/records.PlacementDecision` | **No `verdict_id` field**, so a decision cannot say which P8 verdict backs it, and Task 17 cannot call `revalidate_for_plan` from the record alone. | `reproject` takes `revalidation_inputs` as an injected sparse mapping from the caller that made the call. **OPEN**: adding a field is a revision of SPEC Contract out §1 | **The SPEC** |
 
 ## Explicitly unresolved after this plan
 
@@ -8269,8 +9863,12 @@ defaults. Every one is an injection with no default, and its absence raises.
 - **Is a residual set decision versioned and reversible?** (SPEC Open question 9.) The table is plan-versioned and append-only; whether reversing one re-runs the model at cost is the caller's, and unresolved.
 - **Is §7.5's set partition canonical?** (SPEC Open question 10.) Read as illustrative; the partition is injected.
 - **Where does the shared-material policy live in the tree?** (SPEC Open question 12.) **Threatens P10's node schema.** P11 reads it off the tree and stores none of its own.
-- **P9's acceptance read does not exist.** `src/grouping/` has no `store.py` or `acceptance.py`, so no published call returns an accepted group as of a plan version. G-P9.
+- ~~**P9's acceptance read does not exist.**~~ **Resolved.** It shipped: `grouping/acceptance.py:154` publishes `group_state_as_of`, and `grouping/store.py:266` publishes `memberships_for_group`. G-P9 is closed and Task 13 consumes both directly.
 - **P10 does not exist.** G-P10 fails explicitly and must keep failing until it ships.
 - **P13 does not exist.** G-P13 is fixture-mediated and names its swap boundary.
 - **P7's detector does not exist**, so on a real corpus every file resolves to `unreadable_unclassified` and P11 blocks. That is the ordinary path and the correct one.
 - **P8's `SiteDependencies` and friends are unexported**, and `"node-hub"` is a fixture id in production Site C logic. Both are P8's to close.
+- **P2 has no dimension for `candidate_node_retrieval`** (X1). P11's own retrieval stage is unattributable until the design settles whether the `retrieval` dimension covers it. P11 emits the stage and attaches no dimension to it.
+- **P8's `run_call` selects a verdict positionally** (`harness.py:348`, X2). P11's transcription assumes severity selection and is correct only for single-claim responses until P8 fixes it.
+- **A P8 verdict does not name the destination it accepted** (X3). `chosen_node_of` is injected with no default and the pipeline refuses a node outside the index.
+- **`PlacementDecision` carries no verdict id** (X4), so `revalidate_for_plan`'s inputs are injected rather than read off the record.

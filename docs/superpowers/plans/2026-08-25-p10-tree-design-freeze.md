@@ -27,23 +27,23 @@ Read in this order before executing a task:
 | Prerequisite | Current evidence | Plan treatment |
 |---|---|---|
 | P1 events | `database_agent.events.append_event(conn, **fields)`; `"template application"` and `"destination-tree edit"` are already reserved at `src/database_agent/events.py:33-34`; writable fields are `EVENT_FIELDS` + `CORRECTION_FIELDS` (`:11-22`); required are `event_type, subsystem, component_version, observed_at, explanation` (`:103`) | Task 5 is the sole P10 writer. Two reserved names with no producer is this project's named defect class |
-| P1 learning | `database_agent.learning.learning_records(conn, scope, subject_id)` (`src/database_agent/learning.py:46-47`), honouring `reset_cutoff` (`:35-43`) | Task 5 publishes the branch-suppression read; Task 10 consults it before proposing |
+| P1 learning | `database_agent.learning.learning_records(conn, scope, subject_id)` (`src/database_agent/learning.py:46-47`), honouring `reset_cutoff` (`:35-43`) | Task 5 publishes the branch-suppression read; Task 11 consults it before proposing (`candidates.py` is its only caller) |
 | P1 ceilings | `database_agent.budget.get_ceiling(conn, key)` (`src/database_agent/budget.py:64-67`); `tree.max_folder_proposals_and_depth` is live at `:27`; `model.max_dossier_tokens_per_call` at `:19` | Task 3 reads both. No other key, no default |
 | P1 plan versions | **Do not exist.** `grep -rn plan_version src/database_agent/*.py` returns nothing; §0's "destination nodes" are unimplemented | Task 2 creates `plan_versions` inside P1's database as a P10-owned table, the way P9 owns `group_acceptance` |
-| P2 stages | `eval_harness.stage_output.record_stage_output(...)` (`src/eval_harness/stage_output.py:96-100`) with **required** `inputs` and `budget_state`; `template_generation` and `tree_design` live at `src/eval_harness/vocabulary.py:25-26`; `template` and `tree` dimensions at `:39-40` | Task 14 passes both required keywords and emits `DimensionValue` rows for `template` and `tree` |
-| P3 selection | `scan_agent.selection.record_selection(conn, *, sources, candidate_roots, cross_folder_moves, selected_by)` (`src/scan_agent/selection.py:40-44`); readers `selection_candidate_roots` (`:79`), `get_selection` (`:68`) | Task 4 reads the roots and the permission; Task 14 stores the permission in the freeze record |
+| P2 stages | `eval_harness.stage_output.record_stage_output(...)` (`src/eval_harness/stage_output.py:96-100`) with **required** `inputs` and `budget_state`; `template_generation` and `tree_design` live at `src/eval_harness/vocabulary.py:25-26`; `template` and `tree` dimensions at `:39-40` | Task 16 passes both required keywords and emits `DimensionValue` rows for `template` and `tree` |
+| P3 selection | `scan_agent.selection.record_selection(conn, *, sources, candidate_roots, cross_folder_moves, selected_by)` (`src/scan_agent/selection.py:40-44`); readers `selection_candidate_roots` (`:79`), `get_selection` (`:68`) | Task 4 reads the roots and the permission; Task 16 stores the permission in the freeze record |
 | P3 folder inventory | `scan_agent.inventory.directory_inventory(conn, scan_run_id)` (`src/scan_agent/inventory.py:88`); `CURATION_SIGNAL_VALUES` is **three** values, not two (`:20-25`), and `curation_signal` returns `undetermined` for every directory today (`:42-53`) | Task 4 carries all three verbatim. `undetermined` is a real value; P10 never rounds it to `incidental` |
 | P6 fields | `facts.fields.get_field(conn, field_key)` (`src/facts/fields.py:281`), `facts.read_surface.is_destination_eligible(conn, *, field_key)` (`src/facts/read_surface.py:290`) | C2 resolves every semantic role through these two. P10 mints no field |
 | P7 privacy | `privacy.vocabulary.HANDLING_CLASSES` (`src/privacy/vocabulary.py:86-92`) and `OPERATION_MODES` (`:112-114`) | Task 1 **imports** both; P10 re-spells neither and coins no display variant |
-| P8 harness | `llm_harness.harness.run_call(conn, request, *, gate, model_client, prompt, validation_dependencies, observed_at)` (`src/llm_harness/harness.py:351-362`); Site E at `llm_harness.template_validation.validate_template_response(...)` (`src/llm_harness/template_validation.py:153-164`); `TemplateDependencies(schema_validator)` (`:26-27`) | Task 7 builds the `schema_validator` P10 owes P8. Task 6 builds the `DossierRequest`. P10 never touches transport or the gate |
+| P8 harness | `llm_harness.harness.run_call(conn, request, *, gate, model_client, prompt, validation_dependencies, observed_at)` (`src/llm_harness/harness.py:351-362`); Site E at `llm_harness.template_validation.validate_template_response(...)` (`src/llm_harness/template_validation.py:153-164`); `TemplateDependencies(schema_validator)` (`:26-27`), which **gains a second field `published_fragment: Callable[[str, int], bool]` before Task 8 runs** (contract §10.3 #2) | Task 8 builds the `schema_validator` and the `published_fragment` authority P10 owes P8, plus the `DossierRequest`; `template_schema.py` is their one home. P10 never touches transport or the gate |
 | P8 Site E vocabulary | `E_TEMPLATE = "E_template"` (`src/llm_harness/vocabulary.py:24`); `TEMPLATE_ELIGIBILITY = ("accepted_group_fits_no_existing_template",)` (`:140`); `E_TEMPLATE` is in `SITES_REQUIRING_PLAN_VERSION` (`:158-160`) | Task 6 imports these. A Site-E request without a `plan_version` is refused by P8's own record |
-| P9 grouping | Partially built: `src/grouping/` has `config, embeddings, fixtures, records, retrieval, schema, seeds, vocabulary`. `store.py`, `acceptance.py` and the accepted-group read surface **do not exist yet** | Tasks 1–13 run against `tests/p10/p9_fixtures.py`, a content-free fixture over the live `Group`/`Membership`/`GroupAcceptance` records. Task 15 names the swap |
+| P9 grouping | **Shipped further than earlier drafts of this plan record.** `src/grouping/` now also has `store.py`, `acceptance.py`, `pipeline.py`, `graph.py`, `dossier.py`, `p8_seam.py`, `learning.py`, `failure_points.py`, `stage_output.py`. Live reads: `store.current_group`, `store.memberships_for_group`, `store.stop_rule_outcome_for`, `acceptance.group_state_as_of`. Still missing: an accepted-group **enumeration**, and any writer of a coherence verdict or label (corrections 16–18) | Tasks 1–14 run against `tests/p10/p9_fixtures.py`, which carries BOTH the live-shaped group P9 writes today and the labelled one P10 needs. Task 17 names the swap |
 | P11/P12/P13 | Not implemented | P10 publishes fixtures and read APIs only. No placement, path, or review-runtime concept enters `src/tree_design/` |
 
 ### Dependency gates
 
-- **G-P9:** Tasks 1–13 build against `tests/p10/p9_fixtures.py`, which constructs **live** `grouping.records.Group`, `Membership` and `GroupAcceptance` objects. When `grouping.store` ships, Task 4's `AcceptedGroupReader` protocol is satisfied by it and the fixture is deleted from the production path. A production freeze requires real accepted groups; the fixture never reaches one.
-- **G-P8:** Template generation calls P8's frozen `run_call` and nothing else. P10 supplies the `DossierRequest`, the `allowed_vocabulary` closure and the `TemplateDependencies.schema_validator`; P8 owns transport, release and the verdict. P10 never calls `privacy.gate.Gate.release` and constructs no `Dossier`.
+- **G-P9:** Tasks 1–14 build against `tests/p10/p9_fixtures.py`, which constructs **live** `grouping.records` objects in two shapes: `_live_group` is field-for-field what `pipeline.py:177-201` writes today, and `_labelled_group` is what P10 needs and P9 cannot yet emit. Three of `AcceptedGroupReader`'s four methods already map onto shipped `grouping.store` callables; `accepted(plan_version_id)` does not exist upstream (correction 17), and no live group carries a label (correction 16). **A production freeze is therefore blocked on P9, not merely waiting on it** — `test_an_unlabelled_live_group_is_refused_loudly_not_rendered_blank` is that block, executable.
+- **G-P8:** Template generation calls P8's frozen `run_call` and nothing else. P10 supplies the `DossierRequest`, the `allowed_vocabulary` closure and BOTH of `TemplateDependencies`' authorities — `schema_validator` and `published_fragment`; P8 owns transport, release, the response scan and the verdict. P10 never calls `privacy.gate.Gate.release` and constructs no `Dossier`.
 - **G-P13:** Tree edits arrive as `tests/p10/p13_fixtures.py` review actions until P13 publishes its record. The fixture lives under `tests/` and `src/tree_design/` never imports it.
 - **G-KNOWLEDGE:** A missing domain schema, applicability binding, fragment version, role-to-P6-field mapping, depth limit, §5.9 threshold or residual slot value raises `ConfigurationRequired` or produces a review candidate. It never selects a built-in value. This is how SPEC open questions 1 and 2 arrive: as absent configuration, not as a number this plan invents.
 - **G-OPEN:** SPEC open questions 3, 5, 8, 9 and 10 remain open. The implementation stores no guessed answer: `protected` is carried as the §5.12 enum member **and** a separate `handling_class` (OQ3); `node_id` is minted per plan version with an explicit `origin_node_id` lineage column and no code depends on cross-version identity (OQ5); the scoped `General` is opt-in per parent and never auto-added (OQ8); the shared-material policy is stored with an explicit `policy_scope` naming which branch it covers, `None` meaning tree-global (OQ9); redaction axes beyond §5.2's filename default are injected configuration with no default (OQ10).
@@ -53,15 +53,21 @@ Read in this order before executing a task:
 
 Execute Tasks 1–5 in order; each is a substrate the rest import.
 
+Every row below was re-derived from what each task actually builds. The previous
+version of this section was numbered against a 16-task draft and was off by one
+throughout; an executor following it built in the wrong order.
+
 - **Task 1 before everything.** Every closed value in P10 has exactly one home, and a module written before the vocabulary exists will spell one as a literal — the defect that has cost this project the most (`planning/parts/_PLAN-AUTHORING-BRIEF.md:216-243`).
-- **Task 3 before Tasks 8, 10 and 11.** V3's depth ceiling and §5.9's four thresholds are read, never chosen; a check written before the reader exists will hard-code a number.
-- **Task 5 before Tasks 10 and 12.** `SPEC.md:882-885` requires the learning query to run *before* a branch candidate is proposed, and `SPEC.md:818-821` requires every draft-altering action to append an event. Building candidates or edits first produces a proposal path with no record of itself, which is unrecoverable after the fact.
-- **Task 6 before Tasks 7, 8 and 10.** `SPEC.md:499` — "Composition gates precede V1–V6." A candidate cannot be materialised, validated or previewed before its composition resolves.
-- **Task 6 before Task 7**, because the `schema_validator` rejects a proposal naming a fragment id/version the published catalogue does not contain, and it needs the catalogue reader to ask.
-- **Task 9 before Task 14.** `SPEC.md:66-67` — P10 "cannot freeze a *complete* tree without the library that produces those nodes."
-- **Task 10 before Task 11.** Health counts are computed over proposed nodes; there is nothing to count first.
-- **Task 12 before Tasks 13 and 14.** A profile is emitted for a node in a version, and freeze validates a version; both need the versioned store.
-- **Task 15 last.** It is the only task permitted to observe the whole package at once.
+- **Task 3 before Tasks 7, 9 and 13.** V3's depth ceiling and §5.9's four thresholds are read, never chosen; a check written before the reader exists will hard-code a number. Those three are the only modules that import `tree_design.config`'s `TreeLimits` — `routing.py`, `validation.py`, `health.py`.
+- **Task 4 before Task 12.** The materialiser reads validated P6 facts, and `upstream.py` is the only module allowed to name P6's symbols.
+- **Task 5 before Tasks 11 and 14.** `SPEC.md:882-885` requires the learning query to run *before* a branch candidate is proposed (Task 11), and `SPEC.md:818-821` requires every draft-altering action to append an event (Task 14's `apply_review_action`). Building candidates or edits first produces a proposal path with no record of itself, which is unrecoverable after the fact.
+- **Task 6 before Tasks 7, 8 and 9.** `SPEC.md:499` — "Composition gates precede V1–V6." C1–C8 are Task 7 and V1–V6 are Task 9; a candidate cannot be materialised, validated or previewed before its composition resolves.
+- **Task 6 before Task 8**, because the `schema_validator` rejects a proposal naming a fragment id/version the published catalogue does not contain, and it needs the catalogue reader to ask.
+- **Tasks 7, 9 and 11 before Task 12.** The materialiser consumes Task 7's `CompositionCandidate`, produces Task 9's `MaterialisedCandidate` for `run_checks`, and fills the `materialise` and `validate` parameters Task 11's `vertical_options` declares but does not implement.
+- **Task 10 before Task 16.** `SPEC.md:66-67` — P10 "cannot freeze a *complete* tree without the library that produces those nodes." The residual library is Task 10; freeze is Task 16.
+- **Task 12 before Tasks 13 and 14.** Health counts are computed over proposed nodes and there is nothing to count until the materialiser has produced some; and Task 14's `accept` writer projects an approved branch through Task 12.
+- **Task 14 before Tasks 15 and 16.** A profile is emitted for a node in a version, and freeze validates a version; both need the versioned store.
+- **Task 18 last.** It is the only task permitted to observe the whole package at once.
 
 ## File structure
 
@@ -80,18 +86,21 @@ src/tree_design/template_schema.py     the strict Site-E response schema and P10
 src/tree_design/validation.py          the six §5.7 engine checks V1–V6
 src/tree_design/residuals.py           nine residual definitions, eight slots, enablement projection
 src/tree_design/candidates.py          horizontal scaffold and vertical branch proposals
+src/tree_design/materialise.py         §5.4's populate step: real P6 values become levels, then nodes
 src/tree_design/health.py              live counts, §5.9 warnings, tree health
 src/tree_design/store.py               versioned writes, current reads, supersession
 src/tree_design/diff.py                node-level diffs between two plan versions
 src/tree_design/profiles.py            the §6.1 destination profile
-src/tree_design/freeze.py              freeze validation and the ID-only legality projection
+src/tree_design/freeze.py              freeze validation, the ID-only legality projection,
+                                       and `frozen_tree()` — the P11 hand-over bundle
 src/tree_design/stage_output.py        P10 → P2 template_generation / tree_design envelopes
 src/tree_design/fixtures.py            frozen-tree and library fixtures P11/P12 build against
 
-tests/p10/conftest.py                  real P1 database plus a seeded P6 field catalogue
+tests/p10/conftest.py                  real P1 database plus the P6, P3, P7 and P2 tables P10 reads
 tests/p10/p9_fixtures.py               live-record P9 accepted groups, tests only
 tests/p10/p13_fixtures.py              review_action fixture, tests only
 tests/p10/test_p10_*.py                focused TDD suites
+tests/integration/test_p10_p6_materialise.py  P6 facts → materialised levels → nodes
 tests/integration/test_p10_p9_tree.py  P9 groups → P10 scaffold
 tests/integration/test_p10_p8_template.py  P10 schema_validator → P8 Site E
 tests/integration/test_p10_p2_replay.py    P10 → P2 stage outputs
@@ -124,10 +133,37 @@ No task edits `planning/domains/`, `planning/deferred-catalogues/`, prompts, or 
 
 ```python
 # tests/p10/conftest.py
-"""A real P1 database with P6's field catalogue seeded.
+"""A real P1 database carrying every upstream table P10's tests read.
 
-P10 resolves every semantic role to a live P6 field, so a test database without
-`fields` cannot exercise C2 at all. `open_database` already creates P1's tables.
+`open_database` creates EIGHT tables and no more — `budget_ceilings`, `events`,
+`files`, `learning_resets`, `scan_resource_usage`, `vector_arrays`,
+`vector_embeddings` and `sqlite_sequence`. Verified:
+
+    PYTHONPATH=src python3 -c "import pathlib, tempfile
+    from database_agent.db import open_database
+    c = open_database(pathlib.Path(tempfile.mkdtemp())/'a.sqlite')
+    print(sorted(r[0] for r in c.execute(
+        \"select name from sqlite_master where type='table'\")))"
+
+Every other part's tables come from that part's own idempotent creator, and each
+one below is here because a named test raises `sqlite3.OperationalError: no such
+table` without it:
+
+* `create_fields` -> `fields` (it calls `create_facts_schema` itself, `src/facts/
+  fields.py:284`). Task 4's `resolve_role_to_field` reads `get_field` and
+  `is_destination_eligible`; C2 cannot be exercised at all without the catalogue.
+* `create_scan_schema` -> `corpus_selections`, `directory_inventory`, `scan_runs`.
+  Task 4's `record_selection`, `get_selection`, `selection_candidate_roots` and
+  `directory_inventory` all read them.
+* `create_privacy_schema` -> `classifications`. Task 4's `ClassificationStore
+  (conn).current(...)` reads it, and D2's absent-record case is a SELECT that
+  must return `None` rather than fail to run.
+* `create_eval_schema` -> `version_tuple`, `run_manifest`, `stage_output`,
+  `stage_dimension_value`. Task 16's P2 envelopes write all four.
+
+P10's OWN tables are deliberately absent: `create_tree_schema` is Task 2's, and
+each suite that needs it calls it explicitly so the schema test can observe a
+database both before and after.
 """
 from __future__ import annotations
 
@@ -136,13 +172,19 @@ from pathlib import Path
 import pytest
 
 from database_agent.db import open_database
+from eval_harness.store import create_eval_schema
 from facts.fields import create_fields
+from privacy.schema import create_privacy_schema
+from scan_agent.schema import create_scan_schema
 
 
 @pytest.fixture()
 def conn(tmp_path: Path):
     c = open_database(tmp_path / "agent.sqlite")
     create_fields(c)
+    create_scan_schema(c)
+    create_privacy_schema(c)
+    create_eval_schema(c)
     yield c
     c.close()
 ```
@@ -530,7 +572,16 @@ REPLACE_WITH_EXISTING: str = "replace-with-existing"
 
 #: §7.4's six. A template the user did not enable has no node, which is the whole
 #: enforcement mechanism: no model can return a destination that does not exist.
-RESIDUAL_ACTIONS: tuple[str, ...] = (
+#:
+#: Named `RESIDUAL_LIBRARY_ACTIONS`, not `RESIDUAL_ACTIONS`, because
+#: `llm_harness.vocabulary.RESIDUAL_ACTIONS` is already live and is §7.7's EIGHT
+#: review actions (`return_to_confirmed_domain_group` ... `abstain`), which P11
+#: imports. Two different closed sets under one name in one pipeline is a
+#: misspelling waiting to become a silent downgrade — the exact failure `check()`
+#: below exists to prevent. These six are the LIBRARY actions: what the user does
+#: to a residual template before freeze. P8's eight are the WORKFLOW actions:
+#: what P11 does with a file that reached a residual node after it.
+RESIDUAL_LIBRARY_ACTIONS: tuple[str, ...] = (
     ENABLE, DISABLE, RENAME_RESIDUAL, RELOCATE, MERGE_RESIDUAL,
     REPLACE_WITH_EXISTING,
 )
@@ -598,6 +649,12 @@ DISABLE_RESIDUAL: str = "disable-residual"
 
 #: §8.2: every canvas action that alters the draft tree appends one
 #: `destination-tree edit` event carrying one of these.
+#:
+#: This is NOT `BRANCH_ACTIONS`. The two sets are deliberately different: the
+#: canvas offers `delete-suggested-area` and `drag-group-into-branch`, the event
+#: log records `delete` and `re-parent`. `record_tree_edit` checks against THIS
+#: tuple, so a test that passes a `BRANCH_ACTIONS` spelling raises
+#: `OutOfVocabulary` before P1 ever sees the row.
 TREE_EDIT_ACTIONS: tuple[str, ...] = (
     ACCEPT, RENAME, MERGE, SPLIT, NEST, REPARENT, REORDER, IGNORE, DELETE,
     CREATE_MANUALLY, ADOPT_EXISTING, ENABLE_RESIDUAL, DISABLE_RESIDUAL,
@@ -682,7 +739,7 @@ CALL_SITE_TEMPLATE: str = E_TEMPLATE
 TEMPLATE_ELIGIBILITY_REASONS: tuple[str, ...] = TEMPLATE_ELIGIBILITY
 
 #: P13 collects tree edits on one of two surfaces (§5, §8.8). P13 is unbuilt and
-#: publishes no constant, so P10 names them here and Task 15 replaces this block
+#: publishes no constant, so P10 names them here and Task 16 replaces this block
 #: with P13's import.
 SURFACE_CANVAS: str = "canvas"
 SURFACE_PLAN_VERSION: str = "plan_version"
@@ -708,7 +765,7 @@ P10_CLOSED_SETS: MappingProxyType = MappingProxyType({
     "residual_template_name": RESIDUAL_TEMPLATE_NAMES,
     "residual_slot": RESIDUAL_SLOTS,
     "treatment": RESIDUAL_TREATMENTS,
-    "residual_action": RESIDUAL_ACTIONS,
+    "residual_action": RESIDUAL_LIBRARY_ACTIONS,
     "shared_material_policy": SHARED_MATERIAL_POLICIES,
     "branch_action": BRANCH_ACTIONS,
     "existing_folder_action": EXISTING_FOLDER_ACTIONS,
@@ -817,6 +874,7 @@ class Node:
     disposition: str | None = None
     refinement_disposition: str | None = None
     refinement_reason: str | None = None
+    protected_movement_permitted: bool = False
 
 @dataclass(frozen=True)
 class SharedMaterialPolicy:
@@ -1208,6 +1266,14 @@ class Node:
     expected_values: tuple[ExpectedValue, ...] = ()
     existing_path: str | None = None
     disposition: str | None = None
+    # §5.8. OPTIONAL here and non-`None` in `FrozenTree`, deliberately.
+    # `P10 SPEC:230` requires it on an APPROVED branch, and a draft node has not
+    # been approved yet — a required field would make the state the user is
+    # actually in while editing unstorable. `validate_for_freeze` refuses a
+    # version carrying a `None` on an approved branch, and `freeze` refuses to
+    # hand over a bundle carrying a `None` anywhere. The guarantee belongs to the
+    # record that only exists after freeze, which is why P11's `IndexEntry` may
+    # declare the same field `str`.
     refinement_disposition: str | None = None
     refinement_reason: str | None = None
     protected_movement_permitted: bool = False
@@ -1348,6 +1414,7 @@ P10_TABLES: tuple[str, ...] = (
     "tree_nodes",
     "shared_material_policies",
     "node_expected_values",
+    "frozen_trees",
 )
 
 TREE_DDL = """
@@ -1426,6 +1493,20 @@ CREATE TABLE IF NOT EXISTS shared_material_policies (
 CREATE UNIQUE INDEX IF NOT EXISTS one_global_shared_material_policy
     ON shared_material_policies (plan_version_id)
     WHERE policy_scope IS NULL;
+
+-- Task 16's. The hand-over bundle P11 reads back through
+-- `tree_design.freeze.frozen_tree`. It exists because §8.8 makes a frozen
+-- version immutable and P11's DM3 promise is that legality is decidable
+-- "without consulting facts, templates or the filesystem": rebuilding the §6.1
+-- profiles at read time would consult all three, and would consult them against
+-- a P9/P4/P6 state that has moved on since freeze. Freeze writes the bundle
+-- once; every later reader gets the version that was actually adopted.
+CREATE TABLE IF NOT EXISTS frozen_trees (
+    plan_version_id TEXT PRIMARY KEY REFERENCES plan_versions (plan_version_id),
+    created_at      TEXT NOT NULL,
+    freeze_record   TEXT NOT NULL,   -- canonical JSON
+    profiles        TEXT NOT NULL    -- canonical JSON, one object per node
+);
 """
 
 
@@ -1557,13 +1638,23 @@ def test_the_retrieval_gain_test_is_injected_and_may_answer_unknown(conn):
 def test_no_module_in_the_package_holds_a_numeric_literal_beyond_zero_and_one():
     """P9's precedent, applied to P10: a threshold in source is a policy an
     author chose. Introspection, not text search — a text search matches
-    comments and docstrings and has produced a false result nine times here."""
+    comments and docstrings and has produced a false result nine times here.
+
+    `fixtures.py` (Task 17) is the ONLY exemption, and it is stated rather than
+    silent: its sibling `ordinal`s run 0..9 by construction, which are positions
+    in a fixed example tree and not limits any check consults. Every other
+    module holds no integer beyond 0 and 1 — which is what makes one exemption
+    safe rather than a hole. `tests/p10/test_p10_no_invention.py` carries the
+    same test and the same exemption; if either is relaxed further, the other
+    stops being a ratchet."""
     import ast
     from pathlib import Path
 
     src = Path(__file__).resolve().parents[2] / "src" / "tree_design"
     offenders = []
     for path in sorted(src.glob("*.py")):
+        if path.name == "fixtures.py":
+            continue
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if not isinstance(node, ast.Constant):
@@ -1695,7 +1786,7 @@ git commit -m "feat(p10): read tree limits from configuration"
 
 **Interfaces:**
 
-*Consumes:* `grouping.records.Group` / `Membership` / `GroupAcceptance`, `grouping.vocabulary.MEMBERSHIP_BASES` / `EXCLUDED` / `ACCEPTED` / `REJECTED`, `facts.fields.get_field(conn, field_key)`, `facts.read_surface.is_destination_eligible(conn, *, field_key)`, `scan_agent.selection.selection_candidate_roots(conn, selection_id)` / `get_selection(conn, selection_id)`, `scan_agent.inventory.directory_inventory(conn, scan_run_id)` / `CURATION_SIGNAL_VALUES`, `privacy.classification_store.ClassificationStore(conn).current(file_id, content_hash)`.
+*Consumes:* `grouping.records.Group` / `Membership` / `GroupAcceptance`, `grouping.vocabulary.MEMBERSHIP_BASES` / `EXCLUDED` / `ACCEPTED` / `REJECTED`, `facts.fields.get_field(conn, field_key)`, `facts.read_surface.is_destination_eligible(conn, *, field_key)`, `scan_agent.selection.selection_candidate_roots(conn, selection_id)` / `get_selection(conn, selection_id)`, `scan_agent.inventory.directory_inventory(conn, scan_run_id)` / `CURATION_SIGNAL_VALUES`, `privacy.classification_store.ClassificationStore(conn).current(file_id, content_hash)`, `facts.supersede.preferred_fact(conn, *, file_id, field_key)`, `facts.read_surface.PROPOSAL_ELIGIBLE_STATES`.
 
 *Produces:*
 
@@ -1728,11 +1819,13 @@ class AcceptedGroupReader(Protocol):
     def accepted(self, plan_version_id: str) -> Sequence[object]: ...
     def group(self, group_id: str) -> object: ...
     def memberships(self, group_id: str) -> Sequence[object]: ...
+    def stop_rule_outcome(self, group_id: str) -> object | None: ...
 
 def accepted_groups(reader: AcceptedGroupReader, *,
                     plan_version_id: str) -> tuple[AcceptedGroup, ...]: ...
 def rejected_group_ids(reader: AcceptedGroupReader, *,
                        plan_version_id: str) -> frozenset[str]: ...
+def renders_as_branch(reader: AcceptedGroupReader, *, group_id: str) -> bool: ...
 def resolve_role_to_field(conn: sqlite3.Connection, *, role_ref: str,
                           field_ref: str) -> str: ...
 def existing_folders(conn: sqlite3.Connection, *,
@@ -1741,6 +1834,15 @@ def candidate_roots(conn: sqlite3.Connection, *,
                     selection_id: str) -> tuple[str, ...]: ...
 def cross_folder_moves(conn: sqlite3.Connection, *, selection_id: str) -> bool: ...
 def handling_class_for(store, *, file_id: str, content_hash: str) -> str: ...
+
+@dataclass(frozen=True)
+class FieldValue:
+    field_ref: str
+    canonical_value: str
+    display_label: str
+
+def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
+                        field_ref: str) -> FieldValue | None: ...
 ```
 
 **Done-means:** the input half of DM2, DM5 and DM14. This is the only module in `src/tree_design/` permitted to name another part's symbols.
@@ -1758,16 +1860,45 @@ What it can do is refuse to invent their shape: every object here is a real
 `grouping.records` instance, so the day P9 publishes a reader this fixture is
 replaced and nothing about the shape changes.
 
-Three names in P10's SPEC do not exist in P9's live code and are corrected here:
+Six names in P10's SPEC do not exist in P9's live code and are corrected here:
 the user-approved label is `GroupAcceptance.user_edited_label` falling back to
 `Group.display_label`, the membership axis is `Membership.basis`, and rejection
 is `GroupAcceptance.acceptance`, never `Group.state`.
+
+Three more are corrections to THIS fixture, each verified against the live
+record rather than reconstructed:
+
+* `AnchorFact` is `(field, value, file_ids, reliability_state, observation_key)`
+  — `src/grouping/records.py:85-89`. There is no `fact_id` and no `field_key`,
+  and `file_ids` is required: `__post_init__` raises "an anchor fact no file
+  states is not an anchor" on an empty tuple (`:97-100`). The durable handle for
+  an anchor is therefore `observation_key`, which is what `AcceptedGroup.
+  anchor_facts` carries.
+* `Membership` requires `validation_verdict_ref` and `created_at`
+  (`src/grouping/records.py:228-230`) and refuses an empty `support`: "a
+  membership with no support cannot say why the file belongs" (`:245-248`).
+  A `direct-anchor` membership additionally requires a `shared-validated-fact`
+  support kind (`:252-260`), so the support tuple here is a real `Support`.
+* `sensitivity_state` is P9's, not P7's. `SENSITIVITY_STATES` is
+  `(none, sensitive-present)` (`src/grouping/vocabulary.py:207-210`);
+  `personal_non_sensitive` is a P7 HANDLING class (`src/privacy/vocabulary.py:
+  86-92`). `Group.__post_init__` only checks the field is non-empty, so the
+  wrong value would have been stored silently — which is exactly the
+  cross-part vocabulary leak this seam exists to stop.
 """
 from __future__ import annotations
 
-from grouping.records import AnchorFact, Group, GroupAcceptance, Membership
+from grouping.records import (
+    AnchorFact,
+    Group,
+    GroupAcceptance,
+    Membership,
+    StopRuleOutcome,
+    Support,
+)
 from grouping.vocabulary import (
     ACCEPTED,
+    CANDIDATE,
     COHERENT,
     CONTEXT_SUPPORTED,
     DIRECT_ANCHOR,
@@ -1775,9 +1906,13 @@ from grouping.vocabulary import (
     EXCLUDED,
     INCLUDED,
     NOT_FLAGGED,
+    NO_SENSITIVITY,
     REJECTED,
     RULES,
+    SHARED_VALIDATED_FACT,
+    SR1,
     STRONGLY_IDENTIFIED_FILE,
+    TENTATIVE_DISCOVERY,
     USER,
     USER_ACCEPTED,
     VALIDATED_SHARED_FACT,
@@ -1786,20 +1921,80 @@ from grouping.vocabulary import (
 T0 = "2026-08-27T00:00:00Z"
 
 
-def _group(group_id: str, label: str, category: str, seed_kind: str) -> Group:
+def _live_group(group_id: str, seed_kind: str) -> Group:
+    """EXACTLY the record `src/grouping/pipeline.py:177-201` writes today.
+
+    Every field below is copied from that call site, not chosen here. It is the
+    ONLY originating `Group` writer in `src/` — `store.py:181` is a row-reader
+    that returns whatever was stored, and `p8_seam.apply_p8_verdict` writes
+    `Membership` rows and never rewrites a group. So this is the whole of what
+    P10 can expect to receive from live P9:
+
+        state              = candidate     (never `supported`)
+        coherence_verdict  = None
+        coherence_citations= ()
+        group_category     = None
+        display_label      = None
+        label_source       = None
+        pre_model_signals  = {"anchor_count": n}
+
+    `supported` is in `GROUP_STATES` but nothing sets it: `meets_support_bar`
+    (`src/grouping/graph.py:262`) has no production caller and is referenced once
+    more only in a comment at `:298`. A fixture in that state would test P10
+    against a group P9 cannot emit while leaving the state it DOES emit untested.
+    """
+    facts = (AnchorFact(
+        field="subject", value="PHYS1401", file_ids=(f"anchor_{group_id}",),
+        reliability_state="validated", observation_key=f"obs_{group_id}",
+    ),)
     return Group(
-        group_id=group_id, seed_ref=f"seed_{group_id}", seed_kind=seed_kind,
-        proposed_basis="two validated shared facts across five files",
-        anchor_facts=(AnchorFact(
-            fact_id=f"fact_{group_id}", field_key="subject", value="PHYS1401",
-            reliability_state="validated", observation_key=f"obs_{group_id}",
-        ),),
-        pre_model_signals={}, anchor_count=1, coherence_verdict=COHERENT,
-        coherence_citations=(f"obs_{group_id}",), group_category=category,
-        display_label=label, label_source=ENGINE, conflicts=(),
-        stop_rule_hits=(), state="supported", sensitivity_state="personal_non_sensitive",
-        dossier_id=None, llm_response_ref=None, validation_verdict_ref=None,
-        created_by=RULES, created_at=T0,
+        group_id=group_id, seed_ref=f"f_{group_id}:h_{group_id}",
+        seed_kind=seed_kind, proposed_basis="subject=PHYS1401",
+        anchor_facts=facts, pre_model_signals={"anchor_count": len(facts)},
+        anchor_count=len(facts), coherence_verdict=None, coherence_citations=(),
+        group_category=None, display_label=None, label_source=None,
+        conflicts=(), stop_rule_hits=(), state=CANDIDATE,
+        sensitivity_state=NO_SENSITIVITY, dossier_id=None, llm_response_ref=None,
+        validation_verdict_ref=None, created_by=RULES, created_at=T0,
+    )
+
+
+def _labelled_group(group_id: str, label: str, category: str,
+                    seed_kind: str) -> Group:
+    """The same record once a coherence verdict and a label exist.
+
+    **P9 cannot produce this today** — see SPEC corrections row 16. It is here
+    because P10 cannot name a branch without it: `Group.__post_init__` refuses
+    `display_label` or `group_category` unless `coherence_verdict == 'coherent'`,
+    so the label and the verdict arrive together or not at all. `replace` re-runs
+    that check, which is why this is built from the live record rather than
+    written out separately: the enriched shape is held to the same record
+    contract as the real one, and the day P9 ships the labelling path this
+    function is deleted rather than corrected.
+    """
+    import dataclasses
+
+    return dataclasses.replace(
+        _live_group(group_id, seed_kind),
+        coherence_verdict=COHERENT, coherence_citations=(f"obs_{group_id}",),
+        group_category=category, display_label=label, label_source=ENGINE,
+    )
+
+
+def _tentative_outcome(group_id: str) -> StopRuleOutcome:
+    """SR1 fired alone, so §4.9 permits showing the group "only as tentative
+    discovery candidates, if at all".
+
+    This is the ONLY way `tentative-discovery` reaches production
+    (`src/grouping/graph.py:334`). It is a `StopRuleOutcome.outcome` over
+    `STOP_RULE_OUTCOMES`, **not** a `Group.state` — the same string lives in both
+    vocabularies and only one of them is written. P10 therefore cannot test its
+    no-render rule with `group.state == 'tentative-discovery'`; it has to read
+    the stop-rule record, which is why `AcceptedGroupReader` grew a third method.
+    """
+    return StopRuleOutcome(
+        group_id=group_id, rules_fired=(SR1,),
+        evidence_refs=(f"obs_{group_id}",), outcome=TENTATIVE_DISCOVERY,
     )
 
 
@@ -1807,8 +2002,14 @@ def _membership(group_id: str, file_id: str, basis: str, decision: str) -> Membe
     return Membership(
         membership_id=f"m_{group_id}_{file_id}", group_id=group_id, file_id=file_id,
         content_hash=f"h_{file_id}", basis=basis, decision=decision,
-        decision_source=RULES, support=(), insufficient_evidence=False,
+        decision_source=RULES,
+        support=(Support(
+            support_kind=SHARED_VALIDATED_FACT, observation_key=f"obs_{group_id}",
+            quote_or_field="subject", location="heading", edge_ref=None,
+        ),),
+        insufficient_evidence=False,
         insufficiency_statement=None, conflicts=(), outlier_flag=NOT_FLAGGED,
+        validation_verdict_ref=None, created_at=T0,
     )
 
 
@@ -1828,14 +2029,26 @@ class FixtureGroupReader:
     def __init__(self, plan_version_id: str = "plan_1") -> None:
         self.plan_version_id = plan_version_id
         self._groups = {
-            "g_phys1401": _group(
+            # Labelled — the shape P10 needs and P9 cannot emit yet (row 16).
+            "g_phys1401": _labelled_group(
                 "g_phys1401", "PHYS 1401", "academic", VALIDATED_SHARED_FACT),
-            "g_columbia_app": _group(
+            "g_columbia_app": _labelled_group(
                 "g_columbia_app", "Columbia application",
                 "college_applications", STRONGLY_IDENTIFIED_FILE),
-            "g_random": _group(
+            "g_random": _labelled_group(
                 "g_random", "Screenshots from March", "photos",
                 STRONGLY_IDENTIFIED_FILE),
+            # Live-shaped — exactly what P9 writes TODAY. Unlabelled, candidate.
+            # Every test that does not name it still runs past it, which is the
+            # point: the state P9 actually produces is in the default corpus.
+            "g_live": _live_group("g_live", VALIDATED_SHARED_FACT),
+            # SR1 fired alone. §4.9 permits showing this "only as tentative
+            # discovery candidates, if at all"; P10's answer is "not at all".
+            "g_tentative": _labelled_group(
+                "g_tentative", "Loose scans", "photos", STRONGLY_IDENTIFIED_FILE),
+        }
+        self._stop_rule_outcomes = {
+            "g_tentative": _tentative_outcome("g_tentative"),
         }
         self._memberships = {
             "g_phys1401": (
@@ -1851,11 +2064,18 @@ class FixtureGroupReader:
             "g_random": (
                 _membership("g_random", "shot-1", DIRECT_ANCHOR, INCLUDED),
             ),
+            "g_live": (
+                _membership("g_live", "unlabelled-1", DIRECT_ANCHOR, INCLUDED),
+            ),
+            "g_tentative": (
+                _membership("g_tentative", "scan-1", DIRECT_ANCHOR, INCLUDED),
+            ),
         }
         self._acceptances = (
             _acceptance("g_phys1401", plan_version_id, ACCEPTED, "PHYS 1401 course"),
             _acceptance("g_columbia_app", plan_version_id, ACCEPTED, None),
             _acceptance("g_random", plan_version_id, REJECTED, None),
+            _acceptance("g_tentative", plan_version_id, ACCEPTED, None),
         )
 
     def accepted(self, plan_version_id: str):
@@ -1868,6 +2088,26 @@ class FixtureGroupReader:
 
     def memberships(self, group_id: str):
         return self._memberships[group_id]
+
+    def stop_rule_outcome(self, group_id: str):
+        """`grouping.store.stop_rule_outcome_for(conn, group_id)` returns exactly
+        this, `None` included, so the swap is a signature match."""
+        return self._stop_rule_outcomes.get(group_id)
+
+
+def live_shaped_reader(plan_version_id: str = "plan_1") -> FixtureGroupReader:
+    """A reader whose accepted groups are ALL live-shaped — unlabelled candidates.
+
+    This is what P10 faces against P9 as shipped. It exists so the blocked seam
+    has a test rather than a paragraph.
+    """
+    reader = FixtureGroupReader(plan_version_id)
+    reader._groups = {"g_live": _live_group("g_live", VALIDATED_SHARED_FACT)}
+    reader._memberships = {"g_live": reader._memberships["g_live"]}
+    reader._acceptances = (
+        _acceptance("g_live", plan_version_id, ACCEPTED, None),)
+    reader._stop_rule_outcomes = {}
+    return reader
 ```
 
 - [ ] **Step 2: Write the failing upstream tests**
@@ -1884,8 +2124,19 @@ from __future__ import annotations
 
 import pytest
 
-from database_agent.db import open_database
-from p9_fixtures import FixtureGroupReader
+# The two membership values are P9's, and Task 1 re-exports P9's SET
+# (`MEMBERSHIP_BASES`) under a P10 name — not its members. Importing them from
+# their owner is the same rule the fixture follows, and it is what keeps a
+# second spelling from existing.
+from grouping.vocabulary import (
+    CANDIDATE,
+    CONTEXT_SUPPORTED,
+    DIRECT_ANCHOR,
+    NOT_FLAGGED,
+    NO_SENSITIVITY,
+    RULES,
+)
+from p10.p9_fixtures import FixtureGroupReader, live_shaped_reader
 from scan_agent.selection import record_selection
 from tree_design.upstream import (
     UpstreamUnavailable,
@@ -1894,9 +2145,9 @@ from tree_design.upstream import (
     cross_folder_moves,
     handling_class_for,
     rejected_group_ids,
+    renders_as_branch,
     resolve_role_to_field,
 )
-from tree_design.vocabulary import CONTEXT_SUPPORTED, DIRECT_ANCHOR
 
 
 def test_the_user_approved_label_is_the_acceptances_edit_then_the_groups_label():
@@ -1955,6 +2206,80 @@ def test_a_file_may_belong_to_two_accepted_groups():
     assert accepted_groups(reader, plan_version_id="plan_1") == groups
 
 
+def test_a_tentative_discovery_group_never_becomes_a_branch():
+    """§4.9: a group whose only stop rule was SR1 may be shown "only as tentative
+    discovery candidates, if at all". A destination branch is the strongest
+    presentation P10 has, so the answer is "not at all".
+
+    The signal is `StopRuleOutcome.outcome`, not `Group.state`:
+    `src/grouping/graph.py:334` is the only writer of `tentative-discovery` and
+    it writes it onto a stop-rule record. A guard reading `group.state` would
+    never fire, because `src/grouping/pipeline.py:195` — the only originating
+    `Group` writer — sets `state=CANDIDATE` and nothing ever changes it."""
+    reader = FixtureGroupReader()
+    ids = {g.group_id for g in accepted_groups(reader, plan_version_id="plan_1")}
+    assert "g_tentative" not in ids
+    assert renders_as_branch(reader, group_id="g_tentative") is False
+    # It is accepted — the exclusion is the stop rule, not the acceptance.
+    assert "g_tentative" not in rejected_group_ids(reader, plan_version_id="plan_1")
+    assert renders_as_branch(reader, group_id="g_phys1401") is True
+
+
+def test_p10_reads_the_state_p9_actually_emits():
+    """`pipeline.py:195` writes `state=CANDIDATE` and nothing else ever writes a
+    group state. `supported` is declared in `GROUP_STATES` but `meets_support_bar`
+    (`graph.py:262`) has no production caller, so a fixture in that state would
+    exercise a group P9 cannot produce."""
+    reader = FixtureGroupReader()
+    assert reader.group("g_live").state == CANDIDATE
+    assert {reader.group(g).state for g in reader._groups} == {CANDIDATE}
+
+
+def test_an_unlabelled_live_group_is_refused_loudly_not_rendered_blank():
+    """THE BLOCKED SEAM, as a test rather than a paragraph (SPEC corrections 16).
+
+    Live P9 emits `coherence_verdict=None`, and `Group.__post_init__` then forbids
+    `display_label` and `group_category`. So every group P9 writes today is
+    unlabelled, and P10 cannot name a branch from one. `accepted_groups` raises
+    rather than inventing a label or rendering an empty one.
+
+    When P9 ships its labelling path this test changes to assert a label. Until
+    then it is the honest record that P10's naming path has no live input."""
+    reader = live_shaped_reader()
+    with pytest.raises(UpstreamUnavailable) as excinfo:
+        accepted_groups(reader, plan_version_id="plan_1")
+    assert "carries no label" in str(excinfo.value)
+
+
+def test_the_live_group_shape_matches_p9s_only_originating_writer():
+    """Field-for-field against `src/grouping/pipeline.py:177-201`. If P9 changes
+    what it writes, this fails here rather than somewhere downstream."""
+    group = FixtureGroupReader().group("g_live")
+    assert group.coherence_verdict is None
+    assert group.coherence_citations == ()
+    assert group.group_category is None
+    assert group.display_label is None
+    assert group.label_source is None
+    assert group.conflicts == ()
+    assert group.stop_rule_hits == ()
+    assert group.dossier_id is None
+    assert group.llm_response_ref is None
+    assert group.validation_verdict_ref is None
+    assert group.sensitivity_state == NO_SENSITIVITY
+    assert group.created_by == RULES
+    assert dict(group.pre_model_signals) == {"anchor_count": group.anchor_count}
+
+
+def test_every_membership_carries_the_only_outlier_flag_p9_writes():
+    """`pipeline.py:224` and `p8_seam.py:337` are the two `Membership` writers and
+    both set `outlier_flag=NOT_FLAGGED`. A fixture flagging an outlier would test
+    a branch of P10 that no P9 output can reach."""
+    reader = FixtureGroupReader()
+    flags = {m.outlier_flag
+             for gid in reader._groups for m in reader.memberships(gid)}
+    assert flags == {NOT_FLAGGED}
+
+
 def test_a_role_resolves_only_to_a_live_destination_eligible_p6_field(conn):
     assert resolve_role_to_field(conn, role_ref="subject", field_ref="subject") == "subject"
     with pytest.raises(UpstreamUnavailable) as excinfo:
@@ -1971,17 +2296,20 @@ def test_a_role_may_not_mint_a_field(conn):
         resolve_role_to_field(conn, role_ref="vibe", field_ref="vibe")
 
 
-def test_the_cross_folder_permission_and_roots_come_from_p3(tmp_path):
-    conn = open_database(tmp_path / "agent.sqlite")
+def test_the_cross_folder_permission_and_roots_come_from_p3(conn, tmp_path):
+    """`conn` is the suite fixture, which has run `create_scan_schema`. A bare
+    `open_database` here would raise `no such table: corpus_selections`: P1's
+    open creates eight tables and P3's are not among them."""
     selection_id = record_selection(
         conn, sources=[tmp_path / "corpus"],
         candidate_roots=[tmp_path / "corpus" / "Documents"],
         cross_folder_moves=False, selected_by="jy")
     assert cross_folder_moves(conn, selection_id=selection_id) is False
+    # P3 returns `list[Path]` (`src/scan_agent/selection.py:79`); P10's adapter
+    # is the one place that flattens them to strings.
     assert candidate_roots(conn, selection_id=selection_id) == (
         str(tmp_path / "corpus" / "Documents"),
     )
-    conn.close()
 
 
 def test_an_unclassified_file_reads_as_the_gate_outcome_and_is_never_written(conn):
@@ -1999,7 +2327,7 @@ def test_an_unclassified_file_reads_as_the_gate_outcome_and_is_never_written(con
 
 Run: `python3.12 -m pytest -q tests/p10/test_p10_upstream.py`
 
-Expected: FAIL with `ModuleNotFoundError: No module named 'tree_design.upstream'`. If it instead fails on `import p9_fixtures`, add `tests/p10` to `pytest`'s `rootdir` path the way `tests/p9` does — the fixture module is a sibling import, not a package import.
+Expected: FAIL with `ModuleNotFoundError: No module named 'tree_design.upstream'`. If it instead fails on `from p10.p9_fixtures import ...`, `tests/p10/__init__.py` (Task 1) is missing. That file is what makes the directory a package: `tests/` carries no `__init__.py`, so pytest's `prepend` import mode puts `tests/` on `sys.path` and the fixture resolves as `p10.p9_fixtures`. This is the live idiom, not a guess — `tests/p9/test_p9_learning.py:49` reads `from p9.p13_fixtures import ...`, `tests/p8/test_p8_determinism.py:8` reads `from p8.determinism_probe import ...`, and `tests/integration/test_p8_p2_replay.py:22` reads `from p8.conftest import ...` from another directory entirely. A bare `import p9_fixtures` works only by accident of collection order and breaks when the file is run alone.
 
 - [ ] **Step 4: Write the upstream adapters**
 
@@ -2030,8 +2358,16 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from facts.fields import get_field
-from facts.read_surface import is_destination_eligible
-from grouping.vocabulary import ACCEPTED, EXCLUDED, INCLUDED, MEMBERSHIP_BASES, REJECTED
+from facts.read_surface import PROPOSAL_ELIGIBLE_STATES, is_destination_eligible
+from facts.supersede import preferred_fact
+from grouping.vocabulary import (
+    ACCEPTED,
+    EXCLUDED,
+    INCLUDED,
+    MEMBERSHIP_BASES,
+    REJECTED,
+    TENTATIVE_DISCOVERY,
+)
 from scan_agent.inventory import CURATION_SIGNAL_VALUES, directory_inventory
 from scan_agent.selection import get_selection, selection_candidate_roots
 from tree_design.vocabulary import HANDLING_CLASSES, check
@@ -2077,11 +2413,26 @@ class ExistingFolder:
 
 
 class AcceptedGroupReader(Protocol):
-    """What P10 needs from P9. `grouping.store` will satisfy this unchanged."""
+    """What P10 needs from P9.
+
+    Three of the four map onto callables `grouping` has now SHIPPED:
+
+        group(group_id)              -> `store.current_group(conn, group_id)`
+        memberships(group_id)        -> `store.memberships_for_group(conn, group_id)`
+        stop_rule_outcome(group_id)  -> `store.stop_rule_outcome_for(conn, group_id)`
+
+    `accepted(plan_version_id)` does NOT. P9 publishes
+    `acceptance.group_state_as_of(conn, *, group_id, plan_version_id)`, which
+    answers for ONE group; nothing enumerates a version's acceptances. Closing
+    that is P9's — SPEC corrections row 17 — and it is not worked around here,
+    because an enumeration P10 wrote itself would be P10 deciding which groups a
+    plan version contains.
+    """
 
     def accepted(self, plan_version_id: str) -> Sequence[object]: ...
     def group(self, group_id: str) -> object: ...
     def memberships(self, group_id: str) -> Sequence[object]: ...
+    def stop_rule_outcome(self, group_id: str) -> object | None: ...
 
 
 def _label(acceptance: object, group: object) -> str:
@@ -2099,12 +2450,42 @@ def _label(acceptance: object, group: object) -> str:
     return display
 
 
+def _is_tentative(reader: AcceptedGroupReader, group_id: str) -> bool:
+    """`tentative-discovery` is a STOP RULE OUTCOME, never a `Group.state`.
+
+    The string is in both `GROUP_STATES` and `STOP_RULE_OUTCOMES`, and only the
+    second is ever written: `src/grouping/graph.py:334` sets it on a
+    `StopRuleOutcome` when SR1 fired alone. Nothing in `src/grouping/` assigns it
+    to a group. A guard written as `group.state == TENTATIVE_DISCOVERY` would be
+    unreachable — green forever and enforcing nothing.
+    """
+    outcome = reader.stop_rule_outcome(group_id)
+    return outcome is not None and outcome.outcome == TENTATIVE_DISCOVERY
+
+
+def renders_as_branch(reader: AcceptedGroupReader, *, group_id: str) -> bool:
+    """Whether P10 may show this group as a destination branch at all.
+
+    Published so a canvas surface can ask directly rather than inferring the
+    answer from an absence in `accepted_groups`.
+    """
+    return not _is_tentative(reader, group_id)
+
+
 def accepted_groups(reader: AcceptedGroupReader, *,
                     plan_version_id: str) -> tuple[AcceptedGroup, ...]:
     """Every group this plan version accepted, with its members and exclusions."""
     result = []
     for acceptance in reader.accepted(plan_version_id):
         if acceptance.acceptance != ACCEPTED:
+            continue
+        if _is_tentative(reader, acceptance.group_id):
+            # §4.9 permits a group whose only stop rule was SR1 to be shown
+            # "only as tentative discovery candidates, if at all". P10's answer
+            # is "not at all": a destination branch IS the strong presentation,
+            # and a group with no anchor has not earned one. Skipped HERE rather
+            # than by each caller, because one caller forgetting is one folder
+            # the user never agreed to.
             continue
         group = reader.group(acceptance.group_id)
         memberships = reader.memberships(acceptance.group_id)
@@ -2125,7 +2506,12 @@ def accepted_groups(reader: AcceptedGroupReader, *,
             label=_label(acceptance, group),
             domain=group.group_category,
             members=tuple(members),
-            anchor_facts=tuple(f.fact_id for f in group.anchor_facts),
+            # `AnchorFact` has no id. Its five fields are (field, value,
+            # file_ids, reliability_state, observation_key) —
+            # `src/grouping/records.py:85-89` — and `observation_key` is P4's
+            # durable citation handle, which is what §6.1's anchor excerpts are
+            # cited by as well. Reading `.fact_id` raises AttributeError.
+            anchor_facts=tuple(f.observation_key for f in group.anchor_facts),
             excluded_members=tuple(excluded),
         ))
     return tuple(result)
@@ -2230,6 +2616,53 @@ def handling_class_for(store, *, file_id: str, content_hash: str) -> str:
     if record is None:
         return UNCLASSIFIED
     return check(record.handling_class, HANDLING_CLASSES, name="handling_class")
+
+
+@dataclass(frozen=True)
+class FieldValue:
+    """One file's settled value for one P6 field, in P6's own spelling.
+
+    `display_label` is P6's, never P10's. §5.4: the system "does not invent
+    PHYS1401, UChicago, Spring 2026, or PVA/RDP; those names emerge from
+    validated facts". A node label composed here rather than carried would be
+    exactly that invention.
+    """
+
+    field_ref: str
+    canonical_value: str
+    display_label: str
+
+
+def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
+                        field_ref: str) -> FieldValue | None:
+    """The one value this file contributes at this dimension, or `None`.
+
+    `facts.supersede.preferred_fact` is the live surface and it answers exactly
+    three cases (`src/facts/supersede.py:180-210`): a `user_confirmed` live row
+    wins outright; a single live row is the answer; among several, the one
+    carrying `preferred` is the pointer. **Anything else returns `None`, and
+    `None` is not a failure here** — P6's OQ6 (multiplicity) is open, and a
+    reader that picked among simultaneous values would close an open question by
+    accident. A file that reaches `None` is unresolved AT THIS LEVEL and gets no
+    branch, which is what §5.11 permits: a tree "can be accepted even if some
+    files remain unresolved".
+
+    The state filter is P6's own `PROPOSAL_ELIGIBLE_STATES`
+    (`src/facts/read_surface.py:143-152`), whose docstring names this caller:
+    "The facts a folder proposal may rest on." §3.6 keeps a weak model output out
+    — it "must not quietly become a folder proposal". P10 neither widens nor
+    narrows that set.
+    """
+    row = preferred_fact(conn, file_id=file_id, field_key=field_ref)
+    if row is None:
+        return None
+    if row["reliability_state"] not in PROPOSAL_ELIGIBLE_STATES:
+        return None
+    return FieldValue(
+        field_ref=field_ref,
+        canonical_value=row["canonical_value"],
+        display_label=row["display_label"] or row["canonical_value"],
+    )
 ```
 
 - [ ] **Step 5: Run and verify GREEN**
@@ -2429,7 +2862,7 @@ def test_a_rejected_branch_is_suppressed_by_parent_and_label(conn):
     `basis_key = (parent_node_id, dimension_or_label)`."""
     key = branch_basis_key(parent_node_id=None, dimension_or_label="Math Stuff")
     record_tree_edit(
-        conn, action="delete-suggested-area", node_id="n_math",
+        conn, action="delete", node_id="n_math",
         plan_version_id="plan_1", before={"display_label": "Math Stuff"},
         after={}, explanation="User deleted the suggested Math Stuff area.",
         correction_scope="node", correction_subject="__root__",
@@ -2458,7 +2891,7 @@ def test_a_reset_lifts_the_suppression_without_deleting_the_record(conn):
     every record. A reset is a cutoff, not a delete."""
     key = branch_basis_key(parent_node_id=None, dimension_or_label="Math Stuff")
     record_tree_edit(
-        conn, action="delete-suggested-area", node_id="n_math",
+        conn, action="delete", node_id="n_math",
         plan_version_id="plan_1", before={"display_label": "Math Stuff"},
         after={}, explanation="User deleted the suggested Math Stuff area.",
         correction_scope="node", correction_subject="__root__",
@@ -4427,6 +4860,8 @@ TEMPLATE_PAYLOAD_KEYS: tuple[str, ...]
 FORBIDDEN_PUBLISHING_KEYS: tuple[str, ...]
 
 def template_schema_validator(catalogue: TemplateCatalogue) -> Callable[[object], bool]: ...
+def published_fragment_authority(
+        catalogue: TemplateCatalogue) -> Callable[[str, int], bool]: ...
 def template_dependencies(catalogue: TemplateCatalogue) -> TemplateDependencies: ...
 def allowed_vocabulary_for(catalogue: TemplateCatalogue, *,
                            uses_schema: str) -> tuple[str, ...]: ...
@@ -4444,7 +4879,47 @@ fragment", is enforced nowhere. The library plan assigns it to a pass gated behi
 cannot run until P10 ships. P10 owns it, because P10 owns the published catalogue and is the only
 part that can answer whether a named fragment exists.
 
-**Done-means:** DM8 (a valid template is inert until approved — the schema is the first gate, not the last), and the P8 half of DM14.
+**The boundary is a DISTINCT authority, not a fold inside the schema validator.**
+Folding it in was the first design and it does not hold. Live `TemplateDependencies`
+has one field (`src/llm_harness/template_validation.py:26-27`) and
+`validate_template_response` returns `ValidationUnavailable(missing=("schema_validator",))`
+only when the whole validator is absent (`:166`). Three consequences:
+
+1. **Any caller that does not route through `template_dependencies()` gets
+   silence rather than `ValidationUnavailable`.** `tests/p8/test_p8_sites.py:84`
+   already constructs `schema_validator=lambda payload: True`, and against that a
+   payload publishing a canonical fragment passes every check. The boundary would
+   hold by convention, which is what `planning/33-P8-COMPLETION-AUDIT.md:116-120`
+   asked it not to do: *"When P10 ships, `TemplateDependencies` gains a
+   published-fragment authority and a missing one is `ValidationUnavailable` like
+   every other."*
+2. **Two different defects would report one reason code.** A malformed payload and
+   a reference to an unpublished fragment both come back `SCHEMA_INVALID`. P8's own
+   Site C keeps exactly this pair apart — `INVENTED_NODE` versus
+   `NODE_NOT_IN_FROZEN_TREE` (`src/llm_harness/placement_validation.py:221`, `:223`).
+   Site E mirrors it with `FRAGMENT_NOT_PUBLISHED` and
+   `FRAGMENT_PUBLICATION_ATTEMPTED`.
+3. A distinct authority **can be absent, and absence is reportable**. A folded
+   check can only be silent.
+
+So `schema_validator` goes back to meaning only *"is this shape legal"* — which is
+all its docstring ever claimed — and the fragment boundary moves to
+`published_fragment`, the second field on `TemplateDependencies`.
+
+**Ordering gate: P8's `TemplateDependencies` change lands before this task.** Three
+edits to a shipped part, listed in `planning/38-p10-p11-connection-contract.md` §10.3:
+`published_fragment: Callable[[str, int], bool]` on the dataclass, the matching
+`ValidationUnavailable(missing=("published_fragment",))` guard, and the two reason
+codes in `llm_harness.vocabulary`. It is additive and breaks only callers that
+construct the dataclass positionally; `tests/p8/test_p8_sites.py:84` is the one such
+site and gains a second keyword. **P8 also owns the `FORBIDDEN_PUBLISHING_KEYS`
+payload scan**, because the scan reads a model response and P8 owns response
+reading; P10 owns only the question the scan cannot answer — *does this fragment
+exist* — and publishes the key list P8 scans for. Until P8's field exists, this
+task cannot construct a `TemplateDependencies` with two fields and its integration
+test fails `TypeError`, which is the correct state.
+
+**Done-means:** DM8 (a valid template is inert until approved — the schema is the first gate, not the last), the P8 half of DM14, and the Site-E fragment boundary expressed as an authority whose ABSENCE is `ValidationUnavailable` rather than silence.
 
 - [ ] **Step 1: Write the failing schema-validator tests**
 
@@ -4473,6 +4948,7 @@ from tree_design.template_schema import (
     FORBIDDEN_PUBLISHING_KEYS,
     TEMPLATE_PAYLOAD_KEYS,
     allowed_vocabulary_for,
+    published_fragment_authority,
     template_dependencies,
     template_schema_validator,
 )
@@ -4532,25 +5008,48 @@ def test_a_well_formed_proposal_referencing_a_published_fragment_passes():
     assert validator(_payload()) is True
 
 
-def test_a_proposal_naming_an_unpublished_fragment_is_rejected():
-    validator = template_schema_validator(CATALOGUE)
-    assert validator(_payload(fragment_refs=[
-        {"fragment_id": "counterpart-cycle", "fragment_version": 1}])) is False
+def test_a_proposal_naming_an_unpublished_fragment_is_refused_by_the_authority():
+    """NOT by `schema_validator`. `planning/33-P8-COMPLETION-AUDIT.md:116-120`
+    asked for a published-fragment AUTHORITY on `TemplateDependencies`, so that a
+    caller who supplies no authority gets `ValidationUnavailable` instead of
+    silence. A check folded into the schema validator can only be silent, and it
+    would report `SCHEMA_INVALID` for a defect that is not a shape defect."""
+    published = published_fragment_authority(CATALOGUE)
+    assert published("event-capture-time", 1) is True
+    assert published("counterpart-cycle", 1) is False
 
 
-def test_a_proposal_naming_a_published_id_at_an_unpublished_version_is_rejected():
+def test_the_authority_matches_the_exact_version_and_not_just_the_id():
     """"Exact id AND exact version" is the whole point: version 2 of a fragment
     is a different recipe, and accepting it because the id is familiar would let
     a model activate logic nobody reviewed."""
-    validator = template_schema_validator(CATALOGUE)
-    assert validator(_payload(fragment_refs=[
-        {"fragment_id": "event-capture-time", "fragment_version": 2}]) ) is False
+    published = published_fragment_authority(CATALOGUE)
+    assert published("event-capture-time", 2) is False
+    assert published("", 1) is False
 
 
-def test_a_proposal_that_tries_to_publish_a_fragment_is_rejected():
+def test_the_schema_validator_no_longer_decides_the_fragment_question():
+    """The separation, asserted rather than assumed. A payload whose SHAPE is
+    legal but whose fragment reference is unpublished passes the schema and
+    fails the authority — two defects, two reason codes at P8
+    (`SCHEMA_INVALID` versus `FRAGMENT_NOT_PUBLISHED`), which is the pair Site C
+    already keeps apart as `INVENTED_NODE` versus `NODE_NOT_IN_FROZEN_TREE`."""
     validator = template_schema_validator(CATALOGUE)
+    published = published_fragment_authority(CATALOGUE)
+    payload = _payload(fragment_refs=[
+        {"fragment_id": "counterpart-cycle", "fragment_version": 1}])
+    assert validator(payload) is True
+    assert published("counterpart-cycle", 1) is False
+
+
+def test_a_payload_publishing_a_fragment_carries_a_forbidden_key():
+    """P10 names the keys; P8 scans the response for them and returns
+    `FRAGMENT_PUBLICATION_ATTEMPTED`. P10 does not read a model response, so the
+    scan is not P10's — but the list of what counts as publishing is, because
+    P10 owns the catalogue that publication would write into."""
+    assert "fragment_definitions" in FORBIDDEN_PUBLISHING_KEYS
     for key in FORBIDDEN_PUBLISHING_KEYS:
-        assert validator(_payload(**{key: [{"fragment_id": "new", "roles": ["x"]}]})) is False
+        assert key not in TEMPLATE_PAYLOAD_KEYS
 
 
 def test_template_local_dimensions_are_allowed_and_are_not_fragments():
@@ -4624,12 +5123,32 @@ def test_the_allowed_vocabulary_is_the_rows_fields_and_nothing_wider():
     assert allowed_vocabulary_for(CATALOGUE, uses_schema="academic") == ()
 
 
-def test_dependencies_are_p8s_record_with_p10s_callable():
+def test_a_malformed_fragment_reference_is_still_a_shape_defect():
+    """The AUTHORITY answers "does this fragment exist". Whether `fragment_refs`
+    is a list of `{id, version}` objects at all is a shape question, so it stays
+    with the schema validator — otherwise a string where a mapping belongs would
+    reach the authority and raise instead of returning a verdict."""
+    validator = template_schema_validator(CATALOGUE)
+    assert validator(_payload(fragment_refs="event-capture-time")) is False
+    assert validator(_payload(fragment_refs=[{"fragment_id": "x"}])) is False
+    assert validator(_payload(fragment_refs=[
+        {"fragment_id": "x", "fragment_version": "1"}])) is False
+
+
+def test_dependencies_are_p8s_record_with_both_of_p10s_authorities():
+    """`TemplateDependencies` gains a second field, and P10 fills both. A
+    dependencies object carrying only `schema_validator` is what
+    `validate_template_response` must report as
+    `ValidationUnavailable(missing=("published_fragment",))` — the same way it
+    already reports a missing `schema_validator` (`template_validation.py:166`).
+    """
     from llm_harness.template_validation import TemplateDependencies
 
     deps = template_dependencies(CATALOGUE)
     assert isinstance(deps, TemplateDependencies)
     assert deps.schema_validator(_payload()) is True
+    assert deps.published_fragment("event-capture-time", 1) is True
+    assert deps.published_fragment("counterpart-cycle", 1) is False
 ```
 
 - [ ] **Step 2: Write the failing P8 integration test**
@@ -4639,9 +5158,17 @@ def test_dependencies_are_p8s_record_with_p10s_callable():
 """P10 -> P8 Site E. P10 supplies the schema; P8 owns the verdict.
 
 This is the seam the prior audit found unenforced: `grep -rn "fragment" src/`
-returns one hit and it is about paths. With P10's validator injected, a proposal
-naming an unpublished fragment now comes back REJECT with SCHEMA_INVALID from
-P8's own machinery — no new refusal type, no second validator vocabulary.
+returns one hit and it is about paths. With P10's two authorities injected, a
+proposal naming an unpublished fragment comes back REJECT with
+FRAGMENT_NOT_PUBLISHED, one attempting to publish comes back
+FRAGMENT_PUBLICATION_ATTEMPTED, and a caller supplying neither authority gets
+ValidationUnavailable — all three from P8's own machinery. P10 coins no refusal
+type and runs no second validator vocabulary; it answers one question P8 cannot,
+"does this fragment exist", and names the keys that count as publishing.
+
+Requires P8's `TemplateDependencies` amendment (contract §10.3 #2). Until it
+lands, `template_dependencies()` raises `TypeError` on the second keyword, which
+is the correct failure and the ordering gate saying so.
 """
 from __future__ import annotations
 
@@ -4652,7 +5179,10 @@ from llm_harness.template_validation import validate_template_response
 from llm_harness.vocabulary import ACCEPT_DIRECT, E_TEMPLATE, REJECT, SCOPE_TEMPLATE
 from tree_design.template_schema import template_dependencies
 
-from tests.p10.test_p10_template_schema import CATALOGUE, _payload  # noqa: F401
+# `tests/` carries no `__init__.py`, so `tests.p10...` is not an importable
+# path. `tests/p10/__init__.py` makes `p10` the package, exactly as
+# `tests/integration/test_p8_p2_replay.py:22` imports `from p8.conftest import`.
+from p10.test_p10_template_schema import CATALOGUE, _payload  # noqa: F401
 
 RELEASED = "span-1"
 
@@ -4702,13 +5232,49 @@ def test_a_published_fragment_reference_reaches_an_accept_verdict():
     assert verdicts[0].scope == SCOPE_TEMPLATE
 
 
-def test_an_unpublished_fragment_reference_is_schema_invalid_at_p8():
+def test_an_unpublished_fragment_reference_gets_its_own_reason_code():
+    """Not `SCHEMA_INVALID`. The shape is legal; the reference is not published.
+    Site C already keeps this pair apart — `INVENTED_NODE` for a destination
+    outside the dossier vocabulary, `NODE_NOT_IN_FROZEN_TREE` for one the frozen
+    tree does not contain — and collapsing Site E's pair into one code would tell
+    a reader "malformed" about a well-formed proposal."""
     payload = _payload(fragment_refs=[
         {"fragment_id": "counterpart-cycle", "fragment_version": 1}])
     verdicts, report = _validate(_dossier(), payload)
     assert verdicts[0].outcome == REJECT
-    assert "SCHEMA_INVALID" in verdicts[0].reasons
-    assert report.reasons_histogram["SCHEMA_INVALID"] == 1
+    assert "FRAGMENT_NOT_PUBLISHED" in verdicts[0].reasons
+    assert report.reasons_histogram["FRAGMENT_NOT_PUBLISHED"] == 1
+
+
+def test_a_payload_attempting_to_publish_a_fragment_is_rejected_at_p8():
+    """P8 scans the response; P10 named the keys. The scan is P8's because
+    reading a model response is P8's, and Site E is the only place a response
+    could carry one of these."""
+    payload = _payload(fragment_definitions=[
+        {"fragment_id": "new-thing", "roles": ["x"]}])
+    verdicts, _report = _validate(_dossier(), payload)
+    assert verdicts[0].outcome == REJECT
+    assert "FRAGMENT_PUBLICATION_ATTEMPTED" in verdicts[0].reasons
+
+
+def test_a_site_e_call_with_no_published_fragment_authority_is_unavailable():
+    """The point of a distinct authority: absence is REPORTABLE. A caller that
+    supplies only `schema_validator` — `tests/p8/test_p8_sites.py:84` is one —
+    must get `ValidationUnavailable`, exactly as it already does when the schema
+    validator itself is missing (`template_validation.py:166`). Silence here is
+    what `planning/33-P8-COMPLETION-AUDIT.md:116-120` said not to ship."""
+    from llm_harness.records import ValidationUnavailable
+    from llm_harness.template_validation import TemplateDependencies
+
+    result = validate_template_response(
+        _dossier(), _response(_payload()), evidence_resolver=_resolver,
+        contradicts=_never_contradicts,
+        dependencies=TemplateDependencies(
+            schema_validator=lambda payload: True, published_fragment=None),
+        model_id="fixture-model", prompt_fingerprint="fp-canonical",
+        dossier_builder="p10", release_audit_id=17)
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("published_fragment",)
 
 
 def test_p10_supplies_no_transport_gate_or_verdict():
@@ -4752,6 +5318,14 @@ fragment is shared organization logic and sharing it is a human review decision
 made once, not a side effect of one branch's model call. P10 owns the boundary
 because P10 owns the published catalogue and is the only part that can answer
 whether a named fragment exists.
+
+The boundary is a SECOND authority — `published_fragment_authority`, handed to P8
+as `TemplateDependencies.published_fragment` — and not a check inside
+`template_schema_validator`. An authority can be absent, and an absent one is
+`ValidationUnavailable` like every other missing dependency in P8; a folded check
+can only be silent, and it would report `SCHEMA_INVALID` for a defect that is not
+a shape defect. `schema_validator` therefore answers exactly one question, "is
+this shape legal", which is all it ever claimed to.
 """
 from __future__ import annotations
 
@@ -4799,8 +5373,16 @@ def _is_sequence(value: object) -> bool:
     return isinstance(value, Sequence) and not isinstance(value, (str, bytes))
 
 
-def _fragment_refs_are_published(payload: Mapping[str, object],
-                                 catalogue: TemplateCatalogue) -> bool:
+def _fragment_refs_are_well_formed(payload: Mapping[str, object]) -> bool:
+    """A SHAPE check, and only that: is `fragment_refs` a list of
+    `{fragment_id: str, fragment_version: int}`?
+
+    Whether those fragments EXIST is `published_fragment_authority`'s question,
+    not this one. The split is not cosmetic: a `"1"` where an `int` belongs would
+    otherwise reach the authority, and an authority that has to guard its own
+    argument types cannot return a clean verdict. Shape first, membership second,
+    two reason codes at P8.
+    """
     refs = payload.get("fragment_refs")
     if not _is_sequence(refs):
         return False
@@ -4812,8 +5394,6 @@ def _fragment_refs_are_published(payload: Mapping[str, object],
         if not isinstance(fragment_id, str) or not fragment_id:
             return False
         if not isinstance(fragment_version, int) or isinstance(fragment_version, bool):
-            return False
-        if not catalogue.has_fragment(fragment_id, fragment_version):
             return False
     return True
 
@@ -4896,8 +5476,6 @@ def template_schema_validator(
     def validate(payload: object) -> bool:
         if not isinstance(payload, Mapping):
             return False
-        if any(key in payload for key in FORBIDDEN_PUBLISHING_KEYS):
-            return False
         if any(key not in payload for key in TEMPLATE_PAYLOAD_KEYS):
             return False
         domain = payload.get("domain")
@@ -4907,7 +5485,7 @@ def template_schema_validator(
             return False
         if not payload.get("sensitivity_policy_ref"):
             return False
-        if not _fragment_refs_are_published(payload, catalogue):
+        if not _fragment_refs_are_well_formed(payload):
             return False
         if not _dimensions_are_well_formed(payload):
             return False
@@ -4918,9 +5496,53 @@ def template_schema_validator(
     return validate
 
 
+def published_fragment_authority(
+        catalogue: TemplateCatalogue) -> Callable[[str, int], bool]:
+    """"Does this exact fragment, at this exact version, exist in the published
+    catalogue?" — the one question P10 alone can answer, and the whole of the
+    fragment boundary.
+
+    This is a SECOND authority on `TemplateDependencies`, not a check folded into
+    `schema_validator`, for the reason `planning/33-P8-COMPLETION-AUDIT.md:116-120`
+    gave: an authority can be ABSENT, and an absent one is
+    `ValidationUnavailable(missing=("published_fragment",))` like every other
+    missing dependency in P8. A folded check is silent for any caller that does
+    not route through `template_dependencies()` — and
+    `tests/p8/test_p8_sites.py:84` is already such a caller.
+
+    Exact version, never nearest: version 2 of a fragment is a different recipe,
+    and accepting it because the id is familiar would activate organization logic
+    nobody reviewed. A model proposal may REFERENCE published shared logic; it may
+    not publish any, because sharing logic is a human review decision made once
+    and not a side effect of one branch's model call.
+    """
+
+    def published(fragment_id: str, fragment_version: int) -> bool:
+        if not isinstance(fragment_id, str) or not fragment_id:
+            return False
+        if not isinstance(fragment_version, int) or isinstance(fragment_version, bool):
+            return False
+        return catalogue.has_fragment(fragment_id, fragment_version)
+
+    return published
+
+
 def template_dependencies(catalogue: TemplateCatalogue) -> TemplateDependencies:
-    """P8's record, carrying P10's callable. P10 constructs nothing else of P8's."""
-    return TemplateDependencies(schema_validator=template_schema_validator(catalogue))
+    """P8's record, carrying P10's two callables. P10 constructs nothing else
+    of P8's, coins no refusal type, and reads no model response.
+
+    `schema_validator` answers "is this shape legal" and nothing more — which is
+    what its docstring always claimed and what it now actually does.
+    `published_fragment` answers "does this fragment exist". P8 walks the
+    response, scans it for `FORBIDDEN_PUBLISHING_KEYS`
+    (→ `FRAGMENT_PUBLICATION_ATTEMPTED`) and calls this authority once per
+    `fragment_refs` entry (→ `FRAGMENT_NOT_PUBLISHED`). Response reading is P8's;
+    the catalogue is P10's; neither part does the other's half.
+    """
+    return TemplateDependencies(
+        schema_validator=template_schema_validator(catalogue),
+        published_fragment=published_fragment_authority(catalogue),
+    )
 
 
 def allowed_vocabulary_for(catalogue: TemplateCatalogue, *,
@@ -4947,6 +5569,12 @@ def build_template_request(*, subject_ref: str, plan_version: str,
     one is refused by P8's own record — which is correct: §8.8 captures template
     versions and ordering choices per plan version, and a template call outside a
     version has nothing to attribute its result to.
+
+    The record's fields are EXACTLY these eight
+    (`src/llm_harness/records.py:173-181`). There is no `budget_context`: P8's
+    ceiling rides inside `ModelCallRequest.max_dossier_tokens`
+    (`src/privacy/release.py:131`), which is the caller's echo of P1's stored
+    value, and a ninth keyword here raises `TypeError` at construction.
     """
     return DossierRequest(
         call_site=E_TEMPLATE,
@@ -4957,7 +5585,6 @@ def build_template_request(*, subject_ref: str, plan_version: str,
         model_call_request=model_call_request,
         plan_version=plan_version,
         evidence_snapshot_id=None,
-        budget_context=None,
     )
 ```
 
@@ -5500,7 +6127,7 @@ git commit -m "feat(p10): run the six template design checks over real evidence"
 
 **Interfaces:**
 
-*Consumes:* `tree_design.vocabulary` (`RESIDUAL_TEMPLATE_NAMES`, `RESIDUAL_DEFAULT_PARENTS`, `RESIDUAL_SLOTS`, `RESIDUAL_TREATMENTS`, `RESIDUAL_ACTIONS`, `RESIDUAL_DISPOSITIONS`, `RESIDUAL`), `tree_design.records.Node`, `tree_design.config.ConfigurationRequired`.
+*Consumes:* `tree_design.vocabulary` (`RESIDUAL_TEMPLATE_NAMES`, `RESIDUAL_DEFAULT_PARENTS`, `RESIDUAL_SLOTS`, `RESIDUAL_TREATMENTS`, `RESIDUAL_LIBRARY_ACTIONS`, `RESIDUAL_DISPOSITIONS`, `RESIDUAL`), `tree_design.records.Node`, `tree_design.config.ConfigurationRequired`.
 
 *Produces:*
 
@@ -5880,12 +6507,13 @@ from tree_design.vocabulary import (
     RENAME_RESIDUAL,
     REPLACE_WITH_EXISTING,
     RESIDUAL,
-    RESIDUAL_ACTIONS,
+    RESIDUAL_LIBRARY_ACTIONS,
     RESIDUAL_DEFAULT_PARENTS,
     RESIDUAL_DISPOSITIONS,
     RESIDUAL_SLOTS,
     RESIDUAL_TEMPLATE_NAMES,
     RESIDUAL_TREATMENTS,
+    USER_CREATED,
     check,
 )
 
@@ -5941,7 +6569,7 @@ class ResidualChoice:
     replaces_node_id: str | None
 
     def __post_init__(self) -> None:
-        check(self.action, RESIDUAL_ACTIONS, name="residual action")
+        check(self.action, RESIDUAL_LIBRARY_ACTIONS, name="residual action")
 
 
 def build_library(
@@ -6088,10 +6716,16 @@ def project_residual_nodes(
             )
         else:
             parent_labels = template.default_parent_location or ()
+            # A freshly minted node is its OWN lineage origin (open question 5),
+            # so the id is bound once and used twice. Constructing with
+            # `origin_node_id=""` and patching afterwards cannot work:
+            # `Node.__post_init__` runs `_require` over `origin_node_id` and
+            # raises `MalformedTreeRecord` before any later `replace` is reached.
+            node_id = mint_node_id()
             node = Node(
-                node_id=mint_node_id(),
+                node_id=node_id,
                 plan_version_id=plan_version_id,
-                node_type="user-created",
+                node_type=USER_CREATED,
                 display_label=label,
                 parent_node_id=choice.parent_node_id,
                 root_anchor=choice.root_anchor or "",
@@ -6106,23 +6740,15 @@ def project_residual_nodes(
                 node_role=RESIDUAL,
                 accepts_placement=True,
                 handling_class=handling_class,
-                origin_node_id="",
+                origin_node_id=node_id,
                 disposition=choice.disposition,
             )
-            node = _with_origin(node)
             ordinal += 1
 
         nodes.append(node)
         by_name[choice.template_name] = node
 
     return tuple(nodes)
-
-
-def _with_origin(node: Node) -> Node:
-    """A freshly minted node is its own lineage origin (SPEC open question 5)."""
-    import dataclasses
-
-    return dataclasses.replace(node, origin_node_id=node.node_id)
 ```
 
 - [ ] **Step 4: Run and verify GREEN**
@@ -6176,7 +6802,8 @@ class VerticalOption:
     validation: ValidationReport | None
 
 def horizontal_candidates(conn, *, accepted, existing_folders, user_labels,
-                          active_domains) -> tuple[BranchCandidate, ...]: ...
+                          active_domains,
+                          sensitive_group_ids) -> tuple[BranchCandidate, ...]: ...
 def vertical_options(report: RoutingReport, *, branch_members,
                      materialise, validate) -> tuple[VerticalOption, ...]: ...
 ```
@@ -6290,7 +6917,7 @@ def test_a_rejected_branch_does_not_resurface(conn):
     and the label, and it runs BEFORE the candidate reaches the canvas."""
     key = branch_basis_key(parent_node_id=None, dimension_or_label="PHYS 1401")
     record_tree_edit(
-        conn, action="delete-suggested-area", node_id="n_phys",
+        conn, action="delete", node_id="n_phys",
         plan_version_id="plan_1", before={"display_label": "PHYS 1401"}, after={},
         explanation="User deleted the suggested PHYS 1401 area.",
         observed_at=T0, user_id="jy", component_version="p10-1",
@@ -6744,7 +7371,877 @@ git add src/tree_design/candidates.py tests/p10/test_p10_candidates.py
 git commit -m "feat(p10): derive explainable branch candidates"
 ```
 
-### Task 12: Live counts, §5.9 warnings, and tree health
+### Task 12: Populate the template from real facts, then build the nodes
+
+**Files:**
+- Create: `src/tree_design/materialise.py`
+- Create: `tests/p10/test_p10_materialise.py`
+- Create: `tests/integration/test_p10_p6_materialise.py`
+
+**Interfaces:**
+
+*Consumes:* `tree_design.upstream` (`GroupMember`, `FieldValue`, `preferred_value_for`, `resolve_role_to_field`, `UpstreamUnavailable`), `tree_design.routing.CompositionCandidate`, `tree_design.validation` (`MaterialisedCandidate`, `MaterialisedLevel`, `ValidationReport`), `tree_design.records` (`Node`, `ExpectedValue`, `TemplateContext`, `derive_accepts_placement`), `tree_design.config.ConfigurationRequired`, `tree_design.vocabulary` (`PROPOSED`, `ORDINARY`, `ACTION_SELECTED`, `check`).
+
+*Produces:*
+
+```python
+class MaterialisationRefused(RuntimeError): ...
+
+@dataclass(frozen=True)
+class LevelEvidence:
+    dimension_role: str
+    field_ref: str
+    order_index: int
+    metadata_only: bool
+    display_labels: Mapping[str, str]
+    members_by_value: Mapping[str, frozenset[str]]
+    handling_classes_by_value: Mapping[str, frozenset[str]]
+
+@dataclass(frozen=True)
+class BranchEvidence:
+    branch_node_id: str
+    levels: tuple[LevelEvidence, ...]
+    member_file_ids: frozenset[str]
+    unresolved_by_field: Mapping[str, frozenset[str]]
+
+def materialise_branch(conn, candidate: CompositionCandidate, *,
+                       branch_node_id: str, members: Sequence[GroupMember],
+                       ancestor_field_refs: Sequence[str], ancestor_depth: int,
+                       handling_class_for_member,
+                       ) -> tuple[MaterialisedCandidate, BranchEvidence]: ...
+
+def project_branch_nodes(evidence: BranchEvidence, report: ValidationReport, *,
+                         parent: Node, plan_version_id: str, mint_node_id,
+                         handling_class_for, template_context_for,
+                         ) -> tuple[Node, ...]: ...
+
+def child_counts(evidence: BranchEvidence) -> Mapping[str, int]: ...
+```
+
+**Done-means:** §5.4's populate step and §5.12's "evidence-backed proposed branches". This is
+the task that closes the one hole an executability pass cannot see: before it, `Node` is
+constructed in production only by the residual projection and the row-reader, `expected_values`
+is declared, stored, read and fixtured but **computed nowhere**, and `MaterialisedCandidate`
+exists only inside `tests/p10/test_p10_validation.py`. Directly: DM5 (every node carries an
+explanation drawn from data), the producing half of DM1 and DM17, and the counts §5.5 requires
+the user to see before committing.
+
+**Why this is its own task.** §5.4's sentence — "Each template is populated from the facts and
+accepted groups that already exist in the evidence database" — is one verb, `populated`, and it
+is the only place in P10 where evidence becomes structure. Task 7 resolves *which* recipe
+applies, Task 9 judges *whether* the result is sound, Task 11 offers the user the *choice*, and
+Task 14 *stores* what they picked. None of them turns a `subject` field into a `PHYS1401`
+folder. Folding this into any of those would bury the product's central promise inside a task
+named after something else.
+
+- [ ] **Step 1: Seed REAL P6 facts, then write the failing materialisation tests**
+
+`tests/p10/p6_fixtures.py`:
+
+```python
+# tests/p10/p6_fixtures.py
+"""§5.5's Academics example as REAL P1/P4/P6 rows. Tests only.
+
+A materialiser tested against a stubbed fact reader proves nothing about the seam
+it exists to cross, so every row here goes through the live writers. Their
+vocabularies were confirmed by execution and neither accepts the obvious guess
+`"rules"`:
+
+* `facts.values.ensure_value(conn, *, field_key, canonical_value,
+  first_evidence_ref, origin)` — `origin` is one of `('automatic', 'user')`, and
+  `first_evidence_ref` must be a real P4 observation key or it raises "an
+  automatically created value cites the observation that introduced it (§3.1)".
+* `facts.file_facts.write_fact(conn, *, file_id, content_hash, field_key,
+  value_id, reliability_state, origin, evidence_refs, cache_key, active, ...)` —
+  `origin` is one of `('deterministic_extractor', 'rule', 'llm_interpretation',
+  'user_correction', 'user_approved_folder')`.
+
+The three files reproduce §5.5 exactly: one school, two courses, two work types,
+and one file (`lab`) with no work type at all, so the unresolved case is in the
+fixture rather than bolted on by a later test.
+"""
+from __future__ import annotations
+
+import json
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from database_agent.files_table import get_file, record_file
+from evidence_shape.location import Location, Segment
+from evidence_shape.observation import Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import record_observation, record_run
+from facts.file_facts import write_fact
+from facts.states import VALIDATED
+from facts.values import ensure_value
+from grouping.vocabulary import DIRECT_ANCHOR
+from tree_design.upstream import GroupMember
+
+CLOCK = "2026-08-27T00:00:00+00:00"
+
+#: (file_id, raw text, facts). `lab` carries no `work_type`: §5.11's unresolved file.
+ACADEMICS = (
+    ("syllabus", "BUSIB 4300 Syllabus",
+     (("school", "Columbia"), ("subject", "BUSIB 4300"), ("work_type", "Syllabus"))),
+    ("hw3", "BUSIB 4300 Homework 3",
+     (("school", "Columbia"), ("subject", "BUSIB 4300"), ("work_type", "Homework"))),
+    ("lab", "PHYS1401 Lab",
+     (("school", "Columbia"), ("subject", "PHYS1401"))),
+)
+
+
+def _subject(conn, tmp_path, name, raw):
+    path = tmp_path / f"{name}.pdf"
+    path.write_bytes(raw.encode("utf-8"))
+    file_id = record_file(
+        conn, path, filename=path.name, normalized_filename=path.name.lower(),
+        extension=".pdf", observed_size=len(raw),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Downloads", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    record_run(conn, ExtractionRun(
+        run_id=f"r_{name}", file_id=file_id, content_hash=content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+    observation = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=raw,
+        location=Location("heading", (Segment("field", label="heading"),)),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id=f"r_{name}")
+    record_observation(conn, observation)
+    return file_id, content_hash, observation.observation_key
+
+
+@dataclass(frozen=True)
+class SeededCorpus:
+    """§5.5's three files, and the ONLY way a test names one.
+
+    `record_file` mints its own `file_id`; the friendly names above are fixture
+    labels and never reach the database. A test that passed `"syllabus"` as a
+    `GroupMember.file_id` would read no facts at all and every level would come
+    back empty — which looks exactly like a broken materialiser and is not one.
+    """
+
+    conn: object
+    subjects: Mapping[str, tuple[str, str, str]]
+
+    def members(self, *names: str) -> tuple[GroupMember, ...]:
+        return tuple(
+            GroupMember(file_id=self.subjects[name][0],
+                        content_hash=self.subjects[name][1],
+                        basis=DIRECT_ANCHOR)
+            for name in names)
+
+    def file_id(self, name: str) -> str:
+        return self.subjects[name][0]
+
+    def add(self, name: str, field_key: str, value: str) -> None:
+        """A SECOND simultaneous value for one field, which is how the OQ6 case
+        is exercised without a second fixture."""
+        file_id, content_hash, key = self.subjects[name]
+        _fact(self.conn, file_id, content_hash, key, field_key, value)
+
+
+def seed_academics(conn, tmp_path) -> SeededCorpus:
+    """Write §5.5's three files with their real facts."""
+    subjects = {}
+    for name, raw, facts in ACADEMICS:
+        file_id, content_hash, key = _subject(conn, tmp_path, name, raw)
+        subjects[name] = (file_id, content_hash, key)
+        for field_key, value in facts:
+            _fact(conn, file_id, content_hash, key, field_key, value)
+    return SeededCorpus(conn=conn, subjects=subjects)
+
+
+def _fact(conn, file_id, content_hash, key, field_key, value):
+    value_id = ensure_value(
+        conn, field_key=field_key, canonical_value=value,
+        first_evidence_ref=key, origin="automatic")
+    return write_fact(
+        conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
+        value_id=value_id, reliability_state=VALIDATED, origin="rule",
+        evidence_refs=(key,), cache_key=f"ck_{file_id}_{field_key}_{value}",
+        active=True)
+```
+
+`tests/p10/test_p10_materialise.py`:
+
+```python
+# tests/p10/test_p10_materialise.py
+"""P10 Task 12 — §5.4's populate step, and the counts §5.5 shows before committing.
+
+The rule that makes this correct is that a child value is nested under a parent
+value only when the SAME files carry both. A cartesian product of three schools
+by five terms by twelve courses would be 180 branches, and §5.5 says the
+interface states "three schools, five terms, and twelve course branches". Twelve
+is the number of (school, term, course) combinations the evidence actually
+contains. Every count here is an intersection, never a product.
+"""
+from __future__ import annotations
+
+import pytest
+
+from tree_design.config import ConfigurationRequired
+from tree_design.materialise import (
+    BranchEvidence,
+    LevelEvidence,
+    MaterialisationRefused,
+    child_counts,
+    materialise_branch,
+    project_branch_nodes,
+)
+from tree_design.records import ExpectedValue, Node
+from tree_design.routing import CompositionCandidate, ResolvedDimension
+from tree_design.upstream import UpstreamUnavailable
+from tree_design.validation import CheckFailure, ValidationReport
+from tree_design.vocabulary import ACTION_SELECTED, ORDINARY, PROPOSED
+
+@pytest.fixture()
+def seeded(conn, tmp_path) -> "SeededCorpus":
+    """P10's `conn` plus §5.5's three files as real P1/P4/P6 rows.
+
+    `create_evidence_schema` is P4's and is not in `tests/p10/conftest.py` because
+    Task 12 is the only suite that needs an observation: every other P10 test
+    reads facts through a fixture or not at all.
+    """
+    from evidence_shape.schema import create_evidence_schema
+
+    from p10.p6_fixtures import seed_academics
+
+    create_evidence_schema(conn)
+    return seed_academics(conn, tmp_path)
+
+
+ACCEPTED = ValidationReport(report_id="vr_1", passed=("V1",), failures=())
+REFUSED = ValidationReport(
+    report_id="vr_2", passed=(),
+    failures=(CheckFailure(check="V3", reason="too deep", affected=("subject",)),))
+
+
+def _ids():
+    counter = iter(range(1000))
+    return lambda: f"n_{next(counter)}"
+
+
+def _parent():
+    return Node(
+        node_id="n_academics", plan_version_id="plan_1", node_type=PROPOSED,
+        display_label="Academics", parent_node_id=None, root_anchor="root_documents",
+        ordinal=0, associated_group_ids=("g_phys1401",),
+        explanation="The accepted PHYS 1401 course-material group produced this area.",
+        node_role=ORDINARY, accepts_placement=True,
+        handling_class="personal_non_sensitive", origin_node_id="n_academics")
+
+
+def _candidate(*pairs):
+    return CompositionCandidate(
+        applicability_refs=(), privacy_floor="policy.public",
+        covered_file_ids=frozenset(), gates_passed=("C1",),
+        explanation="The academic coursework recipe matched this branch.",
+        resolved_dimensions=tuple(
+            ResolvedDimension(role_ref=role, field_ref=field, action=ACTION_SELECTED,
+                              order_index=index, display_label=None)
+            for index, (role, field) in enumerate(pairs)))
+
+
+ALWAYS_ORDINARY = lambda classes: "personal_non_sensitive"
+NO_CONTEXT = lambda field_ref, order_index: None
+ONE_CLASS = lambda member: "personal_non_sensitive"
+
+
+def test_the_levels_carry_p6s_real_values_and_p10_composes_none(seeded):
+    conn = seeded.conn
+    materialised, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject")),
+        branch_node_id="n_academics",
+        members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    assert [lvl.field_ref for lvl in evidence.levels] == ["school", "subject"]
+    assert evidence.levels[0].values == ("Columbia",)
+    assert evidence.levels[1].values == ("BUSIB 4300", "PHYS1401")
+    # Not one invented name. Every string came out of P6's `values` table.
+    assert materialised.levels[1].members_by_value == {"BUSIB 4300": 2, "PHYS1401": 1}
+
+
+def test_a_file_with_no_settled_value_is_unresolved_and_gets_no_branch(seeded):
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("work_type", "work_type")),
+        branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    # `lab` carries no work_type. §5.11: a tree "can be accepted even if some files
+    # remain unresolved"; the alternative is inventing a work type for it.
+    assert evidence.unresolved_by_field["work_type"] == frozenset({seeded.file_id("lab")})
+    assert set(evidence.levels[0].values) == {"Syllabus", "Homework"}
+
+
+def test_two_simultaneous_values_leave_the_file_unresolved_never_assigned(seeded):
+    """P6's OQ6 (multiplicity) is open. `preferred_fact` returns `None` rather than
+    choosing, and P10 must not choose either — picking one here would close an open
+    P6 question inside a P10 module."""
+    conn = seeded.conn
+    seeded.add("lab", "work_type", "Lab Report")
+    seeded.add("lab", "work_type", "Lab Notes")
+    _, evidence = materialise_branch(
+        conn, _candidate(("work_type", "work_type")),
+        branch_node_id="n_academics", members=seeded.members("lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    assert evidence.levels[0].values == ()
+    assert evidence.unresolved_by_field["work_type"] == frozenset({seeded.file_id("lab")})
+
+
+def test_child_counts_are_intersections_not_a_cartesian_product(seeded):
+    """§5.5's promise: "The user sees the actual branch counts before committing."
+    One school and two courses is three branches, not two."""
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject")),
+        branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    assert child_counts(evidence) == {"school": 1, "subject": 2}
+
+
+def test_the_projection_nests_by_shared_files_and_never_multiplies(seeded):
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject"),
+                         ("work_type", "work_type")),
+        branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    by_label = {n.display_label: n for n in nodes}
+    assert set(by_label) == {"Columbia", "BUSIB 4300", "PHYS1401",
+                             "Syllabus", "Homework"}
+    # PHYS1401's only file has no work_type, so PHYS1401 gets no children at all.
+    assert [n.display_label for n in nodes
+            if n.parent_node_id == by_label["PHYS1401"].node_id] == []
+    # Syllabus and Homework hang under BUSIB 4300, not under Columbia.
+    assert by_label["Syllabus"].parent_node_id == by_label["BUSIB 4300"].node_id
+    assert by_label["Homework"].parent_node_id == by_label["BUSIB 4300"].node_id
+
+
+def test_every_node_carries_the_ancestor_chain_as_expected_values(seeded):
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject"),
+                         ("work_type", "work_type")),
+        branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    homework = next(n for n in nodes if n.display_label == "Homework")
+    assert homework.expected_values == (
+        ExpectedValue(field="school", value="Columbia"),
+        ExpectedValue(field="subject", value="BUSIB 4300"),
+        ExpectedValue(field="work_type", value="Homework"),
+    )
+    # §6.1's worked example is exactly this shape: the Homework node's expected
+    # values are the whole chain, not its own level alone.
+
+
+def test_every_node_explains_itself_from_counted_evidence_and_shows_no_score(seeded):
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("subject", "subject")),
+        branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    for node in nodes:
+        assert node.explanation.strip()
+        assert not any(token in node.explanation.lower()
+                       for token in ("confidence", "score", "probability", "%"))
+    busib = next(n for n in nodes if n.display_label == "BUSIB 4300")
+    assert "subject" in busib.explanation and "BUSIB 4300" in busib.explanation
+
+
+def test_a_metadata_only_dimension_produces_no_node(seeded):
+    conn = seeded.conn
+    candidate = _candidate(("subject", "subject"), ("work_type", "work_type"))
+    _, evidence = materialise_branch(
+        conn, candidate, branch_node_id="n_academics",
+        members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        metadata_only_roles=frozenset({"work_type"}))
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    assert {n.display_label for n in nodes} == {"BUSIB 4300", "PHYS1401"}
+    # The dimension is still measured — §5.4 calls these "metadata only", not absent.
+    assert evidence.levels[1].metadata_only is True
+    assert evidence.levels[1].values == ("Homework", "Syllabus")
+
+
+def test_a_refused_validation_report_produces_no_node(seeded):
+    """§5.7 gates the build, not just the preview. A V-check that fails and still
+    leaves nodes in the tree is a check with no consequence."""
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
+        members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    with pytest.raises(MaterialisationRefused) as excinfo:
+        project_branch_nodes(
+            evidence, REFUSED, parent=_parent(), plan_version_id="plan_1",
+            mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+            template_context_for=NO_CONTEXT)
+    assert "V3" in str(excinfo.value)
+
+
+def test_the_privacy_ordering_is_injected_and_has_no_default(seeded):
+    """G-KNOWLEDGE. P10 does not rank `sensitive_personal` against
+    `highly_sensitive_credential_bearing`; P7 owns that ordering and has not
+    published one. A default here could silently give a branch a weaker floor
+    than one of its files requires."""
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
+        members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    with pytest.raises(ConfigurationRequired):
+        project_branch_nodes(
+            evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+            mint_node_id=_ids(), handling_class_for=None,
+            template_context_for=NO_CONTEXT)
+
+
+def test_a_role_that_resolves_to_no_live_p6_field_never_reaches_a_node(seeded):
+    """C2 is re-checked at the point of use, not only when Task 7 routes.
+
+    Without this, a dimension naming a field P6 does not define reads no values,
+    produces an empty level, and the folder simply never appears — a missing
+    branch with no error, which is the quietest possible way to break §3.12's
+    "should not invent new fields automatically"."""
+    conn = seeded.conn
+    with pytest.raises(UpstreamUnavailable) as excinfo:
+        materialise_branch(
+            conn, _candidate(("vibe", "vibe")), branch_node_id="n_academics",
+            members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+            handling_class_for_member=ONE_CLASS)
+    assert "vibe" in str(excinfo.value)
+
+
+def test_the_class_p7_actually_produces_today_reaches_the_node(seeded):
+    """P7 writes NO classification in production: nothing in `src/privacy/` calls
+    `record_classification`, so `ClassificationStore.current` returns `None` for
+    every file and `upstream.handling_class_for` maps that to
+    `unreadable_unclassified`. That — not `personal_non_sensitive` — is what a
+    live branch's members carry today, and the projection has to survive it.
+
+    `ONE_CLASS` above is the forward-looking case; this is the live one. Both
+    exist so the day P7 ships its classifier neither is a surprise."""
+    conn = seeded.conn
+    unclassified = lambda member: "unreadable_unclassified"
+    _, evidence = materialise_branch(
+        conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
+        members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=unclassified)
+    assert evidence.levels[0].handling_classes_by_value == {
+        "BUSIB 4300": frozenset({"unreadable_unclassified"})}
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=lambda c: sorted(c)[0],
+        template_context_for=NO_CONTEXT)
+    assert [n.handling_class for n in nodes] == ["unreadable_unclassified"]
+
+
+def test_a_projected_node_is_its_own_lineage_origin(seeded):
+    """OQ5 is open: ids are minted per version and lineage is recorded. A freshly
+    minted node is its own origin, and `Node.__post_init__` rejects an empty
+    `origin_node_id`, so it is bound at construction rather than patched after."""
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
+        members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    assert all(n.origin_node_id == n.node_id for n in nodes)
+    assert all(n.node_type == PROPOSED and n.node_role == ORDINARY for n in nodes)
+    assert all(n.root_anchor == "root_documents" for n in nodes)
+```
+
+- [ ] **Step 2: Run and verify RED**
+
+Run: `python3.12 -m pytest -q tests/p10/test_p10_materialise.py`
+
+Expected: FAIL with `ModuleNotFoundError: No module named 'tree_design.materialise'`.
+
+- [ ] **Step 3: Write the materialiser**
+
+```python
+# src/tree_design/materialise.py
+"""§5.4's populate step. The one module where evidence becomes structure.
+
+The design sentence this module exists for is §5.4's: "Each template is populated
+from the facts and accepted groups that already exist in the evidence database.
+The system does not invent PHYS1401, UChicago, Spring 2026, or PVA/RDP; those
+names emerge from validated facts, user-confirmed groups, and accepted labels.
+The template simply determines how those real values could be arranged as
+branches."
+
+Everything here follows from that. A dimension contributes the DISTINCT settled
+values its files actually carry, in P6's own spelling. A file with no settled
+value at a level is unresolved at that level and produces no branch — §5.11
+allows a tree to "be accepted even if some files remain unresolved", and the only
+alternative is invention. A value nests under a parent value only when the same
+files carry both, so the counts the user sees are intersections and never
+products: §5.5's "three schools, five terms, and twelve course branches" is
+twelve real combinations, not one hundred and eighty cells.
+
+Two views come out of ONE pass, deliberately. `MaterialisedCandidate` is what
+Task 9's V1-V6 judge; `BranchEvidence` is what the projection builds from. They
+are returned together because a validator that saw a different shape from the
+builder would pass a tree that cannot be built, or refuse one that can.
+
+This module imports no other part's names. It reads P6 through
+`tree_design.upstream`, which is the only module permitted to spell them.
+"""
+from __future__ import annotations
+
+import sqlite3
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
+
+from tree_design.config import ConfigurationRequired
+from tree_design.records import ExpectedValue, Node, derive_accepts_placement
+from tree_design.routing import CompositionCandidate
+from tree_design.upstream import (
+    GroupMember,
+    preferred_value_for,
+    resolve_role_to_field,
+)
+from tree_design.validation import (
+    MaterialisedCandidate,
+    MaterialisedLevel,
+    ValidationReport,
+)
+from tree_design.vocabulary import ORDINARY, PROPOSED
+
+
+class MaterialisationRefused(RuntimeError):
+    """A branch cannot become nodes: its checks failed, or its inputs disagree."""
+
+
+@dataclass(frozen=True)
+class LevelEvidence:
+    """One level, with the file sets `MaterialisedLevel` reduces to counts.
+
+    `MaterialisedLevel.members_by_value` is `Mapping[str, int]` because V1-V6 ask
+    "how many", never "which". The projection asks "which", because nesting is an
+    intersection. Keeping both avoids widening Task 9's record for a question its
+    checks do not ask.
+    """
+
+    dimension_role: str
+    field_ref: str
+    order_index: int
+    metadata_only: bool
+    display_labels: Mapping[str, str]
+    members_by_value: Mapping[str, frozenset[str]]
+    handling_classes_by_value: Mapping[str, frozenset[str]]
+
+    @property
+    def values(self) -> tuple[str, ...]:
+        return tuple(sorted(self.members_by_value))
+
+
+@dataclass(frozen=True)
+class BranchEvidence:
+    branch_node_id: str
+    levels: tuple[LevelEvidence, ...]
+    member_file_ids: frozenset[str]
+    unresolved_by_field: Mapping[str, frozenset[str]]
+
+
+def materialise_branch(
+    conn: sqlite3.Connection,
+    candidate: CompositionCandidate,
+    *,
+    branch_node_id: str,
+    members: Sequence[GroupMember],
+    ancestor_field_refs: Sequence[str],
+    ancestor_depth: int,
+    handling_class_for_member: Callable[[GroupMember], str],
+    metadata_only_roles: frozenset[str] = frozenset(),
+) -> tuple[MaterialisedCandidate, BranchEvidence]:
+    """Populate one composition from the branch's own files.
+
+    `handling_class_for_member` is injected rather than read here because P7's
+    store is another part's record and `upstream.py` is the only module allowed
+    to name it. The caller passes `upstream.handling_class_for` already bound to
+    a `ClassificationStore`.
+    """
+    member_ids = frozenset(member.file_id for member in members)
+    classes = {member.file_id: handling_class_for_member(member)
+               for member in members}
+
+    levels: list[LevelEvidence] = []
+    unresolved: dict[str, frozenset[str]] = {}
+    ordered = sorted(candidate.resolved_dimensions, key=lambda d: d.order_index)
+    for dimension in ordered:
+        # C2 again, at the point of USE. Task 7 resolves roles when it routes, but
+        # a candidate reaching here with a field P6 does not define would produce
+        # an empty level and a silently missing folder rather than a refusal —
+        # and §3.12's "should not invent new fields automatically" is exactly the
+        # rule that a silent empty level breaks quietly. Fail closed instead.
+        resolve_role_to_field(conn, role_ref=dimension.role_ref,
+                              field_ref=dimension.field_ref)
+        by_value: dict[str, set[str]] = {}
+        labels: dict[str, str] = {}
+        classes_by_value: dict[str, set[str]] = {}
+        missing: set[str] = set()
+        for member in members:
+            settled = preferred_value_for(
+                conn, file_id=member.file_id, field_ref=dimension.field_ref)
+            if settled is None:
+                missing.add(member.file_id)
+                continue
+            by_value.setdefault(settled.canonical_value, set()).add(member.file_id)
+            labels.setdefault(settled.canonical_value, settled.display_label)
+            classes_by_value.setdefault(settled.canonical_value, set()).add(
+                classes[member.file_id])
+        unresolved[dimension.field_ref] = frozenset(missing)
+        levels.append(LevelEvidence(
+            dimension_role=dimension.role_ref,
+            field_ref=dimension.field_ref,
+            order_index=dimension.order_index,
+            metadata_only=dimension.role_ref in metadata_only_roles,
+            display_labels=dict(labels),
+            members_by_value={value: frozenset(files)
+                              for value, files in by_value.items()},
+            handling_classes_by_value={value: frozenset(found)
+                                       for value, found in classes_by_value.items()},
+        ))
+
+    evidence = BranchEvidence(
+        branch_node_id=branch_node_id, levels=tuple(levels),
+        member_file_ids=member_ids, unresolved_by_field=dict(unresolved))
+    return _for_validation(evidence, ancestor_field_refs, ancestor_depth), evidence
+
+
+def _for_validation(evidence: BranchEvidence,
+                    ancestor_field_refs: Sequence[str],
+                    ancestor_depth: int) -> MaterialisedCandidate:
+    """The same pass, in the shape V1-V6 read."""
+    return MaterialisedCandidate(
+        branch_node_id=evidence.branch_node_id,
+        ancestor_field_refs=tuple(ancestor_field_refs),
+        ancestor_depth=ancestor_depth,
+        member_file_ids=evidence.member_file_ids,
+        levels=tuple(
+            MaterialisedLevel(
+                dimension_role=level.dimension_role,
+                field_ref=level.field_ref,
+                order_index=level.order_index,
+                metadata_only=level.metadata_only,
+                values=level.values,
+                members_by_value={value: len(files)
+                                  for value, files in level.members_by_value.items()},
+                handling_classes_by_value=dict(level.handling_classes_by_value),
+            )
+            for level in evidence.levels),
+    )
+
+
+def child_counts(evidence: BranchEvidence) -> Mapping[str, int]:
+    """§5.5: "The user sees the actual branch counts before committing."
+
+    One entry per level, holding the number of DISTINCT values that level would
+    produce. This is the number the canvas states before an option is chosen.
+    """
+    return {level.field_ref: len(level.members_by_value)
+            for level in evidence.levels if not level.metadata_only}
+
+
+def project_branch_nodes(
+    evidence: BranchEvidence,
+    report: ValidationReport,
+    *,
+    parent: Node,
+    plan_version_id: str,
+    mint_node_id: Callable[[], str],
+    handling_class_for: Callable[[frozenset[str]], str] | None,
+    template_context_for: Callable[[str, int], object | None],
+    protected_movement_permitted: bool = False,
+) -> tuple[Node, ...]:
+    """Turn a validated, populated branch into `Node` records.
+
+    Nesting is by shared files. A value becomes a child of a parent value only
+    when the same files carry both, which is what keeps the tree the size of the
+    evidence rather than the size of the product of its dimensions.
+
+    `handling_class_for` collapses the classes present under one value into the
+    node's single class. It is injected with NO default: P7 publishes
+    `HANDLING_CLASSES` as a set, not as an ordering, and a rank invented here
+    could give a branch a weaker floor than one of its own files requires. This
+    is the same treatment `privacy_rank` gets in Task 7.
+    """
+    if not report.accepted:
+        raise MaterialisationRefused(
+            f"branch {evidence.branch_node_id!r} failed "
+            f"{', '.join(failure.check for failure in report.failures)}; §5.7's "
+            "checks gate the build, not only the preview")
+    if handling_class_for is None:
+        raise ConfigurationRequired(
+            "the handling-class collapse for a branch node is injected "
+            "configuration with no default: P7 owns the ordering of "
+            "HANDLING_CLASSES and has published none, and a rank chosen here "
+            "could give a node a weaker floor than one of its files requires")
+
+    nodes: list[Node] = []
+    _project(evidence, level_index=0, parent=parent,
+             eligible=evidence.member_file_ids, chain=(),
+             plan_version_id=plan_version_id, mint_node_id=mint_node_id,
+             handling_class_for=handling_class_for,
+             template_context_for=template_context_for,
+             protected_movement_permitted=protected_movement_permitted,
+             out=nodes)
+    return tuple(nodes)
+
+
+def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
+             mint_node_id, handling_class_for, template_context_for,
+             protected_movement_permitted, out) -> None:
+    if level_index >= len(evidence.levels):
+        return
+    level = evidence.levels[level_index]
+    if level.metadata_only:
+        # §5.4: a metadata-only dimension is measured and never becomes a folder.
+        _project(evidence, level_index=level_index + 1, parent=parent,
+                 eligible=eligible, chain=chain, plan_version_id=plan_version_id,
+                 mint_node_id=mint_node_id, handling_class_for=handling_class_for,
+                 template_context_for=template_context_for,
+                 protected_movement_permitted=protected_movement_permitted, out=out)
+        return
+
+    ordinal = 0
+    for value in level.values:
+        members = level.members_by_value[value] & eligible
+        if not members:
+            continue
+        node_id = mint_node_id()
+        label = level.display_labels.get(value, value)
+        expected = chain + (ExpectedValue(field=level.field_ref, value=value),)
+        node = Node(
+            node_id=node_id,
+            plan_version_id=plan_version_id,
+            node_type=PROPOSED,
+            display_label=label,
+            parent_node_id=parent.node_id,
+            root_anchor=parent.root_anchor,
+            ordinal=ordinal,
+            associated_group_ids=parent.associated_group_ids,
+            explanation=(
+                f"{len(members)} of this branch's files record "
+                f"{level.field_ref} = {label!r}. P6 settled that value; P10 "
+                f"placed it under {parent.display_label!r} and composed nothing."),
+            node_role=ORDINARY,
+            accepts_placement=derive_accepts_placement(
+                PROPOSED,
+                protected_movement_permitted=protected_movement_permitted),
+            handling_class=handling_class_for(level.handling_classes_by_value[value]),
+            origin_node_id=node_id,
+            template_context=template_context_for(level.field_ref, level.order_index),
+            dimension_role=level.dimension_role,
+            dimension=level.field_ref,
+            expected_values=expected,
+            protected_movement_permitted=protected_movement_permitted,
+        )
+        out.append(node)
+        ordinal += 1
+        _project(evidence, level_index=level_index + 1, parent=node,
+                 eligible=members, chain=expected,
+                 plan_version_id=plan_version_id, mint_node_id=mint_node_id,
+                 handling_class_for=handling_class_for,
+                 template_context_for=template_context_for,
+                 protected_movement_permitted=protected_movement_permitted, out=out)
+```
+
+- [ ] **Step 4: Run and verify GREEN**
+
+Run: `python3.12 -m pytest -q tests/p10/test_p10_materialise.py`
+
+Expected: PASS, twelve tests. If `test_the_levels_carry_p6s_real_values_and_p10_composes_none`
+returns empty levels, the `seeded` fixture wrote facts in a state outside
+`facts.read_surface.PROPOSAL_ELIGIBLE_STATES`; re-confirm with
+`PYTHONPATH=src python3 -c "from facts.read_surface import PROPOSAL_ELIGIBLE_STATES; print(PROPOSAL_ELIGIBLE_STATES)"`
+and fix the FIXTURE, never `preferred_value_for`.
+
+- [ ] **Step 5: Wire the materialiser into Task 11's injection point**
+
+`tests/integration/test_p10_p6_materialise.py`:
+
+```python
+# tests/integration/test_p10_p6_materialise.py
+"""P6 facts -> materialised levels -> nodes, over a real database.
+
+Task 11's `vertical_options` takes `materialise` and `validate` as parameters and
+implements neither. This is the test that says what fills them, and it is the
+only place the whole chain — accepted group, composition, real P6 values,
+V1-V6, `Node` records with `expected_values` — runs end to end.
+"""
+from __future__ import annotations
+
+from evidence_shape.schema import create_evidence_schema
+from facts.fields import create_fields
+from p10.p6_fixtures import seed_academics
+from tree_design.materialise import child_counts, materialise_branch
+
+
+def test_the_worked_academics_example_produces_the_counts_55_promises(conn, tmp_path):
+    """§5.5's Option A over real facts. One school, two courses, two work types —
+    and the numbers the user sees are those, not their product."""
+    # `tests/integration/` has no conftest, so `conn` is the ROOT fixture: P1's
+    # eight tables and nothing else. P6's catalogue and P4's tables are this
+    # test's to create, the way `tests/integration/test_p8_p2_replay.py:91-99`
+    # layers its own.
+    create_fields(conn)
+    create_evidence_schema(conn)
+    corpus = seed_academics(conn, tmp_path)
+    from p10.test_p10_materialise import ONE_CLASS, _candidate
+
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject"),
+                         ("work_type", "work_type")),
+        branch_node_id="n_academics",
+        members=corpus.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS)
+    assert child_counts(evidence) == {"school": 1, "subject": 2, "work_type": 2}
+    assert evidence.unresolved_by_field["work_type"] == frozenset({corpus.file_id("lab")})
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/tree_design/materialise.py tests/p10/p6_fixtures.py \
+        tests/p10/test_p10_materialise.py tests/integration/test_p10_p6_materialise.py
+git commit -m "feat(p10): populate templates from real facts and build the nodes"
+```
+
+### Task 13: Live counts, §5.9 warnings, and tree health
 
 **Files:**
 - Create: `src/tree_design/health.py`
@@ -6801,7 +8298,7 @@ def tree_health(nodes, *, members_by_group, placed_by_group,
 
 ```python
 # tests/p10/test_p10_health.py
-"""P10 Task 12 — counts before commit, warnings from data, health without blame.
+"""P10 Task 13 — counts before commit, warnings from data, health without blame.
 
 §5.11 constrains the framing as much as the content: tree health "should not
 imply that the system must account for every file immediately ... The goal is to
@@ -7287,7 +8784,7 @@ git add src/tree_design/health.py tests/p10/test_p10_health.py
 git commit -m "feat(p10): compute live counts, warnings and tree health"
 ```
 
-### Task 13: Versioned writes, user edits, and the node-level diff
+### Task 14: Versioned writes, user edits, and the node-level diff
 
 **Files:**
 - Create: `src/tree_design/store.py`
@@ -7310,7 +8807,8 @@ def nodes_for_version(conn, plan_version_id: str) -> tuple[Node, ...]: ...
 def open_draft(conn, *, from_version: str, new_version_id: str, created_at: str,
                mint_node_id) -> PlanVersion: ...
 def apply_review_action(conn, action, *, new_version_id: str, created_at: str,
-                        mint_node_id, component_version: str) -> str: ...
+                        mint_node_id, component_version: str,
+                        project=None) -> str: ...
 def set_shared_material_policy(conn, policy: SharedMaterialPolicy) -> None: ...
 def freeze_version(conn, plan_version_id: str) -> None: ...
 
@@ -7358,6 +8856,20 @@ class ReviewActionFixture:
     payload: dict
 
 
+def accept(subject_ref: str, *, plan_version: str) -> ReviewActionFixture:
+    """§5.1's first gesture: the user accepts a proposed branch.
+
+    `subject_ref` is a BRANCH CANDIDATE id, not a node id — the node does not
+    exist until this action is applied. That asymmetry is why `apply_review_action`
+    handles `accept` before it looks a target up.
+    """
+    return ReviewActionFixture(
+        review_action_id=f"ra_accept_{subject_ref}", surface="canvas",
+        subject_ref=subject_ref, plan_version=plan_version, action="accept",
+        correction_scope="node", presented_state_ref=f"ps_{subject_ref}",
+        user_id="jy", observed_at="2026-08-27T00:00:00Z", payload={})
+
+
 def rename(node_id: str, *, plan_version: str, new_label: str) -> ReviewActionFixture:
     return ReviewActionFixture(
         review_action_id=f"ra_rename_{node_id}", surface="canvas",
@@ -7390,7 +8902,7 @@ def restore(plan_version: str, *, target: str) -> ReviewActionFixture:
 
 ```python
 # tests/p10/test_p10_versions.py
-"""P10 Task 13 — a frozen version is immutable and an edit opens a draft.
+"""P10 Task 14 — a frozen version is immutable and an edit opens a draft.
 
 §8.8: "When the user edits the tree, the product should create a draft plan
 version and show a meaningful diff." And: "A new plan should never silently
@@ -7403,11 +8915,12 @@ byte-for-byte, because "unchanged" checked loosely is how evidence loss ships.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
 
-import p13_fixtures
+from p10 import p13_fixtures
 from tree_design.diff import diff_versions
 from tree_design.records import Node, PlanVersion, SharedMaterialPolicy
 from tree_design.schema import create_tree_schema
@@ -7549,6 +9062,66 @@ def test_ignoring_an_existing_folder_flips_legality_and_nothing_else(seeded):
     assert DIFF_TYPE_CHANGED in {e.kind for e in entries}
 
 
+def test_accepting_a_branch_writes_the_nodes_it_was_populated_with(seeded):
+    """The path the whole part exists for: an accepted candidate becomes stored,
+    evidence-backed nodes. Before Task 12 there was no producer for this at all.
+
+    `project` is the injection point; here it stands in for
+    `materialise.project_branch_nodes` bound to the branch's evidence."""
+    action = p13_fixtures.accept("cand_academics", plan_version="plan_1")
+
+    def project(_action, plan_version_id):
+        return (_node("n_columbia", "Columbia", version=plan_version_id),
+                _node("n_busib", "BUSIB 4300", parent="n_columbia",
+                      version=plan_version_id))
+
+    new_version = apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids(), component_version="p10-1", project=project)
+    labels = {n.display_label for n in nodes_for_version(seeded, new_version)}
+    assert {"Columbia", "BUSIB 4300"} <= labels
+    row = seeded.execute(
+        "SELECT * FROM events WHERE event_type = 'destination-tree edit' "
+        "AND correction_subject = 'cand_academics'").fetchone()
+    assert row is not None
+
+
+def test_an_accept_that_would_write_no_node_is_refused_not_silently_empty(seeded):
+    """A branch whose files carry no settled value at any dimension has nothing
+    to build. Opening a draft that changed nothing would show the user a new
+    version with no visible difference and no error."""
+    action = p13_fixtures.accept("cand_empty", plan_version="plan_1")
+    with pytest.raises(FrozenVersionImmutable):
+        apply_review_action(
+            seeded, action, new_version_id="plan_2", created_at=T1,
+            mint_node_id=_ids(), component_version="p10-1",
+            project=lambda _a, _v: ())
+    with pytest.raises(FrozenVersionImmutable):
+        apply_review_action(
+            seeded, action, new_version_id="plan_3", created_at=T1,
+            mint_node_id=_ids(), component_version="p10-1")
+
+
+def test_the_twelve_actions_with_no_writer_refuse_rather_than_no_op(seeded):
+    """`TREE_EDIT_ACTIONS` has fifteen members; this task implements three. The
+    remaining twelve are honest remaining scope and each must raise, because a
+    silent no-op still opens a draft the user cannot tell apart from a real edit."""
+    from tree_design.vocabulary import TREE_EDIT_ACTIONS
+
+    written = {"accept", "rename", "ignore"}
+    for name in TREE_EDIT_ACTIONS:
+        if name in written:
+            continue
+        action = dataclasses.replace(
+            p13_fixtures.rename("n_root", plan_version="plan_1",
+                                new_label="x"), action=name)
+        with pytest.raises(FrozenVersionImmutable):
+            apply_review_action(
+                seeded, action, new_version_id=f"plan_{name}", created_at=T1,
+                mint_node_id=_ids(), component_version="p10-1")
+
+
+
 def test_no_code_path_renames_an_existing_node_without_a_recorded_action(seeded):
     """§5.10's hard prohibition: "Existing folders must not be automatically
     flattened, renamed, or reorganized simply because a template would produce a
@@ -7669,7 +9242,7 @@ one: if node ids turn out to be stable across versions, `origin_node_id` becomes
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from evidence_shape.canonical import canonical_json
 from tree_design.records import (
@@ -7682,6 +9255,7 @@ from tree_design.records import (
 )
 from tree_design.provenance import record_plan_version_adoption, record_tree_edit
 from tree_design.vocabulary import (
+    ACCEPT,
     ADOPT_VERSION,
     IGNORE,
     RENAME,
@@ -7800,7 +9374,7 @@ def nodes_for_version(conn: sqlite3.Connection,
 
 
 def freeze_version(conn: sqlite3.Connection, plan_version_id: str) -> None:
-    """Mark a version frozen. Task 15 owns the validation that precedes this."""
+    """Mark a version frozen. Task 16 owns the validation that precedes this."""
     conn.execute(
         "UPDATE plan_versions SET state = 'frozen' WHERE plan_version_id = ?",
         (plan_version_id,))
@@ -7857,11 +9431,32 @@ def open_draft(conn: sqlite3.Connection, *, from_version: str,
 def apply_review_action(conn: sqlite3.Connection, action, *,
                         new_version_id: str, created_at: str,
                         mint_node_id: Callable[[], str],
-                        component_version: str) -> str:
+                        component_version: str,
+                        project: Callable[[object, str], Sequence[Node]] | None = None,
+                        ) -> str:
     """One accepted edit, one new plan version (M8, §8.8).
 
     P13 presents and collects; it decides nothing. P10 authors the edit, the edit
     produces a version, and P1 writes the event.
+
+    `project` is how an ACCEPT becomes nodes. It is injected rather than imported
+    because `store.py` writes records and does not build them: the caller binds
+    `materialise.project_branch_nodes` (Task 12) to the branch's evidence and its
+    validation report, and this module writes whatever comes back. Passing `None`
+    is legal for every other action and refused for `accept`, so a caller that
+    forgets it gets a refusal rather than an accepted branch with no folders —
+    which is the failure this seam exists to make impossible.
+
+    **The twelve actions with no writer.** `TREE_EDIT_ACTIONS` has fifteen members
+    and this function implements three: `accept`, `rename` and `ignore`. `merge`,
+    `split`, `nest`, `re-parent`, `reorder`, `delete`, `create-manually`,
+    `adopt-existing`, `enable-residual`, `disable-residual`, `add-scoped-general`
+    and `set-shared-material-policy` reach the `raise` below. That is deliberate
+    and it is stated rather than hidden: each is a canvas gesture whose semantics
+    are §5.2's and §5.10's, they are not blocked on any upstream part, and they
+    are the honest remaining scope of this plan. An unhandled action must never
+    silently no-op, because a no-op edit still opens a draft and the user would
+    see a new version that changed nothing.
     """
     if action.action in (ADOPT_VERSION, RESTORE_VERSION):
         draft = open_draft(conn, from_version=action.subject_ref,
@@ -7879,6 +9474,40 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
     draft = open_draft(conn, from_version=action.plan_version,
                        new_version_id=new_version_id, created_at=created_at,
                        mint_node_id=mint_node_id)
+
+    if action.action == ACCEPT:
+        # §5.12's "evidence-backed proposed branches" enter the tree HERE and
+        # nowhere else. The subject is a candidate, not yet a node, so there is
+        # no `target` to look up.
+        if project is None:
+            raise FrozenVersionImmutable(
+                f"review action {action.review_action_id!r} accepts "
+                f"{action.subject_ref!r} but no projection was supplied; an "
+                "accepted branch that writes no node is a silent no-op")
+        projected = tuple(project(action, draft.plan_version_id))
+        if not projected:
+            raise FrozenVersionImmutable(
+                f"accepting {action.subject_ref!r} produced no node. §5.4 populates "
+                "a template from facts that already exist; when none of the "
+                "branch's files carry a settled value at any dimension there is "
+                "nothing to build, and the branch stays a candidate")
+        for node in projected:
+            write_node(conn, node)
+        record_tree_edit(
+            conn, action=ACCEPT, node_id=projected[0].node_id,
+            plan_version_id=draft.plan_version_id, before={},
+            after={"display_label": projected[0].display_label,
+                   "node_count": len(projected)},
+            explanation=(
+                f"The user accepted {action.subject_ref!r} on the "
+                f"{action.surface} surface; it became {len(projected)} node(s) "
+                "built from facts P6 had already settled."),
+            observed_at=action.observed_at, user_id=action.user_id,
+            component_version=component_version,
+            correction_scope=action.correction_scope,
+            correction_subject=action.subject_ref, polarity="accept")
+        return draft.plan_version_id
+
     target = next(
         (node for node in nodes_for_version(conn, draft.plan_version_id)
          if node.origin_node_id == action.subject_ref), None)
@@ -8051,7 +9680,7 @@ git add src/tree_design/store.py src/tree_design/diff.py \
 git commit -m "feat(p10): version user tree edits without rewriting evidence"
 ```
 
-### Task 14: The §6.1 destination profile, redacted at the boundary
+### Task 15: The §6.1 destination profile, redacted at the boundary
 
 **Files:**
 - Create: `src/tree_design/profiles.py`
@@ -8090,7 +9719,8 @@ class AnchorExcerpt:
     node_id: str
 
 def build_profiles(conn, *, plan_version_id, groups_by_id, document_types_by_node,
-                   user_edits_by_node, node_scoped_rejections) -> tuple[DestinationProfile, ...]: ...
+                   anchor_excerpts_by_node, user_edits_by_node,
+                   node_scoped_rejections) -> tuple[DestinationProfile, ...]: ...
 def redacted_for_egress(profile, *, protected_handling_classes) -> DestinationProfile: ...
 ```
 
@@ -8100,7 +9730,7 @@ def redacted_for_egress(profile, *, protected_handling_classes) -> DestinationPr
 
 ```python
 # tests/p10/test_p10_profiles.py
-"""P10 Task 14 — the profile is P10's alone (resolution B4).
+"""P10 Task 15 — the profile is P10's alone (resolution B4).
 
 Every §6.1 ingredient — template, expected field values, accepted group
 memberships, user-selected label, known exclusions, privacy restrictions — is a
@@ -8470,7 +10100,7 @@ git add src/tree_design/profiles.py tests/p10/test_p10_profiles.py
 git commit -m "feat(p10): publish closed destination profiles"
 ```
 
-### Task 15: Freeze, the legality projection, and the two P2 envelopes
+### Task 16: Freeze, the legality projection, and the two P2 envelopes
 
 **Files:**
 - Create: `src/tree_design/freeze.py`
@@ -8480,13 +10110,15 @@ git commit -m "feat(p10): publish closed destination profiles"
 
 **Interfaces:**
 
-*Consumes:* `tree_design.store` (`nodes_for_version`, `freeze_version`), `tree_design.provenance.record_plan_version_adoption`, `eval_harness.stage_output.record_stage_output` / `DimensionValue`, `eval_harness.run.VERSION_TUPLE_FIELDS`.
+*Consumes:* `tree_design.store` (`nodes_for_version`, `freeze_version`), `tree_design.records` (`Node`, `ExpectedValue`, `TemplateContext`), `tree_design.profiles` (`DestinationProfile`, `NodeContext`, `AnchorExcerpt`, `Restrictions`), `tree_design.provenance.record_plan_version_adoption`, `evidence_shape.canonical.canonical_json`, `eval_harness.stage_output.record_stage_output` / `DimensionValue`, `eval_harness.run.VERSION_TUPLE_FIELDS`.
 
 *Produces:*
 
 ```python
 class FreezeRefused(RuntimeError):
     reasons: tuple[str, ...]
+
+class NotFrozen(RuntimeError): ...
 
 @dataclass(frozen=True)
 class FreezeRecord:
@@ -8501,10 +10133,21 @@ class FreezeRecord:
     cross_folder_moves: bool
     selection_id: str
 
+@dataclass(frozen=True)
+class FrozenTree:
+    plan_version_id: str
+    freeze_record: FreezeRecord
+    nodes: tuple[Node, ...]
+    profiles: tuple[DestinationProfile, ...]
+    shared_material_policy: str
+    shared_material_policy_scope: str | None = None
+
 def validate_for_freeze(conn, *, plan_version_id, residual_configuration,
                         approved_branch_ids) -> tuple[str, ...]: ...
 def freeze(conn, *, plan_version_id, created_at, user_id, component_version,
-           residual_configuration, approved_branch_ids) -> FreezeRecord: ...
+           residual_configuration, approved_branch_ids,
+           profiles) -> FrozenTree: ...
+def frozen_tree(conn, *, plan_version: str) -> FrozenTree: ...
 def legal_destination_ids(record: FreezeRecord) -> frozenset[str]: ...
 def is_legal_destination(record: FreezeRecord, node_id: str) -> bool: ...
 
@@ -8515,13 +10158,36 @@ def emit_template_generation_stage(conn, *, run_id, subject_ref, outcome,
                                    payload, dimension_value) -> int: ...
 ```
 
-**Done-means:** DM3 (freeze enforceable by ID lookup alone), DM10 (P2 can replay and score tree and template quality), DM11 (no published node carries a path), DM12 (a disabled residual template is unreachable), DM17.
+**`FreezeRecord` and `FrozenTree` are two records, not two names for one.**
+`FreezeRecord` is what freeze RECORDS — §8.8's adopted-version row, ids and
+configuration only, and exactly what DM3 needs: *"given a frozen tree fixture and
+an arbitrary destination string, a caller can decide legality without consulting
+facts, templates or the filesystem"*. `FrozenTree` is what freeze HANDS OVER: the
+same record plus the nodes and the §6.1 profiles. An id list cannot feed P11 —
+`build_destination_index(conn, tree, ...)` reads `tree.nodes`, `tree.profiles`,
+`tree.plan_version_id` and `tree.shared_material_policy` — and every field in the
+bundle is P10's, so P10 owns it.
+
+**`frozen_tree(conn, *, plan_version)` is the seam, and this exact spelling is
+load-bearing.** P11's dependency gate is one line,
+`tests/integration/test_p11_p10_tree.py`: `from tree_design.freeze import
+frozen_tree`. Module path, callable name and keyword must all match or the gate
+turns from a correct `ModuleNotFoundError` into a permanent `ImportError` the day
+P10 ships. The keyword is `plan_version`, not `plan_version_id`, because P11's
+spelling is already live at the P8 seam
+(`src/llm_harness/placement_validation.py:222`); every P10 *record field* keeps
+`plan_version_id`, and the conversion happens once, here.
+
+`fixtures.frozen_tree_fixture()` returns the same `FrozenTree`, so the swap from
+fixture to live read is one import and nothing else moves.
+
+**Done-means:** DM3 (freeze enforceable by ID lookup alone), DM10 (P2 can replay and score tree and template quality), DM11 (no published node carries a path), DM12 (a disabled residual template is unreachable), DM17, and the record half of the P10 → P11 seam: `frozen_tree` is the callable P11's G-P10 gate imports.
 
 - [ ] **Step 1: Write the failing freeze tests**
 
 ```python
 # tests/p10/test_p10_freeze.py
-"""P10 Task 15 — the freeze guarantee, stated as a set membership test.
+"""P10 Task 16 — the freeze guarantee, stated as a set membership test.
 
 §5.12: "Freeze records the approved hierarchy and prevents later systems from
 inventing new destinations outside it." §6.2 states the same negatively: the
@@ -8541,14 +10207,23 @@ import pytest
 
 from tree_design.freeze import (
     FreezeRefused,
+    FrozenTree,
+    NotFrozen,
     freeze,
+    frozen_tree,
     is_legal_destination,
     legal_destination_ids,
     validate_for_freeze,
 )
-from tree_design.records import Node, PlanVersion
+from tree_design.profiles import build_profiles
+from tree_design.records import Node, PlanVersion, SharedMaterialPolicy
 from tree_design.schema import create_tree_schema
-from tree_design.store import nodes_for_version, write_node, write_plan_version
+from tree_design.store import (
+    nodes_for_version,
+    set_shared_material_policy,
+    write_node,
+    write_plan_version,
+)
 
 T0 = "2026-08-27T00:00:00Z"
 COMMON = dict(created_at=T0, user_id="jy", component_version="p10-1")
@@ -8579,21 +10254,44 @@ def seeded(conn):
     write_node(conn, _node("n_ignored", "Downloads", node_type="ignored"))
     write_node(conn, _node("n_res", "Review Later", role="residual",
                            disposition="physical-destination"))
+    # §6.9's policy is a FREEZE-TIME tree policy, so the fixture records one.
+    # Without it `freeze` refuses: P11 branches on which of the four rules
+    # applies to a file that belongs in two packets, and a bundle carrying no
+    # policy would fail closed at P11 for a defect P10 could have named.
+    set_shared_material_policy(conn, SharedMaterialPolicy(
+        policy_id="smp_1", plan_version_id="plan_1", policy="mandatory-review",
+        policy_scope=None,
+        reason="Two application packets can claim one transcript."))
     return conn
 
 
-def _freeze(conn, **overrides):
+def _profiles(conn, plan_version_id="plan_1"):
+    """The §6.1 profiles for this version. Task 15 builds them; freeze stores
+    them, because the bundle P11 reads must be the version that was adopted and
+    not a rebuild against a P9/P4/P6 state that has since moved."""
+    return build_profiles(
+        conn, plan_version_id=plan_version_id, groups_by_id={},
+        document_types_by_node={}, anchor_excerpts_by_node={},
+        user_edits_by_node={}, node_scoped_rejections={})
+
+
+def _freeze(conn, **overrides) -> FrozenTree:
     kwargs = dict(
         plan_version_id="plan_1",
         residual_configuration={"Review Later": "enable", "Reading Inbox": "disable"},
         approved_branch_ids=("n_root", "n_a", "n_ignored", "n_res"),
     )
     kwargs.update(overrides)
+    kwargs.setdefault("profiles", _profiles(conn, kwargs["plan_version_id"]))
     return freeze(conn, **kwargs, **COMMON)
 
 
+def _record(conn, **overrides):
+    return _freeze(conn, **overrides).freeze_record
+
+
 def test_the_legal_set_is_exactly_the_placeable_nodes(seeded):
-    record = _freeze(seeded)
+    record = _record(seeded)
     assert legal_destination_ids(record) == {"n_root", "n_a", "n_res"}
     assert "n_ignored" not in legal_destination_ids(record)
 
@@ -8601,7 +10299,7 @@ def test_the_legal_set_is_exactly_the_placeable_nodes(seeded):
 def test_legality_is_decided_without_facts_templates_or_the_filesystem(seeded):
     """DM3. The record is a value; the test is set membership. A caller holding
     only the record can decide an arbitrary string."""
-    record = _freeze(seeded)
+    record = _record(seeded)
     assert is_legal_destination(record, "n_a") is True
     assert is_legal_destination(record, "n_ignored") is False
     assert is_legal_destination(record, "Math Stuff") is False
@@ -8609,13 +10307,13 @@ def test_legality_is_decided_without_facts_templates_or_the_filesystem(seeded):
 
 
 def test_an_ignored_node_is_visible_context_and_not_a_destination(seeded):
-    record = _freeze(seeded)
+    record = _record(seeded)
     assert "n_ignored" in record.node_ids
     assert "n_ignored" not in record.legal_destination_ids
 
 
 def test_a_disabled_residual_template_has_no_node_and_no_legality(seeded):
-    record = _freeze(seeded)
+    record = _record(seeded)
     assert "Reading Inbox" in record.residual_configuration
     assert record.residual_configuration["Reading Inbox"] == "disable"
     labels = {n.display_label for n in nodes_for_version(seeded, "plan_1")}
@@ -8680,7 +10378,7 @@ def test_a_useful_shallow_scaffold_freezes(seeded):
     write_node(seeded, _node("n_l", "Media",
                              refinement=("refine-later",
                                          "Not enough validated facts yet.")))
-    record = _freeze(seeded, approved_branch_ids=(
+    record = _record(seeded, approved_branch_ids=(
         "n_root", "n_a", "n_ignored", "n_res", "n_s", "n_l"))
     assert {"n_s", "n_l"} <= set(record.node_ids)
 
@@ -8688,7 +10386,7 @@ def test_a_useful_shallow_scaffold_freezes(seeded):
 def test_the_freeze_record_carries_p3s_cross_folder_permission(seeded):
     """§8.8's "Placement policy settings". P3 records it, P10 stores it here,
     P12 enforces it at mutation time."""
-    record = _freeze(seeded)
+    record = _record(seeded)
     assert record.cross_folder_moves is False
     assert record.selection_id == "sel_1"
 
@@ -8698,7 +10396,7 @@ def test_a_serialised_frozen_tree_holds_no_separator_composed_destination(seeded
     there is none in this fixture."""
     import dataclasses
 
-    record = _freeze(seeded)
+    record = _record(seeded)
     serialised = json.dumps(
         {k: sorted(v) if isinstance(v, (set, frozenset)) else v
          for k, v in dataclasses.asdict(record).items()},
@@ -8715,6 +10413,92 @@ def test_freeze_appends_a_plan_version_adoption_record(seeded):
     assert len(rows) == 1
     assert json.loads(rows[0]["explanation"].split("\n", 1)[1])["action"] == (
         "adopt_version")
+
+
+# --- the hand-over bundle: what P11's G-P10 gate imports -----------------------
+
+
+def test_frozen_tree_reads_back_exactly_what_freeze_handed_over(seeded):
+    """The seam, round-tripped. `frozen_tree` is the ONE callable P11 imports —
+    `from tree_design.freeze import frozen_tree` — and the bundle it returns
+    must equal the one `freeze` returned, or the fixture P11 built against and
+    the live read are two different records wearing one name."""
+    handed_over = _freeze(seeded)
+    read_back = frozen_tree(seeded, plan_version="plan_1")
+    assert read_back == handed_over
+    assert isinstance(read_back, FrozenTree)
+
+
+def test_the_bundle_carries_every_node_including_the_ones_it_refuses(seeded):
+    """§5.10 makes an `ignored` node "visible context, not a destination". P11
+    needs to SEE it to explain a non-placement, and its `_ancestry` walk needs it
+    to resolve a parent chain that passes through one. `nodes` is every node;
+    `freeze_record.legal_destination_ids` is the subset that accepts placement."""
+    _freeze(seeded)
+    tree = frozen_tree(seeded, plan_version="plan_1")
+    assert {node.node_id for node in tree.nodes} == {
+        "n_root", "n_a", "n_ignored", "n_res"}
+    assert tree.freeze_record.legal_destination_ids == {"n_root", "n_a", "n_res"}
+    assert {n.node_id for n in tree.nodes if n.accepts_placement} == (
+        set(tree.freeze_record.legal_destination_ids))
+
+
+def test_one_profile_per_node_is_p10s_invariant_and_not_p11s_check(seeded):
+    """Contract invariant 2. P11 raises `FrozenTreeRequired` on a partial set;
+    that check becomes a cheap assertion once P10 refuses to hand one over."""
+    _freeze(seeded)
+    tree = frozen_tree(seeded, plan_version="plan_1")
+    assert len(tree.profiles) == len(tree.nodes)
+    assert {p.node_id for p in tree.profiles} == {n.node_id for n in tree.nodes}
+
+
+def test_the_bundle_carries_the_policy_VALUE_and_not_an_id(seeded):
+    """§6.9 makes P11 branch on WHICH of four rules applies. `FreezeRecord`
+    keeps the ids for §8.8's audit row; the bundle resolves them, because an id
+    list cannot tell a caller which rule to apply. The spelling is P10's
+    hyphenated one — `shared-branch`, `primary-home`, `reference-or-alias`,
+    `mandatory-review` — matching every other P10 vocabulary."""
+    _freeze(seeded)
+    tree = frozen_tree(seeded, plan_version="plan_1")
+    assert tree.shared_material_policy == "mandatory-review"
+    assert tree.shared_material_policy_scope is None      # tree-global; OQ9
+    assert tree.freeze_record.shared_material_policy_ids == ("smp_1",)
+
+
+def test_freeze_refuses_a_version_with_no_shared_material_policy(seeded):
+    """Not optional. §6.9 requires it and P11 fails closed without it, so the
+    refusal belongs to the part that can name the missing record rather than to
+    the part that would discover it as an empty string."""
+    seeded.execute("DELETE FROM shared_material_policies")
+    with pytest.raises(FreezeRefused) as excinfo:
+        _freeze(seeded)
+    assert any("shared-material" in reason for reason in excinfo.value.reasons)
+
+
+def test_every_node_in_the_bundle_carries_a_depth_disposition(seeded):
+    """Contract invariant 5. `refinement_disposition` stays `str | None` on
+    `Node` because a DRAFT node may not have one yet; the BUNDLE guarantees it
+    non-`None`, which is why P11's `IndexEntry` may read it as a `str`."""
+    _freeze(seeded)
+    tree = frozen_tree(seeded, plan_version="plan_1")
+    assert all(node.refinement_disposition is not None for node in tree.nodes)
+    assert all(node.refinement_reason is not None for node in tree.nodes)
+
+
+def test_a_draft_version_has_no_bundle_to_read(seeded):
+    """§5.12 and `P11 SPEC:160`: "Freeze is a precondition. P11 does not start
+    until a frozen tree exists at a known plan version." A draft that answered
+    this call would let P11 index destinations the user has not approved."""
+    with pytest.raises(NotFrozen):
+        frozen_tree(seeded, plan_version="plan_1")
+
+
+def test_an_unknown_plan_version_raises_rather_than_returning_an_empty_tree(seeded):
+    """An empty bundle would index cleanly and place nothing, and the silence
+    would look like a corpus with no destinations."""
+    _freeze(seeded)
+    with pytest.raises(NotFrozen):
+        frozen_tree(seeded, plan_version="plan_absent")
 ```
 
 - [ ] **Step 2: Write the failing P2 replay test**
@@ -8752,6 +10536,13 @@ class RunIdentity:
 def run(conn):
     """The minimal P2 run identity these envelopes attach to.
 
+    `conn` here is the ROOT `tests/conftest.py` fixture — `tests/integration/`
+    has no conftest of its own — and `open_database` creates only P1's eight
+    tables. `version_tuple`, `run_manifest`, `stage_output` and
+    `stage_dimension_value` are P2's, so this fixture creates P2's schema the way
+    `tests/integration/test_p8_p2_replay.py:96-98` does. Without it the first
+    line below raises `sqlite3.OperationalError: no such table: version_tuple`.
+
     Built against the LIVE signatures: `record_version_tuple(conn, **fields)`
     takes exactly `VERSION_TUPLE_FIELDS` (seven), and `start_run` returns a
     `run_id` string rather than an object. Reconstructing either from memory is
@@ -8759,7 +10550,9 @@ def run(conn):
     """
     from database_agent.budget import all_ceilings
     from eval_harness.run import VERSION_TUPLE_FIELDS, record_version_tuple, start_run
+    from eval_harness.store import create_eval_schema
 
+    create_eval_schema(conn)
     fields = {name: "fixture" for name in VERSION_TUPLE_FIELDS}
     fields["extractor_versions"] = {}
     fields["analysis_tiers_enabled"] = ["filesystem"]
@@ -8870,14 +10663,30 @@ Freeze records no facts, no evidence and no accepted-group evidence. §5.12: "Th
 facts and accepted groups remain separate from the tree." §8.8: "The evidence
 database remains shared across plan versions." That is what lets the user
 rearrange the same corpus tomorrow without losing an observation.
+
+This module publishes TWO records and one read. `FreezeRecord` is what freeze
+records — §8.8's ids and configuration. `FrozenTree` is what freeze hands over —
+that record plus the nodes and the §6.1 profiles. `frozen_tree(conn, *,
+plan_version)` returns the second, and it is the single callable across the
+P10 → P11 seam: P11's dependency gate is literally
+`from tree_design.freeze import frozen_tree`.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from evidence_shape.canonical import canonical_json
+from tree_design.profiles import (
+    AnchorExcerpt,
+    DestinationProfile,
+    NodeContext,
+    Restrictions,
+)
 from tree_design.provenance import record_plan_version_adoption
+from tree_design.records import ExpectedValue, Node
 from tree_design.store import freeze_version, nodes_for_version
 from tree_design.vocabulary import ADOPT_VERSION, RESIDUAL
 
@@ -8891,9 +10700,23 @@ class FreezeRefused(RuntimeError):
             "the tree cannot be frozen yet:\n- " + "\n- ".join(self.reasons))
 
 
+class NotFrozen(RuntimeError):
+    """No adopted bundle exists at this plan version.
+
+    `P11 SPEC:160`: "Freeze is a precondition. P11 does not start until a frozen
+    tree exists at a known plan version." Returning an empty bundle instead would
+    index cleanly, place nothing, and look like a corpus with no destinations.
+    """
+
+
 @dataclass(frozen=True)
 class FreezeRecord:
-    """§8.8's list, restricted to the rows P10 owns."""
+    """§8.8's list, restricted to the rows P10 owns.
+
+    What freeze RECORDS: ids and configuration, and nothing that needs a fact, a
+    template or the filesystem to interpret. That restriction is DM3 — a caller
+    holding only this can decide an arbitrary destination string.
+    """
 
     plan_version_id: str
     created_at: str
@@ -8905,6 +10728,45 @@ class FreezeRecord:
     shared_material_policy_ids: tuple[str, ...]
     cross_folder_moves: bool
     selection_id: str
+
+
+@dataclass(frozen=True)
+class FrozenTree:
+    """What freeze HANDS OVER. P10 owns every field in it.
+
+    `FreezeRecord` and `FrozenTree` are two records, not two names for one. An id
+    list is exactly right for §8.8's audit row and cannot feed P11:
+    `build_destination_index(conn, tree, ...)` reads `tree.nodes`,
+    `tree.profiles`, `tree.plan_version_id` and `tree.shared_material_policy`.
+    The design names this bundle in prose — "A later placement system may use the
+    frozen tree as its only allowed destination set" (`00:102`) — and P10 owns it
+    because every field in it is P10's.
+
+    `nodes` is EVERY node, not the legal subset: §5.10 makes an `ignored` node
+    "visible context, not a destination", and P11 needs to see one both to
+    explain a non-placement and to resolve a parent chain that passes through it.
+    `freeze_record.legal_destination_ids` is the subset that accepts placement,
+    and it is the single legality authority — P11's index is its projection.
+
+    `shared_material_policy` is the resolved VALUE, not one of
+    `FreezeRecord.shared_material_policy_ids`. §6.9 makes P11 branch on which of
+    four rules applies to a file that belongs in two packets, and an id list
+    cannot tell it which. `shared_material_policy_scope` is `None` for a
+    tree-global policy; SPEC open question 9 is open, and carrying the scope
+    explicitly means neither answer has to be assumed here.
+
+    Guaranteed on every node in `nodes`: a non-`None` `refinement_disposition`
+    and `refinement_reason`. The fields stay `str | None` on `Node` because a
+    DRAFT node may not carry one yet; the guarantee belongs to the record that
+    only exists after freeze.
+    """
+
+    plan_version_id: str
+    freeze_record: FreezeRecord
+    nodes: tuple[Node, ...]
+    profiles: tuple[DestinationProfile, ...]
+    shared_material_policy: str
+    shared_material_policy_scope: str | None = None
 
 
 def validate_for_freeze(conn: sqlite3.Connection, *, plan_version_id: str,
@@ -8923,6 +10785,15 @@ def validate_for_freeze(conn: sqlite3.Connection, *, plan_version_id: str,
 
     if not nodes:
         reasons.append("the version contains no node; there is nothing to freeze")
+
+    if not conn.execute(
+            "SELECT 1 FROM shared_material_policies WHERE plan_version_id = ?",
+            (plan_version_id,)).fetchone():
+        reasons.append(
+            "the version records no shared-material policy; §6.9 makes P11 "
+            "branch on which of the four rules applies to a file that belongs "
+            "in two packets, and without one P11 must abstain on every "
+            "multi-home file rather than pick an institution")
 
     seen: set[str] = set()
     for node in nodes:
@@ -8967,12 +10838,19 @@ def validate_for_freeze(conn: sqlite3.Connection, *, plan_version_id: str,
 def freeze(conn: sqlite3.Connection, *, plan_version_id: str, created_at: str,
            user_id: str, component_version: str,
            residual_configuration: Mapping[str, str],
-           approved_branch_ids: Sequence[str]) -> FreezeRecord:
-    """Validate, mark frozen, append the §8.8 adoption record, return the record.
+           approved_branch_ids: Sequence[str],
+           profiles: Sequence[DestinationProfile]) -> FrozenTree:
+    """Validate, mark frozen, append the §8.8 adoption record, store the bundle.
 
     Freeze is never auto-completed. §5.12 gives the action to the user — "When
     the user is satisfied, they freeze the tree" — and §8.6 forbids a budget from
     ever standing in for that decision.
+
+    `profiles` is Task 15's output for this version, passed in rather than built
+    here: `build_profiles` needs P9 groups, P4 anchors and the user's own edits,
+    and freeze is not the place to reach for them. Freeze STORES them, which is
+    what makes `frozen_tree` a read of the version that was actually adopted
+    rather than a rebuild against upstream state that has since moved.
     """
     reasons = validate_for_freeze(
         conn, plan_version_id=plan_version_id,
@@ -8986,17 +10864,13 @@ def freeze(conn: sqlite3.Connection, *, plan_version_id: str, created_at: str,
         "SELECT * FROM plan_versions WHERE plan_version_id = ?",
         (plan_version_id,)).fetchone()
     policies = conn.execute(
-        "SELECT policy_id FROM shared_material_policies WHERE plan_version_id = ? "
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = ? "
         "ORDER BY policy_id", (plan_version_id,)).fetchall()
 
-    freeze_version(conn, plan_version_id)
-    record_plan_version_adoption(
-        conn, plan_version_id=plan_version_id, action=ADOPT_VERSION,
-        explanation="The user froze the destination tree for this plan version.",
-        observed_at=created_at, user_id=user_id,
-        component_version=component_version)
+    profiles = tuple(profiles)
+    _refuse_an_incomplete_bundle(nodes, profiles)
 
-    return FreezeRecord(
+    record = FreezeRecord(
         plan_version_id=plan_version_id,
         created_at=created_at,
         node_ids=tuple(node.node_id for node in nodes),
@@ -9010,6 +10884,235 @@ def freeze(conn: sqlite3.Connection, *, plan_version_id: str, created_at: str,
         shared_material_policy_ids=tuple(row["policy_id"] for row in policies),
         cross_folder_moves=bool(version["cross_folder_moves"]),
         selection_id=version["selection_id"],
+    )
+
+    freeze_version(conn, plan_version_id)
+    record_plan_version_adoption(
+        conn, plan_version_id=plan_version_id, action=ADOPT_VERSION,
+        explanation="The user froze the destination tree for this plan version.",
+        observed_at=created_at, user_id=user_id,
+        component_version=component_version)
+    conn.execute(
+        "INSERT INTO frozen_trees (plan_version_id, created_at, freeze_record, "
+        "profiles) VALUES (?, ?, ?, ?)",
+        (plan_version_id, created_at, canonical_json(_record_as_json(record)),
+         canonical_json([_profile_as_json(p) for p in profiles])),
+    )
+
+    # The global policy is the tree's; a scoped one is a branch's. OQ9 is open,
+    # so the bundle carries the scope rather than assuming an answer.
+    tree_global = next((row for row in policies if row["policy_scope"] is None),
+                       policies[0])
+    return FrozenTree(
+        plan_version_id=plan_version_id,
+        freeze_record=record,
+        nodes=nodes,
+        profiles=profiles,
+        shared_material_policy=tree_global["policy"],
+        shared_material_policy_scope=tree_global["policy_scope"],
+    )
+
+
+def frozen_tree(conn: sqlite3.Connection, *, plan_version: str) -> FrozenTree:
+    """The one call across the P10 → P11 seam.
+
+    P11's dependency gate is `from tree_design.freeze import frozen_tree`, and
+    the module path, the callable name and this keyword are all load-bearing: a
+    near miss turns a correct `ModuleNotFoundError` into a permanent
+    `ImportError` the day P10 ships.
+
+    `plan_version`, not `plan_version_id`. Every P10 RECORD FIELD keeps
+    `plan_version_id`; the keyword is P11's spelling, which is already shipped at
+    the P8 seam (`node_exists(node_id, plan_version)`,
+    `src/llm_harness/placement_validation.py:222`). The conversion happens once,
+    here, and this docstring is where it is recorded rather than hidden.
+    """
+    row = conn.execute(
+        "SELECT f.created_at, f.freeze_record, f.profiles, v.state "
+        "FROM frozen_trees AS f "
+        "JOIN plan_versions AS v USING (plan_version_id) "
+        "WHERE f.plan_version_id = ?", (plan_version,)).fetchone()
+    if row is None:
+        raise NotFrozen(
+            f"no frozen tree at plan version {plan_version!r}; freeze is a "
+            "precondition and P11 does not start without one")
+    if row["state"] != "frozen":
+        raise NotFrozen(
+            f"plan version {plan_version!r} is {row['state']!r}, not frozen; "
+            "indexing a draft would let P11 place into destinations the user "
+            "has not approved")
+
+    policies = conn.execute(
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = ? "
+        "ORDER BY policy_id", (plan_version,)).fetchall()
+    tree_global = next((p for p in policies if p["policy_scope"] is None),
+                       policies[0])
+
+    nodes = nodes_for_version(conn, plan_version)
+    profiles = tuple(_profile_from_json(item)
+                     for item in json.loads(row["profiles"]))
+    _refuse_an_incomplete_bundle(nodes, profiles)
+    return FrozenTree(
+        plan_version_id=plan_version,
+        freeze_record=_record_from_json(json.loads(row["freeze_record"])),
+        nodes=nodes,
+        profiles=profiles,
+        shared_material_policy=tree_global["policy"],
+        shared_material_policy_scope=tree_global["policy_scope"],
+    )
+
+
+def _refuse_an_incomplete_bundle(nodes: Sequence[Node],
+                                 profiles: Sequence[DestinationProfile]) -> None:
+    """The two `FrozenTree` invariants, enforced where the bundle is built.
+
+    ONE PROFILE PER NODE, resolution B4. P11 raises `FrozenTreeRequired` on a
+    partial set today because nothing upstream guaranteed a whole one. With the
+    bundle owned here that check becomes a cheap assertion: a node with no
+    profile is unreachable to retrieval, and an index built over a partial set
+    makes it silently so.
+
+    A NON-`None` `refinement_disposition` ON EVERY NODE. The field stays
+    `str | None` on `Node` — `P10 SPEC:230` requires it on an APPROVED branch,
+    and a draft node may not have been approved yet — but the bundle only exists
+    after freeze, where every branch has been. Stating the guarantee is not
+    enough: P11's `IndexEntry` declares the field `str` and reads it without a
+    guard, so a `None` reaching the seam would be a `TypeError` inside P11 for a
+    defect P10 could have named here.
+    """
+    missing = sorted({n.node_id for n in nodes} - {p.node_id for p in profiles})
+    extra = sorted({p.node_id for p in profiles} - {n.node_id for n in nodes})
+    if missing or extra:
+        raise FreezeRefused((
+            f"the §6.1 profile set does not match the nodes: missing {missing}, "
+            f"unknown {extra}",))
+    undecided = sorted(n.node_id for n in nodes
+                       if n.refinement_disposition is None)
+    if undecided:
+        raise FreezeRefused((
+            f"nodes {undecided} carry no §5.8 depth disposition; the frozen "
+            "bundle guarantees one on every node, because P11 reads it as a "
+            "`str` to tell a deliberately shallow branch from unfinished work",))
+
+
+def _record_as_json(record: FreezeRecord) -> dict:
+    return {
+        "plan_version_id": record.plan_version_id,
+        "created_at": record.created_at,
+        "node_ids": list(record.node_ids),
+        "legal_destination_ids": sorted(record.legal_destination_ids),
+        "template_bindings": list(record.template_bindings),
+        "labels_and_aliases": {k: list(v)
+                               for k, v in record.labels_and_aliases.items()},
+        "residual_configuration": dict(record.residual_configuration),
+        "shared_material_policy_ids": list(record.shared_material_policy_ids),
+        "cross_folder_moves": record.cross_folder_moves,
+        "selection_id": record.selection_id,
+    }
+
+
+def _record_from_json(raw: Mapping[str, object]) -> FreezeRecord:
+    return FreezeRecord(
+        plan_version_id=raw["plan_version_id"],
+        created_at=raw["created_at"],
+        node_ids=tuple(raw["node_ids"]),
+        legal_destination_ids=frozenset(raw["legal_destination_ids"]),
+        template_bindings=tuple(raw["template_bindings"]),
+        labels_and_aliases={k: tuple(v)
+                            for k, v in raw["labels_and_aliases"].items()},
+        residual_configuration=dict(raw["residual_configuration"]),
+        shared_material_policy_ids=tuple(raw["shared_material_policy_ids"]),
+        cross_folder_moves=bool(raw["cross_folder_moves"]),
+        selection_id=raw["selection_id"],
+    )
+
+
+def _context_as_json(context: NodeContext) -> dict:
+    return {
+        "node_id": context.node_id,
+        "display_label": context.display_label,
+        "dimension": context.dimension,
+        "expected_values": [{"field": v.field, "value": v.value}
+                            for v in context.expected_values],
+    }
+
+
+def _context_from_json(raw: Mapping[str, object]) -> NodeContext:
+    return NodeContext(
+        node_id=raw["node_id"], display_label=raw["display_label"],
+        dimension=raw["dimension"],
+        expected_values=tuple(ExpectedValue(field=v["field"], value=v["value"])
+                              for v in raw["expected_values"]),
+    )
+
+
+def _profile_as_json(profile: DestinationProfile) -> dict:
+    return {
+        "node_id": profile.node_id,
+        "display_label": profile.display_label,
+        "domains": list(profile.domains),
+        "template_binding": profile.template_binding,
+        "template_fields": list(profile.template_fields),
+        "expected_values": [{"field": v.field, "value": v.value}
+                            for v in profile.expected_values],
+        "parent_context": [_context_as_json(c) for c in profile.parent_context],
+        "child_context": [_context_as_json(c) for c in profile.child_context],
+        "accepted_group_ids": list(profile.accepted_group_ids),
+        "group_labels": list(profile.group_labels),
+        "representative_files": list(profile.representative_files),
+        "anchor_files": list(profile.anchor_files),
+        "anchor_excerpts": [{"observation_key": e.observation_key,
+                             "node_id": e.node_id}
+                            for e in profile.anchor_excerpts],
+        "known_document_types": list(profile.known_document_types),
+        "known_exclusions": list(profile.known_exclusions),
+        "user_edits": list(profile.user_edits),
+        "restrictions": {
+            "handling_class": profile.restrictions.handling_class,
+            "accepts_placement": profile.restrictions.accepts_placement,
+            "node_role": profile.restrictions.node_role,
+            "disposition": profile.restrictions.disposition,
+        },
+    }
+
+
+def _profile_from_json(raw: Mapping[str, object]) -> DestinationProfile:
+    """Rebuild the §6.1 record. Every nested value is a RECORD, not a dict.
+
+    `anchor_excerpts` carries `AnchorExcerpt`, not a bare key tuple, because §6.1
+    asks for anchor evidence PER NODE and a key alone cannot say which node it
+    anchors. `parent_context` / `child_context` carry `NodeContext`, not labels,
+    because a label alone cannot answer "what does this level mean". P11's
+    `IndexEntry` may flatten both however retrieval needs — what it may not do is
+    assume the profile arrived flat.
+    """
+    restrictions = raw["restrictions"]
+    return DestinationProfile(
+        node_id=raw["node_id"],
+        display_label=raw["display_label"],
+        domains=tuple(raw["domains"]),
+        template_binding=raw["template_binding"],
+        template_fields=tuple(raw["template_fields"]),
+        expected_values=tuple(ExpectedValue(field=v["field"], value=v["value"])
+                              for v in raw["expected_values"]),
+        parent_context=tuple(_context_from_json(c) for c in raw["parent_context"]),
+        child_context=tuple(_context_from_json(c) for c in raw["child_context"]),
+        accepted_group_ids=tuple(raw["accepted_group_ids"]),
+        group_labels=tuple(raw["group_labels"]),
+        representative_files=tuple(raw["representative_files"]),
+        anchor_files=tuple(raw["anchor_files"]),
+        anchor_excerpts=tuple(
+            AnchorExcerpt(observation_key=e["observation_key"], node_id=e["node_id"])
+            for e in raw["anchor_excerpts"]),
+        known_document_types=tuple(raw["known_document_types"]),
+        known_exclusions=tuple(raw["known_exclusions"]),
+        user_edits=tuple(raw["user_edits"]),
+        restrictions=Restrictions(
+            handling_class=restrictions["handling_class"],
+            accepts_placement=bool(restrictions["accepts_placement"]),
+            node_role=restrictions["node_role"],
+            disposition=restrictions["disposition"],
+        ),
     )
 
 
@@ -9133,7 +11236,7 @@ git add src/tree_design/freeze.py src/tree_design/stage_output.py \
 git commit -m "feat(p10): freeze the closed tree and emit replay stages"
 ```
 
-### Task 16: Fixtures P11 can build against, and the no-invention guards
+### Task 17: Fixtures P11 can build against, and the no-invention guards
 
 **Files:**
 - Create: `src/tree_design/fixtures.py`
@@ -9151,16 +11254,35 @@ def realistic_tree() -> tuple[Node, ...]: ...
 def residual_library_fixture() -> tuple[Mapping[str, ResidualTemplate], tuple[ResidualChoice, ...]]: ...
 def template_library_fixture() -> TemplateCatalogue: ...
 def two_version_pair() -> tuple[tuple[Node, ...], tuple[Node, ...]]: ...
-def frozen_tree_fixture() -> FreezeRecord: ...
+def frozen_tree_fixture() -> FrozenTree: ...
 ```
 
-**Done-means:** DM2 (a)–(e) in full, DM6, DM11, and the guard half of DM4.
+**`frozen_tree_fixture()` returns `FrozenTree`, not `FreezeRecord`, and that is
+what makes the P11 swap one line.** P11 builds Tasks 6–19 against
+`tests/p11/p10_fixtures.py`, a mirror of these records; the swap replaces that
+import with `tree_design.freeze.frozen_tree`
+(`tests/integration/test_p11_p10_tree.py`). If the fixture returned an id list
+and the live read returned a bundle, the swap would be a rewrite of every P11
+test that touches a node or a profile. Same shape, one import.
+
+**Done-means:** DM2 (a)–(e) in full, DM6, DM11, the guard half of DM4, and the
+**`FrozenTree` round-trip that is the named P11 swap boundary**:
+`frozen_tree_fixture()` and `freeze.frozen_tree(conn, *, plan_version)` return
+the same record, field for field. That equality is the whole deliverable of this
+task for P11. P11 builds its Tasks 6–19 against `tests/p11/p10_fixtures.py`, a
+mirror of these records, and
+`tests/integration/test_p11_p10_tree.py` — `from tree_design.freeze import
+frozen_tree` — must keep failing `ModuleNotFoundError` until P10 ships and then
+pass with **one import changed and no P11 test reshaped**. If the fixture and
+the live read ever differ in shape, that swap becomes a rewrite of every P11
+test that touches a node or a profile, and the failure surfaces in P11 rather
+than here.
 
 - [ ] **Step 1: Write the failing fixture tests**
 
 ```python
 # tests/p10/test_p10_fixtures.py
-"""P10 Task 16 — what P11 builds against before P10 has a pipeline.
+"""P10 Task 17 — what P11 builds against before P10 has a pipeline.
 
 The walking skeleton is TWO nodes, not one. Resolution B8(b): the skeleton must
 exercise §6.10's margin condition rather than bypass it, and a one-node tree
@@ -9178,7 +11300,7 @@ from tree_design.fixtures import (
     two_version_pair,
     walking_skeleton_tree,
 )
-from tree_design.freeze import is_legal_destination
+from tree_design.freeze import FrozenTree, is_legal_destination
 from tree_design.residuals import project_residual_nodes
 from tree_design.vocabulary import (
     EXISTING,
@@ -9193,6 +11315,7 @@ from tree_design.vocabulary import (
     REVIEW_ONLY,
     SCOPED_GENERAL,
     SHARED_MATERIAL,
+    SHARED_MATERIAL_POLICIES,
     USER_CREATED,
 )
 
@@ -9293,10 +11416,31 @@ def test_the_two_version_pair_differs_by_a_meaningful_edit():
 
 
 def test_the_frozen_fixture_decides_legality_by_id_alone():
-    record = frozen_tree_fixture()
+    record = frozen_tree_fixture().freeze_record
     assert record.legal_destination_ids
     assert is_legal_destination(record, next(iter(record.legal_destination_ids)))
     assert is_legal_destination(record, "Math Stuff") is False
+
+
+def test_the_frozen_fixture_is_the_shape_the_live_read_returns():
+    """DM2's P11 swap boundary. `tests/p11/p10_fixtures.py` mirrors this bundle;
+    the swap replaces it with `tree_design.freeze.frozen_tree` and changes one
+    import. That only holds if the fixture and the live read are the SAME
+    record — nodes, profiles, policy and all — so this test asserts the shape
+    rather than trusting the two to stay aligned by convention."""
+    tree = frozen_tree_fixture()
+    assert isinstance(tree, FrozenTree)
+    assert tree.plan_version_id == tree.freeze_record.plan_version_id
+    assert {n.node_id for n in tree.nodes} == set(tree.freeze_record.node_ids)
+    assert {p.node_id for p in tree.profiles} == {n.node_id for n in tree.nodes}
+    assert tree.shared_material_policy in SHARED_MATERIAL_POLICIES
+    # Every node, not the legal subset: an `ignored` node is visible context.
+    assert {n.node_id for n in tree.nodes if n.accepts_placement} == set(
+        tree.freeze_record.legal_destination_ids)
+    assert len(tree.nodes) > len(tree.freeze_record.legal_destination_ids)
+    # The bundle's guarantee, which is why P11's index may read the field as str.
+    assert all(n.refinement_disposition is not None for n in tree.nodes)
+    assert all(n.refinement_reason is not None for n in tree.nodes)
 
 
 def test_every_fixture_node_states_its_reason_and_shows_no_score():
@@ -9311,7 +11455,7 @@ def test_every_fixture_node_states_its_reason_and_shows_no_score():
 
 ```python
 # tests/p10/test_p10_no_invention.py
-"""P10 Task 16 — the boundaries, checked by parsing rather than by grepping.
+"""P10 Task 17 — the boundaries, checked by parsing rather than by grepping.
 
 Every guard here is over the parsed AST. A text search matches comments and
 docstrings, and it has produced a false result on this project nine times.
@@ -9414,13 +11558,26 @@ def test_no_module_writes_a_fact_a_classification_or_a_group():
 
 
 def test_only_the_provenance_module_appends_an_event():
+    """The WRITER is what is restricted, not the module.
+
+    `vocabulary.py` imports `CORRECTION_SCOPES` and `RESERVED_EVENT_TYPES` from
+    `database_agent.events` — that is Task 1's whole point, a borrowed set is
+    imported rather than respelled. A check on the module name would call that
+    a violation. `append_event` is the only name that writes."""
+    writers = {"append_event"}
     offenders = []
     for path, tree in _trees():
         if path.name == "provenance.py":
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module == "database_agent.events":
-                offenders.append(f"{path.name}:{node.lineno}")
+                imported = {alias.name for alias in node.names} & writers
+                if imported:
+                    offenders.append(f"{path.name}:{node.lineno} {sorted(imported)}")
+            if isinstance(node, ast.Call):
+                name = getattr(node.func, "attr", getattr(node.func, "id", None))
+                if name in writers:
+                    offenders.append(f"{path.name}:{node.lineno} {name}()")
     assert offenders == []
 
 
@@ -9446,8 +11603,18 @@ def test_only_the_upstream_module_names_another_parts_records():
 
 
 def test_no_module_holds_a_numeric_literal_beyond_zero_and_one():
+    """G-KNOWLEDGE: a depth ceiling, a §5.9 threshold or a proposal cap is READ,
+    never chosen. A literal in a module is how one gets chosen by accident.
+
+    `fixtures.py` is exempt and is the only exemption. It is deterministic
+    sample data whose sibling `ordinal`s run 0..9 by construction; those are
+    positions in a fixed example tree, not limits any check consults. Every
+    other module in `src/tree_design/` holds no integer beyond 0 and 1, which
+    is what makes the exemption safe to state rather than a hole to hide in."""
     offenders = []
     for path, tree in _trees():
+        if path.name == "fixtures.py":
+            continue
         for node in ast.walk(tree):
             if not isinstance(node, ast.Constant):
                 continue
@@ -9473,15 +11640,11 @@ it later.
 """
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "p10"))
-
-from p9_fixtures import FixtureGroupReader  # noqa: E402
-
-from tree_design.candidates import horizontal_candidates  # noqa: E402
-from tree_design.upstream import accepted_groups, rejected_group_ids  # noqa: E402
+from p10.p9_fixtures import FixtureGroupReader
+from tree_design.candidates import horizontal_candidates
+from tree_design.upstream import accepted_groups, rejected_group_ids
 
 
 def test_accepted_groups_become_candidates_and_rejected_ones_do_not(conn):
@@ -9532,7 +11695,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from tree_design.catalogue import TemplateCatalogue, load_catalogue
-from tree_design.freeze import FreezeRecord
+from tree_design.freeze import FreezeRecord, FrozenTree
+from tree_design.profiles import DestinationProfile, NodeContext, Restrictions
 from tree_design.records import ExpectedValue, Node, TemplateContext
 from tree_design.residuals import ResidualChoice, ResidualTemplate, build_library
 from tree_design.vocabulary import (
@@ -9541,6 +11705,7 @@ from tree_design.vocabulary import (
     EXISTING,
     IGNORED,
     LEAVE_IN_PLACE,
+    MANDATORY_REVIEW,
     MERGE_RESIDUAL,
     ORDINARY,
     PHYSICAL_DESTINATION,
@@ -9820,10 +11985,86 @@ def two_version_pair() -> tuple[tuple[Node, ...], tuple[Node, ...]]:
     return before, tuple(after)
 
 
-def frozen_tree_fixture() -> FreezeRecord:
-    """DM3. A frozen record a caller can decide legality against, alone."""
-    nodes = realistic_tree()
-    return FreezeRecord(
+def _approved(nodes: tuple[Node, ...]) -> tuple[Node, ...]:
+    """Fill the §5.8 disposition freeze guarantees on every node it hands over.
+
+    `realistic_tree()` is a DRAFT: three of its nodes carry a refinement
+    disposition and the rest do not, which is the state `str | None` on `Node`
+    exists for. The BUNDLE guarantees one everywhere, because approving a branch
+    is what supplies the answer and freeze is the moment every branch has been
+    approved. Filling it here rather than in `realistic_tree()` keeps the draft
+    fixture honest about what a draft looks like.
+    """
+    import dataclasses
+
+    return tuple(
+        node if node.refinement_disposition is not None else dataclasses.replace(
+            node, refinement_disposition=REFINED,
+            refinement_reason="You approved this branch at the depth it has.")
+        for node in nodes
+    )
+
+
+def _fixture_profile(node: Node, nodes: tuple[Node, ...]) -> DestinationProfile:
+    """One §6.1 profile, built from values this fixture already holds.
+
+    A mirror of `profiles.build_profiles`, restricted to what a database-free
+    fixture can know: no accepted groups, no P4 anchors, no user edits. The
+    SHAPE is what P11 builds against, and the shape is exact — `parent_context`
+    and `child_context` are `NodeContext` records, not labels, and
+    `restrictions` is a `Restrictions` record, not a dict.
+    """
+    by_id = {n.node_id: n for n in nodes}
+
+    def context(n: Node) -> NodeContext:
+        return NodeContext(node_id=n.node_id, display_label=n.display_label,
+                           dimension=n.dimension, expected_values=n.expected_values)
+
+    ancestors: list[NodeContext] = []
+    current = by_id.get(node.parent_node_id or "")
+    while current is not None:
+        ancestors.append(context(current))
+        current = by_id.get(current.parent_node_id or "")
+
+    return DestinationProfile(
+        node_id=node.node_id,
+        display_label=node.display_label,
+        domains=(),
+        template_binding=(None if node.template_context is None
+                          else node.template_context.binding_id),
+        template_fields=() if node.dimension is None else (node.dimension,),
+        expected_values=node.expected_values,
+        parent_context=tuple(ancestors),
+        child_context=tuple(context(child) for child in nodes
+                            if child.parent_node_id == node.node_id),
+        accepted_group_ids=node.associated_group_ids,
+        group_labels=(),
+        representative_files=(),
+        anchor_files=(),
+        anchor_excerpts=(),
+        known_document_types=(),
+        known_exclusions=(),
+        user_edits=(),
+        restrictions=Restrictions(
+            handling_class=node.handling_class,
+            accepts_placement=node.accepts_placement,
+            node_role=node.node_role,
+            disposition=node.disposition,
+        ),
+    )
+
+
+def frozen_tree_fixture() -> FrozenTree:
+    """DM3, and the named P11 swap boundary.
+
+    Returns `FrozenTree`, the same record `freeze.frozen_tree(conn, *,
+    plan_version)` returns, so replacing `tests/p11/p10_fixtures.py` with the
+    live read is ONE import and no P11 test changes shape. `.freeze_record` is
+    still the id-only value DM3 asks for: a caller holding only that can decide
+    an arbitrary destination string without a fact, a template or a filesystem.
+    """
+    nodes = _approved(realistic_tree())
+    record = FreezeRecord(
         plan_version_id=PLAN_1,
         created_at="2026-08-27T00:00:00Z",
         node_ids=tuple(node.node_id for node in nodes),
@@ -9841,6 +12082,17 @@ def frozen_tree_fixture() -> FreezeRecord:
         cross_folder_moves=False,
         selection_id="sel_fixture_1",
     )
+    return FrozenTree(
+        plan_version_id=PLAN_1,
+        freeze_record=record,
+        nodes=nodes,
+        profiles=tuple(_fixture_profile(node, nodes) for node in nodes),
+        # The VALUE, not `shared_material_policy_ids`: §6.9 makes P11 branch on
+        # which of four rules applies, and an id cannot tell it which. Scope
+        # `None` is tree-global; SPEC open question 9 stays open either way.
+        shared_material_policy=MANDATORY_REVIEW,
+        shared_material_policy_scope=None,
+    )
 ```
 
 - [ ] **Step 6: Run all three and verify GREEN**
@@ -9857,7 +12109,7 @@ git add src/tree_design/fixtures.py tests/p10/test_p10_fixtures.py \
 git commit -m "test(p10): publish tree fixtures and lock the P10 boundaries"
 ```
 
-### Task 17: Final verification against the original design
+### Task 18: Final verification against the original design
 
 **Files:** none created. This task changes nothing and is allowed to fail loudly.
 
@@ -9880,12 +12132,24 @@ cd "/Users/jy/GRAPH AGENT"
 grep -rn "TEMPLATE_APPLICATION\|DESTINATION_TREE_EDIT" src/tree_design/provenance.py
 # The word `fragment` now appears in src/ for the reason it should.
 grep -rln "fragment" src/ | sort
+# The P11 seam is published at the exact path P11's dependency gate imports.
+grep -n "^def frozen_tree" src/tree_design/freeze.py
+PYTHONPATH=src python3.12 -c "import inspect
+from tree_design.freeze import FrozenTree, frozen_tree
+print(inspect.signature(frozen_tree))
+print([f.name for f in __import__('dataclasses').fields(FrozenTree)])"
 ```
 
 Expected: `provenance.py` names both events; `grep -rln fragment src/` lists
 `src/tree_design/templates.py`, `catalogue.py`, `routing.py`, `template_schema.py`
 and `fixtures.py` alongside the pre-existing `src/facts/session.py`. Before this
 plan, that grep returned one file and it was about filesystem paths.
+
+The last two lines print `(conn, *, plan_version: str) -> FrozenTree` and the six
+`FrozenTree` fields. That is the whole P10 → P11 seam, and it is checked by
+signature rather than by grep because P11's gate is an import: `from
+tree_design.freeze import frozen_tree`. A right module with a wrong keyword
+still fails, and fails inside P11.
 
 - [ ] **Step 3: Confirm the graph shows the seams and no forbidden edge**
 
@@ -9927,35 +12191,36 @@ Every one of the SPEC's seventeen Done-means, and the task that satisfies it.
 
 | Done-means | Tasks |
 |---|---|
-| 1. Every P10 record serialises and round-trips; shared library records are release/version keyed, only bindings and tree state are plan-version keyed | 2, 6, 10, 13, 14, 15 |
-| 2. Fixtures P11 can build against — (a) two-node skeleton, (b) realistic uneven tree, (c) fragments/definitions/applicability/bindings and one failing fixture per V1–V6, (d) two-version diff pair, (e) residual library | 9, 13, 16 |
-| 3. Freeze is enforceable by ID lookup alone | 15 |
-| 4. Freeze mutates no evidence | 13, 16 |
-| 5. Every node carries a non-empty explanation; no surface exposes a confidence score | 2, 9, 11, 12, 16 |
-| 6. Existing folders survive; nothing renames or re-parents one without a recorded user action | 13, 16 |
-| 7. Uneven depth passes validation; no rule requires sibling parity | 9, 12 |
+| 1. Every P10 record serialises and round-trips; shared library records are release/version keyed, only bindings and tree state are plan-version keyed | 2, 6, 10, 12, 14, 15, 16 |
+| 2. Fixtures P11 can build against — (a) two-node skeleton, (b) realistic uneven tree, (c) fragments/definitions/applicability/bindings and one failing fixture per V1–V6, (d) two-version diff pair, (e) residual library | 9, 14, 17 |
+| 3. Freeze is enforceable by ID lookup alone | 16 |
+| 4. Freeze mutates no evidence | 14, 17 |
+| 5. Every node carries a non-empty explanation; no surface exposes a confidence score | 2, 9, 11, 12, 13, 17 |
+| 6. Existing folders survive; nothing renames or re-parents one without a recorded user action | 14, 17 |
+| 7. Uneven depth passes validation; no rule requires sibling parity | 9, 13 |
 | 8. A valid template is inert until approved | 6, 7, 8 |
-| 9. Every §5.9 warning fires from published data, thresholds from configuration | 3, 12 |
-| 10. P2 can replay a tree version and score tree quality and template quality | 15 |
-| 11. No published node carries a filesystem path other than `existing_path` | 2, 15, 16 |
-| 12. A disabled residual template is unreachable | 10, 15, 16 |
+| 9. Every §5.9 warning fires from published data, thresholds from configuration | 3, 13 |
+| 10. P2 can replay a tree version and score tree quality and template quality | 16 |
+| 11. No published node carries a filesystem path other than `existing_path` | 2, 16, 17 |
+| 12. A disabled residual template is unreachable | 10, 16, 17 |
 | 13. C1–C8 are independently falsifiable; C2/C5 replace no V-check | 7, 9 |
-| 14. Many-to-many reuse is real and schema-safe | 6, 7, 8, 16 |
-| 15. Purpose composition preserves heterogeneity and binds an authored purpose profile through C3 | 6, 7, 9, 14 |
+| 14. Many-to-many reuse is real and schema-safe | 6, 7, 8, 17 |
+| 15. Purpose composition preserves heterogeneity and binds an authored purpose profile through C3 | 6, 7, 9, 15 |
 | 16. Branch choices are isolated and immutable; no version migrates a binding | 6, 7 |
-| 17. A partial-depth design can be complete | 9, 13, 15 |
+| 17. A partial-depth design can be complete | 9, 12, 14, 16 |
 
 And the cross-cutting sections the SPEC's Done-means do not number:
 
 | Cross-cutting requirement | Tasks |
 |---|---|
-| §8.2 provenance — the two events P10 appends, before/after state, model version and prompt fingerprint | 5, 13, 15 |
-| §8.6 budgets — the ceiling P10 owns, `template-deferred`, surplus shown as deferred, freeze never auto-completed | 3, 7, 15 |
+| §8.2 provenance — the two events P10 appends, before/after state, model version and prompt fingerprint | 5, 14, 16 |
+| §8.6 budgets — the ceiling P10 owns, `template-deferred`, surplus shown as deferred, freeze never auto-completed | 3, 7, 16 |
 | §8.7 correction learning — negative feedback stored, the `learning_records` query before a candidate is proposed, six explicit scopes | 5, 11 |
-| §8.8 plan versioning — immutable frozen versions, draft on edit, node-level diff, restore and adopt | 13 |
-| §6.1 destination profile — every ingredient, redacted at the boundary | 14 |
+| §8.8 plan versioning — immutable frozen versions, draft on edit, node-level diff, restore and adopt | 14 |
+| §6.1 destination profile — every ingredient, redacted at the boundary | 15 |
 | §7.2–§7.4 residual library — nine names, eight slots, six actions, three dispositions | 10 |
-| §5.1–§5.11 canvas data contracts | 11, 12 |
+| §5.1–§5.11 canvas data contracts | 11, 12, 13 |
+| §5.4 populate + §5.5's worked Academics example — real P6 values become levels, levels become nodes, and the counts are intersections | 12 |
 | The composable-template seam — four records, many-to-many routing, C1–C8, the Site E fragment boundary | 6, 7, 8 |
 
 ## SPEC corrections
@@ -9966,9 +12231,9 @@ names. Each row below is a change the SPEC should absorb.
 
 | # | SPEC says | Live code says | Evidence |
 |---|---|---|---|
-| 1 | Contract-in from P9 requests `label` (`SPEC.md:84`) | `Group.display_label`, with the user's edit in `GroupAcceptance.user_edited_label` | `src/grouping/records.py:160`, `:355` |
-| 2 | `members[]` each with `membership_kind` (`SPEC.md:86`) | `Membership.basis`, over `MEMBERSHIP_BASES` | `src/grouping/records.py:223`; `src/grouping/vocabulary.py:51-55` |
-| 3 | `rejected_proposals[]` derived from `Group.state = rejected` (`SPEC.md:106-107`) | **Impossible.** `Group.__post_init__` checks `state` against `GROUP_STATES = (candidate, supported, tentative-discovery, unresolved)`; rejection is `GroupAcceptance.acceptance`, resolved as of a plan version | `src/grouping/records.py:181`; `src/grouping/vocabulary.py:20`, `:27-35` |
+| 1 | Contract-in from P9 requests `label` (`SPEC.md:84`) | `Group.display_label`, with the user's edit in `GroupAcceptance.user_edited_label` | `src/grouping/records.py:159`, `:357` |
+| 2 | `members[]` each with `membership_kind` (`SPEC.md:86`) | `Membership.basis`, over `MEMBERSHIP_BASES` | `src/grouping/records.py:222`; `src/grouping/vocabulary.py:51-55` |
+| 3 | `rejected_proposals[]` derived from `Group.state = rejected` (`SPEC.md:106-107`) | **Impossible.** `Group.__post_init__` checks `state` against `GROUP_STATES = (candidate, supported, tentative-discovery, unresolved)`; rejection is `GroupAcceptance.acceptance`, resolved as of a plan version | `src/grouping/records.py:180`; `src/grouping/vocabulary.py:20`, `:27-35` |
 | 4 | "a curated-versus-incidental signal per existing folder" — two values (`SPEC.md:124-126`) | **Three.** `CURATION_SIGNAL_VALUES = (curated, incidental, undetermined)`, and `curation_signal()` returns `undetermined` for every directory until a threshold is authored | `src/scan_agent/inventory.py:20-25`, `:42-53` |
 | 5 | "the cross-root movement permission" (`SPEC.md:121-122`, `:537`, `:894`) | `cross_folder_moves`, a required keyword on `record_selection`. P12's SPEC already uses the live name and says P10 stores it | `src/scan_agent/selection.py:22`, `:43`; `planning/parts/P12-apply-undo/SPEC.md:154-156` |
 | 6 | The `TemplateApplicability` JSON has no `provenance` key (`SPEC.md:402-418`) | The handoff requires "provenance back to ratified domain rows and research evidence" and the composable design lists "provenance and version" among the row's contents. This plan makes it **required** | `planning/domains/TEMPLATE-BUILDING-HANDOFF.md:92`; `docs/superpowers/specs/2026-08-26-composable-template-scaffolding-design.md:110` |
@@ -9978,6 +12243,18 @@ names. Each row below is a change the SPEC should absorb.
 | 10 | The P2 envelope carries `inputs[]` and a budget value (`SPEC.md:181`, `:185-195`) | `record_stage_output` takes `inputs` and `budget_state` as **required** keywords and enforces the deferred/ceiling pairing itself | `src/eval_harness/stage_output.py:96-118` |
 | 11 | Contract-in from P1 lists "durable plan-version and node records" (`SPEC.md:152-155`) | P1 has **no** plan-version table. P10 creates `plan_versions` as a P10-owned table inside P1's database, the way P9 owns `group_acceptance` | `grep -rn plan_version src/database_agent/*.py` returns nothing |
 | 12 | Done-means 10 says P2 scores "tree quality and template quality" (`SPEC.md:787-788`) | Those are the `tree` and `template` **dimensions**, emitted as `DimensionValue` rows alongside the envelope — a separate list from the stage ids | `src/eval_harness/vocabulary.py:32-43` |
+| 13 | An anchor fact is addressed by an id | `AnchorFact` has **five** fields — `field`, `value`, `file_ids`, `reliability_state`, `observation_key` — and no id. `file_ids` is required; an empty tuple raises "an anchor fact no file states is not an anchor". P10 carries `observation_key`, P4's durable citation handle | `src/grouping/records.py:85-89`, `:97-100` |
+| 14 | A membership can be recorded with an empty `support` | `Membership.__post_init__` refuses it — "a membership with no support cannot say why the file belongs" — and a `direct-anchor` membership additionally requires a `shared-validated-fact` support kind. `validation_verdict_ref` and `created_at` are required positionally | `src/grouping/records.py:228-230`, `:245-260` |
+| 19 | P7 classifies files, so a branch's members carry a real handling class | **Not today.** Nothing in `src/privacy/` calls `record_classification`; `privacy.classification` publishes `resolve_class` (a pure decision) and the store, and no production path writes one. `ClassificationStore.current` therefore returns `None` for every file and `upstream.handling_class_for` maps it to `unreadable_unclassified`. `personal_non_sensitive` appears in `src/privacy/` only in `vocabulary.py` and `fixtures.py`. Task 12 covers both the live case and the forward-looking one | `src/privacy/classification.py`; `src/privacy/vocabulary.py:88` |
+| 16 | P9 hands P10 a labelled, categorised group | **It cannot today.** `src/grouping/pipeline.py:177-201` is the ONLY originating `Group` writer and hard-codes `coherence_verdict=None`, `display_label=None`, `group_category=None`, `label_source=None`; `p8_seam.apply_p8_verdict` writes `Membership` rows and never rewrites a group. `Group.__post_init__` then FORBIDS a label without `coherence_verdict == 'coherent'`. So `upstream.accepted_groups` raises `UpstreamUnavailable` for every live group — P10's branch-naming path has no live input. **Blocked on P9 shipping the coherence/labelling write.** | `src/grouping/pipeline.py:187-192`; `src/grouping/records.py:203-211` |
+| 17 | P9 publishes an accepted-group enumeration | It publishes `acceptance.group_state_as_of(conn, *, group_id, plan_version_id)`, which answers for ONE group. Nothing lists a version's acceptances, so `AcceptedGroupReader.accepted(plan_version_id)` has no live counterpart. P10 does not synthesise one: choosing which groups a plan version contains is P9's decision | `src/grouping/acceptance.py`, `group_state_as_of` |
+| 18 | `Group.state` reaches P10 as `supported` | It reaches P10 as `candidate` and only `candidate`. `supported` is in `GROUP_STATES` but `meets_support_bar` (`src/grouping/graph.py:262`) has no production caller — one further reference at `:298` is a comment. `tentative-discovery` is written too, but as `StopRuleOutcome.outcome` (`graph.py:334`), never as a group state | `src/grouping/pipeline.py:195`; `src/grouping/graph.py:262`, `:334` |
+| 15 | `Group.sensitivity_state` carries a P7 handling class | It does not. `SENSITIVITY_STATES` is `(none, sensitive-present)`; `personal_non_sensitive` belongs to P7's `HANDLING_CLASSES`. The record only checks the field is non-empty, so the wrong value stores silently — the exact leak `upstream.py` exists to contain | `src/grouping/vocabulary.py:207-210`; `src/privacy/vocabulary.py:86-92` |
+| 8 | 43 §9 required `allowed_vocabulary` to carry canonical roles PLUS template-local names | **Withdrawn.** `46-NOVEL-DOMAIN-HANDLING.md` Contract W1 keeps the closure as one schema's `allowed_fields`, never extended. `allowed_vocabulary` is ONE field on a `Dossier` shared by five call sites, so a role name added at Site E would be offered as a placement destination at Site C and a target node id at Site D. Novel domains are served by Contract W2's classifier instead | `planning/46-NOVEL-DOMAIN-HANDLING.md` §1.3, §4.1-4.2; `src/tree_design/template_schema.py` `allowed_vocabulary_for` takes no widening parameter |
+| 9 | Contract W2: "The payload must carry the tier explicitly, per dimension" — literally read, an ABSENT `scope` is neither tier | **An undeclared tier is read as the STRICT one** (`schema-field`). Only an explicit `template-local` exempts a name from the closure. Silence cannot buy leniency, which is this project's discipline everywhere else (a missing authority is `ValidationUnavailable`, not a pass). Under a literal reading, P8's pre-tier recorded pairs silently reclassified — `"invented-dim"` became template-local and two P8 tests went red — so the literal reading also required editing `src/llm_harness/fixtures.py`. Requiring the tier to be STATED remains enforced by P10's `schema_validator`. **OPEN-1 (`_E_VOCAB` vs `allowed_vocabulary_for`) is still open** and a later pass can settle it without unpicking this | `planning/46-NOVEL-DOMAIN-HANDLING.md` §11 anchor J, §12 OPEN-1; `src/llm_harness/template_validation.py` classifier; `src/llm_harness/fixtures.py:592` |
+| 10 | `TemplateDefinition.dimensions` is a single ordering (`PLAN.md` Task 6) | **`candidate_orders`**, 2+ when the recipe has 2+ dimensions, exactly one marked default; `definition.dimensions` survives as the default order's. Owner ruling: ordering is a RUNTIME choice the end user makes per branch (§5.3, §5.8), so the recipe offers alternatives and recommends one. `BranchTemplateBinding.chosen_order_id` records which was taken, `None` meaning the user composed their own. No ceiling is enforced — a maximum would be a number the design does not state | `src/tree_design/templates.py` `DimensionOrder`, `TemplateDefinition._check_orders` |
+| 11 | `Node` required `dimension_role is None` **iff** `dimension is None` — every role resolves to a live P6 field (C2) | **Loosened, directionally.** A field still requires a role; a role with NO field is now the declared template-local form (Contract W4.3, W5): its children are accepted group labels, not fact values, so there is nothing to name and `expected_values` stays empty. `materialise` skips C2 and the `ExpectedValue` for such a level. The loosened guard used to catch "a role resolved to nothing", so the null is kept unreachable except through the declared path — `ResolvedDimension` refuses `field_ref = None` unless its scope is template-local, and refuses a template-local level that names a field | `planning/46-NOVEL-DOMAIN-HANDLING.md` §4.5, §4.6, §11 anchor H; `src/tree_design/records.py` `Node.__post_init__`; `src/tree_design/materialise.py` |
+| 12 | `child_counts` keys §5.5's user-facing branch counts on `level.field_ref` | **A template-local level has no `field_ref`**, so every such level collided under one `None` key and the second silently overwrote the first. Two template-local levels are a legal shape — V1 exists to tell them apart from a repeated role — so the user was shown ONE count for TWO levels, breaking §5.5's "the user sees the actual branch counts before committing". Keyed `field_ref or dimension_role`, the same pairing `unresolved_by_field` already used 50 lines above. Found by the lead, RED quoted `assert None not in {'subject': 1, None: 2}` | `src/tree_design/materialise.py` `child_counts`; `tests/p10/test_p10_materialise.py::test_child_counts_keeps_one_entry_per_template_local_level` |
 
 Four fields this plan **adds** to the SPEC's records, each carrying an open
 question so the answer needs no migration:
@@ -9988,6 +12265,26 @@ question so the answer needs no migration:
 | `protected_movement_permitted` | `Node` | OQ3, whether `protected` is a type or a flag (`SPEC.md:928-932`). The §5.12 enum is carried literally AND the policy input to `accepts_placement` is explicit |
 | `policy_scope` | `SharedMaterialPolicy` | OQ9, tree-global versus per-branch (`SPEC.md:954-956`). `None` means global; the schema's partial unique index allows one global policy per version |
 | `user_defined` | `ResidualTemplate` | §7.3's user-defined residual areas. The flag is how a shipped template is told from an authored one, and it is what lets a test assert the product ships none of §7.3's eight examples |
+
+One correction this plan owes a document it may not edit:
+
+**The `G-P10` gate names the wrong tasks.**
+`docs/superpowers/plans/2026-08-26-composable-template-library.md:26-27` reads
+"P10 Tasks 1–4 have published `TemplateFragment`, `TemplateDefinition`,
+`TemplateApplicability`, `BranchTemplateBinding`, and C1–C8 validation." Tasks
+1–4 publish the vocabulary, the node records and schema, the configuration
+readers and the upstream seam — none of those four records and none of C1–C8.
+The correct gate is **Tasks 6, 7 and 8**:
+
+| Gate clause | Task that actually satisfies it |
+|---|---|
+| `TemplateFragment`, `TemplateDefinition`, `TemplateApplicability`, `BranchTemplateBinding` | **Task 6** — `src/tree_design/templates.py` and `catalogue.py` |
+| C1–C8 composition validation | **Task 7** — `src/tree_design/routing.py` |
+| The published-fragment boundary the library's rows are checked against | **Task 8** — `src/tree_design/template_schema.py` |
+
+Opening the library pass after Task 4 would start it against a P10 that has no
+template record of any kind. Whoever opens the gate should read it as Tasks 1–8
+complete, and the library plan's line 26–27 should be amended to say so.
 
 One ownership move this plan makes, on the lead's ruling: **P10 owns Site E's
 fragment boundary** (Task 8). `docs/superpowers/plans/2026-08-26-composable-template-library.md:170-173`
