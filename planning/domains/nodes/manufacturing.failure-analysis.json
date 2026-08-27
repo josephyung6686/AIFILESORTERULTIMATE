@@ -1,0 +1,456 @@
+{
+  "id": "manufacturing.failure-analysis",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Failure analysis and root-cause investigation",
+  "one_line": "The bounded technical investigation of why one identified article, lot, asset or repeated population failed: preserve the as-received condition, assemble occurrence evidence, state and reject hypotheses, reproduce or measure the mechanism, conclude a supported cause, and recommend action. It is not the work order that repaired the thing, the nonconformance record that controlled disposition, a prospective FMEA, or a verification record that merely says a criterion failed. PLACEHOLDER ROW (J-IND, researched at J-DEPTH): the manufacturing schema declares no fields under PR-6, so this template writes fields: [] and serialises no folder dimensions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "quality_event",
+      "type": "string",
+      "example": "FA-2026-014 / field return SN 4471",
+      "why_no_existing_key": "The manufacturing schema anchor already proposes this broad event/case handle. This row reuses that proposal rather than minting failure_id, investigation_id, complaint_id or incident_id synonyms. One investigation may bind a returned serial, several work orders, a lot, and many test specimens; product, batch_lot, asset and work_order cannot identify the investigation itself.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed only as a leaf beneath the affected product or asset. An investigation identifier groups the report, photographs, laboratory data and correspondence, but is unintelligible as a top-level branch.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires the token in a labelled investigation, case, complaint, return or failure-report slot together with an occurred-failure structure. The token alone resembles tickets, work orders and purchase references. R6 owns the labelled-role-plus-context rule family; this row supplies no regex or score.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an occurred-failure header binding an identified article, serial, lot, asset or occurrence date to a symptom and an as-received condition, followed by an investigation scope",
+      "a causal-analysis structure that separates observations, candidate causes, tests or analyses, rejected causes, supported cause and conclusion; the conclusion alone is insufficient",
+      "a destructive physical analysis report whose evidence chain includes specimen custody, examination sequence, macro or micro images, fracture origin or defect morphology, and a conclusion tied back to the failed article",
+      "an investigation package that preserves evidence before disassembly and records teardown order, photographs, samples, measurements and chain-of-custody or witness sign-off",
+      "a fault-tree, fishbone, five-why or eight-discipline report tied to a failure that HAS occurred through a returned serial, lot, complaint, incident or dated event, with branches explicitly tested or rejected",
+      "a reproduction test or simulation whose stated purpose is to test one causal hypothesis and whose result is reconciled with the physical failure evidence",
+      "a population analysis assembling repeated work orders or returns for one product or asset family, where the document argues a common mechanism rather than merely tabulating failure codes",
+      "an archive manifest binding one investigation identifier across as-received photographs, teardown notes, microscopy, test data, correspondence and final report; manifest inspection does not require unpacking to disk"
+    ],
+    "needs_llm": [
+      "an unlabelled engineer notebook mixing chronological observations, sketches, measurements and tentative causes without a formal conclusion",
+      "a supplier eight-discipline report where containment, root cause and corrective action are present but the affected article and occurrence reference survive only in attachments",
+      "a service report that says cause found in one prose line but may be only a repair diagnosis rather than an evidence-backed investigation",
+      "a laboratory micrograph set whose specimen label is readable but whose link to the returned article exists only in nearby correspondence",
+      "a warranty-return spreadsheet where rows may be a population investigation, ordinary complaint tracking, or a returns ledger",
+      "a failed test report with a root-cause appendix, where the failure criterion and the causal investigation must remain distinguishable",
+      "a simulation report made after a field fracture, where the file may be a genuine computational study, an investigation attachment, or both neighbourhoods",
+      "a multilingual investigation form whose occurred-event and causal-conclusion slot labels are not in the context catalogue"
+    ],
+    "never_alone": [
+      "the words failure, fault, defect, breakdown, root cause, RCA, investigation, analysis, eight discipline, five why or fishbone alone",
+      "a failure code or symptom description alone; a closure code is a dispatch category, not a causal finding",
+      "a serial number, part number, lot number, complaint number, work-order number or asset tag alone",
+      "a rejected inspection characteristic or failed test result alone; those establish nonconformity, not why it occurred",
+      "a corrective-action list alone; an action can follow an audit, incident, complaint or risk review without a technical failure analysis",
+      "a microscopy image, spectrum, CT volume, stress contour or photograph alone without specimen identity and an investigation relation",
+      "a prospective enumeration of failure modes against a design revision; tense and occurrence evidence distinguish an FMEA from an investigation",
+      "a file extension or source type alone; the same investigation arrives as document, spreadsheet, image, email, structured data and archive",
+      "a folder called Failure Analysis, Quality, Engineering, Returns or RCA alone",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that an image is a screenshot or that it documents a failure"
+    ]
+  },
+  "proposed_context_terms": [
+    "as received",
+    "failure occurrence",
+    "returned unit",
+    "failure mode",
+    "hypothesis",
+    "evidence examined",
+    "rejected cause",
+    "root cause",
+    "contributing cause",
+    "teardown",
+    "fractography",
+    "fracture origin",
+    "destructive physical analysis",
+    "fault tree",
+    "fishbone",
+    "five why",
+    "eight discipline",
+    "reproduction test",
+    "containment",
+    "corrective action",
+    "recurrence"
+  ],
+  "work_types": [
+    "as-received condition and evidence-preservation record",
+    "teardown or disassembly record",
+    "destructive physical analysis report",
+    "fractography, microscopy or materials-characterisation report",
+    "electrical, thermal or dimensional failure analysis",
+    "fault-tree, fishbone or five-why analysis",
+    "eight-discipline problem-solving report",
+    "reproduction or confirmation test",
+    "field-return or warranty-failure investigation",
+    "repeated-failure or population trend investigation",
+    "supplier failure-analysis response",
+    "final root-cause report and recommendation"
+  ],
+  "grouping_reasons": [
+    "one investigation identifier across intake, evidence photographs, teardown, laboratory data, hypotheses, correspondence and final conclusion",
+    "one failed article or returned serial across the physical specimen record and every derived examination artifact, without copying its identity onto an unlinked image",
+    "one repeated mechanism across several occurrence records when the analysis explicitly assembles them as a population",
+    "one hypothesis across reproduction test, simulation and physical evidence, while each attachment keeps its own schema facts",
+    "a sparse micrograph or photograph may join an investigation neighbourhood through manifest or custody evidence without receiving a product, asset or cause fact",
+    "duplicate and version families remain universal facts and do not propagate a root-cause conclusion"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because manufacturing declares no canonical fields. The substantive recommendation for R1c is AFFECTED PRODUCT OR ASSET, then `quality_event`, never cause-first or year-first. The failed thing makes the investigation identifier intelligible; the identifier then keeps heterogeneous evidence together. Cause is a conclusion that may be superseded and must not become a physical branch. Time is useful for chronology inside the case but does not lead the tree: year-first would scatter repeat investigations of one item and the design states, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\". This is a recommendation only; the user may reverse, remove or flatten it after R1c licenses fields.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "pptx",
+      "jpg",
+      "png",
+      "eml",
+      "json",
+      "xml",
+      "zip",
+      "tif",
+      "dcm"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "FA-2026-014_SN4471_As-Received-and-Teardown.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled investigation and returned-serial slots beside a dated occurrence description",
+        "as-received photographs precede a numbered disassembly sequence",
+        "each removed component is cross-referenced to a retained-sample identifier",
+        "the conclusion section is blank because laboratory work is pending"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed)",
+        "product or asset where a labelled affected-item slot supports it",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a root cause from the symptom or teardown order",
+        "that a blank conclusion means no cause exists",
+        "a folder path",
+        "the investigator as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "8D_Report_Field-Return-4471.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a returned serial and complaint date identify an occurred failure",
+        "separate blocks record symptom, containment, candidate causes, evidence, rejected causes and verified root cause",
+        "a DFMEA revision is cited as an input but no prospective ranking table is reproduced",
+        "corrective action and effectiveness-check blocks follow the causal conclusion"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed)",
+        "product",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that citing a DFMEA makes this a prospective risk analysis",
+        "that a proposed corrective action has been implemented or verified",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CNC-07 spindle - repeated bearing failures.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table assembles several dated work-order identifiers for the same asset",
+        "failure-code frequencies are followed by lubrication samples, alignment measurements and rejected hypotheses",
+        "the conclusion argues a common mechanism and recommends a change",
+        "individual repair completion records are cited rather than reproduced"
+      ],
+      "facts_legal": [
+        "asset (schema-proposed)",
+        "quality_event (schema-proposed)",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a work_order fact for the report as a whole from the cited identifiers",
+        "that frequency alone establishes causality",
+        "implementation of the recommendation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SN4471_Fracture-Origin_Micrographs.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest lists macro photographs, optical micrographs, SEM images, spectra and a specimen map",
+        "member names repeat retained-sample identifiers but not the returned serial",
+        "a manifest-level custody note cross-references FA-2026-014",
+        "the archive includes one proprietary instrument file that is indexed metadata-only"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed) only from the manifest cross-reference",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a product or serial fact for every member from archive membership alone",
+        "a fracture mechanism from image filenames",
+        "that the opaque instrument file is empty or safe to expose",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SEM_Sample-B3_fracture-origin_004.tif",
+      "source_type": "image",
+      "observations": [
+        "a grayscale microscopy image with an embedded scale bar and instrument overlay",
+        "the filename carries a specimen identifier and an analyst-written interpretation",
+        "no returned serial, investigation number or product appears in the pixels or metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type where licensed by another active schema"
+      ],
+      "must_not_conclude": [
+        "quality_event, product, serial or root cause from the filename alone",
+        "that the analyst-written word origin is a validated conclusion",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Hypothesis-Matrix_FA-2026-014.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows name candidate causes with expected observations, test method, actual result and supported-or-rejected disposition",
+        "the workbook header carries the investigation identifier and affected serial",
+        "separate tabs contain hardness measurements and chemical-composition results",
+        "the final cause row is linked to cited evidence cells rather than asserted in an isolated note"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed)",
+        "product where labelled",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that every candidate cause is a fact",
+        "that a rejected row may be surfaced as the conclusion",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DVT-07_Test-Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest contains a signed deviation form with requirement, configuration-under-test, measured result and failed disposition",
+        "a later member is a teardown report opened because of that deviation",
+        "both members cite the same article and symptom but have different document identifiers"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed) only for the teardown member when independently evidenced",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that the signed deviation form explains why the criterion failed",
+        "that archive membership copies the investigation conclusion onto the verification record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FA4471_fracture-reproduction_FEA_RevB.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a stated hypothesis links an observed fracture origin to a modeled stress concentration",
+        "the report defines geometry idealisation, mesh, material model, boundary conditions and load case",
+        "predicted origin and morphology are compared with physical micrographs",
+        "the conclusion says the model supports but does not alone prove the proposed mechanism"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed)",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that a simulation result is physical evidence",
+        "that agreement proves every causal link",
+        "a design_item fact unless the engineering schema independently activates",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE FA-2026-014 additional sample results.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender, recipients, subject, sent date and thread identifiers",
+        "the body names retained samples and attaches a laboratory-results workbook",
+        "the author proposes one cause but asks for confirmation before closing the report"
+      ],
+      "facts_legal": [
+        "quality_event (schema-proposed) from the labelled subject plus coherent attachment context",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the proposed cause as a validated fact",
+        "that the email is the final investigation report",
+        "sender or recipients as destination dimensions",
+        "that addresses or message content are safe for cloud exposure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "WO-8814 completion report - CNC-07 spindle bearing.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a work-order identifier and asset tag head the page",
+        "labour, parts, downtime and returned-to-service approval are completed",
+        "one free-text line says suspected lubrication issue",
+        "no hypotheses, examinations, rejected causes or confirmatory test are present"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row from a suspected-cause line",
+        "a validated root cause from a repair code",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DFMEA_Brake-Pedal-Assembly_AIAG-VDA_Rev2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows enumerate functions, hypothesised failure modes, causes, effects, controls and rankings",
+        "the header carries a design revision but no returned serial, lot, complaint or occurrence date",
+        "recommended actions are prospective and tied to row identifiers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that any listed failure occurred",
+        "activation of this row from failure vocabulary",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: 'CNC-07 spindle - repeated bearing failures.pdf', which cites the same job identifiers the maintenance row owns. DIRECTION ONE — this row keeps it when the object is a POPULATION and a cause: several events assembled, hypotheses, evidence tested, rejected causes, a supported cause and a recommendation. DIRECTION TWO — maintenance keeps an individual job even when it carries a failure code or one suspected-cause line, because those are dispatch and closure evidence rather than an argued causal finding. The discriminating evidence is whether the bytes ARGUE a cause from assembled evidence; a completion report that names a cause does not become an investigation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.risk-analysis-fmea",
+      "signal": "SAME FIXTURE BOTH SIDES: '8D_Report_Field-Return-4471.pdf'. DIRECTION ONE — this row owns a failure that HAS OCCURRED, evidenced by a returned serial, lot, complaint reference or incident date, even when it enumerates failure modes and cites a DFMEA. DIRECTION TWO — risk-analysis-fmea owns a failure that is HYPOTHESISED, carrying no occurrence identifier and instead a ranked enumeration against a revision anchor. The discriminating evidence is tense made concrete by labelled occurrence slots; citations between the files do not transfer ownership.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "SAME FIXTURE BOTH SIDES: the signed deviation form and teardown report inside 'DVT-07_Test-Package.zip', citing the same article and symptom. DIRECTION ONE — verification-validation owns the record that a stated criterion was not met and the disposition that followed. DIRECTION TWO — this row owns the investigation of WHY: preserved condition, teardown, fractography, hypotheses and supported cause. The discriminating evidence is a causal argument; pass/fail plus disposition establishes failure but not its cause, and archive membership must not merge the two records.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "signal": "SAME FIXTURE BOTH SIDES: 'FA4471_fracture-reproduction_FEA_RevB.pdf', an FEA rerun made to reproduce a field fracture. DIRECTION ONE — simulation-analysis owns the model and computation: idealisation, mesh, boundary conditions, load case, solver run and predicted result. DIRECTION TWO — this row owns the occurred failure, physical evidence, hypothesis matrix and root-cause conclusion. The discriminating evidence is whether a claim is supported by computed or physical observations; both neighbourhoods hold only when the bytes contain a genuine study section reconciled with the investigation, while a quoted stress figure is merely an attachment reference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "SAME FIXTURE BOTH SIDES: 'NCR-24081_CAPA-and-FA.pdf', carrying affected lot, containment, disposition, causal appendix and actions. DIRECTION ONE — nonconformance-capa owns control of the nonconforming output: segregation, use-as-is/rework/scrap disposition, action owner, due date and effectiveness closure. DIRECTION TWO — this row owns the technical causal argument: evidence, hypotheses, rejected causes, reproduction and conclusion. The discriminating evidence is what the record proves; disposition and action control do not prove cause, while a causal report does not prove implementation or closure.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: also_holds_with is schema-to-schema record-template intent for R1c, not a template-to-template relation. Mixed investigation packages are expressed through file examples, grouping and collision boundaries without authoring an illegal edge.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "signal": "A standalone technical report, work-order closeout or supplier response with no independently supported occurred-failure investigation remains an independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "signal": "A micrograph or damage photograph with no specimen-to-investigation binding remains a one-off image rather than acquiring a cause or article fact from its filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "signal": "An ambiguous archive, sparse notebook or correspondence thread whose occurrence and causal structure cannot be resolved is surfaced for review rather than guessed into an investigation.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "signal": "A proprietary instrument file, damaged archive or encrypted evidence container with no approved extractor stays metadata-only and must not be treated as empty evidence.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Failure investigations can expose product defects, customer and supplier identities, employee statements, incident details, proprietary designs, destructive-test imagery and corrective actions. The catalogue assigns only the design's potentially-sensitive flag; P7 decides handling, and email addresses and message content require protection.",
+  "open_question": "NEEDS-JOSEPH NJ-MFG-FA-1: should R1c ratify the manufacturing anchor's broad proposed `quality_event` as the case handle for failure analysis, nonconformance, complaint and CAPA, or split an investigation handle from the initiating quality event? One broad key preserves cross-record joins but may collapse several independently numbered records; separate keys improve fidelity but risk rebuilding private manufacturing vocabulary. Until adjudicated, dimension_order remains empty and no failure-specific key is minted."
+}

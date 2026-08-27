@@ -1,0 +1,255 @@
+{
+  "id": "manufacturing.warranty-claim",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Warranty claims and field-return analysis",
+  "one_line": "The controlled evidence chain from an in-service failure allegation through claim intake, entitlement decision, return authorization and receipt, teardown or laboratory investigation, disposition, corrective-action linkage, and aggregate field-failure analysis. It is anchored by a claim or quality-event identity and a returned unit, not by a sale, shipment, repair visit, generic complaint, or factory nonconformance alone. Placeholder template researched at full J-DEPTH; the manufacturing schema declares no fields, so this row writes fields: [] and recommends dimensions only in prose.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "leg_1_detection_signals": "The schema default recognizes making, inspecting, releasing and maintaining physical output. This row requires a different transaction: an in-service failure allegation tied to a claimant or installed unit, an entitlement or warranty-status decision, a return authorization or returned-unit receipt, and an investigation/disposition trail. A factory NCR can exist before shipment; a warranty claim begins with alleged failure after transfer or service exposure.",
+    "leg_2_dimension_order": "The manufacturing default is branch-shaped around product plus batch/lot, asset, or quality event. This situation is quality-event-first: one claim must keep the intake, returned-unit chain, investigation and settlement together even when the manufacturing lot is unknown. Conditional on R1c promoting the schema proposals, the recommendation is product then quality_event then record_type; batch_lot is searchable when proven, not a required parent.",
+    "leg_3_privacy": "Warranty material routinely joins a product failure admission to claimant contact details, serial numbers, purchase evidence, service location, photographs and reimbursement decisions. That is a different exposure from an internal traveller or inspection sheet and requires redaction-aware review before external model or connector use. This is an inference from the file structures; 00 supplies the general privacy-before-model rule, not a warranty-specific rule."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract. The manufacturing placeholder schema declares fields: [] and a template never copies its schema proposals. If R1c promotes them, this row uses product, quality_event and record_type as its principal facts, with batch_lot and asset only when the file itself proves those roles.",
+  "proposed_fields": [],
+  "proposed_fields_note": "No private claim_number, serial_number, failure_code, claimant, warranty_status or resolution field is minted. quality_event already proposes the case identity; product and asset cover the article roles where adjudicated; record_type covers document function. The remaining values belong in content/search or later controlled catalogues, not automatically in folder dimensions.",
+  "proposed_context_terms": [
+    "warranty claim",
+    "return material authorization",
+    "returned unit",
+    "date in service",
+    "failure in service",
+    "warranty eligibility",
+    "claim disposition",
+    "no fault found",
+    "teardown analysis",
+    "field return",
+    "failure mode",
+    "replacement authorized",
+    "credit authorized"
+  ],
+  "recognition": {
+    "deterministic": [
+      "a claim-intake structure with a labelled claim or case identifier, product or model, installed-unit or serial identity, reported in-service symptom, occurrence or discovery date, claimant/contact role, and entitlement/status slot; the joined roles are the signal, never the word warranty alone",
+      "a return-material authorization linking a claim identifier to a returned-unit identity, return reason, ship-to or return location, authorization status and return instructions",
+      "a returned-unit receipt or quarantine record linking the same claim/RMA identity to received condition, accessories or quantity, serial or lot observations, receipt date and custody/disposition status",
+      "a teardown or failure-analysis report that names the claim or returned unit and separates reported symptom, condition as received, examination or test performed, finding, failure mode or no-fault-found result, and disposition",
+      "a claim decision or settlement record joining entitlement basis, coverage decision, approved repair/replacement/credit action and authorization to the claim identity",
+      "a field-return trend table whose row unit is claim or returned unit and whose labelled columns combine product identity, symptom/failure mode, disposition and occurrence or receipt period; aggregate charts alone do not establish the underlying row semantics",
+      "a correspondence record whose subject or labelled body binds a claim/RMA identity to a returned unit and whose attachment list names the intake, label, investigation or decision artifact",
+      "an archive manifest joining intake, purchase evidence, return label, received-unit images, investigation and decision under one claim identity, inspected without extracting members to disk"
+    ],
+    "needs_llm": [
+      "distinguishing a customer's allegation from an investigator's confirmed failure mode when both appear in the same narrative",
+      "distinguishing warranty entitlement from goodwill accommodation, paid repair, product recall, insurance adjustment or ordinary return policy",
+      "deciding whether a photograph depicts the returned unit's condition, shipping damage, installation damage, a factory defect, or an unrelated product",
+      "mapping multilingual or OCR-poor claim forms whose visual slot relationships survive but labels do not",
+      "distinguishing a supplier chargeback packet from the end-customer claim that originated it; both may repeat the same part, serial and failure narrative",
+      "distinguishing a no-fault-found conclusion from an incomplete investigation or inability to reproduce",
+      "separating personally identifying claimant/contact content from product and failure evidence before any model path"
+    ],
+    "never_alone": [
+      "the words warranty, guarantee, claim, complaint, failure, defect, return, RMA, repair, replacement, credit or recall alone",
+      "a serial number, lot number, claim number, order number or other identifier-shaped token outside a labelled role and corroborating record structure",
+      "a product name, model, SKU, manufacturer, dealer, customer or service organization name alone",
+      "a receipt, invoice, order confirmation, packing list, shipping label or delivery confirmation alone; those prove commerce or movement, not a warranty case",
+      "a photograph of damage, corrosion, wear, leakage or a broken component without a claim/returned-unit association in the file's own evidence",
+      "a test result, failure-code value, pass/fail word, disposition or approval signature alone",
+      "an email subject saying broken, return requested or replacement sent without claim structure or a bound attachment",
+      "a file extension or source_type alone; PDF, spreadsheet, image, OCR, email and archive are routing clues",
+      "a parent folder called Warranty, Returns, Complaints or Quality, or a bounded download/scanning session",
+      "missing EXIF as proof that an image is a claim screenshot or returned-unit photograph"
+    ]
+  },
+  "work_types": [
+    "warranty claim intake or claim form",
+    "entitlement or coverage decision",
+    "return material authorization",
+    "return shipping label or instructions",
+    "returned-unit receipt and quarantine record",
+    "returned-condition photograph set",
+    "teardown, diagnostic or failure-analysis report",
+    "no-fault-found report",
+    "repair, replacement, credit or denial authorization",
+    "claim correspondence packet",
+    "field-return register or trend analysis",
+    "supplier recovery or chargeback support packet",
+    "corrective-action or engineering-change cross-reference"
+  ],
+  "grouping_reasons": [
+    "one claim or RMA across intake, proof of purchase, return authorization, label, receipt, photographs, investigation, decision and correspondence",
+    "one returned unit across serial-bearing images, custody events, teardown results and disposition without copying the claimant or claim status onto sparse images",
+    "one product's field-return pattern across many claims, while each claim remains independently evidenced and reviewable",
+    "one confirmed field failure linked to an NCR/CAPA or engineering change as a relationship, never by copying the claim's facts onto the corrective record",
+    "duplicate and version families remain universal facts; neighbourhood membership cannot manufacture a claim number, product, serial, failure mode or entitlement decision"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Machine-readable order is empty because the manufacturing schema declares no destination-eligible fields. Conditional on R1c promoting its proposals, recommend product -> quality_event -> record_type. This differs from product -> batch_lot because the manufacturing lot is often absent or learned only after investigation, while the claim identity binds every member from intake onward. Optional aggregate branch: product -> record_type for field-return registers spanning many claims. Optional unit-led branch: asset -> quality_event where a durable installed asset is independently identified. Claimant, contact, serial, failure code and settlement amount are never proposed as folder levels. The user may reverse, flatten or remove levels; this is not a path and is not time-first.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "archive", "filesystem"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".pptx", ".jpg", ".jpeg", ".png", ".eml", ".msg", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "WC-2026-0142 Claim Intake - AX410.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled Claim ID, Product/Model and Serial No slots", "Reported Symptom and Date Failure Observed blocks", "claimant contact and purchase-date slots", "Coverage Decision slot is present and blank"],
+      "facts_legal": ["file_type", "creation_date", "language", "product (schema proposal)", "quality_event (schema proposal)", "record_type (reuse proposal)"],
+      "must_not_conclude": ["that the alleged symptom is a confirmed failure mode", "that coverage was approved", "a claimant-named folder or any final folder path", "a manufacturing lot from the serial number"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RMA-77194_Return_Authorization.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled RMA and linked Claim ID slots", "return-to address and authorization status", "product model and unit serial", "reason-for-return text states leak in service"],
+      "facts_legal": ["file_type", "creation_date", "language", "product (schema proposal)", "quality_event (schema proposal)", "record_type (reuse proposal)"],
+      "must_not_conclude": ["that the unit has been shipped or received", "that leakage was confirmed", "that the return-to address is the manufacturing site", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "UPS Return Label RMA-77194.pdf",
+      "source_type": "text_document",
+      "observations": ["carrier service and tracking barcode", "ship-from and ship-to address blocks", "RMA token appears in reference field", "no product, symptom, entitlement or investigation structure"],
+      "facts_legal": ["file_type", "creation_date", "quality_event (schema proposal, only if the labelled reference is accepted)"],
+      "must_not_conclude": ["warranty activation from a shipping label alone", "shipment completion", "product, serial, failure mode or coverage", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RMA-77194_Received_Condition_01.jpg",
+      "source_type": "image",
+      "observations": ["photograph depicts a valve body and damaged packaging", "handwritten RMA card is visible beside the unit", "camera EXIF records capture time and device", "no readable serial in the image"],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type", "quality_event (schema proposal, only from readable RMA card)"],
+      "must_not_conclude": ["a product serial or manufacturing lot", "that packaging caused the reported failure", "that the photographed unit is defective", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "FA-77194 AX410 Teardown Report.pdf",
+      "source_type": "text_document",
+      "observations": ["linked RMA and unit-serial slots", "separate Customer Reported Symptom and Condition As Received sections", "test-method and finding table", "Conclusion states seal damage with root cause not determined"],
+      "facts_legal": ["file_type", "creation_date", "language", "product (schema proposal)", "asset (schema proposal)", "quality_event (schema proposal)", "record_type (reuse proposal)"],
+      "must_not_conclude": ["a root cause when the report expressly leaves it undetermined", "a production lot", "customer misuse", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Warranty Decision WC-2026-0142 - replacement approved.pdf",
+      "source_type": "text_document",
+      "observations": ["claim identity and product model", "coverage-basis checklist", "approved replacement and authorization signatures", "claimant shipping details"],
+      "facts_legal": ["file_type", "creation_date", "language", "product (schema proposal)", "quality_event (schema proposal)", "record_type (reuse proposal)", "sensitivity_status"],
+      "must_not_conclude": ["that replacement was delivered", "that approval proves a manufacturing defect", "claimant identity as a destination", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Field Returns Register 2026-Q2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows keyed by claim identity", "columns for product/model, serial or lot when known, reported symptom, investigation finding and disposition", "rows include no-fault-found and pending values", "sheet spans many claimants and products"],
+      "facts_legal": ["file_type", "creation_date", "product (schema proposal)", "record_type (reuse proposal)", "sensitivity_status"],
+      "must_not_conclude": ["one quality_event for the whole workbook", "that every reported symptom is confirmed", "a claimant or serial folder", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FW RMA-77194 photos and receipt.eml",
+      "source_type": "email",
+      "observations": ["subject carries the RMA identity", "body distinguishes customer report from requested next action", "attachments list a receipt and image files", "sender and recipient blocks expose personal contact information"],
+      "facts_legal": ["file_type", "creation_date", "language", "quality_event (schema proposal)", "sensitivity_status"],
+      "must_not_conclude": ["facts about attachments before inspecting each attachment", "that the sender is the claimant or product owner", "approval or confirmed failure", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RMA-77194_packet.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists claim intake, proof of purchase, return label, four images, teardown report and decision", "member stems repeat the same claim/RMA identity", "one encrypted member cannot be inspected", "archive is indexed without extraction to disk"],
+      "facts_legal": ["file_type", "creation_date", "quality_event (schema proposal)", "sensitivity_status"],
+      "must_not_conclude": ["member facts from filenames alone", "the contents of the encrypted member", "that all members share product or claimant facts", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Order 88421 - 30 day returns policy.pdf",
+      "source_type": "text_document",
+      "observations": ["merchant order identity and purchased line item", "generic return-policy prose", "price and payment summary", "no failure allegation, warranty entitlement, returned-unit identity or investigation"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a warranty claim from the words returns or warranty", "a quality_event", "a product failure", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "SAME FIXTURE BOTH SIDES: `FA-77194 AX410 Teardown Report.pdf` and the corrective-action record it cites. This row owns the customer/field transaction: allegation, entitlement, returned-unit custody, investigation and settlement under one claim identity. NONCONFORMANCE-CAPA owns the internal control event: requirement versus observed condition, containment, root cause, corrective action and effectiveness verification. The discriminating evidence is WHEN AND FOR WHOM the case exists: in-service claimant/return evidence supports this row; an internal affected-lot/disposition/action structure supports CAPA. RECIPROCAL: CAPA must not claim a warranty packet because its teardown mentions root cause, and this row must not claim an internal NCR because it mentions field impact.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.field-service-report",
+      "signal": "SAME FIXTURE BOTH SIDES: `Service Visit SV-4881 - AX410 leak.pdf`, which can record a customer's failure allegation, serial, diagnosis and parts replaced. FIELD-SERVICE owns performed work at an installed asset: arrival/departure, technician, site, labour/parts and returned-to-service outcome. THIS ROW owns entitlement and claim disposition plus the return/investigation chain. RECIPROCAL: field service must not infer warranty coverage from a repair visit, and this row must not claim a service report merely because the repaired unit may still be under warranty.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "SAME FIXTURE BOTH SIDES: `ECR-1187_BPA-210_Bushing-Material.pdf`, whose reason-for-change cites a field-return trend and whose evidence packet includes a warranty teardown. ENGINEERING-CHANGE owns the controlled supersession: affected item, current/new revision, disposition and effectivity. THIS ROW owns the claim-to-return-to-failure-analysis transaction. RECIPROCAL: engineering change must not absorb the claimant packet because it motivated a revision, and this row must not treat the approved design change as a claim outcome.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "SAME FIXTURE BOTH SIDES: `UPS Return Label RMA-77194.pdf` and its tracking events. LOGISTICS owns physical movement evidenced by carrier, origin/destination, tracking identity, milestones and delivery exception. THIS ROW owns why the unit is returning and what the warranty process decides. RECIPROCAL: logistics must not infer failure or entitlement from an RMA reference, and this row must not infer shipment completion from an issued label.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Ticket 55418 - AX410 leaking.eml`. SUPPORT-OPERATIONS owns the service interaction queue: requester, channel, assignment, response and resolution history. THIS ROW owns a product-warranty transaction only after entitlement, return authorization, returned-unit or investigation evidence appears. RECIPROCAL: support must not turn every defect report into a warranty case, and this row must not claim a troubleshooting ticket because the word replacement occurs in conversation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.returns-warranty",
+      "signal": "SAME FIXTURE BOTH SIDES: `Order 88421 return request - defective.pdf`. RETAIL RETURNS owns the merchant transaction: order line, return window/policy, refund/exchange and inventory receipt. THIS ROW owns the manufacturer's technical field-return chain: installed-unit identity, entitlement basis, teardown/failure finding and corrective linkage. RECIPROCAL: retail returns must not claim a failure-analysis dossier because a refund was issued, and this row must not claim a change-of-mind return because the policy document says warranty.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.snagging-defects",
+      "signal": "SAME FIXTURE BOTH SIDES: `Defects Register - AHU-4 warranty period.xlsx`, a located fault list that names equipment, responsible contractor, status and re-inspection. SNAGGING-DEFECTS owns a defect in the works, discriminated by room/plot/location, trade responsibility, practical-completion or defects-period context and reinspection. THIS ROW owns a manufactured product claim, discriminated by product/model or serial, claimant/entitlement, return authorization and returned-unit investigation. RECIPROCAL: snagging must not claim a product teardown because the unit was installed in a building, and this row must not claim a construction defects register because it calls the period warranty.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: also_holds_with is schema-to-schema record-template intent and this is a template row. Legitimate multi-schema readings are recorded per file through also_schema and do not widen the manufacturing schema here.",
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "when": "a technical-looking record lacks a defensible claim, return or field-failure association", "provenance": "inference"},
+    {"residual_template": "Receipts and Confirmations", "when": "the evidence establishes only a purchase, issued label, dispatch, refund or delivery confirmation", "provenance": "inference"},
+    {"residual_template": "One-Off Images", "when": "a damage photograph has no independently evidenced claim or accepted returned-unit group", "provenance": "inference"},
+    {"residual_template": "Protected Records", "when": "claimant/contact, purchase, address or settlement evidence requires protection but deeper warranty association is not reliable", "provenance": "inference"},
+    {"residual_template": "Unsupported or Encrypted", "when": "an encrypted or unsupported packet cannot be inspected sufficiently to establish the transaction", "provenance": "inference"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Claim files can expose claimant identity and contact details, purchase and location evidence, unique unit identifiers, allegations of unsafe or defective performance, internal root-cause discussion, supplier responsibility and reimbursement decisions. Protection is required before model or connector use; serial or claimant values are not destination dimensions.",
+  "open_question": "NEEDS-JOSEPH NJ-WARRANTY-1: confirm whether warranty claims remain product-manufacturing evidence when no physical return occurs and the decision is made from remote diagnostics. Current recommendation: yes only when claim identity, entitlement and product-specific diagnostic/disposition structure are present; otherwise support-operations owns it. NJ-WARRANTY-2: confirm the retail/manufacturer boundary when one merchant is also manufacturer. Current recommendation follows evidence grammar, not organization identity: order/refund policy is retail_hospitality.returns-warranty; returned-unit investigation and field-failure control is this row. NJ-WARRANTY-3: if R1c rejects manufacturing's quality_event proposal, this template has no legal organizing anchor and must keep dimension_order empty rather than mint claim_number privately."
+}
