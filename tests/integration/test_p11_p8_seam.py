@@ -6,6 +6,7 @@ through P11's authorities rather than through P8's fixtures' own.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
@@ -37,13 +38,17 @@ from privacy.schema import create_privacy_schema
 from privacy.release import ModelCallRequest, ModelTarget, Target
 
 from placement.config import SupportPolicy
+from placement.records import Destination
+from placement.store import record_decision
+from placement.versions import reproject
 from placement.index import build_destination_index, legal_node_ids
 from placement.p8_seam import (
     evidence_snapshot_id_for, placement_authorities, site_dependencies,
 )
 from placement.schema import create_placement_schema
 from p11.conftest import FIXED_CLOCK
-from p11.p10_fixtures import FROZEN_TREE
+from p11.p10_fixtures import FROZEN_TREE, next_version
+from p11.test_p11_records import _decision
 
 POLICY = SupportPolicy(policy_id="integration-v1", support_scale_max=1.0,
                        minimum_support_threshold=0.0, margin_threshold=0.0)
@@ -243,8 +248,159 @@ def test_the_snapshot_p11_mints_satisfies_p8s_pre_call_check(indexed, tmp_path):
     assert result.denied.reason == "unclassified"
 
 
+def _stored_verdict(conn, pair):
+    """A real P8 verdict in the table, produced by P8's own validator.
+
+    `revalidate_for_plan` raises `KeyError` on a `previous_verdict_id` that is not
+    in `llm_verdict`, so a synthesized id would never reach the revalidation at
+    all and the test would prove nothing about the seam.
+    """
+    deps = placement_authorities(
+        conn, plan_version=pair.dossier.plan_version, policy=POLICY,
+        sensitivity_policy=lambda *_a, **_k: True)
+    result = validate_placement_response(
+        pair.dossier, pair.response_bytes,
+        evidence_resolver=lambda key: "span-1" if key.startswith("obs-") else None,
+        contradicts=lambda *_a, **_k: False, dependencies=deps,
+        model_id="fixture-model", prompt_fingerprint="fp-canonical",
+        dossier_builder="p11-integration", release_audit_id=17)
+    verdict = result[0][0]
+    return record_cd_verdict(
+        conn, verdict, evidence_snapshot_id=pair.evidence_snapshot_id,
+        model_id="fixture-model", prompt_fingerprint="fp-canonical",
+        release_audit_id=17, observed_at=FIXED_CLOCK)
+
+
+def _revalidation_inputs(pair, conn, *, verdict_id, plan_version):
+    """Exactly the keywords `revalidate_for_plan` declares, and no others.
+
+    P11 stores no `verdict_id`, dossier or response bytes -- `PlacementDecision`'s
+    thirty fields carry none of them -- so they arrive from the caller that made
+    the call. Binding them here is what proves the injected mapping is the live
+    signature's and not a shape P11 invented.
+    """
+    return {
+        "previous_verdict_id": verdict_id,
+        "dossier": pair.dossier,
+        "response_bytes": pair.response_bytes,
+        "evidence_resolver": lambda key: ("span-1" if key.startswith("obs-")
+                                          else None),
+        "contradicts": lambda *_a, **_k: False,
+        "dependencies": placement_authorities(
+            conn, plan_version=plan_version, policy=POLICY,
+            sensitivity_policy=lambda *_a, **_k: True),
+        "model_id": "fixture-model",
+        "prompt_fingerprint": "fp-canonical",
+        "dossier_builder": "p11-integration",
+        "release_audit_id": 17,
+        "observed_at": FIXED_CLOCK,
+    }
+
+
+def _v2_tree(*, rename_course_to=None):
+    """plan-2, minted P10's way: every node gets a new id, lineage in origin."""
+    tree = next_version(plan_version_id="plan-2", suffix="@2")
+    if rename_course_to is None:
+        return tree
+    old_id = next(node.node_id for node in tree.nodes
+                  if node.origin_node_id == "n-course")
+    nodes = tuple(replace(node, node_id=rename_course_to)
+                  if node.node_id == old_id else node for node in tree.nodes)
+    profiles = tuple(replace(profile, node_id=rename_course_to)
+                     if profile.node_id == old_id else profile
+                     for profile in tree.profiles)
+    return replace(
+        tree, nodes=nodes, profiles=profiles,
+        freeze_record=replace(
+            tree.freeze_record,
+            node_ids=tuple(node.node_id for node in nodes),
+            legal_destination_ids=frozenset(
+                node.node_id for node in nodes if node.accepts_placement)))
+
+
+def _place_d1(conn):
+    record_decision(
+        conn, _decision(decision_id="d1",
+                        destination=Destination(node_id="n-course",
+                                                node_role="ordinary")),
+        component_version="P11-integration", observed_at=FIXED_CLOCK)
+
+
 def test_p11_reuses_p8s_revalidation_rather_than_remapping_a_decision(indexed):
-    # Done-means 16 and §8.8. P8 already appends a new verdict and supersedes the
-    # old one when the plan or the snapshot changes. P11 calling this is what
-    # keeps "never silently reclassify" true at the verdict layer too.
-    assert callable(revalidate_for_plan)
+    # Done-means 16 and §8.8, driven end to end rather than by reference. P8
+    # already appends a new verdict and supersedes the old one when the plan or
+    # the snapshot changes; P11 calling this is what keeps "never silently
+    # reclassify" true at the verdict layer too. The node here SURVIVES -- P10
+    # minted it a new id and `reproject` followed the lineage -- so the only
+    # remaining question is whether the model's judgement about it still holds,
+    # and P8 is the one that answers.
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    assert pair.expected_outcome == "accept_direct"
+    verdict_id = _stored_verdict(indexed, pair)
+    _place_d1(indexed)
+    node_id = pair.dossier.allowed_vocabulary[0]
+    build_destination_index(indexed, _v2_tree(rename_course_to=node_id),
+                            component_version="P11-integration",
+                            observed_at=FIXED_CLOCK)
+    before = indexed.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"]
+    diff = reproject(
+        indexed, from_plan_version="plan-1", to_plan_version="plan-2",
+        revalidation_inputs={"d1": _revalidation_inputs(
+            pair, indexed, verdict_id=verdict_id, plan_version="plan-2")})
+    assert diff.carried_unchanged == ("d1",)
+    assert diff.requiring_renewed_review == ()
+    # P8 really ran: it wrote the fresh verdict itself, stamped with the new plan
+    # version. P11 records no verdict of its own, so a second row here would be
+    # P11 writing P8's fact twice.
+    after = indexed.execute(
+        "SELECT plan_version FROM llm_verdict WHERE verdict_id = ?",
+        (f"{verdict_id}::plan-2::" + evidence_snapshot_id_for(
+            plan_version="plan-2", observation_keys=("obs-1",)),)).fetchone()
+    assert after["plan_version"] == "plan-2"
+    assert indexed.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == before + 1
+
+
+def test_a_surviving_node_whose_verdict_no_longer_holds_goes_back_to_the_user(
+        indexed):
+    # The negative twin, and the half that makes the test above discriminating.
+    # The lineage check passes identically -- `n-course` still has a successor in
+    # plan-2 -- but the destination the model named is not in the new legal set,
+    # so P8's own NODE_NOT_IN_FROZEN_TREE fires and the decision is marked rather
+    # than carried. A `_revalidates` that returned True unconditionally would pass
+    # the test above and fail here.
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    verdict_id = _stored_verdict(indexed, pair)
+    _place_d1(indexed)
+    build_destination_index(indexed, _v2_tree(),
+                            component_version="P11-integration",
+                            observed_at=FIXED_CLOCK)
+    assert pair.dossier.allowed_vocabulary[0] not in legal_node_ids(
+        indexed, plan_version="plan-2")
+    diff = reproject(
+        indexed, from_plan_version="plan-1", to_plan_version="plan-2",
+        revalidation_inputs={"d1": _revalidation_inputs(
+            pair, indexed, verdict_id=verdict_id, plan_version="plan-2")})
+    assert diff.requiring_renewed_review == ("d1",)
+    assert diff.carried_unchanged == ()
+    # Marked, not remapped: the plan-1 row is untouched and nothing names the
+    # surviving lookalike.
+    row = indexed.execute(
+        "SELECT node_id, superseded_by FROM placement_decisions "
+        "WHERE record_id = 'd1'").fetchone()
+    assert (row["node_id"], row["superseded_by"]) == ("n-course", None)
+
+
+def test_a_decision_with_no_model_verdict_needs_no_revalidation(indexed):
+    # `revalidation_inputs` is SPARSE on purpose: a deterministic decision has no
+    # P8 verdict, so there is nothing to re-validate and the node's survival is
+    # the whole question. An empty mapping must not read as "every verdict
+    # failed", which would send a clean corpus back to the user wholesale.
+    _place_d1(indexed)
+    build_destination_index(indexed, _v2_tree(),
+                            component_version="P11-integration",
+                            observed_at=FIXED_CLOCK)
+    diff = reproject(indexed, from_plan_version="plan-1",
+                     to_plan_version="plan-2")
+    assert diff.carried_unchanged == ("d1",)

@@ -260,3 +260,48 @@ FROZEN_TREE = FrozenTree(
 
 def tree_with(**overrides) -> FrozenTree:
     return replace(FROZEN_TREE, **overrides)
+
+
+def next_version(tree: FrozenTree = None, *, plan_version_id: str,
+                 suffix: str, drop: tuple[str, ...] = (),
+                 edit=None) -> FrozenTree:
+    """The same tree, adopted as a new plan version, minted P10's way.
+
+    P10 answered its OQ5 by minting a **new `node_id` for every plan version** and
+    recording lineage in `origin_node_id`
+    (`planning/38-p10-p11-connection-contract.md` §5.2; P10's own
+    `test_a_copied_node_keeps_its_lineage_and_gets_a_new_identity` asserts
+    `before["n_root"].node_id != after["n_root"].node_id`). So NO `node_id`
+    survives a draft, and a fixture that reused the previous version's ids would
+    be testing a world P10 does not build -- and would hide the exact defect
+    Task 17 exists to prevent.
+
+    `drop` names ORIGIN ids to remove, because that is the only identity that
+    spans the two versions. `edit` is applied after minting, so a test can rename
+    or relocate a node the way a real draft does.
+    """
+    tree = FROZEN_TREE if tree is None else tree
+    mint = lambda node_id: f"{node_id}{suffix}"
+    survivors = tuple(node for node in tree.nodes
+                      if node.origin_node_id not in drop)
+    minted = []
+    for node in survivors:
+        node = replace(
+            node, plan_version_id=plan_version_id, node_id=mint(node.node_id),
+            parent_node_id=(None if node.parent_node_id is None
+                            else mint(node.parent_node_id)),
+            origin_node_id=node.origin_node_id)
+        minted.append(node if edit is None else edit(node))
+    minted = tuple(minted)
+    kept = {node.origin_node_id for node in survivors}
+    by_origin = {node.node_id: node.origin_node_id for node in tree.nodes}
+    profiles = tuple(
+        replace(profile, node_id=mint(profile.node_id))
+        for profile in tree.profiles if by_origin[profile.node_id] in kept)
+    return replace(
+        tree, plan_version_id=plan_version_id, nodes=minted, profiles=profiles,
+        freeze_record=replace(
+            tree.freeze_record, plan_version_id=plan_version_id,
+            node_ids=tuple(node.node_id for node in minted),
+            legal_destination_ids=frozenset(
+                node.node_id for node in minted if node.accepts_placement)))
