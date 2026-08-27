@@ -4,14 +4,24 @@ from __future__ import annotations
 import pytest
 
 from placement import vocabulary as v
-from placement.config import ConfigurationRequired, SupportPolicy
-from placement.graph import NodeLocalGraph
-from placement.records import ConflictConsidered, GraphAnchor, MatchingFact
+from placement.config import ConfigurationRequired, PlacementLimits, SupportPolicy
+from placement.graph import NodeLocalGraph, build_node_local_graph
+from placement.index import build_destination_index, entry_for
+from placement.records import ConflictConsidered, GraphAnchor, MatchingFact, Subject
 from placement.retrieval import (
     ACCEPTED_GROUP, Candidate, DIRECT_FACT, GRAPH_RELATIONSHIP, Retrieval,
-    SEMANTIC_NEIGHBOUR,
+    SEMANTIC_NEIGHBOUR, retrieve,
 )
 from placement.scoring import assess, needs_model_call
+from p11.conftest import FIXED_CLOCK
+from p11.p10_fixtures import FROZEN_TREE
+
+LIMITS = PlacementLimits(
+    max_retrieved_neighbors=4, max_local_graph_neighborhood=8,
+    max_candidate_cluster_size=6, max_residual_files_per_batch=50,
+    max_dossier_tokens=4000, max_llm_calls_per_thousand_files=100,
+    max_cost_per_scan=5,
+)
 
 # The threshold is 0.4, and the number is derived rather than picked. `assess`
 # normalises by `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7`, so the highest score a
@@ -203,3 +213,47 @@ def test_several_plausible_nodes_ask_for_a_model_rather_than_guessing():
                     policy=POLICY)
     assert result.unique_direct_match is False
     assert needs_model_call(result) is True
+
+
+def test_the_three_stages_bind_end_to_end_against_the_frozen_tree(p11_conn):
+    """§6.2 -> §6.4 -> §6.10, with no hand-built record anywhere in the chain.
+
+    Every other test in this module hands `assess` a `NodeLocalGraph` it built
+    itself, which proves the scoring rules and nothing about the seams. This one
+    runs the real `retrieve`, the real `build_node_local_graph` and the real
+    `assess` over P10's frozen tree: a reference chain between three modules is
+    not a seam, and only a run through all three catches an argument bound
+    against a signature that moved.
+    """
+    build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
+                            observed_at=FIXED_CLOCK)
+    subject = Subject(kind=v.FILE, file_id="f1", content_hash="h1",
+                      group_id=None, member_file_ids=())
+    retrieval = retrieve(
+        p11_conn, subject=subject, plan_version="plan-1", limits=LIMITS,
+        facts=(MatchingFact(file_fact_id="ff1", field="subject", value="PHYS1401",
+                            reliability=v.DIRECT, evidence_ref="obs-1"),),
+        group_ids=(), curated_folder_labels=(), semantic_neighbours=(),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+    graphs = {
+        candidate.node_id: build_node_local_graph(
+            subject=subject, candidate=candidate,
+            entry=entry_for(p11_conn, plan_version="plan-1",
+                            node_id=candidate.node_id),
+            related_files=({"edge_type": "shared_validated_fact",
+                            "to_file_id": "f-syllabus", "entity": "PHYS1401",
+                            "anchor_file_id": "f-syllabus", "weight": 1},),
+            limits=LIMITS, entity_frequency={"PHYS1401": 6},
+            generic_entity_frequency=200)
+        for candidate in retrieval.candidates
+    }
+    result = assess(retrieval, graphs, policy=POLICY)
+
+    assert [s.node_id for s in result.scored] == ["n-course"]
+    assert result.scored[0].typed_support is True
+    assert result.unique_direct_match is True
+    assert result.two_condition.verdict == v.ACCEPT_DIRECT
+    assert needs_model_call(result) is False
+    # And §6.3's suppression survived the whole chain: `n-course-alt` was ruled
+    # out and recorded, not merely left unranked.
+    assert retrieval.conflicts[0].suppressed_node_ids == ("n-course-alt",)
