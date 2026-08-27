@@ -947,3 +947,42 @@ compatible with one being the clear *recommended* default, and the recommended h
 **by situation, not by user** — `career.recruiting` → cycle-first; `career.employment-records` →
 employer-first (3 employers over 8 years, ~18/~14/~6 files, zero tiny folders). They are not two
 tastes over one corpus; they are the natural orders of two corpora that the offer letter separates.
+
+### RULED — Joseph, 2026-08-27 23:20 (J-WIDE-2 reading, and two roster placements)
+
+**J-WIDE-2-R — the two-order reading STANDS, and neither order is marked recommended.**
+Joseph was shown the fragmentation evidence explicitly (about 8 of 15 companies at one or two files;
+`Career/Ramp/Backend Engineer/Cover Letter/ramp-cover.pdf` — four levels for one file) and chose to
+ship both orders with **no default**, asking the user on first run.
+
+**This is coherent, not a gap, and the reason matters for implementation.** `00`:99 is written as
+imperatives and it governs the moment of choice, not the catalogue: *"Before the user chooses a
+split, the system should show the resulting number of child branches, the number of files under each
+child, example members, unresolved files, and any evidence gaps. It should warn when a level
+produces only one child... or creates a large number of tiny folders. It should recommend flattening
+when a dimension does not materially improve retrieval."* So the steer is delivered **live, against
+the user's own file counts**, at the instant they pick — which is strictly better than a static
+default guessed from a constructed 15-application estimate. Offering both with no default **plus**
+00:99's structural feedback IS the design; a hard-coded default would pre-empt it.
+
+Note also (peer session, verified): `00`:70 is **illustrative, not prescriptive** — it says a Career
+template *"may* define", and its paragraph opens *"A template is not a fixed list of folder names and
+it is not an instruction that every user must follow."* Neither parse binds. The parse question is
+therefore moot: both orders are offered, and `00`:99 disciplines whichever the user picks.
+
+**IMPLEMENTATION REQUIREMENT that follows:** the first-run picker must not be a bare two-way choice.
+It must show, for the user's actual corpus, the child counts and the tiny-folder / one-child warnings
+`00`:99 requires. Shipping the picker without the live feedback would convert Joseph's ruling into
+the very gap it is not.
+
+**J-WIDE-5 — `career.portfolio-work-samples`: BOTH.** Joseph ruled it lives in career and creative
+together, on `00`:48's licence — *"One file may hold facts from more than one domain without losing
+information."* See the mechanics note in `27-dispatch-run-log.md`: a row carries exactly one
+`schema_id` (`_CONTRACT` rule 12), so "both" is implemented as **one owning schema plus an
+`also_holds_with` schema↔schema edge**, not as two rows. Recommended owner: `creative` (which needs
+`artifact_type` and `project` regardless), with `career` co-holding — this keeps career at **5 fields,
+inside `00`:48's cap**, while a portfolio PDF still activates from a job application.
+
+**J-WIDE-6 — `career.employer-side-hiring`: OPEN.** Joseph selected no option and asked *"put in
+both?? could be both??"*. Answered in the run log; the mechanism works but does not settle the
+privacy question, which is the reason the placement was raised. **Still owed.**

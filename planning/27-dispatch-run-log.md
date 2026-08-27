@@ -1797,3 +1797,49 @@ folder named for a candidate is a personnel file about a third party, barred by 
 **Not checked, recorded rather than padded:** the 51-file hunt inventory is a constructed estimate,
 not measured against a real corpus; the agent read 47 by section headings only; it did not check
 whether any other schema breaks if `record_type`'s role widens to a fourth domain.
+
+## "CAN A ROW LIVE IN BOTH SCHEMAS?" — the mechanics, answering Joseph's question
+
+**A row cannot. A file can. This distinction is the whole answer.**
+
+- **`_CONTRACT` rule 12: a template row carries exactly ONE schema.** There is no two-schema row, and
+  inventing one would break the `schema_id` join every consumer uses.
+- **But `00`:48 says a FILE may hold facts from more than one domain** — *"One file may hold facts
+  from more than one domain without losing information."* And `CONNECTION.md` §5 provides the edge for
+  it: **`also_holds_with`, schema ↔ schema only.**
+
+So "both" is implemented as: **the row lives in one owning schema, and the two schemas are joined by
+`also_holds_with`.** A matching file then activates both and carries facts from both. That is a
+supported shape, not a workaround.
+
+**`portfolio-work-samples` (J-WIDE-5, ruled BOTH):** own it in `creative`, co-hold from `career`.
+`creative` needs `artifact_type` and `project` anyway, so it costs creative nothing, and career stays
+at **5 fields instead of 7** — inside the cap. A case-study PDF still reaches the Stripe application.
+
+**`employer-side-hiring` (J-WIDE-6, still open):** the same mechanism is available, but **it does not
+answer the question that was actually asked.** The issue is not reachability, it is that career would
+hold files *about people who do not own the drive* — candidate CVs, interview scorecards. `hr.json`'s
+own text forbids exactly this: *"CAREER MUST NOT TAKE an employer-side roster, multi-employee cycle,
+or personnel case merely because each member could be copied to an individual."* An `also_holds_with`
+edge between `career` and `hr` would let a recruiter reach these files from either side **while the
+row itself sits in `hr`** — which satisfies "both" without career taking custody of third-party
+personnel data. **Recommended: own in `hr`, co-hold from `career`. Awaiting Joseph.**
+
+## ⚠️ COMMIT `bd739a7` IS MIS-TITLED — recorded, deliberately NOT rewritten
+
+`bd739a7` is titled "research(career): field set for J-WIDE-2..." and describes two files. It
+actually contains **139 files and 18,122 insertions** — the peer session's entire P10/P11 build
+(`src/tree_design` 18, `tests/p10` 19, `src/extractors` 10, `tests/p8` 11, `src/placement`,
+`src/llm_harness`, `src/grouping`, `tests/p9`, `tests/p11`) plus the P1–P9 seam repair.
+
+**Cause: the two sessions share one working tree and therefore ONE GIT INDEX.** The peer had staged
+their build and was composing its message; this session ran `git add` and `git commit` as separate
+steps, and the commit captured their index. Owning different directories does **not** protect against
+this — the index is shared, not the files.
+
+**Not rewritten on purpose.** The content is safe and already pushed; rewriting shared history while
+both sessions are actively writing is a worse failure than a mis-titled commit.
+
+**PROTOCOL, ADOPTED BY BOTH SESSIONS:** stage and commit in **one shell invocation**, by **explicit
+path list**. Never `git add -A`, never `git commit -a`, never a directory-wide add across
+`planning/` or `src/`.
