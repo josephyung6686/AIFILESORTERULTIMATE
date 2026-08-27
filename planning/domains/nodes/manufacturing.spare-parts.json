@@ -1,0 +1,587 @@
+{
+  "id": "manufacturing.spare-parts",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Spare parts and stock records",
+  "one_line": "The standing stock position of replaceable items held so that equipment can be repaired: the spares master with its bin, on-hand balance, reorder policy and used-on cross-reference, the cycle counts and variance sheets that reconcile it, the criticality and obsolescence reviews that set it, and the issue and requisition documents that draw it down. Its object is not a job, a batch or an inspection but a BALANCE that persists between events. Placeholder template on the fieldless manufacturing schema (PR-6); it writes no field rows and recommends dimensions in prose only.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "part",
+      "type": "string",
+      "example": "6205-2RS deep groove bearing (stock code SP-0412)",
+      "why_no_existing_key": "No canonical key names a fungible stocked item. The manufacturing schema's proposed `product` is defined as the article being MADE and controlled ('the physical article, formulation or SKU being made') — a spare is consumed, not produced, and the two are different roles even when the same organisation both makes a pump and stocks its impeller. The schema-proposed `asset` is one identified machine with a serial and a functional location; a stock code names a population of interchangeable units and carries a quantity, which `asset` cannot. `record_type` names the document, not the item. `artifact_type` and `project` are scoped to research and code.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE. The stock item is the stable subject above every count, issue, review and valuation that touches it, exactly as the asset is the stable subject of maintenance jobs. It is not authorship and not an organisation name.",
+      "reliability_ceiling": "possible",
+      "reliability_ceiling_why": "A stock code appears in a labelled column header ('Stock code', 'Material', 'Part no.') far more often than it appears alone, but part-number-shaped tokens are indistinguishable from drawing numbers, order numbers and serial numbers outside such a slot. Confirmation would need a rule family of the column-header-plus-quantity-context kind, not a token pattern.",
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a per-item row set whose columns combine a stock or material code, a description, a storage location or bin, AND a balance-and-policy pair — on-hand or free quantity together with at least one of reorder point, minimum, maximum, safety stock or reorder quantity; the balance-plus-policy co-occurrence is the signal, because a list of parts with quantities alone is a bill of materials, a pick list or a purchase order",
+      "a used-on, where-used, fits or compatible-equipment column mapping ONE stocked item to SEVERAL asset, equipment-model or plant identifiers; this many-to-many direction is inverted from a bill of materials, which maps one product down to many parts",
+      "a cycle-count or stock-count sheet whose rows carry system quantity, counted quantity, a variance or difference column, a bin and a counter or count-date slot, over items identified by stock code rather than by retail SKU or barcode",
+      "a criticality, insurance-spare, single-point-of-failure or obsolescence review that reasons about HOLDING levels — lead time, last-time-buy, alternative supplier, consequence of stockout — against named equipment",
+      "a storeroom requisition or issue document naming a stock code, a quantity drawn, a bin, an approver, and a Charged To or Issued Against slot pointing INWARD at an asset, work order or failure code rather than outward at a customer order or a product lot",
+      "a min-max or reorder-policy review joining historical consumption for one item to a proposed holding level and a stockout or availability outcome",
+      "a machine export from a stores or materials module whose column names are transactional stock slots (on hand, reserved, bin, movement type, valuation class) rather than shipment, sale or production slots",
+      "an email whose labelled subject names a stock code or an obsolescence or last-time-buy decision and whose attachments name stock, spares, min-max or count records",
+      "an archive whose manifest links one storeroom or one item family across count sheets, valuation extracts and photographs; the manifest is read without unpacking the archive to disk"
+    ],
+    "needs_llm": [
+      "a sheet headed only Inventory whose rows could be spares, saleable goods, IT assets or production raw material, where the discriminating column (used-on, sale price, assignee, lot) is absent or renamed",
+      "an OCR'd storeroom card or bin card where the running-balance column survives visually but its header does not",
+      "an OEM parts document that may be a recommended-spares list, a service catalogue or the revision-controlled definition of an assembly, where the revision block is cropped or absent",
+      "a photograph of a shelf, bin or part with a label whose readable text gives a code but no role",
+      "a multilingual stores form whose slot labels are outside the deterministic context vocabulary",
+      "a tracker whose Min and Max columns might be stock policy or might be tolerance limits on a measured characteristic"
+    ],
+    "never_alone": [
+      "the words spare, spares, stock, inventory, stores, storeroom, crib, bin, part or parts alone",
+      "a part number, stock code, material number, SKU or barcode alone; the same token shapes are drawing numbers, order numbers, catalogue numbers and serial numbers",
+      "a quantity column alone — bills of materials, pick lists, packing lists, purchase orders, stocktakes and production issues all carry quantities",
+      "a location or bin token alone; racks and bins exist in warehouses, shops, retail cellars and IT stores",
+      "an organisation, supplier, plant or equipment-manufacturer name alone",
+      "a source_type or extension alone; spreadsheets, PDFs, machine exports, email and photographs occur in every neighbouring schema",
+      "a parent folder called Stores, Spares, Inventory or Maintenance alone",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that a bin photograph is a screenshot",
+      "a purchase order, invoice, quotation or delivery note for parts alone; buying a part proves a transaction, not a held position, and stays procurement evidence until a balance or policy structure appears"
+    ]
+  },
+  "proposed_context_terms": [
+    "on hand",
+    "free stock",
+    "reorder point",
+    "min max",
+    "safety stock",
+    "reorder quantity",
+    "bin",
+    "storeroom",
+    "cycle count",
+    "variance",
+    "used on",
+    "where used",
+    "issued against",
+    "charged to",
+    "lead time",
+    "last time buy",
+    "insurance spare",
+    "criticality"
+  ],
+  "work_types": [
+    "spares master, stock catalogue or item master extract",
+    "bin card, stock card or running-balance record",
+    "cycle count, stock count or variance and recount sheet",
+    "storeroom requisition, reservation or issue slip",
+    "return-to-store, unused-parts or core-return record",
+    "min-max, reorder-point or safety-stock review",
+    "criticality, insurance-spare or single-point-of-failure assessment",
+    "obsolescence, last-time-buy or supersession notice",
+    "recommended spare parts list received with equipment",
+    "stock valuation, slow-moving or write-off extract",
+    "rotable or repairable-pool rotation record"
+  ],
+  "grouping_reasons": [
+    "one stock item across its master row, count history, issue history, policy reviews and photographs — the primary group, and the reason this row exists rather than a list of stores document types",
+    "one storeroom or stocking location across the counts, valuations and layout evidence taken of it",
+    "one count cycle or stocktake event across its sheets, variance reports and recount evidence",
+    "one obsolescence or last-time-buy decision across the supplier notice, the affected-equipment analysis and the resulting holding change",
+    "a rotable unit across its store-and-install cycles, WITHOUT copying the installed asset's identity onto the stock row or the stock balance onto the asset",
+    "a bin photograph or a sparse note joins an item's group from its filename or folder neighbourhood without acquiring the item fact — activation is not grouping",
+    "duplicate and version families remain universal facts and never manufacture a part, asset or site fact by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the manufacturing schema declares no canonical fields (PR-6). The prose recommendation, and its DELIBERATE DISAGREEMENT with the schema anchor, is this row's second node-test leg. The anchor recommends \"site then asset then record type for maintenance and calibration\". This row recommends SITE (as the stocking location) then PART then record type, and it DELETES the asset level that the anchor's maintenance branch makes central. The reason is structural, not stylistic: a stocked item serves many machines, so an asset level would either duplicate one bearing under every machine that takes it or force an arbitrary single parent, and both destroy the one question a spares corpus is kept to answer — do we hold this item and how many. The asset survives as a cross-reference (the used-on relation) rather than as a folder parent, which is the inverse of every other maintenance-side row. Site sits above part only in a genuinely multi-site or multi-storeroom corpus, because the same stock code held in two plants is two independent balances; for a single-storeroom holder the validator should flatten it. Record type is the leaf and never sits above part, because master row, count sheet, issue slip, valuation extract and obsolescence notice are different record types describing the SAME item; a record-type level shreds each item into five folders. Parent context is the governing rule: \"The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.\" A variance of minus four is unintelligible without the item, exactly as \"A work type such as Homework 3 is meaningful only after the course is known\". time_first is false, and unusually firmly so: this row's object is a STANDING BALANCE rather than a dated event, so a year level would file the current position of an item under the year someone last counted it. \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Time is a weak second dimension here — weaker than for maintenance jobs — and belongs below the item if the user wants it at all. The user may reverse, remove or flatten any of this after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "xlsx",
+      "csv",
+      "pdf",
+      "docx",
+      "jpg",
+      "png",
+      "eml",
+      "xml",
+      "json",
+      "txt",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Spares master - Plant 2 storeroom.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers Stock code, Description, Bin, On hand, Reserved, Min, Max, Reorder qty, Lead time (days), Criticality",
+        "a Used on column listing several asset identifiers per row",
+        "hundreds of rows, one per item, with no dated event column",
+        "sheet tab named Storeroom 04"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "site (schema-proposed)",
+        "part (proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "an asset fact for the file as a whole — the used-on identifiers are row values, not the file's anchor",
+        "that any of these items were consumed, because the sheet records a position and not a movement",
+        "a supplier or price fact from a lead-time column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Cycle count variance 2026-08 - Store 04.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Stock code, Bin, System qty, Counted qty, Variance, Counter, Count date, Recount required",
+        "roughly forty rows, most with variance zero",
+        "a trailing summary row with a count-accuracy figure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "site (schema-proposed)",
+        "part (proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that a variance is a loss, a theft or a nonconformance",
+        "a quality_event fact — a stock discrepancy is not a product deviation",
+        "the counter's name as a folder dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Parts issue slip WO-8814.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Stock code, Description, Qty issued, Bin, Charged to, Issued by, Date",
+        "the Charged to column carries one repeated job identifier",
+        "an On hand after issue column IS present on this variant",
+        "no shipment, carrier or customer slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "site (schema-proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "a work_order fact for this file when the balance column is what anchors it — the job identifier is then a cross-reference",
+        "that the parts fixed anything",
+        "an asset fact from a job identifier alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Equipment and Spares Master.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one sheet of rows under shared headers Item, Description, Location, Status, Quantity",
+        "some rows additionally carry a serial number and an installed functional location",
+        "other rows additionally carry a bin, a reorder point and a used-on list",
+        "no column distinguishes the two populations explicitly"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "site (schema-proposed)",
+        "part (proposed) for rows carrying stock-code, quantity, bin and reorder evidence"
+      ],
+      "must_not_conclude": [
+        "one anchor for the whole file when it plainly holds two populations",
+        "that an item number plus a location discriminates a stocked item from an installed asset",
+        "an asset fact for stock rows or a balance fact for asset rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Spare Parts List - Model 40 Compressor.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an item table with Ref, Part no., Description, Qty per unit and Recommended stock columns",
+        "an Order code column and a service-parts ordering address",
+        "addressed in its heading to a service technician",
+        "NO revision block and NO approval slot for the item definition"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that the holder actually stocks any of these items — a recommendation is not a holding",
+        "an asset fact from an equipment model name",
+        "a product fact; the compressor is someone else's product",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Min-max review - critical spares 2026Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Stock code, Usage last 12 months, Current min, Current max, Proposed min, Proposed max, Lead time, Stockouts",
+        "a Rationale free-text column",
+        "an approval row naming a reliability engineer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "site (schema-proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that the proposed levels were adopted",
+        "a failure rate or reliability conclusion from a usage column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Storeroom requisition SR-2291.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Requested by, Stock code, Qty required, Required by date, Charged to and Storekeeper approval slots",
+        "an Available on hand slot filled in by the storekeeper",
+        "a Reserved status stamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "site (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that the item was issued, because the requisition records a reservation",
+        "a work_order fact for the file from a Charged to reference alone",
+        "the requester as a folder dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Critical spares risk review - Line 2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "prose sections on single-point-of-failure equipment and sole-source items",
+        "an embedded table of stock codes with lead time, current holding and consequence-of-stockout notes",
+        "no measurement, tolerance or disposition slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "site (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "a quality_event fact — a stockout risk is not a nonconformance",
+        "that any named equipment failed",
+        "a risk rating as a sensitivity or handling class",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Obsolescence notice - drive controller DX-22.eml",
+      "source_type": "email",
+      "observations": [
+        "supplier sender, subject naming a last-time-buy date for a named component",
+        "body lists affected equipment models and a recommended final purchase quantity",
+        "attachment named DX-22 supersession and stock impact.xlsx"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that a purchase was made or a holding changed",
+        "a supplier relationship or contract fact",
+        "an asset fact from an equipment model list",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Stock export MB52_20260817.txt",
+      "source_type": "code_structured",
+      "observations": [
+        "fixed-width machine export with header tokens for material, plant, storage location, unrestricted stock, reserved and valuation class",
+        "no prose and no title",
+        "tens of thousands of rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (schema-proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "a part fact for the file as a whole; the material codes are row values",
+        "an organisation fact from a system name",
+        "a valuation or financial conclusion from a valuation-class column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_7712 bin 14-C shelf.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of shelving with printed bin labels partially legible",
+        "OCR of the labels yields code-shaped tokens and a bin token",
+        "camera metadata present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information"
+      ],
+      "must_not_conclude": [
+        "a part fact from an OCR'd label token",
+        "a site fact from a bin token",
+        "that the photograph documents a count or a discrepancy",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Spares valuation 2026-06-30.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Stock code, On hand, Unit cost, Extended value, Last movement date, Slow-moving provision",
+        "a total row and a period label",
+        "both stock-position slots and accounting slots are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "part (proposed)",
+        "site (schema-proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that this row owns the accounting treatment or the period close",
+        "a tax_year or fiscal_period fact for this row's purposes",
+        "that a provision means the item is obsolete",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Stocktake 2026-06-30 - Bar and cellar.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Item, Unit, Opening, Purchases, Closing count, Usage, Cost price, Sell price, Waste",
+        "items are consumable and saleable goods",
+        "no bin, reorder point, used-on or equipment reference anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a part fact — this population exists to be sold, not to serve equipment",
+        "that a count sheet with quantities and a location is automatically this row's evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "LOT-24-081_pick_list.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Part no., Qty required, Qty issued, Bin, Issued to",
+        "the Issued to column carries one product lot identifier",
+        "a header block naming a production order and an output quantity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a part fact for this row; the items are consumed INTO a product, not held to restore equipment",
+        "a stock balance, because no on-hand or policy column exists",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Storeroom 04 stocktake pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists count sheets, a variance report, bin photographs and a signed count certificate",
+        "member names repeat one storeroom identifier",
+        "archive is inspected via its manifest and not unpacked to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (schema-proposed)",
+        "record_type (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "a part fact for the archive as a whole",
+        "member facts by propagation from the manifest",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Equipment and Spares Master.xlsx' — equipment rows and replaceable-part rows sit under identical Item, Description, Location, Status and Quantity headers. Reciprocating the edge that row already authored. THIS ROW owns a row when it carries stock code plus a balance-and-policy pair (on hand, bin, reorder point, min/max) and a used-on list pointing at SEVERAL machines. THAT ROW owns a row when it carries stable equipment identity — a serial, an installed functional location and a lifecycle or service obligation — and a cardinality of one. Discriminated by whether the row has a QUANTITY or an IDENTITY; item number and location alone discriminate neither, and a file holding both populations groups without either row copying the other's facts onto its rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Parts issue slip WO-8814.csv' — part numbers, descriptions and quantities on both sides. Reciprocating the edge that row already authored, in its own terms. THIS ROW keeps the file when it reconciles a HOLDING: an on-hand or free balance, a bin or storeroom, a reorder point, min/max, or a cycle-count variance. THAT ROW keeps the file when it charges a JOB: a Charged To column carrying one job identifier and no balance of its own. Discriminated by whether the sheet closes a stock position or consumes against a job; a slip that does both is a genuine mixed export and should group without either row copying the other's facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: an issue or pick note with item codes, quantities and bins — a spares crib is a warehouse by every physical description. Reciprocating the edge that row already authored. THIS ROW keeps it when the demand document points INWARD at equipment — an asset or plant identifier, a maintenance work order, a failure code — and the stock is consumed on site. THAT ROW keeps it when the demand document points OUTWARD at a customer order, a wave and a staging lane, and the stock leaves the building intact. Discriminated by what the store EXISTS TO SERVE, read off the consuming reference; where it names neither, neither row fires and Independent Records holds it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "SAME FIXTURE BOTH SIDES: a per-item count sheet with quantities and a location — 'Stocktake 2026-06-30 - Bar and cellar.xlsx' against 'Cycle count variance 2026-08 - Store 04.csv'. Reciprocating the edge that row already authored. THAT ROW owns it when the population is GOODS HELD FOR SALE OR SERVICE TO THE PUBLIC and its losses are spoilage, breakage and shrink — sell price, waste and usage columns are its tell. THIS ROW owns it when the population EXISTS TO SERVE EQUIPMENT and its demand documents name an asset, a work order or a failure code — used-on, reorder point and criticality columns are its tell. Discriminated by whether the consuming document names a sale or a machine.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Spare Parts List - Model 40 Compressor.pdf' — both sides enumerate orderable parts with quantities against one assembly. Reciprocating the edge that row already authored. THIS ROW owns it when it is a SERVICE artifact: recommended-stock and order-code columns addressed to a technician, with no controlling revision block. THAT ROW owns it when it is a DEFINITION: a controlling revision block and an approval slot for the item's structure, even though it lists the same orderable parts. Discriminated by the revision-and-approval block, not by the parent-child-quantity relation, which both sides carry. Direction of the relation also separates them: a bill of materials maps one product DOWN to many parts, this row maps one part UP to many machines.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Equipment and Spares Master.xlsx' shipped as an IT stores extract, or a laptop-and-peripherals sheet with bins and quantities. THIS ROW owns fungible stock counted as a balance against equipment demand. THAT ROW owns identified units in use, where an assignee, a build state or a lifecycle date appears against the row. Discriminated by assignee-or-lifecycle versus balance-and-policy; a shelf of spare keyboards with a reorder point is genuinely arguable and should go to Review Later rather than be assigned by guess.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Obsolescence notice - drive controller DX-22.eml' with its supersession-and-stock-impact attachment, and any parts purchase order. THAT ROW owns the buying decision — supplier selection, quotation, order, terms, spend. THIS ROW owns the resulting HOLDING — the level to carry, the last-time-buy quantity computed against equipment population, the stock the decision leaves on a shelf. Discriminated by whether the document settles a transaction or settles a balance; a purchase order alone never fires this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "SAME FIXTURE BOTH SIDES: 'LOT-24-081_pick_list.csv' — part numbers, quantities and bins drawn from a store. THAT ROW owns it when the items are consumed INTO an output: an Issued to or Consumed by column naming a product lot or production order, with genealogy back to the made article. THIS ROW owns it when the items are drawn to RESTORE equipment and the sheet reconciles a balance. Discriminated by whether the consumption reference is a product lot or an asset; the word issue and the presence of a bin discriminate neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone parts list, count sheet, requisition or stores extract with durable value but no readable balance-and-policy or used-on evidence remains an independent record rather than being assigned to a storeroom by guess.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A parts purchase acknowledgement, supplier order confirmation or delivery note proves a transaction and not a held position, and belongs in the receipt residual unless a balance structure independently appears.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A sheet headed only Inventory, a mixed equipment-and-spares master, or an opaque stores export whose population cannot be read should abstain rather than invent a part, asset or site fact.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An unreadable stores-system dump or an encrypted stocktake archive can be represented from its manifest or filename without inferring its purpose.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A bin, shelf or part photograph with no readable item or storeroom role is a single image, and OCR'd label tokens do not manufacture a part fact.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "manufacturing.asset-register",
+      "why": "The same physical entity — a rotable or repairable unit such as a spare motor, pump or gearbox — occupies two roles across its life, keyed on different proposed handles. THIS SIDE holds it while it is IN STOCK: a fungible line with a quantity, a bin and a reorder policy, keyed on the proposed `part`. THAT SIDE holds it once INSTALLED: an identified unit with a serial and a functional location, keyed on the schema-proposed `asset`. Shared fixture bytes: 'Equipment and Spares Master.xlsx'. The rotation between roles is real and repeats, so neither side may copy the other's handle onto its own rows; a stock balance is not an asset identity and an asset history is not a holding.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A spares holding discloses more than it appears to. Which items are stocked deep, flagged critical or held as insurance spares reveals what breaks and where a plant is fragile, which is competitively and operationally sensitive in a way an individual maintenance job is not; a used-on column additionally enumerates the equipment population. Valuation and slow-moving extracts carry cost and supplier pricing. Requisition and count records name storekeepers, counters and approvers, who remain search and privacy observations rather than destination dimensions. The row assigns no handling class; privacy policy must run before any model or connector.",
+  "open_question": "NJ-SP-1: the proposed `part` key may collide with an engineering claim on the same word for the revision-controlled design item; if R1c awards `part` to the definition side this row should take `stock_item` rather than mint a variant of both. NJ-SP-2: whether the rotable role split against `manufacturing.asset-register` should become a canonical role-split pattern, since the same stock-versus-identity rotation recurs in IT assets and fleet parts. NJ-SP-3: whether a stocking location deserves a handle distinct from the schema-proposed `site`, because one plant may run several independent storerooms whose balances must not merge — the alternatives are overloading `site`, proposing `storeroom`, or leaving it a search-only observation. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}

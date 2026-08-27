@@ -1176,3 +1176,42 @@ JSON-only partials: **8 → 7** (`law_practice.appeals` completed).
 
 Remaining, all judgement work for R1c: 904 one-way `collides_with`, 245 one-way `also_holds_with`,
 196 template-borne `also_holds_with`, 88 cross-kind collisions, 4 CODEX-owned key drifts.
+
+## Wave 3 complete — 16 unassigned rows, 2026-08-27
+
+Three shards (3a/3b/3c), 16 agents, **0 errors**. Every row verified before commit: both files
+present, JSON parses, memo header carries `Depth: J-DEPTH`. Committed by explicit file list,
+filtered against CODEX's active 16-row block each time (`5526a21`, `998994f`, and this commit).
+
+**12 landed · 4 refused · 1 salvage completed** (`manufacturing.asset-register`).
+
+### ⚠ For R1c: the `nonprofit` family is refusing more than it keeps — 5 of 9
+
+```text
+refused: advocacy-campaign, governance, political-campaign, standards-body, volunteer-management
+live   : nonprofit (anchor), fundraising-donor, religious-institution, member-association
+```
+
+`nonprofit.standards-body` refused on leg 1 "in the strongest available way — not *the same signals
+as the schema default* but *signals that cannot activate this schema at all*", because the
+`nonprofit` anchor makes evidence of a **non-exchange relation between two labelled parties** its
+whole precondition. Four sibling rows then failed the same way.
+
+That is a roster-vs-anchor question, not five independent row failures, and R1c should decide it as
+one:
+
+- either the anchor's precondition is drawn too tight and should widen (governance minutes and a
+  volunteer roster are real filing worlds a charity keeps), **or**
+- those five ids were mis-specced at roster time and their coverage genuinely belongs to
+  `business_operations` templates plus residual fallthrough — which is what each refusal already
+  routed it to.
+
+Do not simply re-fire the five: the refusals are argued, and re-firing without settling the anchor
+would produce the same five refusals or, worse, five rows padded to avoid repeating them.
+
+### Field proposals from wave 3 (R1c clusters, do not mint)
+
+`manufacturing.spare-parts: part` · `law_practice.expert-materials: subject_of_record` (a **third**
+row proposing `subject_of_record`, after `clinical_practice` and `law_practice.depositions-testimony`
+— treat as one decision) · `retail_hospitality.supplier-order: supplier | trading_occasion | site` ·
+`manufacturing.asset-register` seconded the anchor's existing `asset` / `site` rather than minting.

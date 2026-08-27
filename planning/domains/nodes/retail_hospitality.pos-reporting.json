@@ -1,0 +1,327 @@
+{
+  "id": "retail_hospitality.pos-reporting",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Trading session and till reconciliation",
+  "one_line": "The record a trading operation makes when it CLOSES A DRAWER: a bounded session at an identified till, terminal or service point, opened with a float, run, and closed by physically counting the money against what the system believed was in it - with the tender split, the over/short, the exception counts and the department mix that fall out of the same close. Its anchor is the TERMINAL AND ITS SESSION, not the calendar day and not the report; the date names the session, the till identity separates two sessions that share a date, and a single session may cross midnight without becoming two. It is the OPERATOR's side only: a diner's receipt for the same sale is never this row. A PLACEHOLDER TEMPLATE on the fieldless retail_hospitality schema - it declares NO field rows (PR-6, _CONTRACT rules 10 and 15, D1 as narrowed) and recommends NO dimension_order, so its argument is held as prose and activation unlocks recognition, this row's INVERTED privacy posture (staff-facing, not guest-facing), and the universal facts.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below, inherited from the schema and restated because this row's signals are the most extraction-tempting in the family: each entry is a DETECTION signal and never an extraction licence. The schema declares no field rows, so nothing here writes a domain fact. A tender figure, an over/short figure and a till identity are OBSERVATIONS. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "THE CLOSE: a physically-counted cash figure set against a system-expected cash figure, with their difference named as an over/short, variance, discrepancy or overage/shortage line, AND an identified till, terminal, drawer, register or service point in a labelled slot. This is the row's constitutive signal and both halves are required - the counted-against-expected pair alone is the family's first deterministic structure and could be a stocktake; the till identity is what makes it a SESSION. The schema states the family half verbatim: a record carrying, for one trading date and one identified till, a takings figure broken out by tender together with a declared-cash or banked figure and an over/short figure.",
+      "THE SEQUENCE, and this is the signal the schema does not name. A Z-report carries a monotonically incrementing Z NUMBER or report sequence number that is issued once and never reissued, usually beside a NON-RESETTING GRAND TOTAL (a running lifetime total of the terminal) alongside the resetting session totals. The pair - a sequence token that increments and a total that never clears - is a fingerprint of a clearing register close and appears in no other structure anywhere on the roster. It is also what discriminates a Z-read from an X-read: an X-read reports the same figures MID-SESSION without clearing them and without consuming a sequence number, and the two together are one session's evidence, not two records.",
+      "THE FLOAT-AND-DROP CHAIN: an OPENING FLOAT or starting cash figure, zero or more mid-session PICKUP, SKIM, DROP or safe-drop figures, and a closing BANKED, paid-in or bag figure, arithmetically reconciling with the counted cash. A cash-up sheet is frequently nothing but this chain laid out one column per day. The chain is the row's most reliable spreadsheet signal because it is arithmetic rather than vocabulary, and the row's constitutional never-alone is the word 'till' itself.",
+      "THE OPERATOR-KEYED EXCEPTION LIST: counts or line-by-line listings of VOIDS, NO-SALES, REFUNDS, DISCOUNTS, PRICE OVERRIDES, MANAGER AUTHORISATIONS or TRAINING-MODE transactions, each attributed to an operator, cashier or clerk identity - a number, a login or a name. This is simultaneously the row's third-strongest signal and its single most sensitive artefact, and the two facts are the reason the privacy leg of this row's node test passes. Attribution to an operator is what distinguishes it from a generic transaction dump.",
+      "THE TENDER SPLIT: a takings total decomposed across CASH, CARD (often further split by scheme), VOUCHER, GIFT CARD, ACCOUNT, ROOM CHARGE or COMP. The split alone is not enough - a merchant settlement statement also splits by scheme - and it only fires alongside the close or the sequence. The absence of a bank account number, a sort code, a merchant ID and a settlement date is the negative half of the same signal.",
+      "THE PERIODIC CUT OF ONE SESSION'S TAKINGS along a non-monetary axis that only a point-of-sale system holds: DEPARTMENT or category sales mix, HOURLY or half-hourly trade buckets, transaction count and average transaction value, covers or items per transaction, and spend per head. A department mix with a percentage-of-total column and no cost, margin or component build-up anywhere is this row's; add a component build-up and it becomes `retail_hospitality.menu-recipe-costing`'s. “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.”",
+      "A NARROW FIXED-WIDTH MONOSPACED PRINT LAYOUT, roughly 32 to 42 characters wide, with right-aligned amounts, rows of asterisks or hyphens as separators, and a date-and-time stamp in the footer - the shape of a thermal receipt printer's spool, whether it arrives as a .txt spool, a PDF of one, or a photograph of the paper. The layout is a real structural signal and it is nearly unique to this row; it is never sufficient alone, because a customer's own receipt has exactly the same shape and is not this row. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "A PHOTOGRAPHED OR SCANNED PAPER ARTEFACT of the above: a till roll ending in a Z summary, a signed cash-up sheet, a paying-in slip with a bag number. The row produces a high volume of these and they are the row's weakest evidence, because thermal print fades and the handwritten declared-cash figure is often the only number that matters. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.”",
+      "Parent-folder context naming a till, a terminal, a cash-up, an end-of-day, a trading week or a banking run, treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone, and a folder named by a date alone is the family's least discriminating token.",
+      "An email whose labelled subject slot names an end-of-day, a cash-up, a banking, a till variance or a trading-week figure AND whose attachment-name slot names a Z-read, a cash sheet, a sales mix or an exception report. The close-concept plus attachment pairing is what fires; a subject line containing only a date and a money figure does not.",
+      "An archive whose manifest names an EPOS end-of-day export, a trading-period dump or a till-journal extract - read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's needs_llm path runs after P7 like every row in the family, but for a DIFFERENT reason than its siblings. The material at risk here is not guest data; it is staff-facing allegation-adjacent data. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "Separating the OPERATOR'S close from the CUSTOMER'S receipt, which for this row is harder than for any other in the family because the two artefacts are printed by the same machine in the same font on the same paper. The operator's copy carries a POPULATION or a CLOSE - many transactions, a sequence number, a float, an over/short; the customer's copy carries exactly one transaction, a thank-you line and no reconciliation apparatus. Where the evidence does not settle which side the holder is on, this row must not activate.",
+      "Separating a REAL close from an EPOS VENDOR'S SPECIMEN, a training-mode session, a franchise operations manual's worked example, or a screenshot in a software project's documentation. A specimen Z-report is written to look exactly like a live one, and a training-mode close is a live one that means nothing. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Deciding whether a period trading pack is this row's session evidence or `business_operations.budget-forecast`'s variance exercise, where the pack carries both a takings summary and a budget column - and, separately, whether a menu-engineering workbook is this row's dated read or `retail_hospitality.menu-recipe-costing`'s cost model. Both are recorded as open questions rather than assumed.",
+      "Reading a faded thermal till roll or a handwritten declared-cash figure on a photographed cash-up sheet. OCR confidence on both is low, and on a cash sheet the handwritten figure is frequently the ONLY figure that distinguishes a reconciled close from an unreconciled one.",
+      "Unlabelled operational prose that belongs to a close: a shift handover note explaining a shortage, a manager's write-up of a voided transaction, an email chasing a missing banking bag. These have no grid, no sequence number and no header block, and they are the most sensitive files this row touches.",
+      "A close printed in a language whose till, tender, float and cash-declaration vocabulary the deterministic structure catalogue does not cover.",
+      "In every case above, abstention is the required outcome when the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE WORD 'TILL', 'POS', 'EPOS', 'REGISTER', 'TERMINAL', 'DRAWER' or 'Z READ', standing alone. This is the row's constitutional never-alone and it is the direct answer to the charge that the row is a document-type word promoted to a node. `Z Report.pdf` may be a live close, a vendor's specimen, a screenshot in an EPOS integration's test fixtures, a franchise manual page, or a training exercise. The reasoning is the schema's own, read across from the university-name argument in `00`: the token names a ROLE the file might be playing, not the role it is playing.",
+      "A TAKINGS OR SALES FIGURE, standing alone, however trading-shaped. Money in cells is finance, business_operations or a sibling in this family before it is this row. What fires here is the PAIRING - counted cash against expected cash - and the SEQUENCE, not the presence of a total.",
+      "A DATE, standing alone. This is the sharpest never-alone the row has, because the row's own name contains a period word and the row's whole defence is that it is not one. Every file in this world is dated; the date is therefore the row's least discriminating token, not its most.",
+      "A TENDER BREAKDOWN, standing alone. A merchant acquirer's settlement statement splits by scheme and is `finance`'s. The absence of a merchant ID, a settlement date and a receiving account is the negative evidence that must accompany the split.",
+      "AN OPERATOR, CASHIER OR CLERK NAME OR ID. Never a group anchor, never a folder level, and never carried into a summary. This is a HARD rule for this row specifically, because an exception report attributed to a named person is in substance a suspicion record: “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”",
+      "A NARROW MONOSPACED RECEIPT LAYOUT, standing alone. It is the shape of the customer's copy too, and the customer's copy is the residual's business, not this row's.",
+      "A TRADE NAME or a STORE NUMBER, standing alone - inherited unchanged from the schema, which makes it constitutionally never-alone for the whole family."
+    ]
+  },
+  "work_types": [
+    "session close - Z-report, end-of-day read, session summary, X-read taken mid-session",
+    "cash reconciliation - cash-up sheet, float and pickup record, declared-against-expected count, banking or paying-in record",
+    "exception record - void, no-sale, refund, discount, price-override and manager-authorisation listing attributed to an operator",
+    "trading cut - department or category sales mix, hourly trade profile, transaction count and average transaction value, covers and spend per head",
+    "period roll-up of the above - a trading week or trading month assembled from its constituent closes"
+  ],
+  "grouping_reasons": [
+    "ONE SESSION AT ONE TERMINAL across its whole paper trail: the opening float record, any X-reads taken during it, the Z-read that closed it, the cash-up sheet, the exception report and the banking slip. Purpose-coherent and content-incoherent - a photographed paper slip, a monospaced spool and a spreadsheet column share no content at all. “The documents are content-incoherent but purpose-coherent.”",
+    "ONE TRADING PERIOD AT ONE SITE assembled from N parallel session closes - the reason a multi-till day is a SET of records and not one. This is the row's most useful group and also the one most likely to be mis-drawn as a calendar; the occasion is the trading day AT A SITE, and the year is not a grouping reason.",
+    "ONE BANKING RUN: several days' declared-cash figures reconciling into one paying-in record, joined by a bag or paying-in reference rather than by a date.",
+    "ONE VARIANCE and its explanation: the exception report, the handover note that accounts for it and the manager's write-up - and this group is precisely the one whose members must not be surfaced with raw content, because it names an employee.",
+    "One repeatedly re-exported EPOS dump, joined by the universal duplicate_family and version_family facts rather than by any trading fact. This row produces more of these than any sibling, because an end-of-day export is commonly re-run whenever a figure is queried.",
+    "No group at all is a valid outcome. A single receipt-shaped file with no float, no sequence and no reconciliation is a residual's business: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, exactly as the schema anchor and the landed siblings are: PR-6 leaves this family with no field rows and a dimension may branch only on a field its schema declares, so the recommendation is held as prose. THE FAMILY DEFAULT, stated so the difference is measurable, is the schema's own: TRADING UNIT - site, venue or channel - only where the corpus genuinely spans more than one, then TRADING OCCASION, then OPERATIONAL RECORD FUNCTION, with trading period sitting INSIDE the occasion level and never above the site. THIS ROW'S RECOMMENDATION INSERTS ONE LEVEL AND NARROWS ANOTHER: trading unit (conditional, on the schema's terms) then TERMINAL OR SERVICE POINT (conditional) then SESSION then function. The TERMINAL level is the whole difference and it is defensible for a reason unique to this row: a trading day at a site does not produce ONE record, it produces N PARALLEL AND INDEPENDENT ONES, one per drawer, each with its own float, its own count and its own over/short - and the question a user actually brings to this material is WHICH TILL WAS SHORT, which a flattened day cannot answer. No sibling occasion behaves this way: a count subdivides by room but is one event, a booking is one party, a licence is one premises. The level is CONDITIONAL for the same reason the site level is - a single-till kiosk would gain a one-child branch naming its only register - and for the reason `00` gives: “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” THE NARROWING is that this row's SESSION is genuinely SUB-DAILY - a breakfast service, a lunch sitting, a morning till session, a night-club close that crosses midnight - which is the schema's own recorded strain on `record_period` (NJ-RH-5) arriving as a concrete requirement rather than a theory. NOT TIME-FIRST, and this row is the family's hardest possible test of that rule, harder than the stocktake row's, because this row's NAME contains a period word and every one of its artefacts is titled by a date. The answer is that the date IDENTIFIES the session and does not ROOT the tree - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and the capture exception belongs to media alone. A trading day is a content period, not a capture date. TWO LEVELS ARE FORBIDDEN OUTRIGHT HERE, and both are specifically tempting in this row: the OPERATOR, CASHIER OR CLERK identity, which would publish a per-employee shortage branch into the directory tree and is the clearest 'expose protected information' case anywhere in the family, and DEPARTMENT or CATEGORY, which is a cut INSIDE a close and would shred one session's evidence across a dozen branches. Any order recommended remains editable - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".txt",
+      ".xlsx",
+      ".csv",
+      ".xls",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Z1847 - 2026-03-14 - Terminal 03.txt",
+      "source_type": "text_document",
+      "observations": [
+        "a narrow fixed-width monospaced spool, amounts right-aligned, hyphen separators",
+        "a header naming a store, a terminal and a business date, and a labelled Z number 1847",
+        "a GRAND TOTAL line described as non-resetting, printed above the session totals that do reset",
+        "tender lines for cash, card, voucher and account, summing to the session net",
+        "an EXPECTED CASH line, a DECLARED CASH line and an OVER/SHORT line between them",
+        "void, no-sale and refund counts, and a department sales block beneath",
+        "no bank account number, no sort code, no merchant ID and no settlement date anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact - this schema declares no field rows, so the close activates recognition and licenses no extraction",
+        "that the over/short figure is a loss, a theft, or an accounting entry",
+        "that the Z number is a document version"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cash up w-c 09.03.26 - Camden.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one column per day of a trading week, one block per till",
+        "rows reading Opening float, Cash takings, Pickup 1, Pickup 2, Declared, Expected, Over/short, Banked",
+        "a bag or paying-in reference in the Banked row on three of the seven days",
+        "a signature-initials row at the foot of each column",
+        "no nominal codes, no VAT columns and no balance brought forward"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact",
+        "that the week is the anchor - the week is an assembly of seven closes per till, not one record",
+        "that the initials identify an employee for any purpose beyond raising sensitivity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Till roll 14 Mar - till 2.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a curled thermal paper roll, the Z summary at the visible end",
+        "print faded across the upper third, OCR confidence low over the tender block",
+        "a handwritten declared-cash figure and a pair of initials in biro across the foot",
+        "no EXIF camera make, the image having arrived through a messaging app"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact",
+        "a capture date as a trading date - the photograph's date is when the roll was photographed, not the session it closed",
+        "the tender figures at all where OCR could not read them; unread is unknown, not zero"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Void and no-sale report 2026-03-14 - by operator.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one row per exception with a time, a transaction number, an amount and a reason code",
+        "an OPERATOR column carrying a clerk number and, on twelve rows, a first name and surname",
+        "a manager-authorisation column naming a second person",
+        "a summary block counting exceptions per operator and ranking them",
+        "no customer identified anywhere on the document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact",
+        "an operator name as a group anchor or a folder level - this is the row's HARD rule and this file is why it exists",
+        "that a ranking of operators by exception count is a finding, a suspicion or an allegation the product may restate"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Merchant settlement 2026-03 - Camden.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a card acquirer's letterhead with a MERCHANT ID and a settlement date",
+        "gross card volume split by scheme - the same split shape a Z-read carries",
+        "an interchange and scheme-fee deduction block",
+        "a NET SETTLED figure paid to a named bank account with a partially masked account number",
+        "no float, no declared cash, no over/short, no till identity and no sequence number"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a tender split by scheme makes this a trading-session record - THIS IS THIS ROW'S COLLISION FIXTURE and the answer is no",
+        "any domain fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Sales by day March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per day of a month with a revenue figure and an order or transaction count",
+        "THE CONTESTED FILE: on these bytes alone it is undecidable between this row and `retail_hospitality.ecommerce-ops`",
+        "resolves to this row only if a drawer reconciliation is present somewhere in the workbook - a declared-against-expected cash line, a float, or a till identity",
+        "resolves to the neighbour if the accompanying columns are sessions, conversion rate and average order value with no physical tender anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact",
+        "that a daily revenue series is this row's evidence merely because the trader has a shop"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Daily Sales Report - specimen.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a perfect Z-read layout: sequence number, tender split, over/short line, department block",
+        "every amount a round number and the store named 'Demo Store 001'",
+        "an EPOS vendor's logo and a 'sample output' footer",
+        "sitting in a folder beside product brochures and a pricing sheet"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row activates - it is a specimen, and the structure is identical to a live close by design",
+        "any domain fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Sales summary March 2026.xlsx` and its harder twin `Merchant settlement 2026-03 - Camden.pdf` — this row owns the OPERATIONAL CLOSE (a counted-cash-against-expected-cash pair, an over/short line, a float and pickup chain, an identified till or service point, a Z sequence number), the neighbour owns the ACCOUNT AND THE LEDGER (a bank or merchant account identity, a merchant ID, a settlement date, a nominal or posting code, a VAT treatment, a balance brought forward), discriminated by PRESENCE OF AN ACCOUNT IDENTITY WITH A POSTING STRUCTURE versus PRESENCE OF A TILL IDENTITY WITH A PHYSICAL COUNT. Reciprocal: THIS ROW MUST NOT TAKE a merchant settlement statement, a bank statement, a VAT return or a set of accounts because the trader is a shop and the figures are card takings; BOOKKEEPING MUST NOT reduce a Z-read to a transaction list, because the over/short figure it would discard is the entire reason the record exists — a close with a zero variance and a close with a fifty-pound shortage post identically to a ledger and are completely different operational facts. Where both structures are present in one workbook the file is genuinely in both worlds and finance's protective ordering runs first. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the landed finance row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.ecommerce-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: `Sales by day March 2026.xlsx` — RECIPROCAL ALREADY LANDED AND ENDORSED VERBATIM. `retail_hospitality.ecommerce-ops` authored this seam against this id first and this row accepts its wording without amendment: the neighbour owns the CHANNEL read (sessions, conversion rate, orders, average order value, per-channel revenue, no physical tender anywhere), this row owns the TRADING-SESSION read (tender split by cash/card/voucher, declared cash against expected, over/short, void and no-sale counts, department mix, keyed to a till and a session), discriminated by THE PRESENCE OF A DRAWER RECONCILIATION — a counted-cash-against-expected line decides for this row, an order-count-against-sessions pair decides for the neighbour. This row must not take a channel sales report because it is dated by day; the neighbour must not take a Z-read because the merchant also has a website. This row adds nothing except its agreement with the neighbour's own justification for both rows existing: the storefront never closes, so it has no session, and the goods left with the buyer, so this row has no fulfilment state.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.menu-recipe-costing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Menu engineering - March 2026.xlsx` — dishes down the side, a GP percentage column beside a units-sold column, a stars/dogs quadrant label per item. RECIPROCAL ALREADY LANDED; this row adopts the neighbour's discriminator unchanged and says the same thing in the same words. The neighbour owns THE COST SIDE and claims the workbook when the COMPONENT BUILD-UP is present in it; this row owns THE TRADING-PERIOD READ — sales mix, department split and volume for a dated session or period at a site — and claims the workbook when the cost figures arrive as flat inputs joined to a period's sales volume. Discriminated by PRESENCE OF THE DECOMPOSITION versus PRESENCE OF A DATED TRADING PERIOD AND A SITE. Reciprocal: THIS ROW MUST NOT TAKE a costing workbook because it carries a margin; the neighbour MUST NOT TAKE a sales mix, an hourly trade report or a Z-read because it lists dishes. The neighbour recorded a workbook carrying both as undecidable (NJ-MRC-1) and this row agrees that neither should activate alone on it; the same item is carried here as NJ-POS-3.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.event-production",
+      "signal": "SAME FIXTURE BOTH SIDES: `6 Jun - festival bar takings.xlsx` — RECIPROCAL ALREADY LANDED AND ENDORSED VERBATIM. This row owns it when the structure is TENDER SPLIT BY TILL AND SESSION with a declared-cash-against-expected over/short line; the neighbour owns it when the structure is BUDGETED AGAINST ACTUAL and EXPECTED AGAINST ATTENDED for one occasion — discriminated by whether the variance compares MONEY COUNTED TO MONEY BELIEVED (this row) or MONEY PLANNED TO MONEY SPENT and PEOPLE PROMISED TO PEOPLE PRESENT (the neighbour). Reciprocal: THIS ROW MUST NOT TAKE an event's cost reconciliation because it contains bar revenue; the neighbour MUST NOT TAKE a Z-read, an X-read or a banking record because the trading day happened to be an event day. A festival bar produces both on the same night and both are correct on their own bytes.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "SAME FIXTURE BOTH SIDES: `March trading review - Camden.xlsx` — a monthly pack carrying a takings summary in one tab and a budget-against-actual column in the next. This row owns THE COUNTED-AGAINST-BELIEVED reconciliation keyed to a till and a session; the neighbour owns THE FORECAST-AGAINST-ACTUAL comparison over line items and fiscal periods with no till, no float and no physical count anywhere, discriminated by WHETHER THE SECOND NUMBER IS A COUNT OR A PLAN. The schema anchor drew this seam from above in the same terms and this row restates it because at TEMPLATE level a real fixture carries both structures, which the schema-level statement did not have to confront. Reciprocal: THIS ROW MUST NOT TAKE a budget pack, a trading forecast or a management commentary because it opens with a sales figure; BUDGET-FORECAST MUST NOT TAKE a Z-read or a cash-up sheet because a month's takings were compared to a target. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Till variance - J Okoro - 14 Mar.docx` — THE SHARPEST EDGE THIS ROW FOUND, and the one that proves the row's privacy leg. This row owns THE EXCEPTION RECORD AS A TRADING ARTEFACT: an operator-attributed void, refund or over/short listing produced BY the point-of-sale system as a by-product of a close, in which a person appears as a column value. The neighbour owns THE CASE ABOUT THE PERSON: an investigation, an invite letter, a meeting note, a statement, an outcome or an appeal, in which the person is the SUBJECT and the till variance is merely the evidence. Discriminated by WHETHER THE PERSON IS A COLUMN VALUE OR THE DOCUMENT'S SUBJECT — a report listing forty exceptions across nine operators is this row's; a document titled by one person's name with a procedural chain around it is the neighbour's. Reciprocal: THIS ROW MUST NOT TAKE a disciplinary file, an investigation note or a suspension letter arising from a shortage, and must never restate an exception ranking as a finding; EMPLOYEE-RELATIONS MUST NOT TAKE a routine exception report because it names staff. AUTHORED ONE-WAY HERE; R1c owes the reciprocal, and the neighbour is the landed row this seam most needs to agree with.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.returns-warranty",
+      "signal": "SAME FIXTURE BOTH SIDES: `Refunds 2026-03-14.csv` — this row owns THE REFUND AS A TENDER-AFFECTING COUNT: a line inside a session's exception block carrying a time, an amount, a transaction number and an operator, whose only purpose is to explain why the drawer contains less than the gross suggests. The neighbour owns THE REFUND AS A DECISION: a return or claim record carrying a customer, a reason, a product or SKU, an authorisation reference and an outcome, which outlives the session it happened in. Discriminated by WHETHER A CUSTOMER AND A REASON ARE PRESENT — an amount plus an operator plus a transaction number is this row's, an amount plus a customer plus a reason code plus an authorisation is the neighbour's. Reciprocal: THIS ROW MUST NOT TAKE a return authorisation, a warranty claim file or a chargeback bundle because a refund figure appears in it; RETURNS-WARRANTY MUST NOT TAKE a session's refund count because refunds are its subject. Note that the two files can be the same export cut two ways, which is why the discriminator is a column set and not a filename. AUTHORED ONE-WAY HERE.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.store-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Camden - March site pack.pdf` — a bound site pack whose contents page lists opening checks, a rota, a standards audit AND the month's end-of-day reads. This row owns THE CLOSES THEMSELVES wherever they appear; the neighbour owns THE PACK AS AN ASSEMBLY — its manifest, its cover, its ordering and the reason the site holds it. Discriminated by WHETHER THE EVIDENCE IS A CLOSE OR THE THING CONTAINING CLOSES: containment is not confusion. Reciprocal: THIS ROW MUST NOT TAKE the pack, its manifest, or the checks and rotas beside the reads; STORE-OPERATIONS MUST NOT TAKE a loose Z-read, cash-up sheet or banking slip merely because site packs sometimes contain them. AUTHORED ONE-WAY HERE.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.bookings-reservations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Covers by service - March.xlsx` — the word 'covers' is claimed by both rows and this entry stops it becoming a fight. This row owns COVERS AS A DIVISOR: an aggregate headcount per session sitting beside a takings figure to produce spend per head, with no party, no name and no status anywhere. The neighbour owns COVERS AS A COMMITMENT: a party size attached to a named booking, a date, a time and a status (confirmed, provisional, cancelled, no-show). Discriminated by WHETHER THE COUNT IS ATTACHED TO A PARTY OR TO A PERIOD. Reciprocal: THIS ROW MUST NOT TAKE a reservation sheet, a no-show log or a diary export because it totals covers; BOOKINGS-RESERVATIONS MUST NOT TAKE an hourly trade report because it counts heads. This edge also carries the family's guest rule: the neighbour's fixture identifies members of the public and this row's does not, which is exactly why they are separate rows and not one.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The required home for the CUSTOMER'S side of the same bytes and for the isolated transactional document — a single restaurant receipt, a card slip, a lone card-machine printout with no float, no sequence and no reconciliation around it. `00` names the material by type: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” This row activates on a CLOSE, never on a transaction, and the receipt-shaped single file is a residual's business.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when a close's by-product turns out to be about a person rather than about a drawer — an operator-ranked exception report, a shortage write-up naming a cashier, a CCTV still attached to a void investigation. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row reaches this residual for a different reason than its siblings: theirs is guest data, this row's is staff-facing allegation-adjacent data.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for the row's three unresolved shapes: a takings file whose SIDE is unsettled (operator or customer), a specimen or training-mode close that reads as live, and a faded till roll whose tender block OCR could not read. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a durable standalone trading document with no session around it — a single archived year-end takings certificate, one banking record with nothing it reconciles to. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected EPOS journal export or a proprietary till-database dump in an unreadable format. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.” It must not be opened in order to classify it.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "till_operator",
+      "other_field": "operator",
+      "other_domain": "hr",
+      "why": "A SPLIT THE SCHEMA DOES NOT HAVE, and the reason this row's privacy rules differ from the family's. The schema's role split is OPERATOR against GUEST — the business against the member of the public. This row barely meets the guest at all; a Z-read names no customer. The two roles that collide HERE are the OPERATING BUSINESS (whose trading record this is) and the INDIVIDUAL AT THE DRAWER (whose clerk number or name is stamped on every void, refund and shortage). The pattern is `00`'s own — “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.” — applied to a cash register. NEITHER ROLE GETS A KEY, and the reason for each is different. `operator` is not proposed because in a single-business corpus it is the holder's own trade name and therefore a one-child collector, which is the schema's argument. `till_operator` is not proposed and MUST NEVER BE: making it a fact would attach a shortage to a named employee as a stored assertion, and making it a dimension would branch the directory tree by which member of staff was short, which is the plainest 'expose protected information' case in the whole family. The split is recorded so that the operator identity is legible as SENSITIVITY-RAISING EVIDENCE and never as an organising fact. Provenance: design for the facet pattern; inference for this reading.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "SAME VALUE AS THE FAMILY, DIFFERENT SUBJECT AND DIFFERENT RULE, and this inversion is the leg on which this row's node test passes most cleanly. The `retail_hospitality` schema's posture exists because its highest-volume output is personal data about MEMBERS OF THE PUBLIC — reservation exports, dietary notes, check-in identity scans. A trading-session corpus contains essentially none of that. A Z-read has no customer name, a cash-up sheet has no guest, an hourly trade profile is an aggregate. The family's guest never-alone rule applies and protects nothing here, which means that if this row simply inherited the family posture it would be protected for a reason that is not true of it and unprotected for the reason that is. What this row actually carries is TWO things the family's statement does not reach. First, and named by the schema itself in its own words: till exception and cash-variance reports are, in substance, suspicion records about named staff. An exception listing attributed to a clerk, a shortage ranked by operator, a manager-authorisation column, a handover note explaining a missing float — these are allegation-adjacent statements about people in a CONTINUING employment relationship with the holder, who will still be there next week and who can be harmed by a directory tree that groups them by shortage. That is a materially different risk from a one-visit guest's phone number, and it is the risk `hr.employee-relations` exists to handle carefully. Second, commercial confidentiality of a genuinely sensitive kind: a full year of session closes discloses a business's trading position, its cash handling practice, its float sizes and its banking rhythm at a granularity no published account reaches, and a cash-up sheet incidentally documents when cash sits on the premises and in what quantity. Volume is again the risk: one Z-read is a printout, a year of them is a trading and security profile. The design is binding: “Privacy policy must be enforced before content reaches any model or external connector.” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Operatively, three consequences follow and they are this row's own, not the family's: an operator identity must never become a folder level or a group anchor; an exception ranking must never be restated as a finding in a summary; and an operator-attributed exception report routes to Protected Records rather than to Review Later when the row does not fire. TWO HONESTY NOTES. This value does not invent a handling class — the dispatch permits only `none` or `potentially_sensitive` and P7 owns the classes. And it does not claim every file here is sensitive: a department sales mix, an hourly trade profile and a banking total carry no person at all and are ordinary; the posture exists because the sensitive members arrive INSIDE THE SAME END-OF-DAY EXPORT as the safe ones and cannot be separated at recognition time. This row does not carry `is_safety_domain` and does not ask for it; it asks that whatever forces P7 ahead of a model path covers EMPLOYEE-identifying trading data, which is recorded as NJ-POS-4.",
+  "open_question": "Five, recorded rather than smoothed. NJ-POS-1 (the sharpest, and the row's dimensional difference stands or falls on it): the TERMINAL level. A trading day at a multi-till site produces N parallel independent closes and the user's real question is which till was short, which argues the level in; but a great many trading operations run one till, and a one-till corpus gains a one-child branch naming its only register, which the validator sentence forbids. Alternatives: (A) recommend it CONDITIONALLY on the same terms the schema conditions the site level, firing only where a session set shows two or more terminals — this row proposes A; (B) drop it, and let the session hold every close flat, in which case this row's dimensional leg fails and the row rests on detection and privacy alone. It would still stand, but by a thinner margin than this memo would like. NJ-POS-2: SUB-DAILY SESSIONS. This row needs breakfast/lunch/dinner and morning/evening till sessions as first-class occasions, and it needs a night-club close that crosses midnight to be ONE session rather than two. This is the schema's own NJ-RH-5 arriving as a concrete requirement: both existing proposals of `record_period` are multi-day ranges. Alternatives: widen `record_period` to admit a service session; mint a session concept at schema level; or accept that a sub-daily close has no level and is identified only by its date, which would silently reintroduce the time-first shape the family forbids. NJ-POS-3: the menu-engineering workbook, carried here so both rows say the same thing. `Menu engineering - March 2026.xlsx` with dish-level GP beside period sales volume is undecidable between this row and `retail_hospitality.menu-recipe-costing`; that row proposed the component build-up as the discriminator and this row adopts it, but R1c must ratify one wording and both rows must carry it. NJ-POS-4: whether the mechanism that forces P7 ahead of a model path reaches EMPLOYEE-identifying operational data in a row that does not carry `is_safety_domain`. `business_operations` and the `retail_hospitality` schema both recorded this gap for third-party data; this row records it for staff data, where the subject has an ongoing relationship with the holder and the material is allegation-adjacent. NJ-POS-5: whether a HOSPITALITY SERVICE POINT is the same concept as a RETAIL TERMINAL. A restaurant's close is often keyed to a SERVICE (lunch, dinner) across several handhelds rather than to a physical drawer, and a hotel's night audit is keyed to a PROPERTY and a business date with no drawer at all. This row's reading is that terminal and service point are one level wearing two names; the alternative is that hotel night-audit material is not this row's at all and needs a home the roster does not have. Related and unresolved: `retail_hospitality.stocktake` declined an edge with this row on the ground that no single file reads as both, and this row AGREES and records no edge; if a combined cash-and-stock period-end pack turns up in a real corpus, R1c should open the seam on both rows at once and not on one."
+}
