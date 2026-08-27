@@ -1230,3 +1230,9 @@ logistics.{customs-export,last-mile-pod,route-dispatch,shipment}
 manufacturing.{production-planning,quality-management-system,tooling-fixture,work-instruction}
 resource_operations.{farm-records,fisheries-catch,forestry-records,mining-operations}
 ```
+
+## Note — 2026-08-27: peer agent owns remaining resource_operations.*
+
+Joseph reports another agent is actively writing:
+`resource_operations.{mining-operations,farm-records,fisheries-catch,forestry-records}`.
+OTHER-TEAM Cursor wave will not claim, edit, or commit these four.
