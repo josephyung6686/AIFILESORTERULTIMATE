@@ -16,10 +16,16 @@ from placement.store import (
 from p11.conftest import FIXED_CLOCK
 from p11.test_p11_records import _decision
 
-#: One minimal row per table that has no production writer yet, so the delete
-#: guard is proved by FIRING it rather than by reading the DDL back. A
-#: `BEFORE DELETE` trigger on an empty table never runs, and a `pytest.raises`
-#: around a no-op delete asserts nothing at all.
+#: One minimal row per table `record_decision` does not write, so the delete guard
+#: is proved by FIRING it rather than by reading the DDL back. A `BEFORE DELETE`
+#: trigger on an empty table never runs, and a `pytest.raises` around a no-op
+#: delete asserts nothing at all.
+#:
+#: `residual_sets` and `residual_set_decisions` DO have production writers now
+#: (`residual.surface_residual_sets` and `residual.record_set_decision`); the
+#: direct seed stays because this test is about the trigger, not the writer, and
+#: standing up a whole §7.5 surfacing to delete one row would test the surfacing.
+#: `placement_index_entries` and `placement_group_plans` have no writer at all.
 _SEED: dict[str, tuple[str, tuple]] = {
     "placement_index_entries":
         ("(record_id, plan_version, node_id, payload, created_at) "
