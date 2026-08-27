@@ -1215,3 +1215,18 @@ would produce the same five refusals or, worse, five rows padded to avoid repeat
 row proposing `subject_of_record`, after `clinical_practice` and `law_practice.depositions-testimony`
 — treat as one decision) · `retail_hospitality.supplier-order: supplier | trading_occasion | site` ·
 `manufacturing.asset-register` seconded the anchor's existing `asset` / `site` rather than minting.
+
+
+## Cursor wave — finish OTHER-TEAM owed rows, 2026-08-27
+
+Repo path on this machine: `/Users/alanakwan/Personal Projects/database-agent-build` (handoff names `/Users/jy/GRAPH AGENT`). Fast-forwarded clean from `21ebdee` to `03e5956` (handoff commit).
+
+Recomputed owed: **29**. CODEX still holds **13** (untouched). OTHER-TEAM claiming **16** (incl. 2 JSON-only partials to salvage). Dispatching one agent per owned id.
+
+CODEX-blocked (report only):
+```
+creative.commissioned-shoot
+logistics.{customs-export,last-mile-pod,route-dispatch,shipment}
+manufacturing.{production-planning,quality-management-system,tooling-fixture,work-instruction}
+resource_operations.{farm-records,fisheries-catch,forestry-records,mining-operations}
+```

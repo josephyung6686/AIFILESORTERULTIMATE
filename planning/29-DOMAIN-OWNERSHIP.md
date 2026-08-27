@@ -328,3 +328,32 @@ are missing the `Depth: J-DEPTH` header line; they were committed as their autho
 is the rule that still stands.
 
 The remaining 12 ids of CODEX's block are still unwritten and remain CODEX's.
+
+## Claims — OTHER-TEAM, 2026-08-27 (Cursor wave — finish remaining OWNED owed rows)
+
+Recomputed owed (JSON+memo both required). Excluded every id still registered to CODEX's open
+block (`creative.commissioned-shoot`, the four `logistics.*`, the four released `manufacturing.*`,
+and the four remaining `resource_operations.*`). Claiming the 16 OTHER-TEAM can write:
+
+law_practice.contract-negotiation | OTHER-TEAM | active
+law_practice.due-diligence | OTHER-TEAM | active
+law_practice.estates-administration | OTHER-TEAM | active
+law_practice.investigation | OTHER-TEAM | active
+law_practice.legal-research | OTHER-TEAM | active
+law_practice.regulatory-submission | OTHER-TEAM | active
+law_practice.settlement | OTHER-TEAM | active
+manufacturing.energy-audit | OTHER-TEAM | active
+nonprofit.advocacy-campaign | OTHER-TEAM | active
+nonprofit.grant-reporting | OTHER-TEAM | active
+nonprofit.trade-union | OTHER-TEAM | active
+retail_hospitality.bookings-reservations | OTHER-TEAM | active
+retail_hospitality.catering-contract | OTHER-TEAM | active
+retail_hospitality.food-safety | OTHER-TEAM | active
+retail_hospitality.premises-licensing | OTHER-TEAM | active
+retail_hospitality.store-operations | OTHER-TEAM | active
+
+⚠ Two are JSON-only partials from stopped agents: `law_practice.estates-administration` (landed
+JSON, refuse=false, no memo) and `nonprofit.advocacy-campaign` (landed refusal JSON, no memo).
+Salvage = write the matching `.research.md` (and only edit the JSON if it fails parse / contract).
+Do **not** reverse `advocacy-campaign`'s argued refusal — it is one of the five nonprofit refusals
+R1c must settle at the family level.
