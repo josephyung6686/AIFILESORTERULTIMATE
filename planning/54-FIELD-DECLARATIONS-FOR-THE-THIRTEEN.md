@@ -490,3 +490,77 @@ organizational situations; the corpus expresses it as two rows on two *different
 **The situation namespace and the fact-authority boundary are deliberately not 1:1** —
 `TEMPLATE-BUILDING-HANDOFF.md` is explicit: *"It does not mean an organization recipe belongs to only
 one domain."* Anything that derives a schema from an id prefix will get this wrong.
+
+---
+
+# 14. §10 RESOLVED — the narrowing goes in the TEMPLATE CONTRACT, and it must be MONOTONE
+
+§10 called the per-schema `destination_eligible` question "the one decision I would put to Joseph
+first". **The code decides it, not a judgement call.** Probed by the build session and re-verified
+here.
+
+**Why `canonical_fields.json` is the expensive answer.** P6's field row is **global per key** — 37
+rows, 37 distinct keys, **zero keys spanning more than one scope**. A key's `scope` names its HOME
+schema, not the set of schemas entitled to use it; `DOMAIN_FIELDS` is the many-to-many. Proof already
+live in the corpus: `DOMAIN_FIELDS['code']` includes `project` and `artifact_type`, whose rows are
+`scope=research`. **`code` reuses `research`'s row.** One key, one row, one global boolean — today,
+for keys two schemas already share.
+
+And both readers are **schema-blind**, verified:
+- `src/facts/read_surface.py`:300 — `is_destination_eligible(conn, *, field_key: str) -> bool`
+- `src/facts/fields.py`:281 — `get_field(conn, field_key: str) -> sqlite3.Row`
+
+Putting the narrowing in `canonical_fields.json` would mean re-keying `FieldRow` from `key` to
+`(key, scope)`, changing the `fields` table primary key, adding a schema parameter to **both** reader
+signatures, and updating every caller — a structural P6 change, to express something **P10 already
+has a row for**: `TemplateApplicability` is one row per (template, schema) and already carries
+`allowed_fields`. **The per-schema seam exists; it was simply not being used for this.**
+
+## 14.1 The property that makes it safe — state this wherever it lands
+
+§10 warned that letting the catalogue record only the loosest value is dangerous. It is — **unless
+narrowing is monotone.** Compose the gate as an AND, never an override:
+
+```
+may_be_a_level(field, schema) ==  catalogue.destination_eligible(field)
+                             AND NOT applicability(schema).narrows(field)
+```
+
+- the catalogue's value is a **CEILING, never a grant**;
+- a schema can never make an ineligible field eligible — **only the catalogue can widen**;
+- therefore recording the loosest value carries no privacy risk.
+
+**Without AND-composition this is exactly the risk §10 named.** This single property is the whole
+answer, and it must be written wherever the gate lands — otherwise someone later implements
+`narrows()` as a two-way override that can also widen, and the safety argument silently inverts.
+
+**The gate already has a home**, and it is schema-blind today: `src/tree_design/upstream.py`:219,
+inside `resolve_role_to_field` —
+`if not is_destination_eligible(conn, field_key=field_ref): raise UpstreamUnavailable(...)`.
+That is the exact line where `client` must stop being a folder for family law. Owned by the build
+session, queued alongside the privacy field already being added to `TemplateApplicability` — the same
+seam, which is evidence the cut is right.
+
+## 14.2 A second global-per-key problem the merge just made urgent: `display_name`
+
+`FieldRow.display_name` is authored (`artifact_type` → `"artifact type"`) but is **one value for
+every schema reusing the key**, and **nothing reads it for fields**. Verified: the 5 `display_name`
+references in `src/tree_design/` are all **residual** template names (`residuals.py`:42, :54, :118,
+:212 and `vocabulary.py`:279) — a different thing, and correctly wired per `00`:119. **P6's field
+display names have no reader at all.**
+
+**The merge makes this urgent rather than cosmetic.** `record_type` now reaches **10 schemas** and
+`project` **9** — so one global human name must serve ten reading contexts. "What kind of record"
+means something different to a clinician and a logistics operator. This is the same defect the
+north-star lane found from the user's side (folders reading *"payer-issued year-end information
+form"* where a person says *"W-2s"*), and it needs the **same per-context home as the narrowing** —
+same row, same fix.
+
+## 14.3 Re-read `hr` and `law_practice` under BOTH cap readings before Joseph rules
+
+Consequence of §8(b) that this document under-stated. If `00`:48's 3–6 caps only
+**destination-candidate** fields and `dest=false` fields are additional, then several schemas marked
+"at the ceiling" here are not — and **`hr` landing at 2 destination-eligible fields stops being a
+weakness of the field set and becomes a question about which of its `dest=false` fields deserves
+promotion.** Joseph should see `hr` and `law_practice` costed both ways before ruling. **Not done in
+this pass; owed.**
