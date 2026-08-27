@@ -393,3 +393,108 @@ def test_reproject_and_blocked_policy_still_have_no_caller_in_src():
     assert _callers_of("reproject") == set()
     assert _callers_of("blocked_policy") == set()
     assert _callers_of("learned_preferences_still_applicable") == set()
+
+
+def test_no_unfinished_knowledge_source_gained_an_implementation_default():
+    """§6.10's thresholds, §8.6's ceilings, and the four open selectors.
+
+    Every one of them is a question the design leaves open, and every one arrives
+    on `PipelineInputs` with NO default -- so a caller that has not chosen cannot
+    silently get P11's guess. A field gaining a default here is P11 answering a
+    question the design says is the user's or the deployment's.
+    """
+    import dataclasses
+
+    from placement.pipeline import PipelineInputs
+
+    for field in dataclasses.fields(PipelineInputs):
+        assert field.default is dataclasses.MISSING, field.name
+        assert field.default_factory is dataclasses.MISSING, field.name
+    names = {field.name for field in dataclasses.fields(PipelineInputs)}
+    # The five the design leaves open, named so a deletion is visible.
+    assert {"policy", "limits", "partition", "ask_or_abstain",
+            "max_return_cycles"} <= names
+
+
+def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
+    # The discriminating twin: absence must REFUSE, not fall through to a guess.
+    # A required input with no test for its absence is not required.
+    import dataclasses
+
+    import pytest as _pytest
+
+    from placement.config import ConfigurationRequired, placement_limits
+    from placement.pipeline import PipelineInputs
+
+    from database_agent.budget import set_ceiling
+    from placement.config import CEILINGS
+
+    for key in CEILINGS.values():
+        set_ceiling(p11_conn, key, 8)
+    good = dict(
+        plan_version="plan-1", tree=object(),
+        policy=__import__("placement.config", fromlist=["SupportPolicy"]
+                          ).SupportPolicy(policy_id="p", support_scale_max=1.0,
+                                          minimum_support_threshold=0.5,
+                                          margin_threshold=0.2),
+        limits=placement_limits(p11_conn), partition=None,
+        ask_or_abstain=None, max_return_cycles=None, gate=None,
+        model_client=None, prompt=None, call_dependencies=None,
+        model_call_request=None, chosen_node_of=None, residual_action_of=None,
+        sensitivity_policy=None, p2=None)
+    PipelineInputs(**good)                     # the control: this one builds
+    with _pytest.raises(ConfigurationRequired):
+        PipelineInputs(**{**good, "policy": None})
+    with _pytest.raises(ValueError):
+        PipelineInputs(**{**good, "limits": None})
+
+
+# --- what §6.12's pipeline still does NOT reach -----------------------------------
+
+
+def test_the_scoped_general_role_still_has_no_reader():
+    """§5.9's scoped fallback is in the vocabulary and nothing branches on it.
+
+    `SCOPED_GENERAL` is carried from P10 and a `scoped-general` node is indexed,
+    retrieved and placeable like any other -- but no module in `src/placement/`
+    treats it differently from an ordinary node, so §6.7's "scoped fallback under
+    a meaningful parent" has no expression in a decision beyond the node's role.
+
+    Named as a KNOWN GAP so the day a reader appears this assertion fails and
+    somebody decides whether the branch is the right one.
+    """
+    readers = {name for name, tree in _modules().items()
+               if name != "vocabulary.py"
+               and "SCOPED_GENERAL" in {node.id for node in ast.walk(tree)
+                                        if isinstance(node, ast.Name)}}
+    assert readers == set()
+
+
+def test_no_producer_fills_decision_depths_unsupported_levels():
+    """§6.7's broad-parent case has no writer.
+
+    `DecisionDepth.unsupported_levels` is "the broad-parent case's whole
+    expression" (SPEC:401-404): a decision whose evidence reaches deeper than the
+    node chosen names the levels it deliberately left unfilled. Every decision the
+    pipeline writes sets `supported_depth == node_depth` and an EMPTY tuple, so
+    the field is validated and never populated.
+
+    A known gap, and the record already refuses the wrong shape -- a
+    `supported_depth` greater than `node_depth` with an empty tuple raises -- so
+    the day a producer appears it must fill this or fail at construction.
+    """
+    from placement.records import DecisionDepth
+
+    trees = _modules()
+    filled = set()
+    for name, tree in trees.items():
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.keyword)
+                    and node.arg == "unsupported_levels"
+                    and not (isinstance(node.value, ast.Tuple)
+                             and not node.value.elts)):
+                filled.add(name)
+    assert filled == set()
+    # The record's own refusal, so the gap cannot be closed by filling one half.
+    with pytest.raises(Exception):
+        DecisionDepth(node_depth=1, supported_depth=2, unsupported_levels=())
