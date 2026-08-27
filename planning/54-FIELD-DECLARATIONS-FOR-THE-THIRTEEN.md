@@ -411,3 +411,82 @@ Mitigating, and the reason this is not being re-run: the merge itself did advers
 defect in 49 §3, found a self-contradiction in 48 (§2 refuses `carrier`, §7 adopts it), and recorded
 eight live disagreements rather than papering over them. A dedicated re-run should still happen
 before any of this is written into `canonical_fields.json`.
+
+---
+
+# 13. THE STRUCTURE MAP — Joseph's "one domain, many templates / one template, many domains"
+
+The workflow closed at 16/16 agents, 0 errors. Its structure map answers the question Joseph actually
+asked, and it produced one finding sharper than anything else in the run.
+
+## 13.1 The fork rule — when does one domain need ANOTHER template row?
+
+**Fork a row when the difference is in DETECTION, PRIVACY FLOOR, REFUSED AXIS, or FIELD BINDING.
+Add a level (or a second candidate order) when the difference is in SHAPE. Shape never forks a row.**
+
+Grounded in `00`:97, which lists seven template properties — *"allowed fact fields, detection
+signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy
+rules, and validation constraints"*. **Four of the seven say nothing about folder shape.** A template
+row is a *situation record*; shape is only two of its seven properties.
+
+The corpus proves it at scale: **`law_practice` has 28 kept rows and 16 realize the identical
+sequence `matter_anchor > artifact_kind`.** Corpus-wide, 22 rows across 10 schemas use that exact
+pair with no other level. If shape forked rows, law_practice would be one row. They fork on the other
+four properties — and the corpus says so in its own data: **309 of 335 template rows carry a
+non-empty `collides_with`, 332 carry `falls_through_to`.** Routing, not shape.
+
+**The sharpest of the four tests is PRIVACY FLOOR, and the corpus states it verbatim.**
+`law_practice.family-law`'s own `template.why` explains why it cannot share a row with its siblings
+even at identical shape: the schema default seeds the client level *"SEEDED INELIGIBLE AND UNLOCKABLE
+BY USER APPROVAL, because a client there is typically a company and the disclosure is commercial.
+Here it is INELIGIBLE FULLY."* `construction_property.trade-job` and `law_practice.family-law`
+realize the *same* recipe, but only the second discloses that a named person is being divorced. **No
+level can express that difference; only a separate row with its own privacy floor can.**
+
+## 13.2 When NOT to fork — and a validation of J-WIDE-2
+
+**An order disagreement is never a fork.** `templates.py`:333-368 requires all candidate orders of one
+definition to cover the same role set, and any definition with 2+ dimensions to offer 2+ orders. So
+`photos.camera-events` (`capture_year > event`) versus `photos.family-archive`
+(`event > capture_year`) is **one definition with two orders**, not a conflict. Doc `50` §5.1 lists
+four pairs that `37` recorded as "contested" or "UNRESOLVED" which the built model dissolves for free.
+
+**J-WIDE-2 is this rule applied at launch, not an exception to it.** Joseph's ruling that career ships
+both orders is the same shape the record already supports everywhere else — which is independent
+support for it, arrived at from the record side rather than the evidence side.
+
+## 13.3 ⚠️ THE FINDING — the safety domains are UNREPRESENTABLE in the current record shape
+
+**Ten template rows have zero dimensions, and the record cannot express them.** Verified by this
+session (the map said eight; the true count is **ten**):
+
+`identity.core-documents` · `identity.credentials-passwords` · `identity.immigration-visa` ·
+`legal.estate-planning` · `legal.leases-agreements` · `legal.personal-legal-matters` ·
+`legal.practice-matter-file` · `medical.dependant-child-health` ·
+`medical.personal-health-records` · `medical.wearable-health-exports`
+
+`src/tree_design/templates.py`:272-274 — `DimensionOrder.__post_init__` raises
+`MalformedTemplateRecord("an order with no dimension orders nothing")` when `dimensions` is empty.
+**So none of these ten can be constructed as a `TemplateDefinition` at all.** Doc `50` §8 names the
+gap: *"There is currently no record shape for 'this situation is organized by refusing to organize
+it.'"*
+
+**Why this matters more than a missing feature.** These are not placeholder rows awaiting research —
+they are the three domains `00` names to implement **first**: *"Finance, identity, medical, and legal
+material should be implemented first as safety domains, meaning the system detects and protects them
+before any cloud or automated placement decision is allowed."* Their emptiness is the **correct**
+answer (J-WIDE-1 deliberately excluded them; condition and provider names must never become folder
+labels). The defect is that **the record has no way to say so** — a deliberate refusal to organize is
+indistinguishable, in the current shape, from an unfinished row.
+
+**This is the build session's record shape, not the catalogue's**, and it is not blocked on anything
+in this document. Flagged to them.
+
+## 13.4 A structural fact worth recording — a `domain_id` namespace is NOT a schema
+
+Verified on disk: `travel.trip-photos` carries `schema_id: photos`, and
+`travel.bookings-confirmations` carries `schema_id: finance`. `00` names travel among its
+organizational situations; the corpus expresses it as two rows on two *different* fact schemas.
+**The situation namespace and the fact-authority boundary are deliberately not 1:1** —
+`TEMPLATE-BUILDING-HANDOFF.md` is explicit: *"It does not mean an organization recipe belongs to only
+one domain."* Anything that derives a schema from an id prefix will get this wrong.
