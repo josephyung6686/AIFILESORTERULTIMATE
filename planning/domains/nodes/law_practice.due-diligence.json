@@ -1,0 +1,586 @@
+{
+  "id": "law_practice.due-diligence",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Due diligence and disclosure examination",
+  "one_line": "The EXAMINATION APPARATUS by which a practitioner inspects what is being bought, lent against or invested in, and records what is wrong with it: the buyer-side request list grouped by corporate function with a provided/outstanding/in-data-room status column, the virtual-data-room index whose columns are access and Q-and-A rather than execution, the Q-and-A tracker keyed to index tabs, the findings and red-flag report structured by chapter, the specialist chapter reports (title, IP, tax, employment, environmental, litigation) that feed it, and the VDR access or download log. It is NOT activated by the words due diligence, DD, data room or disclosure, by a deal codename, by a Bates stamp, by a numbered demand list alone, or by a law-firm name. It deliberately does NOT hold the seller's warranty-indexed disclosure letter (`law_practice.transactional-deal`), the reproduce-then-answer discovery instrument or load-file production (`law_practice.discovery`), the completion agenda and closing-binder index (`law_practice.closing-binder`), the single-parcel report on title (`law_practice.conveyancing`), or the executed instruments themselves (`legal`, on `legal`'s own evidence). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED FROM THE SCHEMA AND NARROWED IN ONE PLACE. These are template-activation signals on a fieldless schema, not licences to write facts; `law_practice` declares no field rows. The schema default requires (i) an exact matter, file or engagement reference repeated across artefacts and (ii) at least one artefact whose labelled slots separate a practitioner-or-firm role from a client role. THIS TEMPLATE ADDS A THIRD LEG THAT THE DEFAULT DOES NOT STATE: at least one artefact whose own labelled slots separate a BUYING, LENDING OR INVESTING SIDE from a SELLING, BORROWING OR ISSUING SIDE (buyer/seller, lender/borrower, investor/issuer), OR whose column set is an INSPECTION INDEX - access, request, Q-and-A, provided/outstanding - rather than an execution or production status. A deal codename alone is not enough and is struck below. The deletion test still binds: strike every organisation name, every person name and every document-type word including due diligence, DD, data room, disclosure, findings and red flag, and if no request-list column set, no inspection-index column set, no Q-and-A tracker and no chaptered findings grammar survives, nothing fires.",
+      "D1. THE DILIGENCE REQUEST LIST - the row's constitutive signal and the one `law_practice.discovery` already named as its existential false friend. A consecutively numbered demand for ANOTHER organisation's documents whose COLUMN SET pairs each demand with a CORPORATE-FUNCTION or diligence-CHAPTER category (corporate, commercial, employment, IP, tax, property, litigation, environmental, financial, IT), a STATUS drawn from a provided / outstanding / in data room / not applicable vocabulary, and usually a data-room tab or document-reference column. Labelled buyer-side and seller-side (or lender/borrower) role slots appear on the cover or in the header. The reproduce-then-answer grammar of a litigation demand is ABSENT, and so is a propounding/responding party pair naming two adverse litigants. Read through 00's spreadsheet path: \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". The discriminating evidence is the corporate-function category PLUS the in-data-room status vocabulary PLUS the deal-side roles, not the numbering.",
+      "D2. THE VIRTUAL-DATA-ROOM INDEX structure, and it is this row's cleanest shape because neither the schema default nor `law_practice.closing-binder` can see its discriminating columns: a sectioned, numbered table of documents whose COLUMN SET carries ACCESS, REQUEST, UPLOAD, or Q-AND-A columns (who may see it, who requested it, whether a question is open against it) rather than a SIGNATORY, EXECUTION or DELIVERY status. Member paths in an accompanying archive, read WITHOUT unpacking, encode the same section numbering. 00 licenses the reading: \"Archives should be inspected without being unpacked to disk. The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names.\" The discriminating evidence is DIRECTION AND TENSE - documents disclosed for inspection - against the closing index's documents delivered at an event.",
+      "D3. THE Q-AND-A TRACKER structure: one row per question carrying a question number, a data-room tab or document reference, an asking-side and answering-side slot, a status drawn from a small closed set (open, answered, withdrawn, escalated), and usually a date raised and a date answered. The tab cross-reference is the labelled slot that joins it to D2. A free-text email thread about diligence is not this signal.",
+      "D4. THE FINDINGS OR RED-FLAG REPORT structure: a memorandum or workbook whose OWN SECTION GRAMMAR is a fixed chapter set (corporate, employment, IP, tax, property, litigation, environmental, financial, IT) and whose rows or subsections carry a severity or open-item slot, a recommended action, and a cross-reference into a request-list item or a data-room tab. The chapter grammar PLUS the severity/open-item slot is the structure; the words findings, red flag, issues list and key issues are not. The product decides no commercial, legal or investment conclusion from any severity label.",
+      "D5. THE SPECIALIST CHAPTER REPORT that feeds D4: a title, IP, tax, employment, environmental or litigation diligence report whose header carries the deal or matter reference and whose body is organised as findings against a scoped asset set (a property portfolio, a patent family, an employee population, a tax group), not as a single registered-parcel conveyance and not as a filed pleading. A Report on Title over many parcels inside a corporate acquisition is this signal; a Report on Title for one residential purchase is `law_practice.conveyancing`'s.",
+      "D6. THE MANAGEMENT OR VENDOR QUESTIONNAIRE structure: a form whose labelled slots are answered by the target or the seller (or by a vendor under a procurement diligence) - entity details, material contracts, litigation, employees, IP ownership, tax elections - with a preparer and a date. The ANSWERED-SLOT grammar is the evidence. An unanswered firm template with blank slots is the schema's precedent-bank inverse-recognition signal and is not this row's.",
+      "D7. THE VDR ACCESS OR DOWNLOAD LOG: a platform export whose COLUMN SET pairs a named user with a document or folder path, an action (view, download, print, request), and a timestamp, spanning many documents inside one room. Detected in order to be protected - it is a surveillance log of who read what about a third party's business - and never in order to be moved. A single download receipt without the multi-user column set is not this signal.",
+      "D8. AN EMAIL or CALENDAR record whose structured slots tie it to an already-evidenced diligence exercise: a subject carrying an exact deal or matter reference PLUS a request-list item number, a Q-and-A number or a data-room tab reference, with sender and recipient roles crossing a buyer/seller or counsel boundary. A firm email domain, a source type, or the words due diligence in a subject alone never fires."
+    ],
+    "needs_llm": [
+      "WHICH SIDE THE HOLDER IS ON, and it is unrecoverable from typography. Buyer counsel, seller counsel, lender counsel and the target's own counsel all hold a request list, a data-room index and a findings report, and the circulated copies are frequently byte-identical. Only the surrounding labelled roles and the holder's own matter apparatus resolve it; where they do not, the model must abstain: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\"",
+      "Separating a diligence request list from its four structural twins: a discovery demand instrument, an audit prepared-by-client list, a regulator's information request, and an information-rights request. All four are numbered demands for another party's documents with a per-item status column. The interpretive discriminators are the deal-side roles, the corporate-function category set, and the in-data-room vocabulary - never the word request.",
+      "Deciding whether an enumerated index is a diligence index, a seller disclosure-bundle index, or a closing-binder index. Same numbered shape; different columns and different tense. Where both readings survive, this row and the neighbour are both candidates and neither writes a fact.",
+      "Deciding whether a Report on Title (or an IP, tax or employment diligence chapter) is a chapter INSIDE a corporate acquisition or the SUBJECT of a single-parcel conveyance. Topic will not separate them; \"purpose answers what the file was for\" is the only test that works.",
+      "Separating practitioner-run diligence from the holder's OWN company being bought or sold, or from a consulting commercial diligence with no legal-services scope. Scope, fees, confidentiality and two-organisation signature blocks occur on both; explicit counsel or representation roles, a matter-reference-keyed time record, or legal work product carry the legal side. Where only the commercial paper exists, Review Later.",
+      "Distinguishing an operative diligence artefact from a study or marketing copy: a firm's published sample red-flag memo, a training-course data-room index, an anonymised case study, a bank's pitch deck. This family's exemplars are unusually convincing because the profession publishes its own templates.",
+      "Recognising unlabelled practitioner prose - a running note of what was pulled from which folder, a handover on where the Q-and-A stopped, a scribbled severity call on a findings page - where no column set exists to detect.",
+      "Abstaining whenever neither the deal-side role pair nor an inspection-index column set can be cited."
+    ],
+    "never_alone": [
+      "THE WORDS due diligence, DD, data room, VDR, disclosure, findings, red flag, issues list, Q&A or questionnaire ALONE, in a filename, a heading or a folder. The schema already strikes legal vocabulary as a class; this row restates it because its own name is one of those words and because a training handout titled with all of them trips nothing else.",
+      "A NUMBERED LIST OF DOCUMENT DEMANDS ALONE - the row's existential strike, shared with `law_practice.discovery` and conceded in full. Without buyer/seller (or lender/borrower) roles, a corporate-function category set and an in-data-room status vocabulary, the same shape is a discovery demand, an audit PBC list, a procurement information request or an information-rights request.",
+      "A DEAL CODENAME, ENTITY PAIR, TARGET NAME or LAW-FIRM NAME ALONE, or any of them beside a document-type word. Read across from 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A target name appears on the diligence report, on the seller's marketing teaser, on a news article the holder is merely reading, and in the working-group list.",
+      "AN ENUMERATED INDEX OR A CONTIGUOUS TAB RANGE ALONE. The same shape is a closing-binder index, a court-bundle index, a tender return and a thesis appendix. Direction and column set decide; numbering does not.",
+      "A CONFIDENTIAL, PRIVILEGED, PRICE-SENSITIVE, INSIDE-INFORMATION, ATTORNEYS-EYES-ONLY or SUBJECT-TO-CONTRACT LABEL. The literal observation is preserved and no legal, regulatory or market status is decided - and such a label is not evidence that this row applies.",
+      "A SOURCE TYPE or EXTENSION ALONE, including spreadsheet, text_document, email, archive, image, ocr and every extension this row lists. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME or FOLDER containing DD, diligence, dataroom, data-room, disclosure, findings or red-flag. Paths stay local, an existing folder supports review only, and a folder name is an unlabelled position.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE or CURRENT-DIRECTORY MEMBERSHIP. 00: \"A session should never be treated as proof of topic\". A data-room bulk download is a session, not an examination exercise, and its folder structure is the room's, not the holder's, until an index with inspection columns or a request list claims it.",
+      "AUTHOR, CREATOR, PRODUCER or LAST-SAVED-BY METADATA naming a practitioner, a firm or a VDR platform. 00: \"It should avoid using authorship or creator identity as a destination dimension\".",
+      "MATCHING TARGET NAMES, CHAPTER HEADINGS, TAB NUMBERS or SEMANTIC SIMILARITY ACROSS TWO DEALS. Diligence reports are near-identical by drafting convention. Cross-deal bridging is a privacy rule before it is an accuracy one.",
+      "PUBLIC AVAILABILITY of a regulatory filing, an announcement or a press report about the transaction as proof that the local diligence pack, the findings memo or the surrounding context is low-sensitivity or eligible for a cloud prompt.",
+      "A PERSON'S NAME ALONE, in any of this row's roles. A VDR access log and an employment-diligence chapter are lists of named natural persons who never chose this filesystem."
+    ]
+  },
+  "proposed_context_terms": [
+    "due diligence request list",
+    "information request list",
+    "data room index",
+    "virtual data room",
+    "VDR",
+    "Q and A tracker",
+    "red flag report",
+    "findings report",
+    "issues list",
+    "management questionnaire",
+    "vendor due diligence",
+    "provided outstanding",
+    "in data room",
+    "diligence chapter",
+    "report on title",
+    "IP diligence",
+    "tax diligence",
+    "employment diligence",
+    "environmental diligence",
+    "access log"
+  ],
+  "work_types": [
+    "diligence or information request list with corporate-function categories",
+    "virtual-data-room index and sectioned document tree",
+    "Q-and-A tracker keyed to data-room tabs",
+    "findings, red-flag or key-issues report structured by chapter",
+    "specialist chapter report - title, IP, tax, employment, environmental, litigation, financial, IT",
+    "management or vendor diligence questionnaire with answered slots",
+    "VDR access, download or user-activity log",
+    "diligence correspondence tying a request-list item or Q-and-A number to a response",
+    "clean-team or ring-fence protocol governing who may see which chapter",
+    "supplemental diligence update after a data-room refresh"
+  ],
+  "grouping_reasons": [
+    "ONE DILIGENCE EXERCISE inside one deal or matter, joined by an exact deal or matter reference PLUS either a request-list version marker or a data-room designation: the request list, the index, the Q-and-A tracker, the findings report, the specialist chapters and the access log. Content-incoherent and purpose-coherent, which is 00's own licence - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no party, severity, tab or status fact onto any member.",
+    "ONE CHAPTER inside that exercise, joined by an exact chapter label repeated across a request-list section, an index section, a specialist report and the matching findings subsection. A shared target name never establishes it.",
+    "ONE Q-AND-A THREAD, joined by an exact question number and tab reference across the tracker row, the asking email and the answering upload. Sparse members may join without receiving copied facts.",
+    "ONE DOCUMENT across draft findings, marked-up findings and final report - the universal version_family reading, supported by hashes or explicit revision markers, never by a `-final` suffix.",
+    "NOT grouping reasons: a shared target name across two deals; a shared law firm; a shared data-room platform; a download session; a folder called DD; semantic similarity between two red-flag memos, which are near-identical by drafting convention; and \"It should not form a supported group when there is no valid anchor\".",
+    "NO GROUP AT ALL is common and correct here, because the artefacts that most often arrive alone - a single specialist report, a page of a findings memo, a VDR access export - are precisely the ones that expose a third party's commercial secrets."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY by contract - `law_practice` declares no field rows under PR-6, so no dimension can branch - and THEN DIFFERENT FROM THE SCHEMA'S PROSE RECOMMENDATION IN THREE SPECIFIC PLACES, which is this row's second node-test leg. The schema recommends, as prose: client (only where the corpus spans several AND the user approved it), then matter, then document function, then period last. THIS ROW'S PROSE RECOMMENDATION IS: the DEAL OR DILIGENCE EXERCISE, then the CHAPTER (corporate function), and NO TARGET-NAME LEVEL AND NO DATA-ROOM-FOLDER LEVEL AT ALL. Three departures, each argued. FIRST, FUNCTION IS REPLACED BY THE CHAPTER GRAMMAR THE PARTIES THEMSELVES USED. A diligence pack arrives already sectioned by corporate function; imposing a separate document-type taxonomy over a set that navigates by chapter destroys the one axis every adviser on the deal can share. A child is unintelligible without its parent - \"A work type such as Homework 3 is meaningful only after the course is known\" - and a tax finding is meaningless without the exercise it belongs to. SECOND, THE TARGET-NAME LEVEL IS PERMANENTLY SEEDED INELIGIBLE, WHICH THE SCHEMA DEFAULT DOES NOT SAY. Naming the target as a folder publishes that a named company is under examination before any announcement, and 00 forbids the corresponding structural move: a template may not \"use an author or organization merely as a collector\". THIRD, A DATA-ROOM FOLDER LEVEL WOULD \"create meaningless one-child levels\" at industrial scale - one folder per uploaded PDF - and would also advertise the room's own access tree, which is a third party's filing system, not the holder's. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Filing time, upload time, findings-date and filesystem time mean different things here. And it stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "calendar",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".7z",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Due diligence request list - Project Hartley - v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet labels a buyer-side counsel block and a seller-side counsel block",
+        "column headers: item number, corporate-function category, document description, status, data-room tab, date provided",
+        "status vocabulary includes provided, outstanding, in data room, not applicable",
+        "categories include corporate, employment, IP, tax, property, litigation, environmental",
+        "no definitions-and-instructions block, no propounding/responding litigant pair, no reproduce-then-answer counterpart"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none",
+        "that this is `law_practice.discovery`. THIS IS THE COLLISION FIXTURE WITH THAT SIBLING: the numbered demand shape is shared; the deal-side roles, corporate-function categories and in-data-room status are what carry it here",
+        "that any status cell is a legal finding that a document was or was not disclosed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - VDR Index - Sections 01-12.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sectioned numbered rows 01.01 through 12.48 naming documents",
+        "columns for access level, uploaded-by, date uploaded, open Q-and-A count",
+        "no signatory column, no execution status, no delivery column",
+        "a cover line naming the virtual data room and a deal codename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is `law_practice.closing-binder`'s index - that neighbour's discriminating columns are responsibility, signatory and execution/delivery status against a completion date",
+        "that this is the seller's warranty-indexed disclosure bundle - that is `law_practice.transactional-deal`'s outward qualification",
+        "membership of any document named in a cell as a stored fact",
+        "a folder path named for the target"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - Q&A tracker - Legal.xls",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per question with question number, tab reference, asking firm, answering firm, status, date raised, date answered",
+        "status set: open, answered, withdrawn, escalated",
+        "tab references match the VDR index section numbering"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an answered status is a contractual disclosure or a warranty qualification",
+        "that asking-firm or answering-firm cells may become folder levels",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Legal due diligence report - Project Hartley - Red flags.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header carries a deal codename and a practitioner firm block advising a named buyer",
+        "section grammar: corporate, employment, IP, tax, property, litigation, environmental",
+        "each finding carries a severity slot and an open-item or recommended-action line",
+        "cross-references into request-list item numbers and data-room tabs",
+        "no tribunal caption and no executed party pair"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any severity label, open item or recommended action is correct, current, followed or advice to the holder as a personal matter",
+        "privilege or work-product status from a confidential legend",
+        "any law_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Report on Title - Project Harbour property portfolio.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title report covering many parcels listed in a schedule",
+        "header ties the report to a corporate acquisition codename",
+        "findings organised as a diligence chapter feeding a larger report",
+        "no single-parcel registry application and no completion-apportionment split"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is `law_practice.conveyancing`. SAME FIXTURE BOTH SIDES with that neighbour: a single registered parcel with third-party returns and a completion apportionment is conveyancing; a portfolio chapter inside a corporate acquisition is this row's",
+        "a property fact, a title fact or a conveyancing outcome",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Management questionnaire - Target Co - answered 2026-08-12.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for entity details, material contracts, litigation, employees, IP ownership, tax elections",
+        "slots are filled with answers; a preparer name and a date appear on the signature block",
+        "cover identifies the questionnaire as part of a named deal process"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any answered slot is a verified fact about the target",
+        "that a blank firm template with the same slot labels activates this row - blank slots are the schema's precedent-bank signal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "VDR access log - Project Hartley - 2026-08.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: user name, organisation, document path, action, timestamp",
+        "thousands of rows spanning many users and many documents inside one room",
+        "actions include view, download, print, request"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that named users may become folder levels or prompt content - A MULTI-SUBJECT ACCESS LOG IS BULK-SENSITIVE AS A WHOLE",
+        "permission to send the sheet or a sample of it to a cloud model: \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - Disclosure Bundle - Index and Tabs 001-140.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest, read without unpacking, shows a numbered tab range 001-140",
+        "a cover PDF titled Disclosure Letter and Index mirrors warranty paragraph numbering",
+        "member paths encode warranty schedule references rather than corporate-function diligence chapters",
+        "no access or Q-and-A columns on the index page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE COLLISION FIXTURE WITH `law_practice.transactional-deal`: the seller's outward warranty-indexed qualification is that neighbour's; buyer-side findings and an inspection index are this row's. \"the normal scan should never extract archive contents to the filesystem\"",
+        "that the word disclosure or index decides the row",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Audit PBC list - FY2025 year-end - Acme Holdings.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "numbered requests for client-prepared documents with a per-item status column",
+        "header carries an audit engagement and a fiscal-period label",
+        "auditor and auditee pair; no buyer/seller roles; no data-room tab column",
+        "categories follow audit assertion groups rather than corporate-function diligence chapters"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE COLLISION FIXTURE WITH `business_operations.compliance-audit`: the numbered demand shape is shared; the engagement-and-period header and auditor/auditee pair carry it there",
+        "a law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Commercial diligence memo - Target Co growth thesis.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide deck analysing market, customers and growth for a named target",
+        "prepared-for and prepared-by consulting blocks with milestones and acceptance language",
+        "no counsel block, no matter reference, no request-list cross-reference, no legal chapter grammar"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row. Consulting commercial diligence without legal-services apparatus is `career.consulting-client-engagement`'s; 00's own role split covers the ambiguity - \"A consulting document may mention the author’s firm and the client organization\"",
+        "a law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Requests for Production - Set One - Acme v Beta.docx",
+      "source_type": "text_document",
+      "observations": [
+        "definitions and instructions block followed by consecutively numbered demands",
+        "labelled propounding party and responding party slots naming two litigants",
+        "caption zone with a case identifier",
+        "no corporate-function category column and no in-data-room status"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row - it is `law_practice.discovery`'s constitutive instrument, and any co-activation with `legal` is on the caption",
+        "that the shared numbered-demand shape alone moves a litigation instrument here",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Closing Binder Index - Project Hartley - Tabs 1-47.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "contiguous tab list sectioned as corporate authorisations, transaction documents, ancillary, post-completion",
+        "columns for responsibility, signatory and execution/delivery status",
+        "a completion date on the cover",
+        "no access or Q-and-A columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. SAME FIXTURE SHAPE BOTH SIDES with `law_practice.closing-binder`: inspection columns carry diligence; execution/delivery columns against a completion date carry closing",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-14 at 09.11.02 - data room 47 new documents.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence and a browser chrome fragment",
+        "OCR may reveal a data-room UI and a document count",
+        "no request-list structure and no findings grammar in the pixels"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row from a screenshot alone - Photos may co-activate on screen-origin evidence; OCR without an inspection index or request list does not establish the exercise",
+        "a deal, a target or a sensitivity result from the filename",
+        "a folder path"
+      ],
+      "also_schema": "photos.screenshot-captures",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Project Hartley - DD dump - part 3 of 9.7z",
+      "source_type": "archive",
+      "observations": [
+        "split, password-protected volume; member manifest unavailable to the approved scanner",
+        "filename carries a codename and a DD token",
+        "basic filesystem metadata and a content hash remain available locally"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this schema, a deal, a target or a member family from the filename - \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "permission to force it open - \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "LPC Skills - sample data room index (marked).xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a sectioned numbered index with access columns",
+        "the deal and target are named as a fictional problem-question scenario",
+        "tutor comments and a mark appear in a second sheet",
+        "a training-provider header and a module code"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row from a perfectly formed diligence structure - \"purpose answers what the file was for\" is the only test that separates operative files from teaching replicas",
+        "that a fictional target name is a target, or that a module code is a matter reference",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Due diligence request list - Project Hartley - v4.xlsx`. Both rows own a consecutively numbered demand for another party's documents with a per-item status column. TOWARDS THIS ROW: buyer/seller (or lender/borrower) roles, corporate-function category grouping, a provided/outstanding/in-data-room status vocabulary, and a data-room index rather than a load file. TOWARDS DISCOVERY: an explicit propounding/responding party designation naming two adverse litigants, a definitions-and-instructions block, and either the reproduce-then-answer counterpart or a certificate of service. Neither direction may be decided by the words request, production, disclosure or index. Provenance: inference; the neighbour already authored the same fixture from its side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.transactional-deal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Project Hartley - Disclosure Bundle - Index and Tabs 001-140.zip`. THE DIRECTION SEAM. Buyer-side findings flowing INWARD - a red-flag report, a request list, a data-room index whose columns are access and Q-and-A - are this row's; the SELLER's structured qualification of its own statements flowing OUTWARD, indexed to another document's warranty paragraph numbering, is the neighbour's, and the bundle it declares comes with it. A data-room index and a disclosure index are the same enumerated shape and neither row may claim one from the word index. Provenance: inference; the neighbour already authored the same fixture from its side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.closing-binder",
+      "signal": "SAME FIXTURE BOTH SIDES: `Closing Binder Index - Project Hartley - Tabs 1-47.pdf` (and the diligence twin `Project Hartley - VDR Index - Sections 01-12.xlsx`). Both are sectioned contiguous numbered indexes. TOWARDS THIS ROW: access, request or Q-and-A columns; documents disclosed for inspection; no operative completion date required. TOWARDS CLOSING: responsibility, signatory and execution/delivery status columns against a completion date; documents delivered at an event. Direction and tense discriminate; the word index does not. Provenance: inference; the neighbour already stated the discriminator as direction and tense.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.conveyancing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Report on Title - Project Harbour property portfolio.pdf`. TOWARDS THIS ROW: property appears as a diligence CHAPTER over many parcels inside a corporate acquisition, feeding a findings report keyed to a deal codename. TOWARDS CONVEYANCING: a REGISTERED-PARCEL anchor - one parcel, third-party returns keyed to it, an apportionment split at a completion date, a registry application. A corporate acquisition that includes freehold sites is a deal that owns land; a residential purchase by a company is a conveyance with a corporate buyer. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: `Audit PBC list - FY2025 year-end - Acme Holdings.xlsx`. Both are numbered demands for another organisation's documents with a per-item status column. TOWARDS THIS ROW: buyer/seller deal roles, corporate-function diligence chapters, a data-room tab column. TOWARDS THE AUDIT ROW: an audit engagement-and-period header, an auditor/auditee pair, assertion-group categories, no adverse deal counterparty. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Commercial diligence memo - Target Co growth thesis.pptx`. Commercial examination of a target occurs in both worlds. TOWARDS THIS ROW: counsel or representation roles, a matter-reference-keyed request list or findings chapter, legal work-product structure. TOWARDS CONSULTING: prepared-for and prepared-by consulting blocks with milestones and acceptance, no legal-services scope. 00's role split covers the ambiguity: \"A consulting document may mention the author’s firm and the client organization\". Where only the commercial paper exists, Review Later. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: a findings memo and a data-room index for the sale of a company the HOLDER owns. Every diligence token can be present - request list, VDR index, red-flag memo - and the holder is the SELLER or the BUYER in their own right, not a practitioner acting for someone else. TOWARDS THIS ROW: practitioner-side apparatus - an intake screen, a matter reference allocated by the holder's firm, a time record, work product the holder produced for a client. TOWARDS PERSONAL LEGAL: the holder's own signature on the client side and no practitioner apparatus in the corpus. Where the side is unresolved, abstain into Protected Records. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: an executed share-purchase agreement that sits beside a diligence pack in one deal folder. `legal` fires on the bound party pair plus execution block and is a safety domain whose protection runs first - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" This row fires on the request list, the inspection index and the findings grammar, which have no execution block. Co-activation is expected; this row does not displace `legal`. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: a deal folder holding `Legal due diligence report - Project Hartley - Red flags.pdf` beside an executed SPA. Disjoint evidence - findings grammar here, execution block there - one corpus, both schemas fieldless so the join carries protection rather than fields. `legal` is a safety domain and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: a financial-diligence chapter that embeds account statements, management accounts and a quality-of-earnings extract. Finance activates on institution-and-account or issuer-and-billed-to structure; this row activates on the chaptered findings grammar and the deal-side request list that demanded those statements. Finance is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "signal": "SAME FIXTURE BOTH SIDES: director and ultimate-beneficial-owner identity copies uploaded to a data room and listed on a VDR index. The identity documents are `identity`'s on their own evidence; the index row and the request-list item that demanded them are this row's. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "SAME FIXTURE BOTH SIDES: occupational-health or clinical records appearing inside an employment-diligence chapter of a corporate acquisition. The records are `medical`'s on their own evidence and at their own protection; the chapter and the request-list item around them are this row's. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: a target's own contract register or policy set sitting inside a data-room section while the buyer's counsel also holds a request list and a findings memo. The target's organisational records remain business_operations'; the examination apparatus is this row's. Neither promotes the other. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first. A stray findings page, a specialist chapter, a VDR access log and a management questionnaire are documents about a third party's commercial secrets and named employees. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Also: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the SIDE is unresolved - buyer counsel, seller counsel, lender, or the holder dealing in their own right - and when an enumerated index could equally be a disclosure letter index or a closing index. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected and split data-room dumps are ordinary here and must not be forced open. \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Published sample red-flag memos, training data-room indexes and anonymised case studies. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a VDR UI whose OCR does not establish an inspection index or a request list. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone certificate or notice with no accepted exercise and no third-party exposure. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated VDR invoice or room-access fee receipt without the examination apparatus. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and it differs from the schema default in KIND rather than only in degree, which is the third leg of this row's node test. The schema protects a third party who cannot consent. That reason applies here and adds three of its own. FIRST, THE PROTECTED THING IS OFTEN THE EXISTENCE OF THE TRANSACTION AND THE CONTENTS OF A GOING CONCERN: a data room routinely holds the target's contracts, employees, customers, financials and litigation before any announcement, which is material non-public information about legal persons as well as about named natural persons. SECOND, BULK: a VDR access log and an employment-diligence chapter are multi-subject lists, and their sensitivity scales with row count; clinical_practice's multi-subject list rule read across bites here because the named people are the target's employees and the room's users, not the holder's clients. THIRD, EXISTENCE IS DISCLOSIVE: a folder named for the target publishes that the named company is under examination. 00: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" and \"The default posture must therefore be local-first and data-minimizing.\" Consequences: no target, employee, customer or access-log name becomes a folder level without explicit user approval; privilege, confidentiality and market-conduct status are never inferred from legends; cross-deal bridging by target name is suppressed; detection of a VDR access log or an employment chapter exists in order to PROTECT, never in order to move, and \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" The handling class is P7's and is not set here.",
+  "open_question": "Four. (1) NJ-DD-1, THE WORK_TYPE CHARGE: the schema anchor's work_types enum bundles \"transaction document set, due-diligence report, data-room index and completion or closing record\" into a single value, which read strictly names this row, `law_practice.transactional-deal` and `law_practice.closing-binder` at once. This row is defended on three differing legs (buyer/seller-plus-inspection-index detection, chapter-first prose recommendation that permanently seeds target-name and data-room-folder levels ineligible, and an MNPI-plus-bulk privacy rule), not on the enum. If R1c reads the enum as binding, the correct outcome is REFUSAL and coverage routes to those two siblings plus `legal` for executed instruments and Protected Records for the strays. (2) NJ-DD-2, THE DISCLOSURE-LETTER SEAM: `law_practice.transactional-deal` claims the seller's warranty-indexed disclosure letter; this row claims the buyer-side examination. Alternatives: (a) keep the direction seam as both rows state it; (b) fold the disclosure letter into this row because both are \"disclosure\"; (c) fold this row into transactional-deal as a lifecycle stage. This row prefers (a) and cannot settle (c) alone. (3) NJ-DD-3, THE LENDING AND INVESTMENT SCOPE: the roster hint names \"bought or lent against\". This row admits lender-side and investor-side examination on the same structures. If R1c wants lending diligence under a finance or funds template instead, say so; the structures do not change. (4) NJ-DD-4, THE SAFETY-ORDERING RESIDUE: `legal` co-activates on executed deal instruments but NOT on this row's characteristic files - a request list, a VDR index, a findings memo, an access log - which are exactly the ones that most need protect-before-model ordering and have no `is_safety_domain` flag. Same gap the schema recorded as NJ-LP-6."
+}
