@@ -50,6 +50,8 @@ from llm_harness.vocabulary import (
     SEVERAL_LEGAL_NODES_PLAUSIBLE, USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
 )
 
+from grouping.vocabulary import NOT_FLAGGED
+
 from placement import events as placement_events
 from placement.config import PlacementLimits, SupportPolicy, require_policy
 from placement.graph import build_node_local_graph
@@ -82,7 +84,7 @@ from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
-    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT,
+    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, FILE,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
     NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT, PRIVACY_BLOCKED, RESIDUAL,
     RETURN_TO_PLACEMENT, SHARED_MATERIAL, SHARED_MATERIAL_DECISION, WEAK,
@@ -228,15 +230,15 @@ def _identity(conn: sqlite3.Connection, *, plan_version: str, subject_ref: str,
     `mark_superseded` refuses a self-supersede and a fixed clock would otherwise
     produce the same id twice for one subject.
     """
-    rows = conn.execute(
-        "SELECT record_id, superseded_by FROM placement_decisions "
-        "WHERE plan_version = ? AND subject_ref = ?", (plan_version, subject_ref),
-    ).fetchall()
-    live = [row["record_id"] for row in rows if row["superseded_by"] is None]
+    live = current_decision(conn, plan_version=plan_version,
+                            subject_ref=subject_ref)
+    taken = {row["record_id"] for row in conn.execute(
+        "SELECT record_id FROM placement_decisions WHERE plan_version = ? AND "
+        "subject_ref = ?", (plan_version, subject_ref))}
     decision_id = f"{plan_version}:{subject_ref}:{observed_at}{suffix}"
-    if any(row["record_id"] == decision_id for row in rows):
-        decision_id = f"{decision_id}#{len(rows)}"
-    return decision_id, (live[0] if live else None)
+    if decision_id in taken:
+        decision_id = f"{decision_id}#{len(taken)}"
+    return decision_id, (live.decision_id if live is not None else None)
 
 
 def _write(conn: sqlite3.Connection, decision: PlacementDecision, *, inputs,
@@ -307,7 +309,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         hit.node_id for hit in suppressed_nodes(
             conn, subject_ref=subject_ref,
             node_ids=tuple(c.node_id for c in retrieval.candidates),
-            scopes=("file",),
+            scopes=(FILE,),
         )
     }
     if rejected:
@@ -617,7 +619,7 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
         proposal_class=PLACEMENT if call_site == C_PLACEMENT else RESIDUAL,
         basis_key=basis_key_for(subject_id=subject.file_id,
                                 node_id=retrieval.candidates[0].node_id),
-        learning_scope="file", learning_subject_id=subject.file_id,
+        learning_scope=FILE, learning_subject_id=subject.file_id,
     )
     request = DossierRequest(
         call_site=call_site, subject_ref=subject_ref,
@@ -707,7 +709,7 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
     members: list[PlacementDecision] = []
     for membership in memberships:
         decision = provisional[membership.file_id]
-        if membership.outlier_flag != "none":
+        if membership.outlier_flag != NOT_FLAGGED:
             outliers.append(excluded_outlier_for(
                 membership,
                 routed_node_id=(decision.destination.node_id
@@ -767,8 +769,6 @@ def _record_group_plan(conn: sqlite3.Connection, plan: GroupPlan, *,
 
 
 def _member_subject(membership) -> Subject:
-    from placement.vocabulary import FILE
-
     return Subject(kind=FILE, file_id=membership.file_id,
                    content_hash=membership.content_hash, group_id=None,
                    member_file_ids=())

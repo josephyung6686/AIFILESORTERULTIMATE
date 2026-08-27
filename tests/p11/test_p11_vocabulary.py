@@ -96,23 +96,54 @@ def _owned_values() -> set[str]:
             | set(BRANCH_BEARING_SHARED_POLICIES))
 
 
+def _p11_field_names() -> set[str]:
+    """Every field name P11 publishes on a record.
+
+    This is the set that makes the key exemption below safe. A string in
+    `body["residual"]` is a FIELD NAME that happens to share a spelling with one
+    of P10's node kinds; a string like `"mark_review_later"` used as a dict key is
+    not a field of anything, so reading it as one would exempt exactly the place a
+    respelling hides -- the KEYS of a mapping over another part's closed set.
+    That hole was real: `residual.ACTION_OUTCOME` is keyed on P8's eight residual
+    actions, and a literal respelling of one of them passed this guard.
+    """
+    import dataclasses
+
+    import placement.groups as groups
+    import placement.index as index
+    import placement.pipeline as pipeline
+    import placement.records as records
+    import placement.residual as residual
+    import placement.retrieval as retrieval
+
+    names: set[str] = set()
+    for module in (records, index, residual, groups, retrieval, pipeline):
+        for value in vars(module).values():
+            if isinstance(value, type) and dataclasses.is_dataclass(value):
+                names |= {f.name for f in dataclasses.fields(value)}
+    return names
+
+
 def _borrowed_value_literals(tree: ast.AST, owned: set[str]) -> list[tuple[int, str]]:
     """String literals in a VALUE position that spell a value another part owns.
 
     By AST over string constants, because a text search matches docstrings. But
-    not over every constant: a string in `body["residual"]` or `{"protected":
-    ...}` is a FIELD NAME that happens to share a spelling with one of P10's node
-    kinds, and flagging it would make this guard fire on things that are not
-    violations -- which is how a boundary test stops being read. Subscript keys
-    and dict keys are therefore excluded, and the two tests below pin both halves.
+    not over every constant: a subscript or dict key that names a PUBLISHED FIELD
+    is a field read and not a spelling. A key that is not a field name of any P11
+    record gets no exemption, because a mapping keyed on another part's closed set
+    is precisely where a second spelling hides.
     """
+    fields = _p11_field_names()
     identifiers = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
+        if (isinstance(node, ast.Subscript)
+                and isinstance(node.slice, ast.Constant)
+                and node.slice.value in fields):
             identifiers.add(id(node.slice))
         if isinstance(node, ast.Dict):
             identifiers.update(id(key) for key in node.keys
-                               if isinstance(key, ast.Constant))
+                               if isinstance(key, ast.Constant)
+                               and key.value in fields)
     return [
         (node.lineno, node.value)
         for node in ast.walk(tree)
@@ -126,12 +157,24 @@ def test_the_boundary_check_reads_values_and_not_field_names():
     # silent. A check that flagged `body["residual"]` would report a defect on
     # every module that reads a record field, and one that flagged nothing would
     # report a clean boundary on a module that redefined P10's whole vocabulary.
+    # `residual` IS a published field of `PlacementDecision`, so it is exempt as a
+    # key; `shared-branch` is not a field of anything, so it is not.
     owned = {"residual", "shared-branch"}
     borrowed = _borrowed_value_literals(ast.parse(
         'SHARED_BRANCH = "shared-branch"\n'
         'value = body["residual"]\n'
         'mapping = {"residual": 1}\n'), owned)
     assert borrowed == [(1, "shared-branch")]
+
+
+def test_a_key_that_names_no_published_field_gets_no_exemption():
+    # The half that was missing, and the reason `residual.ACTION_OUTCOME` could
+    # have carried a respelling of one of P8's eight actions unnoticed. A dict
+    # keyed on another part's closed set is a mapping over VALUES, not a record.
+    owned = {"mark_review_later"}
+    borrowed = _borrowed_value_literals(
+        ast.parse('ACTION_OUTCOME = {"mark_review_later": X}\n'), owned)
+    assert borrowed == [(1, "mark_review_later")]
 
 
 def test_no_placement_module_spells_a_value_another_part_owns():
@@ -177,6 +220,23 @@ def test_p11s_node_vocabulary_is_p10s_objects_and_not_a_second_spelling():
     """
     from tree_design import vocabulary as p10
 
+    # The twelve scalars are checked by AST and NOT by `is`. Python interns short
+    # string literals, so `RESIDUAL_ROLE = "residual"` -- a fresh spelling, the
+    # exact thing MINOR 6 forbids -- satisfies `is p10.RESIDUAL` and this test
+    # passed over it. Binding to a NAME rather than to a CONSTANT is the property
+    # that actually distinguishes carrying from respelling, and interning cannot
+    # defeat it.
+    source = ast.parse(
+        (PLACEMENT_ROOT / "vocabulary.py").read_text(encoding="utf-8"))
+    bound_to = {}
+    for node in source.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target])
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    bound_to[target.id] = node.value
+
     assert v.NODE_ROLES is p10.NODE_ROLES
     assert v.DISPOSITIONS is p10.RESIDUAL_DISPOSITIONS
     assert v.NODE_TYPES is p10.NODE_TYPES
@@ -189,7 +249,10 @@ def test_p11s_node_vocabulary_is_p10s_objects_and_not_a_second_spelling():
             ("EXISTING", "EXISTING"), ("PROPOSED", "PROPOSED"),
             ("USER_CREATED", "USER_CREATED"), ("PROTECTED_NODE", "PROTECTED"),
             ("IGNORED", "IGNORED")):
-        assert getattr(v, ours) is getattr(p10, theirs), (ours, theirs)
+        assert getattr(v, ours) == getattr(p10, theirs), (ours, theirs)
+        assert isinstance(bound_to[ours], ast.Name), (
+            f"{ours} is bound to a literal, not to P10's name; string interning "
+            f"makes an `is` check pass over exactly that")
 
 
 def test_the_borrowed_node_names_stay_distinct_from_p11s_own_axes():

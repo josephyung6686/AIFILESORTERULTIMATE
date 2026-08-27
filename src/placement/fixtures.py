@@ -27,7 +27,7 @@ from placement.records import (
 )
 from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ACCEPT_DIRECT, AUTO_ELIGIBLE,
-    BUDGET_DEFERRED, CONTEXT_SUPPORTED, DIRECT, DOSSIER_PERMITTED,
+    BUDGET_DEFERRED, CLASSES, CONTEXT_SUPPORTED, DIRECT, DOSSIER_PERMITTED,
     EXACT_FACT_MATCH, FILE, LEAVE_IN_PLACE, LOCAL_ONLY, MARGIN_TRUE_VACUOUS,
     NO_SUPPORTED_DESTINATION, ORDINARY, PLACE, PLACEMENT, PLACEMENT_SCORING,
     RESIDUAL, REVIEW_REQUIRED, REVIEW_WITH_MODEL, WEAK,
@@ -35,14 +35,22 @@ from placement.vocabulary import (
 
 T0 = "2026-08-27T00:00:00Z"
 
+#: P7's handling classes. `privacy.vocabulary` publishes the closed TUPLE and no
+#: per-member constant, so the two these fixtures need are spelled once here and
+#: PINNED against it -- `learning.py`'s pattern for P1's correction scopes, and
+#: the reason a literal never appears inside a record construction below.
+PERSONAL_NON_SENSITIVE: str = "personal_non_sensitive"
+SENSITIVE_PERSONAL: str = "sensitive_personal"
+assert {PERSONAL_NON_SENSITIVE, SENSITIVE_PERSONAL} <= set(CLASSES)
+
 _SUBJECT = Subject(kind=FILE, file_id="f-syllabus", content_hash="h-syllabus",
                    group_id=None, member_file_ids=())
-_PRIVACY = PrivacyState(handling_class="personal_non_sensitive", protected=False,
+_PRIVACY = PrivacyState(handling_class=PERSONAL_NON_SENSITIVE, protected=False,
                         model_eligibility=DOSSIER_PERMITTED,
                         consent_audit_ref=None)
 #: P7's flag travels with the class, because §8.4 Open question 1 leaves their
 #: relation unsettled and has neighbouring parts CONSUME the flag.
-_PROTECTED = PrivacyState(handling_class="sensitive_personal", protected=True,
+_PROTECTED = PrivacyState(handling_class=SENSITIVE_PERSONAL, protected=True,
                           model_eligibility=LOCAL_ONLY, consent_audit_ref=None)
 
 _FACT = MatchingFact(file_fact_id="ff-1", field="subject", value="PHYS1401",
