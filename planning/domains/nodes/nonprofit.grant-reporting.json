@@ -1,0 +1,348 @@
+{
+  "id": "nonprofit.grant-reporting",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Grant reporting (recipient side, non-research)",
+  "one_line": "REFUSED. The roster hint — narrative and financial reports, claims and drawdowns, variation requests, monitoring visits and closure after an award — is not a child situation on the nonprofit schema; it is the schema's own RESTRICTED-GRANT lifecycle signal, word for word, on the GRANTEE side. That signal already requires a funder-and-grantee pair, a labelled restricted PURPOSE clause, a payment or instalment schedule, milestone or interim or final reports against agreed outputs or outcomes, and an expenditure statement reconciled to cost headings, joined by one repeated grant reference. Anything this row could recognise either restates that default, or is a lifecycle stage of the same relation (claim, variation, monitoring visit, closure), which the node test names as a disqualifier. Coverage is not lost: the nonprofit schema fires, government.grant-programme-administration holds the funder-side twin, research.grants-funding holds research money, nonprofit.fundraising-donor holds the unconditional gift that lacks a report-back obligation, and legal holds the executed instrument. Inventing a child to restate the default would be the 574's mistake.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the CONNECTION section 2 node test against the nonprofit schema's DEFAULT TEMPLATE, and fails for the same structural reason law_practice.engagement-terms failed: the row is the schema's own activation spine, not a variation of it. LEG 1 — DETECTION. The nonprofit schema's second deterministic entry (first after the family precondition) is already 'A RESTRICTED-GRANT lifecycle structure on the GRANTEE side' spanning call or application, offer or agreement with restricted PURPOSE and payment schedule, milestone or interim or final report, and expenditure statement, with labelled parties funder and grantee. The schema's work_types open with 'grant application, offer, agreement, drawdown and monitoring report on the grantee side'; its grouping_reasons open with 'one GRANT from call to closure'; its first file_example is the signed grant agreement. Every distinctive artefact in the roster hint is either named inside that signal or is a stage along the same award reference (claim, drawdown, variation, monitoring visit, closure pack). A template whose only signals restate the schema default, or rename stages of it, has no detection residue. The non-exchange precondition is satisfied here — funder and grantee with restricted purpose is the family's strongest clear case — so this is NOT a standards-body / governance failure (signals that cannot activate the schema). It is the opposite failure: signals that activate the schema by being the default. LEG 2 — DIMENSIONS. Both orders are [] under PR-6. The schema's prose default is association (seeded ineligible) → NON-EXCHANGE COUNTERPARTY OR FUND — 'the grant, the restricted fund, the appeal, the membership class, the case' → period → document function. This row's only candidate order is grant-reference → period of performance → function, which is that paragraph with the counterparty-or-fund level PINNED to the value 'grant'. Pinning a permitted level to one value is a filter, not a different order — the same finding engineering.electrical-schematic used, and ALIGNMENT's rule that a template repeating its schema's dimension order is the schema's default under a second name. LEG 3 — PRIVACY. The schema's stricter-than-business_operations posture already covers this material: beneficiary-named monitoring returns, expenditure lines that identify people, and the disclosive fact of which funder funds which programme. This row cannot add a stricter rule the schema does not already argue, and a looser rule would be wrong. The funder/grantee side fork is a needs_llm problem the schema already states, not a child-template privacy difference. FOURTH — LIFECYCLE AS NODE. The hint's spine (reports, claims, variations, monitoring, closure) is a stage sequence over one award. standards-body was refused partly for that shape; the same disqualifier applies. FIFTH — NJ-NP-4. The schema's open question listed 'grant-funding-received' among seven 'defensible' future templates. That projection does not survive contact with the schema's own recognition text: the coverage named there is already the default signal, so the correct answer to NJ-NP-4 for this id is that no child is required. Coverage routes through the schema, not through a padded row. WHAT WOULD REVERSE THIS: a grantee-side structure the schema's restricted-grant signal does not already describe and that is not a stage of the same award — for example a structure that organises many unrelated awards by a dimension the default cannot express without a new field. Nothing in the researched file set is that.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored, and that is the finding rather than an omission. The structures that are genuinely specific to this world — a claim or drawdown form keyed to an award reference and cost headings, a variation or amendment request against the same reference, a monitoring-visit aide-memoire or letter, a final expenditure certificate and closure letter — are real and recognisable. They are recorded in file_examples so a later reader can check the refusal. They are not written as signals because each is a stage of the schema's own RESTRICTED-GRANT lifecycle on the grantee side; a child that fires on stages of its parent's default never differs from that default."
+    ],
+    "needs_llm": [
+      "Nothing is routed here. A grant-shaped file goes to the ordinary bounded model step against the nonprofit SCHEMA (and against government on the funder side, research.grants-funding on research money, fundraising-donor on an unconditional gift, legal on the instrument). Where the SIDE is unresolved — funder copy versus grantee copy of the same claim workbook — the schema's own needs_llm already requires abstention: “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE ROW'S OWN STRIKE: the word grant, grantee, grantor, award, drawdown, monitoring, milestone, outcomes, or funder alone. Homograph across grant of probate, planning permission, a land grant, and ordinary English; and even when the money sense is clear, vocabulary without the lifecycle structure is never-alone. TRUE OF A TEMPTING FALSE FILE: `Funder guidance - eligible expenditure 2026.pdf` carries every grant word and is Reading Inbox.",
+      "A foundation, trust, lottery distributor, council, or ministry NAME alone — read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” One funder name appears as issuer, counterparty, cited authority, employer, and the holder's own funder.",
+      "A bare award or application reference token (GT-2024-118, CRF3-0147) with no lifecycle structure around it. Same failure as a bare 4-digit number with more characters.",
+      "A charity or association name beside a document-type word (report, claim, monitoring). A document-type word is not a labelled party.",
+      "A money amount plus an outcomes narrative with no award reference and no reconciliation table. Impact prose is mission vocabulary and is struck on the schema.",
+      "A single application form with no award and no reporting — the schema already says this is not the lifecycle and does not fire; a child cannot promote it.",
+      "A parent folder named Grants, Funding, Awards, or Reporting alone.",
+      "A file extension or source_type alone — “treat the file extension as a routing signal rather than an assumption about meaning”."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored on this row. The group 'one GRANT from call to closure, joined by a repeated grant reference' is already the nonprofit schema's first grouping_reason, and P9 forms neighbourhoods from that evidence whether or not this child exists. Nothing here licenses copying an award reference read off an agreement onto a bare receipt that happens to sit beside it — “The graph does not automatically copy those missing facts onto sparse files.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case by binding contract — the nonprofit schema declares no field rows under PR-6, so no dimension may branch on one (_CONTRACT rules 10 and 15). The emptiness is itself part of the refusal on leg 2: the only order this corpus wants is the schema's prose default with the counterparty-or-fund level pinned to 'grant', which is a filter, not a difference. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a grant period of performance is a content period, never a capture date. Whatever a user does afterwards stays theirs: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Grant agreement - REF GT-2024-118 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block naming a grant-making trust and a recipient organisation in labelled funder and grantee roles",
+        "a labelled Purpose clause restricting the money to one named activity",
+        "a payment schedule table with instalments conditional on reports",
+        "a reporting clause naming interim and final report dates and required outputs",
+        "a reference token repeated in the header of every page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that THIS ROW activates. THE SHOWCASE FIXTURE OF THE REFUSAL, and it is already the nonprofit schema's first file_example: the schema's RESTRICTED-GRANT lifecycle signal fires on these exact observations. A child that would activate on the parent's own flagship fixture is the definition of a template that does not differ from its default",
+        "any nonprofit fact — the schema declares none",
+        "which side the filesystem belongs to from the letterhead alone — many corpora hold the funder's copy",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "GT-2024-118 - Q2 claim and monitoring workbook.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet tabs for claim, outputs, and expenditure against cost headings",
+        "the award reference GT-2024-118 repeated in a labelled header cell",
+        "columns reconciling budget, spend to date, and claim this period",
+        "an outputs sheet with agreed measures and reported figures"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row owns it. THE SHARED FIXTURE with government.grant-programme-administration: identical bytes sit on the funder's disk as an inbound return and on the grantee's as an outbound claim. What discriminates is SIDE — issuing-authority block and inbound fan-in versus funder-as-addressee and the project being the holder's own — not the word grant. With this row refused, the grantee side is the nonprofit SCHEMA's restricted-grant signal, not a child",
+        "a fiscal_period or sponsor fact — those keys are unadjudicated proposals on the schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "GT-2024-118 - interim narrative report - Jul 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a cover carrying the award reference and a reporting period",
+        "sections against agreed outputs and outcomes",
+        "a beneficiary-reach paragraph naming numbers served, not a case file",
+        "an addressee block naming the funder's grants officer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — a milestone or interim report written against agreed outputs is named inside the schema's restricted-grant signal; narrative form does not make a child",
+        "that beneficiary counts become subject_of_record facts or folder levels",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "GT-2024-118 - variation request - extend end date.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same award reference in the header",
+        "a request to change the period of performance",
+        "a revised payment or reporting calendar",
+        "funder and grantee signature blocks left for execution"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a VARIATION is a node. It is a lifecycle stage of the same award relation the schema already recognises; draft-versus-agreed-versus-closed is a stage sequence, and the node test refuses that shape",
+        "that the product decides whether the variation is granted or effective — that is a legal-status conclusion",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "GT-2024-118 - monitoring visit letter - 14 Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "funder letterhead addressing the grantee",
+        "a visit date and attendees",
+        "findings keyed to award conditions and reporting clauses",
+        "an action list with deadlines tied to the same reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — a monitoring artefact keyed to a live award is still the schema lifecycle; on the funder's outbound copy it is government.grant-programme-administration when public-authority status is evidenced",
+        "a compliance or breach finding as a stored fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Community Trust - award letter 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a grant-making trust's letterhead and an award amount",
+        "a labelled purpose clause restricting the money to one named activity",
+        "an instalment schedule conditional on reports",
+        "a printed sentence that no goods or services were provided in exchange",
+        "a report-back and expenditure-reconciliation obligation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "THAT THIS ROW IS NEEDED TO HOLD IT. THE COLLISION FIXTURE against nonprofit.fundraising-donor, taken from that sibling's landed shared fixture so both sides name the same bytes. fundraising-donor's gate (printed non-exchange) is satisfied AND the report-back obligation is present. With this row refused, the conditional accountable transfer fires the nonprofit SCHEMA's restricted-grant signal; the unconditional gift without report-back stays fundraising-donor's. Discriminated by the reporting-and-reconciliation obligation, never by the word grant, never by the funder being a foundation",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "NOA - R01GM123456 - period of performance.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a research sponsor's notice of award",
+        "an award number and period of performance",
+        "indirect cost or F&A terms",
+        "budget categories shaped as personnel, fringe, equipment, indirect"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row or of the nonprofit schema's charitable-programme grant signal. THE RESEARCH COLLISION: research.grants-funding owns the PI-and-lab side of research money. Discriminated by what the money buys — research output with biosketch and data-management structure versus service to beneficiaries with outputs/outcomes and expenditure headings — which is the schema's own NJ-NP-2 fork, not this child's to invent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Programme budget 2026-27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a period column set with budget, forecast and variance",
+        "no fund-class partition and no award reference",
+        "an association name in the header",
+        "cost headings that could equally be a grant or an operating budget"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a budget near a grant folder is grant reporting. Without a fund partition or an award reference it is business_operations.budget-forecast, exactly as the schema states",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scholarship application - Jordan Lee - personal statement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an individual applicant applying for their own funding",
+        "a personal statement, transcripts and references",
+        "a target institution and an application cycle"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that money-given-not-sold makes it this row. applications.scholarship-fellowship owns the INDIVIDUAL applicant; an ORGANISATION applying for programme funding is the nonprofit schema's grant lifecycle. A person who runs a small charity holds both and they must not merge — the schema's own applications.scholarship-fellowship collision, not this child's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Funder guidance - eligible expenditure 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a funder's publication header and guidance version",
+        "eligible and ineligible cost lists",
+        "no award reference, no grantee name, no reporting calendar tied to a live award"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that funder vocabulary activates anything. Downloaded exemplar / reading material; “purpose answers what the file was for” is the only test that separates it from an operative claim pack, and it is a needs_llm case on the schema, not a rule here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "GT-2024-118 - grant file.zip",
+      "source_type": "archive",
+      "observations": [
+        "member paths repeatedly encoding one grant reference across agreement, claims, reports and a final certificate",
+        "readable without unpacking from the manifest alone"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an archive of the lifecycle needs this child. The schema's own archive signal already fires on a manifest whose paths encode one grant reference — “the normal scan should never extract archive contents to the filesystem”",
+        "that member paths are folder-path facts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-08-18 at 11.02.14 - claims portal.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in filename shape",
+        "OCR may reveal an award reference and a submit control"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row or of the schema from OCR of a portal page",
+        "a claim, amount or submission fact about the holder from a screen capture — “the system must not mistake the absence of EXIF for proof that an image is a screenshot” does not license the reverse either"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit.fundraising-donor",
+      "signal": "SAME FIXTURE BOTH SIDES: `Community Trust - award letter 2026.pdf` — that sibling already authored this fixture against this id. It owns the UNCONDITIONAL transfer (printed non-exchange; acknowledgement, declaration, appeal coding or benefit split; no report-back). This refused row owns nothing; the CONDITIONAL accountable transfer (restricted purpose, milestone reporting, expenditure reconciliation) fires the nonprofit SCHEMA's restricted-grant default, not a child. Discriminated by the reporting-and-reconciliation obligation flowing back to the giver — never the word grant, never the funder being a foundation, never the size. Recommendation to R1c, not an edit: retarget that sibling's collides_with entry from this id to `nonprofit` (schema), or keep the prose and accept that the 'neighbour' is the schema default. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `GT-2024-118 - Q2 claim and monitoring workbook.xlsx` — that row already names this id from the funder side. It owns the awarding body's corpus (call issued, inbound fan-in, assessments ABOUT third parties, outbound award). This refused row owns nothing; the grantee-side outbound claim and report fire the nonprofit SCHEMA. Discriminated by side evidence — issuing-authority block and many-to-one inbound applications versus funder-as-addressee and the project being the holder's own — never by grant vocabulary alone. Recommendation to R1c: retarget that entry at `nonprofit`. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.grants-funding",
+      "signal": "SAME FIXTURE BOTH SIDES: `NOA - R01GM123456 - period of performance.pdf` — award notice, period of performance, budget categories. That row owns the PI-and-lab side of RESEARCH money (biosketch, F&A, data-management, sponsor portal). The nonprofit SCHEMA owns CHARITABLE PROGRAMME money (restricted purpose, outputs/outcomes against beneficiaries, expenditure headings). This child adds no third structure. Discriminator is what the money buys, legible in the reporting structure — the schema's NJ-NP-2, left open. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Grant agreement - REF GT-2024-118 - signed.pdf` — the executed instrument is legal (and protects first); the drawdowns, reporting calendar and fund reconciliation that RUN the grant after signature are the nonprofit SCHEMA's restricted-grant lifecycle. This child is not a third owner. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "SAME FIXTURE BOTH SIDES: `Programme budget 2026-27.xlsx` — a period-scoped budget/forecast/variance with no fund partition and no award reference. That row owns the planning round; a grant expenditure return keyed to an award and cost headings is the nonprofit SCHEMA's. A charitable footer never promotes a business_operations budget into this refused child. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.scholarship-fellowship",
+      "signal": "SAME FIXTURE BOTH SIDES: `Scholarship application - Jordan Lee - personal statement.pdf` — money given not sold on both sides. That row owns the INDIVIDUAL applicant (personal statement, transcripts, target institution, application cycle); an ORGANISATION's programme application is the nonprofit SCHEMA's grant lifecycle. This child is not needed to keep them apart — the schema already states the seam. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: a grant drawdown line on a bank statement beside a claim workbook. finance owns the institution-and-account custodial record; the nonprofit SCHEMA owns the fund or award partition and the expenditure reconciliation. This child claims neither the account nor a new partition shape. Where side or partition is unresolved, abstain: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "Principal home when the SIDE is unresolved — the family's defining failure on grant material, because funder and grantee copies of claim and monitoring workbooks are frequently byte-identical. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "When a narrative or monitoring return names beneficiaries, staff posts, or vulnerable people and no accepted grant group is active on the schema. Detection exists to protect. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A single grant offer or award letter with no lifecycle around it — durable, standalone, no group. The schema already routes that shape here. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members: a payment notification, a platform drawdown confirmation, a single remittance advice with no award pack. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Funder guidance PDFs, other charities' published grant reports kept as exemplars, sector evaluation manuals. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected grants-portal exports and encrypted claim packs must not be forced open. “Unsupported or Encrypted may hold”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced portal capture when OCR does not establish an accepted award lifecycle on the schema.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded for the material as it travels to the nonprofit schema and to neighbours, not as a claim that this child holds it. The posture is the SCHEMA's, not a stricter child rule — which is leg 3 of the refusal. Grant reports and monitoring returns routinely name beneficiaries, staff posts funded by the award, and sometimes safeguarding or case context; 00's corpus sentence covers the payload directly — a corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The schema already argues that the exposed party is often a third party under need, and that detection of such structure exists to PROTECT, never to move — “If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.” No handling class is assigned; that is P7's. No is_safety_domain flag is claimed — 00's four are named and closed: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.”",
+  "open_question": "Three, all for R1c; none is a reason to keep the row. (1) NJ-GR-1, INHERITED EDGES. nonprofit.fundraising-donor and government.grant-programme-administration both authored collides_with entries against this id treating it as a live sibling. Alternatives: (a) retarget both at the nonprofit schema — this row's preference; (b) leave the prose and document that 'grant-reporting' now means the schema default; (c) reverse this refusal, which requires showing a detection, dimension, or privacy difference the researched file set does not supply. This row edited neither neighbour. (2) NJ-GR-2 / NJ-NP-2, THE RESEARCH FORK. Still open on the schema: two grant lifecycles distinguished by whether the money buys research output or service to beneficiaries. Refusing this child does not settle that fork; it only refuses a third name for the charitable-programme side. (3) NJ-GR-3 / NJ-NP-4, THE PROJECTED TEMPLATE LIST. The schema listed 'grant-funding-received' among seven defensible templates. This refusal answers that projection for this id: the coverage is the schema default, so the list should drop or rename that item rather than mint a child. If R1c instead wants an explicit grant-funding-received template for browse clarity, it must first narrow the schema's restricted-grant signal so the child has residue — that is an anchor edit, not a template pad."
+}
