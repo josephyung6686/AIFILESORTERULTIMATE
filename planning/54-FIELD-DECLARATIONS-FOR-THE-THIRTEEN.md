@@ -319,3 +319,95 @@ they disagree.
   references in `src/`, both inside `health.py` itself; 14 in its test file). Until it is wired,
   "both orders, no default" ships an unguided question.
 - Widen `SCHEMA_IDS` in one coherent pass once the merge lands, per your own sequencing.
+
+---
+
+# THE MERGE RESULT — landed 2026-08-27 23:30
+
+Read-only throughout. **Net: 37 canonical keys → 52.** Fifteen additions, three refusals, seven
+role-sentence rewrites. All fourteen schemas (13 + career) land inside `00`:48's 3–6 cap.
+
+## 8. Two corrections to THIS SESSION'S OWN BRIEF — both verified, both mine
+
+**(a) I mis-cited `00`:52 at all fourteen agents.** I passed them *"prematurely hand-authoring
+hundreds of specialized schemas"* as a governor on **field** count. Grep-verified: **that sentence's
+object is SCHEMAS** — `00`:52 opens *"Each domain consists of two related definitions: a fact schema
+… and a folder template"*. And `00`:48 says the **opposite** about fields, verbatim: *"Across the
+whole product, there may eventually be many specialized fields because different domains genuinely
+require different information."* The governor on fields is `00`:48's per-domain cap plus reuse
+discipline — not a global ceiling. Fifteen additions across thirteen previously field-less schemas is
+not premature by `00`'s own text; fifteen near-synonyms would be, which is what the three refusals
+prevent.
+
+**(b) I passed a stricter cap than `00` states.** I wrote "3 to 6 fact fields" as a hard total.
+`00`:48 verbatim: *"usually three to six that may help build a future folder proposal **and several
+additional fields used only for search, privacy protection, explanation, or later review**."* The
+3–6 caps **destination-candidate** fields; `dest=false` fields are *additional*. The merge enforced
+my stricter reading anyway and reported both counts — the conservative choice — but **Joseph should
+pick deliberately**, because it is the difference between `law_practice` sitting at its ceiling and
+sitting comfortably.
+
+## 9. The additions (15)
+
+`record_period` · `subject_of_record` · `site` · `asset` · `product` · `property` · `organization` ·
+`supplier` · `people_cycle` · `design_item` · `authorisation` · `workforce_unit` (**only if narrowed**)
+· `employer` · `target_employer` · `job_title`
+
+**Reused instead of minted (10):** `project` (now 9 schemas — the single highest-value line in the
+merge), `record_type` (10), `work_type` (4), `artifact_type` (4), `stage` (3), `client` (4),
+`our_firm` (2), `event` (4), `venue` (2), `authored_by` (2).
+
+**Refused (3):** `consignment` → `event` · `carrier` → `supplier` · `recruiting_cycle` → `people_cycle`.
+Plus `issuing_body` **held**, not added — adding it now creates a second unreferenced orphan beside
+`target_school`.
+
+**The four unassigned clusters all resolve to ONE key each:** `event`, `site`, `asset`, `supplier`.
+
+## 10. THE DECISION THAT BLOCKS A CLEAN LANDING — put this to Joseph first
+
+**`canonical_fields.json` cannot express a per-schema `destination_eligible`, and five of the fifteen
+additions now need it.** Not an edge case — demanded independently by `client` (law_practice: eligible
+only on approval; family-law: ineligible outright), `subject_of_record`, `product` (retail narrows to
+false), `property` (one government row requires an aliased label, another bans it as a level outright)
+and `job_title` (career: eligible but flatten by default). **Five keys across seven schemas.**
+
+Either `canonical_fields.json` grows a per-schema override, or every one of these narrowings moves
+into the template contract and the catalogue records only the loosest value. **This blocks five of
+the fifteen.**
+
+## 11. Other rulings worth Joseph's eye
+
+- **`event` widened** to *"the bounded occurrence a set of records is about"* — absorbing 5 spellings
+  across 4 schemas at zero mint cost. 49 §4.2(a) had said outright *"I do not own it"*; the merge
+  ruled it. The counter nearly won (`00` names `event` in both the Photos field sentence AND the
+  Photos template sentence — the same double-naming that fences `media_type`), and **49 §3 supplies
+  no principle distinguishing keys it widens from keys it fences, which is a real defect in it.**
+  Decided on one textual fact: `event`'s *live* role already reads "a capture **or record** belongs
+  to" — verified.
+- **`record_type`'s role sentence: both existing candidates are wrong.** Recommended
+  *"what kind of record this is — a record that evidences that something happened or was decided"* —
+  admits minutes and finding aids (government's objection was correct) while keeping the discriminator
+  that separates it from `work_type` and `artifact_type`. With **10 schemas on this key**, the risk is
+  gravitational not mechanical: **49 §3's routing table must be written into the key's `notes` in
+  `canonical_fields.json`, not left in an adjudication doc.** A routing rule nobody reads at
+  extraction time is not a routing rule.
+- **`business_operations.compliance-audit` loads two roles onto one key** and the schema is at its
+  6-field ceiling, so it cannot be fixed by addition. Three options offered; **recommended: let it
+  fall to a template-local label under 46's W2 classifier** — already built and green, costs one row
+  rather than a schema, and keeps a merged-roles key out of the permanent vocabulary.
+- **`hr` and `clinical_practice` land at only 2 destination-eligible fields** — below `00`'s "usually
+  three". For clinical_practice that is arguably right (it borders the out-of-scope medical schema).
+  **For hr it is a real weakness**: if `workforce_unit` is refused, hr's entire folder proposal is
+  `people_cycle > work_type`.
+
+## 12. Status of the adversarial pass — stated honestly
+
+The challenge agent **ran but on truncated input** (same 60KB/40KB cap bug that hit the merge; it
+received a partial proposals block and the merge output had not yet landed). **Its verdict therefore
+covers partial data and should not be read as a clean adversarial check of the merged result.**
+
+Mitigating, and the reason this is not being re-run: the merge itself did adversarial work — it
+**refused three proposed keys**, corrected two of this session's own brief instructions, found a
+defect in 49 §3, found a self-contradiction in 48 (§2 refuses `carrier`, §7 adopts it), and recorded
+eight live disagreements rather than papering over them. A dedicated re-run should still happen
+before any of this is written into `canonical_fields.json`.
