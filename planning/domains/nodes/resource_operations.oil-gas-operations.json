@@ -1,0 +1,637 @@
+{
+  "id": "resource_operations.oil-gas-operations",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Oil and gas well and field operations",
+  "one_line": "The operator-side record of one oil or gas well or field after a specific operational activity is proposed, authorized, carried out, measured and closed: drilling and workover activity reports, completion and end-of-operations records, actual wellbore schematics, well tests, production allocation and operational/environmental returns. The anchor is not oil-and-gas vocabulary; it is a labelled relation among a licence or permit, field/site, well or facility identifier, actual operational state or measured production, and reporting period. A permit application, design drawing, market report, invoice or regulator case does not activate this row by topic alone. Placeholder template (J-IND, full J-DEPTH): the field-less resource_operations schema keeps fields and dimension_order empty until R1c adjudicates its proposed operational vocabulary.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "site",
+      "type": "string",
+      "example": "North Field",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema already proposes `site` for the operating place a record is about. This row adds evidence that an oil or gas field, lease area or platform is a site role, while Photos `location` remains where an image was captured. No oil-and-gas-specific synonym is proposed.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Unchanged from the schema proposal: useful first only in a multi-field or multi-installation corpus and otherwise flattened. Coordinates and exact surface locations remain content evidence, not branch labels.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Field, Lease, Area, Block, Platform or Facility slot can be direct evidence; prose, filenames and coordinates remain possible because they may identify a regulator district, contractor base, delivery point or cited location.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "operating_authority",
+      "type": "string",
+      "example": "Lease OCS-G 12345 / approved drilling consent WONS-DRL-0042",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema already proposes the holder-side permit, lease, licence, concession, quota or connection authority. Oil and gas supplies the concrete lease-and-well-consent case. The issuing authority's case is government evidence; the operator's enduring right and conditions are this schema role.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Unchanged from the schema proposal and subject to the same protection caveat: useful where several leases or consents coexist, but flatten when it exposes an infrastructure or concession identifier without retrieval benefit.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a labelled lease, licence, permit or consent identifier joined to holder/operator, field or well, activity and effective conditions. Identifier patterns and authority catalogues belong to R2/R4; this row supplies no regex or gazetteer.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "Well BR-17",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema already proposes `asset` for a stable operating unit. This row demonstrates the well/wellbore, completion, platform and production-facility case. A well number is the operational thread across activity, completion, tests and production, not a new private `well_id` field.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Unchanged from the schema proposal. For this template it is normally the intelligible parent below site because daily activity, completion state, tests and production are all meaningless without the well or facility they describe.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a well, wellbore or facility identifier in a labelled role slot, ideally corroborated across an approved permit, activity report and completion or production record. An API-shaped or serial-shaped token alone is never sufficient.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "output_stream",
+      "type": "string",
+      "example": "oil / associated gas / produced water",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema proposes `output_stream` because extraction and metered production are not necessarily manufactured products. This row adds the allocation case where oil, gas, condensate and produced-water roles must remain distinct. No petroleum-specific variant is proposed.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Unchanged from the schema proposal, but not recommended as a standing level here. It is useful only when one field's corpus genuinely separates materially different streams; quantities and units never become destination values.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct only from labelled production/allocation columns or report slots. A hydrocarbon word in prose, a product price, a fluid property or a filename remains possible because it can occur in engineering, finance, research and market material.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "reporting_period",
+      "type": "string",
+      "example": "2026-W32 / June 2026",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema already proposes the period the operation or measured production is ABOUT. A drilling-report week and a production month are not filesystem `creation_date`, Finance `tax_year`, Academic `term` or Photos `capture_year`.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Unchanged from the schema proposal. It is optional below site and asset, never first: year-first would split one well's continuous operational history across calendar branches.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a date or interval in a labelled Reporting Period, Operation Date, Production Month or Activity Week slot with well/field operational context. A filename date or filesystem timestamp remains possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "well activity report / completion report / production allocation",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema proposes reuse of canonical `record_type`; this row adds named document functions verified by official operator reporting systems. R1c must widen one global document-function key if necessary, never add `oil_gas_record_type`.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherited from the canonical key if R1c makes it legal on resource_operations. It is the leaf below well and optional period; a form number is evidence for a value, not the value by itself.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled form title and matching slot structure may establish the document function. An isolated word such as report, log, completion or production and an extension cannot.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a well activity report structure joining a labelled lease or field, well/wellbore identifier, operator and rig, reporting interval, actual well status, measured and true-vertical depth, operation summary, casing or liner progress and test/log activity",
+      "an end-of-operations or well completion report joining the approved well identifier to actual spud/total-depth/completion dates, final status, drilled intervals, casing/cement/completion equipment, perforations, tests, logs and attachments; planned values alone are excluded",
+      "a daily drilling, completion, workover or plugging log whose repeated rows join operation date/time, well and rig, depth/progress, activity code or narrative, non-productive-time reason, fluid or pressure observations and current well state",
+      "a well potential or periodic well-test record joining the well identifier and test interval to measured oil, gas and water rates, pressures, choke or test conditions and test disposition",
+      "a production allocation or operations report whose rows join lease/field, well or measurement point, production month, oil/gas/water stream roles, measured or allocated volumes, disposition or inventory roles and operator submission status",
+      "an actual wellbore schematic explicitly attached to an end-of-operations, completion, workover or abandonment record, with as-executed casing, cement, perforation, tubing and barrier locations; a free-standing revision-controlled design sheet remains engineering",
+      "an operator environmental or integrity return tied to a named well, field or facility and permit condition, with sampling or inspection point, parameter, method, result, unit, reporting period and corrective or submission status",
+      "a well operations consent/permit held with its approved activity and subsequent activity/completion record under the same well reference; an application or issued instrument without evidence of actual operation is never sufficient",
+      "an archive manifest exposing one well/field reference and several activity reports, directional surveys, logs, completion attachments and production members; manifests are inspected without unpacking to disk",
+      "a structured portal export whose labelled columns repeatedly join well/lease identifiers, actual activity or production status, dates and operator; portal branding and a filename alone do not fire"
+    ],
+    "needs_llm": [
+      "whether a report containing depths, pressures and equipment is an actual operator activity record, a planned drilling programme, a controlled engineering calculation, a regulator's case copy or a research study",
+      "whether an approved permit or consent is bound to an operating well history or is merely a standalone application/decision/reference document",
+      "whether a monthly quantity table is production allocation, a royalty or finance statement, a logistics movement ledger, a refinery manufacturing record or a public statistics extract",
+      "whether a marked-up well schematic is as-executed operational state, an engineering revision family or an inspection attachment quoted only as context",
+      "whether an environmental monitoring return is the oil/gas operator's compliance evidence, the authority's received/assessed copy, a generic manufacturing site return or published reference material",
+      "an OCR-poor field ticket, scanned tour sheet or handwritten drilling report whose labelled relationships are only partly legible",
+      "a multilingual or jurisdiction-specific well form outside the local form-title, authority and context catalogues",
+      "a sparse email, calendar notification or field image that may join an accepted well group but cannot establish well, field, permit or operational facts from its own content"
+    ],
+    "never_alone": [
+      "the words oil, gas, petroleum, hydrocarbon, well, field, drilling, rig, completion, workover, production, lease, platform or pipeline alone",
+      "a well number, API-shaped number, lease number, permit number, facility code, rig name or asset tag outside a labelled role slot and supporting operational structure",
+      "a depth, pressure, rate, volume, unit, coordinate, date, status word or time-series column alone",
+      "the words report, log, daily, completion, test, allocation, permit, consent, production or operations in a filename or heading alone",
+      "an operator, regulator, contractor, field, basin, platform or facility name alone; the role ambiguity is the same defect 00 identifies for a university name",
+      "a title block, revision letter, well symbol, casing diagram or industrial drawing appearance alone",
+      "a source_type or extension alone, including .pdf, .xlsx, .csv, .xml, .las, .dlis, .tif, .zip and proprietary well-log formats",
+      "a parent folder called Wells, Drilling, Production, Operations, Regulatory, Subsurface or Field Data alone",
+      "membership in a project folder, portal export, email thread, scanning batch or download session alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "missing EXIF, dense OCR, scanner metadata or a phone filename as proof that an image is a field record rather than an ordinary photograph",
+      "a commodity price, reserve estimate, reservoir name, geology term or hydrocarbon citation without actual operator-side activity or production structure"
+    ]
+  },
+  "proposed_context_terms": [
+    "well activity report",
+    "end of operations report",
+    "well completion report",
+    "spud notification",
+    "wellbore update",
+    "drilling status",
+    "workover",
+    "recompletion",
+    "temporary abandonment",
+    "plug and abandonment",
+    "measured depth",
+    "true vertical depth",
+    "casing",
+    "cement interval",
+    "perforation",
+    "well potential test",
+    "well test",
+    "production allocation",
+    "well production",
+    "lease production",
+    "produced water",
+    "flaring",
+    "venting",
+    "shut in",
+    "returned to production",
+    "non-productive time",
+    "daily drilling report",
+    "operator submission",
+    "permit condition",
+    "actual total depth"
+  ],
+  "work_types": [
+    "application for permit to drill or modify, drilling consent and approval conditions",
+    "well activity, daily drilling, completion, workover or plugging report",
+    "end-of-operations, completion or recompletion report and attachment set",
+    "actual wellbore schematic, casing/cement record and barrier diagram",
+    "directional survey, open-hole log, core/sample manifest or well-data submission",
+    "well potential test, periodic well test or pressure survey",
+    "monthly well or lease production report and production allocation workbook",
+    "operator production, flaring, venting, produced-water or inventory return",
+    "rig movement, spud, shut-in, restart, curtailment or status notification",
+    "well integrity, inspection, maintenance, intervention or failure record",
+    "environmental monitoring, discharge, emissions or corrective-action return tied to the field",
+    "decommissioning, temporary-abandonment or plug-and-abandonment programme and closeout record"
+  ],
+  "grouping_reasons": [
+    "one well or wellbore across permit, spud, weekly/daily activity, completion, tests, production, intervention and abandonment",
+    "one field or lease across wells, measurement points, monthly production allocations, environmental returns and operator submissions",
+    "one bounded drilling, workover or plugging operation across plan, consent, daily reports, surveys, end-of-operations report and attachments",
+    "one production month across well-level volumes, facility allocation, lease totals, inventory/disposition and submission acknowledgement",
+    "one permit condition across monitoring plan, result, exceedance, operator notification, authority receipt and corrective response",
+    "one well state across an actual schematic and its supporting casing, cement, test and completion records",
+    "a sparse field image, email, calendar notice or vendor log may join an accepted well group without receiving the well, field, authority or period facts"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: resource_operations declares no field rows under PR-6, so this template cannot serialize destination dimensions. Subject to R1c, the researched recommendation is site/field then asset/well then reporting_period then record_type, with operating_authority optional above the well where one corpus spans several leases or consents. This differs from the resource_operations schema default proposal of site → operating_authority → output_stream → reporting_period → record_type: oil/gas work is well-history-led, so the enduring well normally outranks output stream; production stream is search/allocation evidence unless a corpus genuinely separates oil, gas and water branches. It is not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A year-first tree would split one well's drilling-to-abandonment history. The order remains a recommendation the user may reverse, remove, add or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".las",
+      ".dlis",
+      ".tif",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".bak"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BSEE-0133_WAR_OCS-G-12345_A-17_2026-W32.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form title identifies a Well Activity Report",
+        "labelled lease, well, API, operator and rig slots occur together",
+        "reporting interval, actual well status, measured and true-vertical depth, operation summary and casing/log tables are populated"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "resource_operations domain fields before R1c licenses them",
+        "that the reported operation was approved, safe, accurate or complete",
+        "a well fact from the filename or API-shaped token alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BSEE-0125_EOR_OCS-G-12345_A-17.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form title identifies an End of Operations Report",
+        "labelled well identity and actual start/end/status slots match an activity-report reference",
+        "attachments list actual casing, cement, completion, log and survey records"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c",
+        "that actual values are correct merely because the form is signed",
+        "that every attachment member shares every reported fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Daily-Drilling-Report_BR-17_2026-08-21.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header labels field, well, rig and report date",
+        "time rows separate actual operation, depth, progress, non-productive-time reason and current status",
+        "fluid, pressure and safety-test observations occupy distinct labelled columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "well or period from the filename alone",
+        "that an operation narrative is a verified event",
+        "that every pressure value is a production measurement",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "OGOR-A_Well-Production_OCS-G-12345_2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated rows label lease, completion/well, production month and operator",
+        "oil, gas and water quantities occupy distinct roles with disposition or status columns",
+        "no invoice, price, tax calculation or transport consignment appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c",
+        "a production month from the filename alone",
+        "that a submitted value was verified by an authority",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BR-17_Production-Allocation_2026-06.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets join well test or meter volumes to facility and field totals",
+        "columns distinguish measured, allocated, fuel, flare, inventory and adjustment roles",
+        "reconciliation status is labelled but no regulator receipt is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that arithmetic equality proves physical accuracy",
+        "finance or logistics ownership from quantities and dispositions",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BSEE-0123_APD_OCS-G-12345_A-17_Approved-with-Conditions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "application title and labelled proposed-well slots are present",
+        "authority approval block and numbered conditions are attached",
+        "the file itself contains planned activity but no actual spud, progress, completion or production evidence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that drilling commenced or the well exists as planned",
+        "oil-gas operations activation from an approved permit alone",
+        "authority-side case custody from letterhead alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Well-Schematic_BR-17_As-Completed_Rev0.pdf",
+      "source_type": "design_creative",
+      "observations": [
+        "drawing frame labels well BR-17 and as-completed status",
+        "casing, cement, perforation, tubing and barrier positions are shown",
+        "an End of Operations Report attachment reference is present but the sheet also carries a controlled identifier and revision"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "oil-gas operations solely from well symbols or the word completed",
+        "engineering ownership solely from a title block",
+        "current physical state after later intervention",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "EPR-AB1234 - Quarterly Monitoring Return Q2 2026 - Outfall 001.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header labels operator, field facility, permit reference and reporting quarter",
+        "sample rows separate point, parameter, method, result, unit and condition limit",
+        "a submission sheet exists but no authority receipt, officer assessment or enforcement action is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "authority-side custody from permit wording",
+        "generic manufacturing ownership when the named operation is a producing field",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BR-17_Well-Data-Submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names a completion report, directional survey, open-hole log, well schematic and sample inventory",
+        "one well reference repeats across member paths but several dates and data formats occur",
+        "archive members have not been unpacked to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "one record type, period or reliability state for the entire archive",
+        "facts copied from one member to all members",
+        "that opaque .las or .dlis members were successfully interpreted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Rig-Move-and-Spud-Notification_BR-17.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary carries a well reference already evidenced in an accepted dossier",
+        "organizer and attendees are operator and rig-team accounts",
+        "start time and location describe a planned notification event, not proof of movement or spud"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the event occurred",
+        "template activation from source_type calendar",
+        "well or site facts copied from the accepted dossier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE BR-17 NPT and revised programme.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipient are labelled operator and drilling-contractor addresses",
+        "subject carries a well reference and the body discusses non-productive time",
+        "attachments include a revised programme and daily report but neither attachment has yet been independently recognized"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the cause or duration of downtime as fact",
+        "oil-gas operations from employer domains or subject words alone",
+        "attachment facts copied onto the enclosing email",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4821_Wellhead-Gauge.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and capture time are present",
+        "frame shows a gauge, valves and pipework",
+        "no readable well tag, site, unit or permit reference appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "location",
+        "people",
+        "camera_information",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "oil-gas operations from industrial appearance",
+        "well or site from neighbouring files",
+        "that camera location is the operating site",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Crude-Oil-Market-Outlook-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "publisher, report title and numbered sections identify a general market publication",
+        "tables discuss production, reserves and prices across many countries and operators",
+        "no holder-side field, well, permit, actual operation or submission structure appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "oil-gas operations from topic vocabulary and production tables",
+        "a site or operator role from citations",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "AFE_BR-17_Drilling-Budget.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook labels a proposed well and cost authorization",
+        "rows contain vendor, cost code, forecast and approval columns",
+        "no actual well activity, completion state or measured production appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "oil-gas operations from a well reference and drilling vocabulary alone",
+        "that forecast work occurred",
+        "production or reporting-period facts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Direction one — resource_operations.oil-gas-operations owns an as-executed wellbore state when the sheet is an identified attachment to completion, workover or end-of-operations evidence and its casing, cement, perforation, tubing and barrier positions record what was actually installed. Direction two — engineering.drawing-package owns the controlled sheet/version family when title-block identifier, revision history and issue/transmittal structure are the governing evidence and no actual operation attachment is established. Same fixture bytes: `Well-Schematic_BR-17_As-Completed_Rev0.pdf`; the words well and as-completed, the title block and the revision designator count for neither side alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "Direction one — resource_operations.oil-gas-operations owns the holder-side approved drilling instrument only when the same well reference is independently joined to actual activity or completion records; a permit copy alone does not activate this row. Direction two — government.permit-licensing owns the deciding authority's continuing-permission case: application intake, assessment, representations, decision, register/renewal and adverse-power apparatus. Same fixture bytes: `BSEE-0123_APD_OCS-G-12345_A-17_Approved-with-Conditions.pdf`; the permit reference and issuing letterhead are printed on both copies and discriminate nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "Direction one — resource_operations.oil-gas-operations owns the operator-prepared return when labelled field/facility and permit-condition evidence joins measured results to the producing operation and no authority receipt, officer assessment or enforcement step appears. Direction two — government.environmental-regulation owns the authority-side received and assessed copy when return-register receipt, receiving-officer review, surveillance, incident or enforcement evidence is present. Same fixture bytes: `EPR-AB1234 - Quarterly Monitoring Return Q2 2026 - Outfall 001.xlsx`; the existing government neighbour assigns a generic operator copy to manufacturing.environmental-compliance, so R1c must reconcile that generic claim with this field-specific operator row rather than silently letting both stand.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "Direction one — resource_operations.oil-gas-operations owns the report content that joins lease/field, well or measurement point, reporting month and oil/gas/water production or allocation roles, even when the operator later submits it. Direction two — business_operations.corporate-regulatory-filings owns the compelled-submission wrapper and trail: external obligation, deadline, filing reference, declaration, receipt, acknowledgement, reminder or penalty. Same fixture bytes: `OGOR-A_Well-Production_OCS-G-12345_2026-06.csv`; well/production rows support this row, while a submission receipt or authority acknowledgement supports the filing row, and neither may infer the other's evidence from custody alone.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone readable permit, well report, completion attachment or test record with durable value but no reliably evidenced well/field group belongs here rather than activating from a form number or oil-and-gas word.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a file is operationally shaped but holder role or actual-versus-planned status cannot be settled: an unattributed monitoring workbook, marked-up schematic, daily report without labelled well identity or quantity table without allocation roles.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Native well-log formats, proprietary drilling databases, encrypted data rooms, damaged scans and unreadable portal backups keep basic metadata and must not acquire purpose from their filenames.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A field photograph with real camera evidence but no readable well, site or operational subject remains an image rather than an oil/gas record inferred from industrial appearance.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Market outlooks, published reserve reports, regulatory guidance and technical papers may be rich in oil/gas vocabulary and data but are reading material without an active operator-side well or field relation.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "When an inactive file exposes precise well coordinates, subsurface configuration, critical-infrastructure details, incident narratives or commercially sensitive production/reserve data, protection is preferable to a topic guess. This is a residual recommendation, not a handling class.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Well and field records can expose precise infrastructure and subsurface locations, wellbore and barrier configuration, production and reserve performance, vulnerabilities, incident or non-productive-time narratives, environmental exceedances, lease/permit identifiers and commercially sensitive allocations. Some regulatory copies may later be public, but publication of one member does not lower the packet's posture. This row assigns only potentially_sensitive, no P7 handling class, and keeps coordinates, quantities, pressures, conditions and personal contacts out of destination dimensions and general summaries.",
+  "open_question": "NEEDS-JOSEPH NJ-OILGAS-1: does this well-history-led template survive as a distinct organizational situation once resource_operations' default template is finalized, or is oil and gas only a value set inside the schema default? Keep it if well-activity/completion recognition and site→well→period→record_type materially differ; refuse it if only vocabulary differs. NJ-OILGAS-2: should operator-side compelled production and environmental returns be owned by this sector template, by business_operations.corporate-regulatory-filings, or co-recommended from one shared P10 definition? The same bytes carry both content and submission purpose. NJ-OILGAS-3: is schema proposal `asset` broad enough for well and wellbore identity, and `site` broad enough for field/lease/platform, or does one of those roles require a canonical split? Do not mint `well_id` or `field` locally before R1c answers. NJ-OILGAS-4: the government environmental neighbour currently sends a generic operator monitoring copy to manufacturing.environmental-compliance; confirm that an oil/gas field return instead belongs here, or merge operator environmental compliance into one cross-sector applicability definition. NJ-OILGAS-5: should this template's precise infrastructure and subsurface material receive protection rules stronger than catalogue potentially_sensitive even when portions are on public registers? That is a P7 policy decision, not a handling class this row may invent."
+}

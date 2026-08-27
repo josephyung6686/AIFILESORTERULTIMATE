@@ -1,0 +1,589 @@
+{
+  "id": "resource_operations.grid-connection",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Grid connection and network agreements",
+  "one_line": "The connecting-customer record of obtaining and retaining an electricity-network connection for one installation: the application and technical data, connection offer and acceptance, executed connection agreement, point and capacity schedules, milestone and modification correspondence, commissioning evidence, energisation or operational notification, and continuing evidence that the installation complies with the network operator's connection terms. The anchor is a four-place relation among an identified installation, a network operator, a connection point or agreed capacity, and a staged permission to connect or remain connected. It is not generic contract administration, issuer-side public licensing, construction merely because connection works are required, engineering handover merely because commissioning is witnessed, generation operations merely because the installation exports, or billing merely because a meter identifier appears. Placeholder row: it writes no field rows because the resource_operations schema declares none; all candidate keys remain R1c proposals.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "schema_default_template": "The resource_operations anchor's researched default is recurring operator evidence that joins an authorised source or site, an operating unit or asset, measured output or environmental performance, and a reporting period. Its provisional default dimensions are site -> operating_authority -> output_stream -> reporting_period -> record_type, with an asset-led alternative.",
+    "detection_signals_differ": "The default normally needs measured operation: a production return, meter series, source-to-volume reconciliation, environmental series or operating register. This row can fire before any output exists. Its decisive structure is a staged relationship among a connecting customer, a named network operator, one connection application or agreement reference, a connection point and import/export capacity, followed through offer, acceptance, construction prerequisites, commissioning, energisation and modification. A connection offer can therefore be strong evidence for this row while failing the schema default's recurring-output pattern; conversely, a monthly meter series can satisfy the schema default while saying nothing about an application, offer or right to remain connected.",
+    "dimension_order_differs": "The schema default can lead with site and then output stream or operating asset. This situation is lifecycle-coherent and reference-led: one application or executed connection agreement joins technically heterogeneous members across the connection journey. Conditional on R1c licensing the schema proposals, the recommendation is site -> operating_authority -> asset -> record_type, with reporting_period only for recurring compliance or modification series and output_stream only when import and export arrangements genuinely need separation. The application, offer, acceptance, energisation notice and modification are record_type values rather than child nodes. Time is not first because application date, offer date, acceptance date, construction milestone, energisation date and operational-notification date describe different events in one relationship.",
+    "privacy_rules_differ": "The schema default already warns about commercially sensitive production, meter and infrastructure records. This row adds a concentrated pre-operation dossier: proposed and agreed capacity, precise connection point, single-line diagrams, protection settings, network reinforcement scope, land-rights evidence, securities, milestone status, operational-notification conditions and named engineering contacts. Those details can expose infrastructure topology, project readiness and live interface settings even when no production values exist. Recognition should use bounded excerpts and keep diagrams, settings and access material local; this is a catalogue posture, not a P7 handling class.",
+    "strongest_charge": "The strongest objection is that this is only a bundle of work types under the resource_operations default, or merely a contract/construction project with electricity vocabulary. The row survives because none of application, offer, agreement, drawing, commissioning form or energisation email activates it alone. What persists across them is the same connection reference and the explicit customer-network-operator-connection-point relation. That relation exists before recurring operation, remains after the works project closes, and imposes connection-specific compliance after ordinary contract signing. If Joseph intends `resource_operations` to mean only periodic measured operation, this row should instead be refused or moved; NJ-GRID-1 keeps that fork visible."
+  },
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "site",
+      "type": "string",
+      "example": "Solar Farm A, East Field",
+      "why_no_existing_key": "SECOND, do not mint. The resource_operations schema already proposes `site`, reusing manufacturing's exact proposal. A connection application and agreement are about the installation site, while canonical Photos `location` is where an image was captured. One commissioning photograph may be captured at Substation SS-03 while documenting the Solar Farm A connection, so the roles cannot collapse.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true only for a corpus with several connection sites; otherwise flatten the one-child level. The site makes an agreement reference and connection point intelligible and is not authorship.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled site or installation-address slot is direct evidence. A place name in prose or a map remains possible because it may be a network substation, land parcel, correspondence address or cited alternative point.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "operating_authority",
+      "type": "string",
+      "example": "Connection Agreement CA-SS03-2048",
+      "why_no_existing_key": "SECOND the resource_operations schema's exact proposal. Here it represents the continuing agreement, permission or terms under which the connecting customer may connect and remain connected. It is not canonical `institution`, which is a financial issuer, and not a generic contract reference. The same identifier can appear on the network operator's case and the customer's retained agreement, so custody and role remain evidence questions.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true where one site has several applications, connection points or amendments, but it may reveal infrastructure or commercial identifiers and should be flattened or redacted by policy when that risk outweighs retrieval value.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a reference in a labelled Connection Application, Connection Offer, Connection Agreement or Modification slot together with a named network operator and site or connection point. R2/R4 own identifier patterns and operator catalogues; this row writes neither.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "Substation SS-03 / connection point CP-17",
+      "why_no_existing_key": "SECOND, do not mint. The resource_operations schema already reuses manufacturing's `asset` proposal. In this row it names the enduring interface unit, meter point, substation bay, feeder or protection installation. Canonical `project` is the undertaking that delivers the connection; engineering's proposed `design_item` is the controlled design definition; neither identifies the live interface instance.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true below site where one agreement covers several connection points or interface assets. It should be omitted for a single small connection and must never be inferred from a drawing number alone.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation needs a labelled connection-point, meter-point, feeder, bay, substation or protection-unit slot tied to the same application or agreement reference. A tag-shaped token alone is never sufficient.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "output_stream",
+      "type": "string",
+      "example": "electricity import / electricity export",
+      "why_no_existing_key": "SECOND the resource_operations schema's proposal without widening it locally. Import, export and bidirectional arrangements can distinguish obligations under one connection, but this template does not need a new `connection_type` or `service_type` synonym. R1c should keep one neutral output/service role or omit this dimension when the distinction is merely a value in agreement schedules.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true only where one site carries materially different import and export arrangements. Capacity values, voltage and energy quantities remain content, never folder values.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled import/export capacity or connection-type schedule can be direct. The words generation, demand, import or export in prose remain possible because they also appear in studies, invoices and general network publications.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "reporting_period",
+      "type": "string",
+      "example": "June 2026 compliance return",
+      "why_no_existing_key": "SECOND the resource_operations schema's neutral period proposal. It applies only to recurring connection-compliance, curtailment or modification evidence after energisation. It is not filesystem `creation_date`, Finance `tax_year`, Academic `term` or a project milestone date.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed only as an optional leaf after site/agreement/asset. It is never first, because one connection journey contains several semantically different dates and year-first would scatter it.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a date or interval in a labelled reporting or compliance-period slot connected to the agreement or operational-notification reference. A year in a filename or a calendar event remains possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "connection application / offer / executed agreement / operational notification / modification",
+      "why_no_existing_key": "SECOND the resource_operations schema's proposed reuse of canonical Finance `record_type`; do not mint `connection_document_type`. R1c must decide whether `record_type` is global. If its current Finance role is binding, the resolution is one global document-function key rather than a private variant.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed as the leaf below the connection reference or interface asset. Application, offer, agreement, commissioning evidence and notification are enum values, never child roster nodes.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled form title plus its expected slot structure may establish the value. A filename, extension or isolated word such as offer, acceptance or agreement cannot.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a connection application structure joining a connecting customer, installation/site, named electricity network operator, requested import or export capacity, connection-point preference, technology or demand type, target date and a persistent application reference; a generic project enquiry or capacity study without the applicant-operator relation does not fire",
+      "a technical-data workbook or data-registration submission whose cover sheet carries the same connection reference and whose tabs describe the plant, fault contribution, protection, reactive capability, metering or single-line interface needed to assess that specific connection; technical data without a connection reference remains engineering",
+      "a connection offer joining the network operator and customer, connection reference, point of connection, agreed or offered capacity, connection works, reinforcement assumptions, charges, conditions, validity or acceptance apparatus and milestones; a budget estimate that cannot be accepted is not enough",
+      "a signed acceptance or executed connection agreement that names both parties, the site and interface, permitted import/export capacity, ownership or operational boundary, effective conditions and a continuing right or obligation to remain connected",
+      "a milestone, queue-management or modification record keyed to an accepted connection reference and changing contracted capacity, technology, connection date, point, works or securities; a project schedule without the agreement relation is business_operations.project-delivery",
+      "a commissioning programme or witness-test pack that carries the network operator, connection reference, installed interface identity, required test forms, expected-versus-recorded results and an energisation or operational-notification consequence; a witnessed test with only a plant tag and accepting party remains engineering.commissioning-handover",
+      "an energisation or operational notification that authorizes or records a named connection's first energisation, interim operation or final operation subject to specified connection conditions; an email proposing a window does not prove energisation",
+      "an installation document or site compliance and commissioning test form joining a generator/installer, power-generating facility, DNO, connection agreement, protection test results, declaration and commissioning date",
+      "an enduring connection-compliance record tied to the agreement or connection point: notified modification, protection-setting approval, power-quality result, curtailment instruction, export-limitation confirmation or evidence requested under a named condition",
+      "a portal export or archive manifest listing application, offer, signed contract, technical schedules, milestone notices, modifications and operational notifications beneath one connection reference; inspect the manifest without unpacking members"
+    ],
+    "needs_llm": [
+      "whether an offer-shaped PDF is an executable connection offer, a non-binding budget estimate, a network-capacity study, a procurement quotation or a generic construction estimate when labelled effect is expressed only in prose",
+      "whether a signed agreement is the customer's enduring connection record, the network operator's case copy, a generic administered contract or a works contract for building the connection",
+      "whether commissioning evidence proves a network interface and satisfies connection conditions, or instead proves and hands over an installed system regardless of any network relationship",
+      "whether energisation language records permission/operation under the network agreement, a construction switching step, an internal safe-system-of-work event or a proposed calendar window",
+      "whether a single-line diagram is a controlled engineering definition, a submitted connection-assessment schedule, an as-built handover record, or all of those on independently cited evidence",
+      "whether a modification notice changes the continuing connection agreement or merely records ordinary project scope, equipment maintenance or tariff/billing administration",
+      "whether a public authority, system operator, transmission owner and distribution operator are acting as regulator, connection counterparty, works owner or cited organisation",
+      "a multilingual or OCR-poor agreement schedule where party, interface, capacity and continuing-condition roles survive visually but labels do not"
+    ],
+    "never_alone": [
+      "the words grid, network, connection, interconnection, energisation, commissioning, capacity, offer, agreement, compliance, DNO, transmission or distribution alone",
+      "a connection, application, project, meter, feeder, substation, bay or agreement reference-shaped token alone; the same token appears in engineering, construction, billing and correspondence",
+      "an electricity network operator, utility, regulator, installer, customer or project name alone; organisation-name ambiguity is the same defect 00 identifies for a university name",
+      "a site address, coordinate, connection point, voltage, capacity, energy quantity, tariff, charge, queue position or milestone date alone",
+      "a signature block, letter of acceptance, notification heading, form number, standard reference, declaration or witness column alone",
+      "a single-line diagram, protection schematic, test result, commissioning certificate or as-built drawing without the customer-network-operator-connection relation",
+      "a utility bill, meter-read export or supplier account that names a meter point and consumption; post-connection billing and metering are not connection-agreement evidence",
+      "a source_type or extension alone; spreadsheets, PDFs, email, calendars, diagrams, images and archives occur in every neighbour",
+      "a parent folder called Grid Connection, Connections, Network, DNO, Utilities, Energisation or Project alone",
+      "membership in one portal export, email thread or download session alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "absence of EXIF or dense OCR as proof that an image is a connection-portal screenshot"
+    ]
+  },
+  "proposed_context_terms": [
+    "connection application",
+    "connecting customer",
+    "connection point",
+    "point of connection",
+    "import capacity",
+    "export capacity",
+    "connection offer",
+    "letter of acceptance",
+    "connection agreement",
+    "use of system",
+    "network reinforcement",
+    "offer milestones",
+    "modification application",
+    "data registration code",
+    "single-line diagram",
+    "interface protection",
+    "commissioning programme",
+    "witness test",
+    "installation document",
+    "energisation operational notification",
+    "interim operational notification",
+    "final operational notification",
+    "ownership boundary",
+    "operational boundary",
+    "remain connected"
+  ],
+  "work_types": [
+    "pre-application enquiry and meeting record",
+    "connection application and supporting schedule",
+    "technical-data or data-registration workbook",
+    "network study, options report or connection-point assessment",
+    "connection offer and offer schedules",
+    "letter of acceptance, payment or security confirmation",
+    "executed connection or use-of-system agreement",
+    "site-specific interface, ownership-boundary or capacity schedule",
+    "land-rights, consent or authority letter supporting the connection",
+    "milestone, queue-management or project-progression notice",
+    "modification application, re-offer or variation",
+    "commissioning programme and witness-test correspondence",
+    "installation document and site compliance test form",
+    "energisation, interim or final operational notification",
+    "protection-setting, export-limitation or power-quality evidence",
+    "ongoing connection-compliance return or operator notice",
+    "disconnection, termination, novation or capacity-change record"
+  ],
+  "work_types_note": "These are values of a future global record-type field, not child rows. The row survives because the same connection relation binds them; no listed value activates it alone.",
+  "grouping_reasons": [
+    "one exact connection application or agreement reference across application, technical data, offer, acceptance, schedules, milestones, commissioning and operational notifications",
+    "one installation/site plus named network operator and connection point where a reference changes across re-offers or novation",
+    "one modification sequence linked to the parent executed agreement and its replaced schedules",
+    "one commissioning and energisation event joining the programme, witness correspondence, test evidence and operational notification without copying event facts onto sparse email",
+    "one portal export or index that enumerates its members by exact connection reference; archive membership remains reviewable",
+    "a sparse calendar invitation, photograph or email may join an accepted connection group without receiving site, agreement, capacity, asset or energisation facts"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the resource_operations schema declares no field rows. Conditional on R1c licensing its existing proposals, the researched recommendation is site -> operating_authority -> asset -> record_type, adding reporting_period only beneath recurring compliance series and output_stream only when import/export arrangements genuinely split. The connection or agreement reference precedes record type because an offer, modification or notification is unintelligible without the relationship it changes. It is not time-first: application, offer, acceptance, milestone, energisation and notification dates are different events in one continuing connection. The user may reverse, remove or flatten the recommendation after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".dwg",
+      ".dxf",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Connection Application - Solar Farm A - CONN-2048.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet labels connecting customer, site, network operator and application reference CONN-2048",
+        "slots distinguish requested import and export capacity, generation technology, preferred connection point and target date",
+        "supporting-tabs index lists a single-line diagram and technical-data schedules"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status",
+        "conditional on R1c: site",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: output_stream",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that the application was accepted or capacity reserved",
+        "that the preferred point is the agreed point",
+        "a project fact, connection status or folder path",
+        "any resource_operations field before R1c licenses it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CONN-2048 Data Registration Code submission v3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet repeats connection reference, customer, network operator and submission revision",
+        "tabs carry plant, fault contribution, reactive capability, protection and metering data",
+        "revision log distinguishes replaced technical submissions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: asset",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that submitted values were accepted or remain current",
+        "that a tab name proves installed equipment",
+        "that revision v3 is the accepted baseline",
+        "a folder path"
+      ],
+      "also_schema": "engineering only if controlled design-item and revision evidence is independently present",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Connection Offer - CONN-2048 - Solar Farm A.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "network-operator and customer blocks plus connection reference",
+        "schedule labels offered connection point, import/export capacity, works, reinforcement assumptions, charges and milestones",
+        "offer validity and letter-of-acceptance apparatus are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status",
+        "conditional on R1c: site",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: asset",
+        "conditional on R1c: output_stream",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that the offer was accepted, executed or remains open",
+        "that offered capacity is installed or available today",
+        "a legal effect or folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Letter of Acceptance and Payment - CONN-2048 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title cites the connection offer and exact reference",
+        "customer signatory and network-operator countersignature slots are present",
+        "payment or security schedule and acceptance date are labelled"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that signatures are authentic or payment cleared",
+        "that all preconditions were satisfied",
+        "that energisation or operation followed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Executed Connection Agreement CA-SS03-2048.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "parties block names the connecting customer and network operator",
+        "site-specific schedule labels connection point, owner, maximum import/export capacity and operational boundary",
+        "diagram and continuing conditions govern how the customer may remain connected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status",
+        "conditional on R1c: site",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: asset",
+        "conditional on R1c: output_stream",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that the agreement is current, enforceable or unmodified",
+        "which party owns a loose copy from the parties block alone",
+        "that connection capacity is being used",
+        "a folder path"
+      ],
+      "also_schema": "business_operations only where a live portfolio register, obligation tracker or notice calendar independently activates that schema",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SLD Solar Farm A to SS-03 - Rev P4.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "COLLISION FIXTURE: controlled title block names drawing number, revision, status and designer",
+        "diagram shows generators, transformers, protection devices and a labelled point of connection",
+        "no connection application, offer, agreement or network-operator acceptance is embedded"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row from a connection-point label on a drawing",
+        "that the depicted design was accepted, installed or energised",
+        "a resource_operations field or folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "G99 Installation Document and Site Compliance Tests - SS-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form labels generator or installer, DNO, power-generating facility and connection reference",
+        "site compliance and commissioning rows record protection tests and expected-versus-recorded results",
+        "installer declaration and commissioning date are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: asset",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that the installation is compliant, safe or permitted to operate",
+        "that tests were witnessed merely because witness slots exist",
+        "that the form is current or authentic",
+        "a folder path"
+      ],
+      "also_schema": "engineering where installed-instance acceptance evidence is independently present",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Final Operational Notification - CONN-2048 - 2026-06-30.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "network operator, customer, facility and connection reference are labelled",
+        "notification status and permitted operational scope are stated",
+        "conditions and referenced compliance documents are enumerated"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: asset",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that the notification remains unrevoked or all conditions remain satisfied",
+        "actual first-export time or output quantity",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Energisation window and witness attendance - SS-03.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipients span the connecting customer, installer and network operator",
+        "subject carries exact connection and substation references",
+        "body proposes an energisation window and names witnesses",
+        "attached tag list is named but not read by the enclosing email extractor"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: asset"
+      ],
+      "must_not_conclude": [
+        "that energisation happened or anyone attended",
+        "that the attachment content is known",
+        "that a proposed date is a reporting period",
+        "a folder path"
+      ],
+      "also_schema": "engineering when the same bytes also evidence transfer of the installed system to its operator",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Modification Application - Capacity Increase - CONN-2048.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "parent agreement reference and current capacity are labelled",
+        "requested revised capacity, technology and target date occupy separate slots",
+        "revision reason and supporting technical schedules are indexed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority",
+        "conditional on R1c: output_stream",
+        "conditional on R1c: record_type"
+      ],
+      "must_not_conclude": [
+        "that the modification was accepted or the capacity changed",
+        "that the request supersedes the executed agreement",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Connections Portal Export - CONN-2048.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists application, data workbook, offer, signed contract, milestone notices, modifications and operational notifications",
+        "member paths share one connection reference but several dates and revisions",
+        "one encrypted technical-schedule member is listed but unreadable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status",
+        "conditional on R1c: operating_authority"
+      ],
+      "must_not_conclude": [
+        "that every member supports the same facts",
+        "the content of encrypted or unexamined members",
+        "that the archive should be unpacked",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Electricity Bill June 2026 - MPAN 1200000000000.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE: supplier, account, meter-point number, billing period, consumption and amount due are labelled",
+        "no network-connection application, offer, connection agreement, point schedule or operational notification appears"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row from a meter-point identifier and connection vocabulary",
+        "that the supplier is the network operator",
+        "an operating-authority or connection-point fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "Direction one — resource_operations.grid-connection fires on a connection agreement or application reference, the network-operator relationship, a connection point or agreed capacity, and energisation or operational-notification evidence for that supply. Direction two — engineering.commissioning-handover fires on an installed plant or system instance reconciled to controlled design and accepted or transferred to whoever will operate it, whether or not a public network is involved. Same fixture bytes: `RE Energisation window and witness attendance - SS-03.eml`. On those bytes, the network operator plus connection reference and point allocate evidence to this row; installed-instance tags plus acceptance-and-transfer roles allocate evidence to the engineering row. A proposed window proves neither event, and both relations may be independently present.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone offer, agreement, notification, authority letter or confirmation with durable value but no reliably evidenced connection series belongs here rather than activating from electricity vocabulary.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a technical schedule, commissioning form, modification request or offer-shaped document is readable but the connection relation, custody or legal effect cannot be settled from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Connection-portal exports, proprietary network studies, CAD schedules and password-protected technical packs may be represented from metadata and manifests without forcing inspection or inventing purpose.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Executed agreements, precise network diagrams, protection settings, securities and operational notifications can expose commercially sensitive or security-relevant infrastructure and should remain local when no safe accepted group exists.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated application-fee invoice, payment confirmation or ordinary utility bill is transactional evidence, not proof of the connection-agreement situation.",
+      "provenance": "design",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "government.permit-licensing",
+      "why": "The same issued instrument or conditions schedule may be held by two roles. This row owns the connecting customer's continuing network relationship and evidence supplied under it; government.permit-licensing owns the deciding authority's application, representations, determination, register and adverse-power case. A reference or letterhead chooses neither, and a private network operator is not government merely because it issues terms.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "why": "The executed connection agreement is the subject here; a portfolio register, clause-referenced obligation tracker, notice calendar or service-credit apparatus that runs it is contract administration. Same agreement, different evidentiary role. A signed agreement alone activates neither administration row nor a holder-side organisation fact.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Applications and agreements can reveal project readiness, precise connection location, import/export capacity, queue or milestone status, reinforcement works, commercial charges and securities, ownership boundaries, single-line diagrams, protection settings, metering identifiers and named technical contacts. Post-acceptance packs may expose live infrastructure and operational constraints even before any measured output exists. The row assigns no P7 handling class, makes no raw capacity or coordinate a destination field, and recommends local bounded excerpts for recognition.",
+  "open_question": "NEEDS-JOSEPH NJ-GRID-1: is this row intentionally electricity-grid-specific, matching the absorbed `energy.grid-connection` legacy row and the researched evidence, or should it cover gas, water, heat and telecom network connections under one neutral grammar? Keep electricity-only unless broadened evidence and vocabulary are approved; broadening from the name alone would be assertion. NJ-GRID-2: does the resource_operations schema's `operating_authority` proposal explicitly include private connection agreements and application references, or only public permits/tenures? If not, either a global continuing-authority key is needed or this template has no honest destination anchor. NJ-GRID-3: should connection/application references be destination-eligible by default, given their retrieval value versus the disclosure of project and infrastructure identifiers? NJ-GRID-4: R1c must lift/adjudicate intended schema coactivation with engineering for packages that independently prove both the network connection relation and installed-instance transfer; template-level `also_holds_with` is forbidden."
+}

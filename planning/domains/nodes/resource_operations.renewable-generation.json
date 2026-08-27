@@ -1,0 +1,565 @@
+{
+  "id": "resource_operations.renewable-generation",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Renewable generation records",
+  "one_line": "The operator or owner's recurring evidence for one renewable generating installation after it becomes capable of producing: commissioning-to-operation baseline records, generation and export meter series, plant availability and curtailment data, performance reports, certificate or incentive submissions, and settlement statements that reconcile measured output to what the installation earned. The anchor is an installation-and-period relation joining actual generated/exported energy, operational availability or loss, and the payment/certificate consequence of those readings. It is not a design package merely because capacity and test results appear, a grid-connection file merely because an export meter or network operator appears, a utility bill merely because money and meter readings appear, an energy audit merely because performance is compared, or a government grant file merely because a scheme pays the operator. Placeholder template row (J-IND, full J-DEPTH): it writes no field rows because the resource_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": "conditional",
+    "privacy_differs": true,
+    "why": "LEG 1 — SIGNALS. The resource_operations default recognises any authorised source/site joined to an asset, output or environmental series. This row requires a narrower recurring relation for one electricity-generating installation: actual generation or export readings for a stated output period, operational availability/curtailment/loss evidence, and either performance-accountability or a payment/certificate consequence derived from those readings. A mining return, farm yield register, water abstraction series or generic utility meter export satisfies the schema default and fails this row. LEG 2 — DIMENSIONS, conditional because PR-6 forbids serialising them. The schema's researched default is site -> operating_authority -> output_stream -> reporting_period -> record_type, with an asset-led alternative. Renewable generation normally has one output stream (electricity) and one continuing authority per installation, so those two levels create one-child branches; the researched projection is site -> asset -> reporting_period -> record_type, flattened to site -> reporting_period -> record_type for small installations. The asset/period pairing is what keeps turbine, inverter, revenue-meter and certificate histories intelligible. LEG 3 — PRIVACY. The schema's general reason covers concessions, reserves, coordinates and critical infrastructure. This row adds a distinct joined exposure: high-resolution generation and availability traces disclose operating state and outage timing, while PPA/tariff terms, incentive claims, certificate transfers and payment statements expose commercial position. Meter photos and portal exports can also expose serials, account references and access information. The value remains potentially_sensitive and no handling class is assigned.",
+    "charge_answered": "The strongest refusal charge is serious: the resource_operations anchor already names generation assets, export intervals, availability, curtailment and energy units, and its work_types include generation returns and dispatch logs. If this row merely meant technology = solar/wind, it would be a value and must be refused. It survives only because the bottom-up files form a recurring installation-period packet that the default does not project: commissioning establishes the operational baseline; interval generation/export establishes actual output; availability, curtailment and downtime explain loss; and the same measured output feeds a settlement, incentive claim or renewable certificate register. That packet has different collisions and a shallower asset/period projection than mining, farming, forestry, fisheries, oil-and-gas and utility-supplier operations on the same schema. Refusal remains the correct R1c outcome if real corpora contain only generic meter exports and isolated invoices, with no repeated installation-period relation. The fallback is the resource_operations schema default plus engineering.commissioning-handover, resource_operations.grid-connection, finance.small-business-bookkeeping and the named residuals; no coverage depends on keeping this row.",
+    "provenance": "inference"
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a generation-series export whose labelled columns join one generating-station or plant identifier, one or more unit/inverter/turbine identifiers, interval timestamps, generated energy or power values, units, and data-quality or substitution flags; an unlabelled time series or the word generation alone is insufficient",
+      "an export-settlement series that joins a generation or export meter point, opening/closing or interval readings, import/export direction, output period, units, adjustments or losses, and a settled quantity; money is supporting evidence only when the measured-output chain is present",
+      "a renewable-plant performance report that joins actual generation to expected or budgeted generation, resource or weather observations, plant availability, curtailment, downtime causes, lost-production estimates and corrective actions for the same installation and period",
+      "an intermittent-generator SCADA availability export whose rows identify the generator and dispatch interval and whose fields distinguish local limit, turbines or inverters available, availability value and quality flag; SCADA vocabulary without plant and interval roles is insufficient",
+      "a certificate or incentive output submission that joins an accredited installation or station reference, generation technology, output period, generation/export meter identifiers, readings or gross/net output, and claimed certificate or payment quantity",
+      "a renewable-certificate register whose rows join generating station, output period, measured renewable generation, certificate identifier/status and transfer, redemption or retirement event; a certificate identifier alone proves nothing",
+      "a commissioning-to-operation baseline record that joins a permanently installed generator and meter identity, commissioned capacity, witnessed test or acceptance results, initial readings and the baseline against which later operating performance will be evaluated; without later-operation or baseline evidence it remains engineering.commissioning-handover",
+      "a meter-reading photograph only when OCR-visible meter identity, reading and unit are joined by the file's own submission record to a named installation and output period; the image or absent EXIF never activates alone",
+      "an operations performance pack whose index or manifest co-locates generation, export, availability, curtailment, downtime, meter-verification and settlement/certificate members for one installation and period; the manifest is read without unpacking and cannot copy a period or site fact to every member",
+      "an email or portal receipt that repeats an exact installation/meter reference, output period and submitted reading or claim identifier already visible in the message or attachment metadata; sender, portal branding and attachment adjacency alone are insufficient"
+    ],
+    "needs_llm": [
+      "whether a workbook comparing expected and actual energy is a renewable-plant performance record, a building energy audit, a business forecast, an engineering acceptance test or a classroom exercise when role labels are weak",
+      "whether a meter statement is the generator's output-and-payment reconciliation, the utility supplier's customer bill, a finance account record, or merely public market data",
+      "whether commissioning results establish only transfer of an installed system or also establish the operating baseline used by later generation and performance records",
+      "whether curtailment and outage rows describe the generator's actual operation, a network connection-compliance test, an energy-market publication or a cited benchmark",
+      "whether an incentive claim is the generator's evidence of output or the government/funder's programme-administration case when identical submitted bytes are held on both sides",
+      "whether a renewable certificate spreadsheet is the generator's issuance/transfer register, a supplier's procurement ledger, a public disclosure dataset or an explanatory example",
+      "whether a PPA settlement workbook is governed by measured generation, by an issued-invoice/accounting structure, or by a forward-looking revenue model; the model must cite the governing row/slot relation or abstain",
+      "whether OCR-poor meter photographs and scanned forms refer to the same physical meter and period; visual resemblance or a neighbouring filename cannot supply the join",
+      "whether a mixed archive contains one installation-period packet or several installations and periods that must not donate facts to one another",
+      "multilingual generation, metering, certificate or incentive forms outside the locally available role and scheme vocabulary"
+    ],
+    "never_alone": [
+      "the words renewable, solar, photovoltaic, PV, wind, hydro, biomass, generation, green energy, export, inverter, turbine, performance or revenue alone",
+      "a technology, fuel/source or commodity name alone; solar and wind appear in design studies, investment cases, policy reports, research papers and product literature",
+      "an installation, site, generator, inverter, turbine, meter, MPAN or other asset-shaped identifier outside a labelled role slot",
+      "a quantity of kW, kWh, MWh, availability, performance ratio, capacity factor, tariff, price or currency alone; the same values appear in forecasts, invoices, audits, designs and public statistics",
+      "a chart or time series alone; consumption, weather, prices, laboratory results and machine telemetry have the same visual shape",
+      "a commissioning certificate, grid-connection offer, export permission or energisation email alone; those are engineering or connection records until operating-output evidence is present",
+      "an invoice, credit note, payment advice, certificate or claim word alone; finance, government and nonprofit workflows use all of them",
+      "a regulator, network operator, utility, certificate registry, installer, PPA buyer or scheme name alone; it may be issuer, counterparty, cited authority or software producer",
+      "a source_type or extension alone, including CSV, XLSX, PDF, image, email, archive or a proprietary SCADA export",
+      "a parent folder named Solar, Wind Farm, Renewables, Generation, Performance, SCADA, Metering, PPA, FIT, ROC, REC or REGO alone",
+      "membership in one portal export, download session or email thread alone; a session is never proof of topic and cannot copy an installation or period to members",
+      "a filename year, month or quarter alone as the period the measurements are about",
+      "the absence of EXIF as proof that an image is a meter screenshot, or the presence of camera EXIF as proof that a meter photograph belongs to an operating record",
+      "a file that merely compares actual with forecast; the comparison needs a renewable installation and measured-output roles, not just variance columns"
+    ]
+  },
+  "proposed_context_terms": [
+    "gross generation",
+    "net generation",
+    "export meter",
+    "generation meter",
+    "output period",
+    "meter verification",
+    "actual generation",
+    "expected generation",
+    "plant availability",
+    "turbines available",
+    "inverters available",
+    "local limit",
+    "curtailment",
+    "lost production",
+    "settled export",
+    "generation payment",
+    "renewable certificate",
+    "certificate transfer",
+    "accredited station",
+    "commissioned capacity"
+  ],
+  "work_types": [
+    "commissioning and operational-baseline report",
+    "generation meter reading or verification submission",
+    "interval generation or export data",
+    "SCADA availability and local-limit export",
+    "daily, monthly or annual generation report",
+    "performance ratio, availability or loss report",
+    "curtailment, outage or lost-production log",
+    "PPA or export settlement statement",
+    "feed-in tariff or incentive output claim",
+    "renewable certificate issuance, transfer or retirement register",
+    "meter photograph and submission receipt",
+    "operator performance review or variance commentary",
+    "generation and revenue reconciliation",
+    "portal output-data export or acknowledgement"
+  ],
+  "grouping_reasons": [
+    "one generating installation across commissioned baseline, generation/export meters, plant performance, incentive claims, certificate registers and settlements",
+    "one exact meter or generator-unit identity across readings, verification photos, quality exceptions and payment/certificate calculations",
+    "one output period across generation, export, availability, curtailment, settlement and certificate evidence, without copying the period to sparse members",
+    "one claim or certificate batch reference across submitted readings, acknowledgement, exception correspondence and issued certificates",
+    "one downtime or curtailment event across SCADA rows, operator note, lost-production calculation and corrective work order; the work order keeps its own manufacturing/maintenance meaning",
+    "a sparse email, meter image or portal receipt may join an accepted installation-period group without receiving site, asset or period facts from its neighbours"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding placeholder contract: resource_operations declares no fields, so this template may serialize no destination dimensions. Subject to R1c licensing the anchor's proposals, the researched recommendation is site -> asset -> reporting_period -> record_type, flattened to site -> reporting_period -> record_type where one small installation has no useful asset subdivision. This deliberately differs from the schema default's site -> operating_authority -> output_stream -> reporting_period -> record_type: renewable generation ordinarily has one electricity output stream and one continuing authority per installation, so output_stream and operating_authority would create one-child levels; turbine, inverter, generator or meter identity plus the measured period makes the records intelligible. Quantities, prices, tariffs, certificate counts, meter serials and performance values remain content/search evidence, never folder levels. It is not time-first because leading with year or month scatters one installation's commissioning, meter, certificate and settlement history. The user may reverse, remove, add or flatten any later recommendation.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PV-17_Commissioning-and-Performance-Test.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "installed array, inverter and revenue-meter identities are labelled",
+        "witnessed test rows compare expected and recorded values and carry acceptance signatures",
+        "a later section states the initial meter reading and baseline used for post-acceptance performance review"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "resource_operations fields before R1c licenses them",
+        "that witnessed commissioning proves later generation or payment",
+        "that the installation was legally accepted or remains compliant",
+        "a folder path"
+      ],
+      "also_schema": "engineering when the requirement, installed-instance and acceptance-transfer structure is independently present",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PV-17_Generation_2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "headers identify generating station, inverter, interval start and interval end",
+        "columns distinguish generated energy, exported energy, units and substituted-data flag",
+        "no tariff, invoice total or customer consumption block is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a reporting period from the filename alone",
+        "site or asset facts from an adjacent statement",
+        "that every interval is validated or billable",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PV-17_Export-Meter_Statement_June-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "generator/payee and supplier or offtaker occupy separately labelled role blocks",
+        "generation and export meter references, opening/closing readings and units are tabulated",
+        "the settled export quantity is joined to a tariff and payment amount"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a customer utility bill is generator-side evidence",
+        "that the amount was paid or the readings were accepted",
+        "a finance institution or account fact without Finance evidence",
+        "a folder path"
+      ],
+      "also_schema": "finance when the statement independently carries a Finance account or payment record structure",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PV-17_Performance-and-Revenue_June-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "Actual Output sheet joins interval generation, export, availability and curtailment for PV-17",
+        "Revenue Reconciliation sheet joins settled exported quantity to tariff and adjustments",
+        "Forecast sheet contains expected generation and revenue with a variance commentary column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that forecast values are actual generation",
+        "that a variance grid alone activates this template",
+        "that workbook membership copies one sheet's role to every sheet",
+        "a folder path"
+      ],
+      "also_schema": "business_operations where a forward-looking budget/forecast round is independently structured",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PV-17_Incentive-Claim_Q2-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "applicant/generator block and programme administrator/addressee block are distinct",
+        "accredited station and meter references are repeated beside opening/closing readings and claimed output",
+        "declaration and submission receipt carry the same claim reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the claim was eligible, accepted or paid",
+        "government-side custody from a logo or addressee alone",
+        "resource fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "government when authority-side receipt, review or payment-administration evidence is independently present",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "REGO_Output-and-Certificate_Register_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows identify generating station, output period and gross renewable generation",
+        "certificate identifiers and statuses are joined to issued quantity",
+        "transfer and retirement columns identify later certificate events"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a certificate identifier proves ownership, validity or environmental claim",
+        "that a public certificate list is the operator's own register",
+        "that all rows describe one installation or period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "WindFarm-WF02_SCADA_Availability_2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "generator identifier and dispatch interval appear on every row",
+        "fields distinguish local limit, turbines available and data-quality flag",
+        "no design requirement, invoice or network-offer structure is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "actual generated energy from availability alone",
+        "cause of unavailability from a missing turbine count",
+        "that the public data publisher operates the plant",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Meter-MP-7812_Reading_2026-06-30.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF records capture time but does not identify the installation",
+        "OCR sees meter reference MP-7812, reading digits and kWh unit",
+        "no output period, submission reference or generator identity is visible in the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a generation meter rather than import, export or consumption meter",
+        "site, output period or claim from a neighbouring form",
+        "that EXIF proves the operational purpose of the photograph",
+        "a folder path"
+      ],
+      "also_schema": "photos on independently supported capture facts",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Inverter-04_Cleaning-Work-Order.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION/FALSE-POSITIVE FIXTURE: asset tag, fault/soiling note, assigned technician, parts and labour rows",
+        "completion and returned-to-service status are signed",
+        "no generation period, interval readings, loss reconciliation, tariff or certificate consequence is present"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a renewable asset name activates this row",
+        "generation or performance facts from a maintenance action",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Solar-Farm-Investment-Case.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "COLLISION/FALSE-POSITIVE FIXTURE: proposed capacity, scenario assumptions, forecast generation and forecast revenue",
+        "slides carry approval ask, funding requirement and sensitivity cases",
+        "no commissioned installation, actual meter series or operating period exists"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that forecast output is operating generation",
+        "that renewable vocabulary activates this row",
+        "a folder path"
+      ],
+      "also_schema": "business_operations when an investment/approval structure is independently present",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Grid-Connection-Offer_PV-17.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION/FALSE-POSITIVE FIXTURE: network operator and applicant role blocks",
+        "connection point, export capacity, technical conditions and offer acceptance slots",
+        "no actual generation/export reading, availability series or settlement period"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that export permission proves the installation generated or earned anything",
+        "that an accepted offer proves energisation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PV-17_PPA-Settlement-Invoice_June-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "invoice identifier, seller/buyer blocks, line item, payment terms and amount due",
+        "annex joins the line item to export meter, output period, settled quantity and tariff",
+        "bank details are present and require protected handling"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the invoice was paid",
+        "that the metered quantity is validated",
+        "that invoice structure alone activates renewable generation",
+        "a folder path"
+      ],
+      "also_schema": "finance where issued-invoice and account/payment evidence independently activate it",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Renewable-Generation-Packet_2026-06.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists commissioning baseline, generation CSV, meter photo, incentive claim, certificate register and settlement statement",
+        "member paths contain two meter identifiers and two output periods",
+        "archive is inspected by manifest without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "one installation or one period for every member",
+        "facts from member names without inspecting member evidence",
+        "that the archive may be unpacked or uploaded",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "PV-17 meter-reading reminder.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary asks the user to submit a meter reading",
+        "date and reminder recurrence are structured calendar fields",
+        "no reading, meter identity, output period or submission result is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a reading was taken or submitted",
+        "that calendar source_type is a renewable domain",
+        "installation identity from event title alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "Direction one — renewable-generation owns the post-acceptance operational baseline, initial generation/export meter reading and recurring performance comparison for the installed generator. Direction two — engineering.commissioning-handover owns the witnessed requirement-versus-result tests, installed-instance reconciliation, acceptance signatures and transfer act. Same fixture bytes: `PV-17_Commissioning-and-Performance-Test.pdf`. On those same bytes, the baseline and later-operating section is this row's evidence; the witnessed acceptance-and-transfer section is the neighbour's evidence. Commissioning vocabulary or a pass/fail grid cannot count for both, and a test with no operating baseline stays with engineering.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.grid-connection",
+      "signal": "Direction one — renewable-generation owns actual generated/exported energy, availability, curtailment and settlement consequences after operation begins. Direction two — grid-connection owns the network application/offer, connection point, export limit, protection settings, energisation evidence and continuing compliance with network terms. Same fixture bytes: `PV-17_Export-and-Curtailment_June-2026.csv`. On those same bytes, interval generated/exported quantities and plant-loss fields support this row; a network-issued limit, connection reference and compliance-event fields support the neighbour. Export vocabulary alone is allocated to neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.utility-metering-billing",
+      "signal": "Direction one — renewable-generation owns the generator/payee side where generation and export readings are reconciled to output and earnings for one installation. Direction two — utility-metering-billing owns the supplier side where a standing service account, customer consumption, tariff and billed amount are calculated. Same fixture bytes: `PV-17_Export-Meter_Statement_June-2026.pdf`. On those same bytes, generator/payee role plus generation/export readings supports this row; customer/service-account role plus consumption and amount-due supports the neighbour. A meter reference, tariff or payment amount decides neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.energy-audit",
+      "signal": "Direction one — renewable-generation owns actual plant output, export, availability, curtailment, lost production and the revenue/certificate consequence for a generating installation. Direction two — manufacturing.energy-audit owns consumption profiling, efficiency measures, baseline-to-savings calculations and recommendations for a consuming facility. Same fixture bytes: `PV-17_Performance-and-Revenue_June-2026.xlsx`. On those same bytes, Actual Output and Revenue Reconciliation sheets support this row; a Consumption Baseline and Measures sheet would support the neighbour. An actual-versus-expected chart or energy unit alone counts for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "Direction one — renewable-generation owns the generator-side submission that joins its accredited installation, meter readings, output period and claimed generation/payment quantity. Direction two — government.grant-programme-administration owns the awarding body's receipt, assessment, exception, approval and payment administration across many recipients. Same fixture bytes: `PV-17_Incentive-Claim_Q2-2026.pdf`. On those same bytes, applicant/generator declaration and measured-output annex support this row; authority-side review/status and inbound programme workflow support the neighbour. Scheme branding, an addressee or claim vocabulary alone settles neither custody role.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "Direction one — renewable-generation owns measured actual generation/export, operational availability/curtailment and settled revenue for a commissioned installation. Direction two — business_operations.budget-forecast owns forward-looking assumptions, scenario cases, approval rounds and plan-versus-actual variance for an organisational unit. Same fixture bytes: `PV-17_Performance-and-Revenue_June-2026.xlsx`. On those same bytes, the Actual Output and Revenue Reconciliation sheets support this row; the Forecast and approval/variance structure supports the neighbour. Renewable vocabulary, currency and variance columns cannot turn forecast into output or output into a budget.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Direction one — renewable-generation owns the annex that traces one installation's export meter readings and output period into a settled generation quantity and tariff consequence. Direction two — finance.small-business-bookkeeping owns the issued-invoice structure: issuer and Bill To roles, invoice identifier, line items, payment terms, amount due and payment/account details. Same fixture bytes: `PV-17_PPA-Settlement-Invoice_June-2026.pdf`. On those same bytes, the metered-output annex supports this row; the invoice face supports the neighbour and triggers Finance protection. Neither side may consume the other's evidence, and payment is never inferred from issuance.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A lone commissioning certificate, output statement, incentive acknowledgement or certificate notice with durable meaning but no reliably evidenced installation-period packet remains a standalone record rather than activating from renewable vocabulary.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a time series, performance workbook, meter statement or mixed archive is readable but its operator, actual-versus-forecast status, custody side or connection to a commissioned installation cannot be established from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Unreadable SCADA containers, protected portal exports, proprietary monitoring databases and encrypted generation packets remain metadata-only; a plant-shaped filename cannot manufacture purpose.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A meter, inverter or turbine photograph with no independently evidenced installation, reading role or accepted operating group is an unassociated image; camera metadata cannot supply its operational purpose.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "PPA settlements, incentive claims, bank-bearing invoices, portal exports and meter images containing account references or access information should remain local and redacted when no safe accepted group exists.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Renewable-generation packets combine operational and commercial exposures. Interval generation, inverter/turbine availability, local limits, curtailment and outage timing can reveal the live state and weaknesses of a physical installation. Meter serials, service-point references, site coordinates and photographs can identify infrastructure. PPA tariffs, forecast-versus-actual performance, incentive claims, certificate inventories, bank details and settlement amounts expose commercial position and account data. Recognition should prefer labelled headers, bounded excerpts and manifests; credential- or bank-bearing members should remain local and redacted. This is a template posture only: no P7 handling class is authored, and public market data does not lower the posture of private members grouped beside it.",
+  "open_question": "NEEDS-JOSEPH NJ-REN-1 — NODE OR DEFAULT VALUE: the resource_operations anchor already names generation/dispatch records. Keep this row only if the installation-period generation -> availability/loss -> payment/certificate packet and its shallower asset/period projection merit a reusable template; otherwise refuse it into the schema default and neighbours. NJ-REN-2 — EARNINGS BOUNDARY: should a settlement or incentive claim with a metered-output annex select this template, finance.small-business-bookkeeping, or both applicability sources at P10? The current row preserves both evidence sets and leaves template coactivation to R1c. NJ-REN-3 — COMMISSIONING CUTOVER: does an operational-baseline section inside a commissioning report make renewable-generation applicable before the first recurring generation period exists, or does engineering.commissioning-handover keep the whole file until post-acceptance data arrives? NJ-REN-4 — CERTIFICATE/INCENTIVE DEPTH: should certificate scheme or programme be a folder dimension? This row recommends no new field; R1c should keep it as record_type/work-type value unless several schemas justify a global role-safe key. NJ-REN-5 — GRANULARITY: asset-first helps multi-turbine/inverter plants but can create many tiny folders; decide whether asset is default, optional, or flattened unless the corpus demonstrates repeated per-asset records."
+}
