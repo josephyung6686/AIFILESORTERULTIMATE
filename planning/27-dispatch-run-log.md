@@ -1280,3 +1280,19 @@ Accepted (practitioner non-court submission cycle). Pair committed.
 ### Landed — retail_hospitality.food-safety
 
 Accepted (statutory diary pack). Pair committed.
+
+### Landed — nonprofit.trade-union
+
+Accepted (employer-facing union work). Pair committed.
+
+### Landed — retail_hospitality.store-operations
+
+Accepted narrowly (site operating day). Pair committed.
+
+### Landed — retail_hospitality.premises-licensing
+
+Accepted (operator permission-to-trade custody). Pair committed.
+
+### Landed — law_practice.legal-research
+
+Refused (schema work-product / work_type duplicate). Pair committed.

@@ -183,7 +183,7 @@ law_practice.hearing-transcripts | OTHER-TEAM | active
 law_practice.immigration-casework | OTHER-TEAM | active
 law_practice.investigation | OTHER-TEAM | complete
 law_practice.ip-prosecution | OTHER-TEAM | active
-law_practice.legal-research | OTHER-TEAM | active
+law_practice.legal-research | OTHER-TEAM | complete
 law_practice.matter-correspondence | OTHER-TEAM | active
 law_practice.motions-and-briefs | OTHER-TEAM | active
 law_practice.opinions-advice | OTHER-TEAM | active
@@ -230,7 +230,7 @@ nonprofit.member-association | OTHER-TEAM | active
 nonprofit.political-campaign | OTHER-TEAM | active
 nonprofit.religious-institution | OTHER-TEAM | active
 nonprofit.standards-body | OTHER-TEAM | active
-nonprofit.trade-union | OTHER-TEAM | active
+nonprofit.trade-union | OTHER-TEAM | complete
 nonprofit.volunteer-management | OTHER-TEAM | active
 retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active
@@ -240,11 +240,11 @@ retail_hospitality.food-safety | OTHER-TEAM | complete
 retail_hospitality.guest-feedback | OTHER-TEAM | active
 retail_hospitality.menu-recipe-costing | OTHER-TEAM | active
 retail_hospitality.pos-reporting | OTHER-TEAM | active
-retail_hospitality.premises-licensing | OTHER-TEAM | active
+retail_hospitality.premises-licensing | OTHER-TEAM | complete
 retail_hospitality.product-catalogue | OTHER-TEAM | active
 retail_hospitality.returns-warranty | OTHER-TEAM | active
 retail_hospitality.stocktake | OTHER-TEAM | active
-retail_hospitality.store-operations | OTHER-TEAM | active
+retail_hospitality.store-operations | OTHER-TEAM | complete
 retail_hospitality.supplier-order | OTHER-TEAM | active
 
 ## Handover — OTHER-TEAM releases 8 ids to CODEX, 2026-08-27
@@ -339,18 +339,18 @@ law_practice.contract-negotiation | OTHER-TEAM | complete
 law_practice.due-diligence | OTHER-TEAM | complete
 law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.investigation | OTHER-TEAM | complete
-law_practice.legal-research | OTHER-TEAM | active
+law_practice.legal-research | OTHER-TEAM | complete
 law_practice.regulatory-submission | OTHER-TEAM | complete
 law_practice.settlement | OTHER-TEAM | complete
 manufacturing.energy-audit | OTHER-TEAM | complete
 nonprofit.advocacy-campaign | OTHER-TEAM | active
 nonprofit.grant-reporting | OTHER-TEAM | complete
-nonprofit.trade-union | OTHER-TEAM | active
+nonprofit.trade-union | OTHER-TEAM | complete
 retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active
 retail_hospitality.food-safety | OTHER-TEAM | complete
-retail_hospitality.premises-licensing | OTHER-TEAM | active
-retail_hospitality.store-operations | OTHER-TEAM | active
+retail_hospitality.premises-licensing | OTHER-TEAM | complete
+retail_hospitality.store-operations | OTHER-TEAM | complete
 
 ⚠ Two are JSON-only partials from stopped agents: `law_practice.estates-administration` (landed
 JSON, refuse=false, no memo) and `nonprofit.advocacy-campaign` (landed refusal JSON, no memo).
