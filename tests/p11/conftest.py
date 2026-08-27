@@ -10,6 +10,8 @@ from eval_harness.store import create_eval_schema
 from facts.fields import create_fields
 from grouping.schema import create_grouping_schema
 
+from privacy.schema import create_privacy_schema
+
 from placement.schema import create_placement_schema
 
 FIXED_CLOCK = "2026-08-27T00:00:00Z"
@@ -29,6 +31,11 @@ def p11_conn(conn):
     # nothing about which fields may build a folder. `create_fields` is P6's
     # only writer of this table and is idempotent.
     create_fields(conn)
+    # P7's tables, for the same reason as P9's: §8.4's gate is a real read of
+    # `classifications` and `policies`, and `privacy_state_for` blocking because a
+    # table is missing would prove nothing about blocking because a file is
+    # unclassified.
+    create_privacy_schema(conn)
     create_placement_schema(conn)
     return conn
 

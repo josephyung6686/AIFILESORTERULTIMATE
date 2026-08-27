@@ -44,7 +44,7 @@ def _decision(**overrides) -> PlacementDecision:
         group_support=None, graph_anchors=(), conflicts_considered=(),
         alternatives=(), two_condition=_two_condition(),
         abstention_reason=None, deferred_stage=None,
-        privacy=PrivacyState(handling_class="personal_non_sensitive",
+        privacy=PrivacyState(handling_class="personal_non_sensitive", protected=False,
                              model_eligibility=v.DOSSIER_PERMITTED,
                              consent_audit_ref=None),
         review_policy=v.AUTO_ELIGIBLE,

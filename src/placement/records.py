@@ -287,13 +287,29 @@ class TwoCondition:
 
 @dataclass(frozen=True)
 class PrivacyState:
+    """P7's answer, carried. `protected` is a FIELD and not an inference.
+
+    §8.4 Open question 1 leaves the relation between the flag and the five
+    handling classes unsettled and states that neighbouring parts consume the flag
+    rather than infer it from the class. A record that carried only the class
+    would leave every consumer no way to obey that, so the flag travels with it --
+    which is also what keeps a protected container marked rather than quietly
+    re-derived as ordinary further down the pipeline.
+    """
+
     handling_class: str
+    protected: bool
     model_eligibility: str
     consent_audit_ref: int | None
 
     def __post_init__(self) -> None:
         check(self.handling_class, CLASSES, name="handling_class")
         check(self.model_eligibility, MODEL_ELIGIBILITY, name="model_eligibility")
+        if not isinstance(self.protected, bool):
+            raise MalformedPlacementRecord(
+                "`protected` is P7's flag and is a boolean; a null here would be "
+                "read as `false` by every consumer that tests it"
+            )
 
 
 @dataclass(frozen=True)

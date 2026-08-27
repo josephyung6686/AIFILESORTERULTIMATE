@@ -9,10 +9,13 @@ import json
 
 from database_agent.files_table import get_file, record_file
 from privacy import moves as p7_moves
-from privacy.classification import ClassificationRecord
-from privacy.classification_store import ClassificationStore
+from privacy.moves import UNREADABLE_UNCLASSIFIED
+from privacy.classification import ClassificationRecord, observation_key
+from privacy.classification_store import (
+    ClassificationStore, GateOutcomeNotAFileFact,
+)
 from privacy.denial import mode_forbids
-from privacy.policy import Policy, set_policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import DISPLAY_FACETS, OutOfVocabulary
 
 from placement import vocabulary as v
@@ -24,20 +27,28 @@ from placement.records import GroupSupport, TwoCondition
 
 T0 = "2026-08-27T00:00:00Z"
 
+#: A real P4 content-addressed key. `"obs-1"` is rejected by shape: P7 refuses a
+#: per-row observation id, so a fixture that used one would prove the classification
+#: is evidence-backed against a store that never accepted it (M14).
+OBS = observation_key(content_hash="h1", extractor_name="fixture",
+                      locator="page-1", raw_value="fixture value")
+
 
 def _classify(conn, *, file_id="f1", handling_class="personal_non_sensitive",
               protected=False):
     ClassificationStore(conn).write(ClassificationRecord(
         file_id=file_id, content_hash="h1", handling_class=handling_class,
-        protected=protected, basis="detector", evidence_refs=("obs-1",),
+        protected=protected, basis="detector", evidence_refs=(OBS,),
         reliability_state="direct", observed_at=T0))
 
 
 def _policy(conn, *, mode="hybrid", permissions=None):
     # `set_policy` takes no `author`: M8 makes the acting part the author. It
     # does take `reason`, because §8.8 requires a meaningful policy diff line.
+    # `set_policy` refuses a caller-supplied version: the gate mints it and the
+    # caller echoes it back (SPEC §6). `UNSET_POLICY_VERSION` is the sentinel.
     set_policy(conn, Policy(
-        policy_version="pol-1", operation_mode=mode, consent_grants=(),
+        policy_version=UNSET_POLICY_VERSION, operation_mode=mode, consent_grants=(),
         redaction_settings={}, automatic_move_permissions=permissions or {},
         plan_version="plan-1", set_at=T0,
     ), component_version="P7-test", user_id="u1",
@@ -132,12 +143,16 @@ def test_a_non_sensitive_file_in_hybrid_mode_may_reach_a_dossier(p11_conn):
     assert may_assemble_dossier(state) is True
 
 
-def test_an_unclassifiable_file_never_reaches_a_cloud_dossier(p11_conn):
-    # P7's `unclassified_denies` answers True for `cloud` whatever Open question 5
-    # is decided to be, so P11 can hold this line without answering it.
-    _classify(p11_conn, handling_class="unreadable_unclassified")
+def test_unclassified_arrives_only_as_absence_so_the_carry_has_one_path(p11_conn):
+    # P7 REFUSES to store `unreadable_unclassified`: it is a gate outcome, and the
+    # absence of a record already says nothing has looked (D2). So a P11 branch
+    # reading `record.handling_class == UNREADABLE_UNCLASSIFIED` could never fire,
+    # and blocking on absence is not one of two paths -- it is the only one.
     _policy(p11_conn)
-    assert _state(p11_conn).model_eligibility == v.LOCAL_ONLY
+    with pytest.raises(GateOutcomeNotAFileFact):
+        _classify(p11_conn, handling_class=UNREADABLE_UNCLASSIFIED)
+    with pytest.raises(ClassificationRequired):
+        _state(p11_conn)
 
 
 def test_a_handling_class_can_never_be_a_redaction_setting_key(p11_conn):
@@ -161,7 +176,7 @@ def test_the_move_permission_is_p7s_live_predicate(p11_conn, tmp_path):
     ClassificationStore(p11_conn).write(ClassificationRecord(
         file_id=file_id, content_hash=content_hash,
         handling_class="sensitive_personal", protected=True, basis="detector",
-        evidence_refs=("obs-1",), reliability_state="direct", observed_at=T0))
+        evidence_refs=(OBS,), reliability_state="direct", observed_at=T0))
     _policy(p11_conn)
     assert automatic_move_permitted_for(
         p11_conn, file_id=file_id, plan_version="plan-1") is False
@@ -174,7 +189,7 @@ def test_the_permission_is_keyed_on_the_file_id_p7_keys_it_on(p11_conn, tmp_path
     ClassificationStore(p11_conn).write(ClassificationRecord(
         file_id=file_id, content_hash=content_hash,
         handling_class="sensitive_personal", protected=True, basis="detector",
-        evidence_refs=("obs-1",), reliability_state="direct", observed_at=T0))
+        evidence_refs=(OBS,), reliability_state="direct", observed_at=T0))
     _policy(p11_conn, permissions={"sensitive_personal": True})
     assert automatic_move_permitted_for(
         p11_conn, file_id=file_id, plan_version="plan-1") is False
@@ -228,6 +243,18 @@ def test_a_context_supported_verdict_always_requires_review(p11_conn):
         group_support=None, unique_direct_match=False) == v.REVIEW_REQUIRED
 
 
+def test_a_verdict_requiring_review_is_the_only_thing_that_need_forbid_auto(p11_conn):
+    # Every other gate is deliberately left open here. Sharing a test with the
+    # non-unique-match case would let either check be deleted with the suite
+    # staying green, which is a guard that cannot fail.
+    _classify(p11_conn)
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn),
+        two_condition=_two_condition(requires_review=True),
+        group_support=None, unique_direct_match=True) == v.REVIEW_REQUIRED
+
+
 def test_a_user_attached_membership_never_reaches_auto_eligible(p11_conn):
     _classify(p11_conn)
     _policy(p11_conn)
@@ -243,6 +270,17 @@ def test_a_decision_that_is_not_a_unique_direct_match_requires_review(p11_conn):
     assert review_policy_for(
         privacy_state=_state(p11_conn), two_condition=_two_condition(),
         group_support=None, unique_direct_match=False) == v.REVIEW_REQUIRED
+
+
+def test_a_null_protected_flag_is_refused_rather_than_read_as_false(p11_conn):
+    # The whole reason the flag is carried is that consumers must not infer it.
+    # A `None` reaching a consumer that tests it truthily reads as "not protected",
+    # which is the silent downgrade this record exists to prevent.
+    from placement.records import MalformedPlacementRecord, PrivacyState
+
+    with pytest.raises(MalformedPlacementRecord):
+        PrivacyState(handling_class="sensitive_personal", protected=None,
+                     model_eligibility=v.LOCAL_ONLY, consent_audit_ref=None)
 
 
 def test_the_unclassified_answer_is_blocked_and_not_a_quiet_review(p11_conn):

@@ -62,7 +62,7 @@ def test_every_record_field_survives_the_round_trip(p11_conn):
             suppressed_node_ids=("n2",), evidence_ref="obs-2"),),
         alternatives=(Alternative(node_id="n2", support_score=0.4, rank=1),),
         review_policy=v.REVIEW_REQUIRED,
-        privacy=PrivacyState(handling_class="personal_non_sensitive",
+        privacy=PrivacyState(handling_class="personal_non_sensitive", protected=False,
                              model_eligibility=v.LOCAL_ONLY, consent_audit_ref=7))
     _write(p11_conn, original)
     restored = current_decision(p11_conn, plan_version="plan-1",
