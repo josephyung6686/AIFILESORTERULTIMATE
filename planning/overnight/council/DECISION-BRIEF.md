@@ -830,3 +830,81 @@ present them as finished until they have been deepened.
 
 **What does not change.** The roster stays at 358 rows; J-IND's triage of the 574 stands, including
 its folds and documented drops. Refusals stand and remain R1c's to adjudicate. D1–D6 are untouched.
+
+---
+
+## RATIFIED — Joseph, 2026-08-27 (post-audit rulings, J-WIDE)
+
+Four decisions taken after the full-corpus audit of the closed 358-row catalogue
+(`planning/27-dispatch-run-log.md`, audit section). Each was put to Joseph as a plain-language
+fork with the consequences stated; these are his answers.
+
+### J-WIDE-1 — **PR-6 is overruled for the thirteen. The product widens to all 23 schemas.**
+
+**This reverses the field freeze**, not the roster. J-IND/PR-6 and D1's deferral held that the
+thirteen professional-world schemas are placeholders that **declare no fields** and therefore build
+no folders. Joseph has ruled the opposite: **all 23 roster schemas become real, field-declaring
+schemas**, so the thirteen can produce folder trees.
+
+The thirteen: `business_operations`, `clinical_practice`, `construction_property`, `creative`,
+`engineering`, `government`, `hr`, `law_practice`, `logistics`, `manufacturing`, `nonprofit`,
+`resource_operations`, `retail_hospitality`.
+
+**Why it was put to him.** `src/facts/domains.py`:52 recognises 10 schema ids; the roster declares
+23; **262 of 335 template rows (78%) point at the thirteen**. The audit found nothing anywhere
+recording what the future compiler should do with them, and no test that would catch it. The
+north-star lane found the consequence: **298 of 358 rows cannot build a folder**, and where two rows
+collide and only one side has fields, *the side with a tree wins regardless of the signal* — a
+builder's job-site photo files next to his kids' birthday photos.
+
+**What this does NOT change.** `00`'s cap stands — **three to six fact fields per schema**, `00`:48.
+Canonical keys are reused, never re-spelled; a genuinely new key is added to `canonical_fields.json`
+once, by decision, not minted per schema. `00`'s warning against "prematurely hand-authoring hundreds
+of specialized schemas" still governs: this widens 13 schemas, it does not licence new rows. The
+roster stays at 358. Refusals stand and remain R1c's. Medical's field-lessness is **untouched and out
+of scope** — it is a privacy design (condition and provider names would become visible folder
+labels), not a placeholder.
+
+**Sequencing implied by the audit:** `career` first (J-WIDE-2), then the four highest-volume of the
+thirteen — `creative` (42 rows), `law_practice` (37), `construction_property` (28), `manufacturing`
+(20) — which alone convert 127 recognise-only rows.
+
+### J-WIDE-2 — **Career ships BOTH orders and asks on first run.**
+
+`00`:52 names career a full-support launch domain and `00` gives two orders verbatim —
+*"a Career template may define company → role or recruiting cycle → document type"* — without
+choosing. `_CONTRACT` rule 10 says *"Career is owed before P10."* Today `career.recruiting.json` is
+`launch: "full"` with `dimension_order: []`, holding `00`'s recommendation as dead prose.
+
+**Ruling: build both templates and let the user choose during setup.** Neither is the default; the
+question is asked before the user has seen their own files.
+
+Recorded honestly: this is the option that does the most work and picks no default. The trade Joseph
+accepted is that job-hunting genuinely splits two ways — "my 2026 search" vs "everything about
+Stripe" — and company-first produces many two-file folders, the "many tiny folders" outcome `00`
+tells the canvas to warn about.
+
+### J-WIDE-3 — **A repository root is ATOMIC. The tree relocates it whole and never files inside it.**
+
+This answers `code.json`'s open question verbatim, which said the answer *"is Joseph's, not this
+node's"*. It aligns with `00`'s *"existing folder structures should mainly be preserved"* and its
+rejection of software-project descendants as destinations.
+
+**Consequence, stated plainly:** `artifact_type` is a real dimension **only for loose code with no
+root**, and is decorative for rooted projects — exactly as `code.json` predicted. The audit's
+value-list gap for `code` (missing `artifact_type` values for infrastructure definition, CI/CD
+pipeline, container/deployment manifest, database migration, API specification) therefore matters
+**only for loose files**. Fix it, but do not expect it to give rooted projects resolution — nothing
+will, and that is now the intended behaviour.
+
+### J-WIDE-4 — **The courier seam is group membership, not collision.**
+
+`logistics.route-dispatch` argued in writing that its seams with `logistics.shipment` and
+`logistics.last-mile-pod` are group membership rather than mutual exclusion — a day's run, a
+consignment and a single doorstep are three different join keys a user would feel. Both siblings
+authored `collides_with` edges into it anyway.
+
+**Ruling: route-dispatch is right.** The three coexist and may sit in one accepted group. **R1c must
+REMOVE the two competing `collides_with` claims** (`shipment` → `route-dispatch`,
+`last-mile-pod` → `route-dispatch`) rather than back-fill a reciprocal edge into route-dispatch.
+This is the audit's "adjudicate, do not back-fill" item, now adjudicated.
