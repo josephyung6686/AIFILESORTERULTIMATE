@@ -1,0 +1,608 @@
+{
+  "id": "law_practice.regulatory-submission",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Regulatory filings and submissions",
+  "one_line": "The practitioner-side SUBMISSION CYCLE to a non-court public authority conducted FOR a client: the outbound packet (forms, schedules, annexes, cover letter), the authority's acknowledgement or portal receipt, the information-request / deficiency / further-information cycle and the responses to it, and the determination, clearance, consent, licence, registration or refusal that closes the cycle - joined by an AUTHORITY-ALLOCATED SUBMISSION OR CASE REFERENCE standing in a labelled slot beside a PRACTITIONER MATTER OR ENGAGEMENT REFERENCE and an AUTHORISED-AGENT OR FILING-AGENT slot. That pairing is why this row is not the law_practice default with a narrower filename filter: the default's second leg requires labelled practitioner/client slots, and a regulator's own forms routinely carry applicant, regulated-entity and agent slots with NO client slot at all. It deliberately does NOT hold court or tribunal transmission (`law_practice.court-filing-record`), an entity's own compelled returns held in the entity's corpus (`business_operations.corporate-regulatory-filings`), IP-office prosecution that creates a transferable registered right (`law_practice.ip-prosecution`), the entity's continuous constitutional record (`law_practice.corporate-secretarial`), the authority's own case file (`government`), or the firm's own compliance policies about itself. Writes NO field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION AND INHERITANCE. These are template-activation signals on a fieldless schema, not licences to write facts. The `law_practice` default requires BOTH legs - an exact matter or engagement reference repeated across artefacts, AND at least one artefact whose labelled slots separate a practitioner or firm role from a CLIENT role. THIS TEMPLATE'S STRUCTURAL CLAIM IS THAT ITS CHARACTERISTIC AUTHORITY FORMS FAIL LEG (ii) AND STILL BELONG TO THE FAMILY: a regulator's acknowledgement, information request and determination carry applicant / regulated-entity / authorised-agent slots and routinely NO client slot, because the exchange runs between a filing agent and an authority. The substitute second leg is the next signal. Everything the schema strikes stays struck: a regulator name, a form number, the words filing, submission, compliance, clearance, licence, notification; a law-firm name; a document-type word beside either.",
+      "THE SUBSTITUTE SECOND LEG - A DUAL-REFERENCE PAIRING IN LABELLED SLOTS: an AUTHORITY-ALLOCATED SUBMISSION, APPLICATION, NOTIFICATION OR CASE REFERENCE standing in the authority's own labelled slot, TOGETHER WITH a PRACTITIONER MATTER OR ENGAGEMENT REFERENCE (and usually an AUTHORISED-AGENT, FILING-AGENT OR REPRESENTATIVE slot naming the holder's firm) on the same artefact or on an immediately adjacent cover sheet. Neither half fires alone: the authority reference alone sits on every public register extract and every downloadable decision anybody can save, and a matter reference alone is the schema's already-struck identifier. It is the PAIRING, across slots the authority or the agent labelled, that says a firm is acting of record for a client submission. Read through 00's direct-fact path, \"a labeled form field\", and weighted by position - \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\".",
+      "AN OUTBOUND SUBMISSION PACKET structure: a cover or transmittal whose labelled slots name the receiving authority, the submission type (notification, application, return, clearance request, licence application, merger filing, sector return filed for a client), the submitting entity or applicant, the authorised agent, and a checklist or index of enclosed schedules and annexes - often as an archive whose manifest, read WITHOUT unpacking, repeats one submission reference across members, because \"the normal scan should never extract archive contents to the filesystem\". The packet is this row's; any executed instrument inside it remains `legal`'s on `legal`'s own evidence.",
+      "AN AUTHORITY ACKNOWLEDGEMENT OR PORTAL RECEIPT structure: a machine-issued acknowledgement carrying a submission reference, a received or lodged moment, a form or return name, the submitting entity identifier, and often a filer-account or agent identity. This is the family's cleanest receipt signal and the one the schema default cannot see - there is no client slot. It is NOT court-filing-record's signal: there is no tribunal caption, no docket entry number assigned by a court clerk, and no recipient partition into parties who must be served.",
+      "AN INFORMATION-REQUEST / DEFICIENCY / FURTHER-INFORMATION structure: an authority communication whose body is a NUMBERED REQUEST OR DEFICIENCY SET, each item naming the schedule, annex or question it applies to, together with a STATED PERIOD FOR REPLY and a case officer or unit identity - and NO tribunal caption, NO adverse-party block and NO operative court order. The join between the request and the response is a REQUEST NUMBER or schedule reference, not a party name. A separate response document answering the items by number is part of the same structure.",
+      "A DETERMINATION, CLEARANCE, CONSENT, LICENCE, REGISTRATION OR REFUSAL structure: an authority letter or certificate whose labelled slots pair the submission reference with an OUTCOME word (cleared, consented, granted, refused, withdrawn, conditions attached), an effective or decision date, and often a conditions schedule. The product records the outcome as a literal observation and decides no legal effect, no condition compliance, no appeal status and no public-announcement readiness.",
+      "A CLIENT-REGULATORY OBLIGATIONS CALENDAR structure: a table whose rows are SUBMISSIONS OR RETURNS OWED FOR ONE OR MORE CLIENT ENTITIES - each row carrying a submission type, an authority, a due date, a responsible fee-earner and a status - joined by matter or client-entity references. This is what remains of the legacy `law.compliance-programme` absorption that survives the node test: a practitioner's monitor of CLIENT obligations, not the firm's own AML, CPD or professional-indemnity programme about itself. The portfolio-over-submissions shape separates it from the schema's limitation diary (rows are matters with procedural key dates) and from business_operations' filing calendar (rows are the entity's own returns in the entity's own corpus).",
+      "A FILED-BY-AGENT AUTHORISATION OR POWER structure: a form or letter whose labelled slots appoint the holder's firm as the client's authorised agent or filing representative for a named submission class, with a client signature block and a firm acceptance block. This is the engagement-side artefact that most cleanly supplies the missing client role when the authority forms themselves omit it.",
+      "AN EMAIL OR PORTAL MESSAGE whose labelled sender resolves to an authority or filing-portal domain and whose subject or body carries the exact submission reference already evidenced elsewhere, together with a recipient block naming the agent. An authority name or a no-reply shape alone never fires.",
+      "AN ARCHIVE OR REGULATORY-PORTAL EXPORT whose manifest, read WITHOUT unpacking, shows member paths repeatedly encoding ONE submission reference across outbound forms, annexes, acknowledgements, RFIs and decisions - using what 00 says an archive yields: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\". Directory names are observations and become facts on no member."
+    ],
+    "needs_llm": [
+      "DECIDING WHETHER THE HOLDER IS THE AGENT OR MERELY HOLDS A COPY, which is this row's whole question and is frequently unrecoverable from the bytes. The same acknowledgement reaches the filing agent, the client's in-house team, a co-regulator on a shared portal, and anyone who downloaded a public decision. Only the agent slot, the matter reference and surrounding practitioner apparatus resolve who is acting. Abstain when they cannot be cited: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "SEPARATING A PRACTITIONER'S CLIENT SUBMISSION from an ENTITY'S OWN RETURN held in the entity's corpus. Byte-identical confirmation statements, sector returns and registry receipts appear in both worlds. The discriminating evidence is a matter or engagement anchor, a filed-by-agent authorisation held as the agent's record, or a time-recording row keyed to a matter - never the form number and never the authority name.",
+      "SEPARATING A REGULATORY SUBMISSION from a COURT FILING. Both are transmissions to a public authority with acknowledgements and deficiency notices. A tribunal caption, a docket entry, a proof of service on an adverse party, or a notice of electronic filing from a court system carries the court-filing-record / `legal` side; an applicant-and-agent form, a merger or licence notification, or a sector return filed for a client carries this side. Topic will not separate them.",
+      "SEPARATING THIS ROW from IP PROSECUTION. An application to an IP office IS a registry submission on a client's behalf - the parent schema's own work_type phrase - and the sibling `law_practice.ip-prosecution` already claims the ex-parte examination exchange that creates a transferable registered right. The discriminator this row can actually cite is the ABSENCE of that sibling's claim-amendment listing and dual-docket right-identifier pairing, plus the PRESENCE of an authorisation / notification / clearance / compelled-return shape that creates no transferable IP right. The seam is recorded as NJ-REG-1 rather than smoothed.",
+      "SEPARATING A PRE-ANNOUNCEMENT CLEARANCE PACKET from PUBLIC READING MATERIAL. A published decision, a public register extract and a guidance PDF share vocabulary with a live merger filing. \"purpose answers what the file was for\" is the only test that works; a public decision alone is Reading Inbox.",
+      "SEPARATING THE FIRM'S OWN COMPLIANCE PROGRAMME from CLIENT REGULATORY WORK. An AML policy, a CPD log, a professional-indemnity proposal and an SRA or state-bar questionnaire about the FIRM are the firm running itself - business_operations, hr, career or finance - and this row does not reclaim them under the legacy `law.compliance-programme` label.",
+      "RECOGNISING UNLABELLED PRACTITIONER PROSE in this world - a strategy note on whether to notify, a covering letter negotiating an extension, a scanned handwritten attendance note of a call with a case officer. 00 names exactly this class among the reasons rules are insufficient.",
+      "INTERPRETING JURISDICTION-SPECIFIC OR MULTILINGUAL AUTHORITY ARTEFACTS whose labelled slots no approved pattern covers. The route is local interpretation or abstention. This row defines NO regulator catalogue, NO form-number gazetteer and NO jurisdiction list; jurisdiction is never a field and never a dimension.",
+      "Abstaining whenever the agent-and-submission pairing cannot be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "A REGULATOR, REGISTRY, AUTHORITY, COMMISSION, AGENCY, LICENSING-BODY OR FILING-PORTAL NAME ALONE. Read across from 00's role-ambiguity reasoning - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" - an authority name appears as the issuer of a real acknowledgement to the holder, as the issuer of a public decision the holder downloaded, as a cited source in guidance, as a job-description token, and on a fraudulent solicitation designed to look official.",
+      "THE WORDS FILING, SUBMISSION, NOTIFICATION, CLEARANCE, COMPLIANCE, LICENCE, LICENSE, PERMIT, RETURN, ACKNOWLEDGEMENT, DEFICIENCY, RFI, CONSENT or AUTHORISATION, ALONE OR IN COMBINATION. Accountancy newsletters, saved guidance PDFs, board packs and marketing decks are dense in them, and the parent schema already carries 'regulatory or registry submission made on a client's behalf' as a work_type VALUE - which is exactly why vocabulary cannot be the node.",
+      "A FORM NUMBER, PORTAL ENVELOPE NUMBER, COMPANY NUMBER, LICENCE NUMBER, CASE NUMBER OR SUBMISSION REFERENCE ALONE. An identifier supplies LINKAGE only after its labelled role is established; a public register extract carries the same numbers.",
+      "A COURT CAPTION, DOCKET ENTRY, PROOF OF SERVICE OR NOTICE OF ELECTRONIC FILING FROM A COURT SYSTEM. Those are `law_practice.court-filing-record`'s and `legal`'s signals. Re-reading them as regulatory evidence because a 'filing' word appears is the failure mode this never-alone exists to stop.",
+      "A PRACTISING CERTIFICATE, BAR NUMBER, SRA OR STATE-BAR REFERENCE, OR REGULATED-PROFESSION FOOTER ALONE. The schema struck this; a role name cannot carry a template.",
+      "A DOCUMENT-TYPE WORD BESIDE A FIRM OR CLIENT NAME. Delete every entity name and every document-type word; if nothing structural survives, nothing fires.",
+      "A CONFIDENTIAL, LEGALLY PRIVILEGED, MARKET-SENSITIVE, INSIDE-INFORMATION or NOT-FOR-PUBLICATION LABEL. Preserved as a literal observation; it decides no legal status, no announcement duty and no handling class, and it appears on commercial decks constantly.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including every extension this row lists. file_kind_plausible is constitutionally never-alone; \"treat the file extension as a routing signal rather than an assumption about meaning\".",
+      "A FILENAME OR FOLDER containing regulatory, compliance, filings, submissions, clearance, CMA, FTC, FDA, SRA, Companies House or a form number. A folder name is an unlabelled position; \"A session should never be treated as proof of topic\".",
+      "DOWNLOAD-SESSION, THREAD OR CURRENT-DIRECTORY MEMBERSHIP. A portal dump of acknowledgements and PDFs that arrived together is a session, not a submission cycle.",
+      "PUBLIC AVAILABILITY of a decision, register extract or published clearance as proof that the local copy, the surrounding annexes or the pre-announcement draft beside them is low-sensitivity or eligible for a cloud prompt.",
+      "MATCHING ENTITY NAMES, AUTHORITY NAMES OR SUBJECT MATTER ACROSS TWO SUBMISSIONS. Cross-submission bridging is suppressed unless an exact labelled reference or a user decision authorises it.",
+      "A PERSON'S NAME ALONE in any role - applicant, agent, case officer, beneficial owner named in a schedule. The subjects are third parties who never chose this filesystem."
+    ]
+  },
+  "proposed_context_terms": [
+    "authorised agent",
+    "filing agent",
+    "agent for service",
+    "submission reference",
+    "application reference",
+    "notification reference",
+    "case officer",
+    "further information request",
+    "information request",
+    "deficiency notice",
+    "request for information",
+    "RFI",
+    "acknowledgement of receipt",
+    "portal receipt",
+    "lodgement confirmation",
+    "clearance decision",
+    "merger notification",
+    "merger control",
+    "phase 1 clearance",
+    "conditions schedule",
+    "licence application",
+    "permit application",
+    "sector return",
+    "statutory notification",
+    "regulatory return",
+    "form submitted",
+    "annex",
+    "schedule of supporting documents",
+    "transmittal checklist",
+    "power of attorney to file",
+    "filed on behalf of",
+    "client obligations calendar",
+    "filing deadline",
+    "extension request",
+    "withdrawal of notification",
+    "decision letter",
+    "consent order",
+    "registration certificate"
+  ],
+  "work_types": [
+    "outbound regulatory or registry submission packet prepared for a client",
+    "authority acknowledgement, portal receipt or lodgement confirmation",
+    "information request, deficiency notice or further-information letter",
+    "response to information request or deficiency cure filing",
+    "determination, clearance, consent, licence, registration or refusal",
+    "conditions schedule and condition-compliance submission",
+    "filed-by-agent authorisation or power to file",
+    "client regulatory-obligations calendar or filing monitor",
+    "extension, withdrawal or amendment request to an authority",
+    "regulatory-portal or submission-bundle export"
+  ],
+  "grouping_reasons": [
+    "ONE SUBMISSION CYCLE from outbound packet through acknowledgement, RFI exchange and determination, joined by ONE exact authority-allocated submission reference. The members are content-incoherent and purpose-coherent - \"The documents are content-incoherent but purpose-coherent.\" - and the group copies no entity, outcome, date or status fact onto any member.",
+    "ONE RFI EXCHANGE within a cycle: the numbered request set and the numbered response, joined by request numbers and the shared submission reference.",
+    "ONE DOCUMENT across draft, as-submitted, acknowledged and decision-annexed versions - the universal version_family fact, supported by hashes or explicit revision markers, never by a `-final` or `-filed` suffix.",
+    "A SUBMISSION JOINING THE MATTER GROUP the schema's own anchor defines, through an exact matter or engagement reference. \"A file may validly belong to more than one accepted group\" - the submission cycle and the matter group are both valid.",
+    "NO GROUP AT ALL is a valid outcome. A single agent authorisation or a single decision letter naming a third party is still protected material.",
+    "NOT grouping reasons: a shared authority name; a shared form number; a shared client entity without a submission reference; a download session; and \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - `law_practice` declares no field rows under PR-6, so no dimension may branch, and the material co-activates `legal`, one of 00's safety domains - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - whose protection runs before any placement. THE RECOMMENDATION HELD AS PROSE, AND IT DIFFERS FROM THE SCHEMA'S DEFAULT IN THREE ARGUED WAYS. The default is: the client only where the corpus spans more than one AND the user has approved it, then the matter, then the DOCUMENT FUNCTION, then the period last. (1) INSIDE THIS SITUATION THE AXIS THAT ACTUALLY VARIES IS THE SUBMISSION REFERENCE, not the document function. Every member of one cycle shares one function family - it is submission work - so a function-first branch inside the cycle would be the \"create meaningless one-child levels\" failure. The recommendation is therefore matter (user-approved) → submission reference → then a shallow outbound/inbound split only if the user wants it. A Filings folder collecting every receipt across every regulator is the anti-pattern, because it separates each acknowledgement from the only packet that makes it intelligible, on 00's own argument that \"A work type such as Homework 3 is meaningful only after the course is known\". (2) THE CLIENT AND THE REGULATED-ENTITY LEVELS ARE MORE STRONGLY INELIGIBLE HERE THAN IN THE DEFAULT. A merger notification or a licence application before public announcement discloses not only that a client is in a matter but THAT A DEAL OR AN ACTIVITY EXISTS - existence is the secret. Seeding either level would publish that secret into the filesystem, against \"The default posture must therefore be local-first and data-minimizing.\" and against the neighbouring point 00 makes with \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" The submission reference is equally ineligible as an automatic level: it resolves, via one public search on many registers, to the named applicant and often to the subject matter. (3) NOT TIME-FIRST. A single cycle carries submission moment, received moment, RFI deadline, decision date and filesystem time, which routinely fall on different days; branching on any one of them scatters one cycle and silently asserts which moment is operative. \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Whatever lands remains a recommendation - \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "ocr",
+      "image",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".7z",
+      ".png",
+      ".jpg",
+      ".tif"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Merger notification Form CO - Project Cedar - as submitted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover slots name a competition authority, a notification type, the notifying parties, and an authorised-agent block naming the holder's firm with a matter reference in the footer",
+        "a checklist index of schedules and annexes with page counts",
+        "no tribunal caption, no adverse-party service list, no operative court order",
+        "a near-identical draft beside it without the agent declaration page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none and this row proposes none",
+        "that a deal exists, has been announced, will complete, or has competition-law significance - the product preserves observations and decides no legal or market status",
+        "that the authority name alone activated this row",
+        "a folder path, and specifically no branch named for the project codename or the parties"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Portal acknowledgement - submission REF-2026-44891.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "machine-issued acknowledgement with labelled submission reference, received moment to the minute, form name and submitting-entity identifier",
+        "filer-account or agent identity line naming the holder's firm",
+        "no client slot and no practitioner-and-client role pair on the face of the receipt",
+        "no court docket number and no recipient partition into parties to be served"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the schema DEFAULT TEMPLATE could have found this file - it could not: there is no client role slot, which is why this row's substitute second leg exists",
+        "that this is `law_practice.court-filing-record` - no tribunal caption, no clerk entry number, no service partition",
+        "that the submission was valid, complete, timely or accepted beyond the literal words",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RFI 2 - Project Cedar - questions 1-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead with case officer name and unit",
+        "numbered questions each citing a schedule or annex of the original notification",
+        "a stated reply period and the same submission reference as the acknowledgement",
+        "no caption, no adverse party, no operative order paragraphs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any question implies wrongdoing, incompleteness as a legal finding, or that a deadline was missed",
+        "that this is `law_practice.ip-prosecution` office-action material - there is no claim-number listing and no attorney-docket dual pairing for a registered right",
+        "permission to send annex-derived commercial figures in a cloud prompt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Response to RFI 2 - Project Cedar - 2026-08-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "answers numbered to match RFI 2 questions 1-14",
+        "authorised-agent signature block and the matter reference in the header",
+        "annex list referencing commercially sensitive schedules",
+        "submission reference repeated from the acknowledgement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the response cured the deficiency, satisfied the authority, or changed any legal position",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Clearance decision - Project Cedar - Phase 1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority decision letter pairing the submission reference with an outcome word and a decision date",
+        "a short conditions or commitments schedule",
+        "parties named in a public-style caption line without a tribunal heading",
+        "the file sits beside the as-submitted notification carrying the same reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that clearance is effective, unconditional, appealable, or safe to announce - literal observation only",
+        "that a published twin of this decision makes the local packet low-sensitivity",
+        "that this is `law_practice.orders-and-judgments` - that sibling is refused, and in any case there is no judicial signature or operative court order",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Filed-by-agent authorisation - Cedar Holdings - Companies registry.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots appoint the holder's firm as authorised filing agent for named form classes",
+        "client signature block and firm acceptance block on the same page",
+        "matter reference and client entity identifier in the footer",
+        "no submission reference yet - this precedes the first lodgement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the authorisation is valid, current, sufficient for every form class, or covers the holder personally",
+        "a client or our_firm fact - both are proposals on the schema, not declared fields",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client filing monitor - Q3 regulatory deadlines.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: client entity, submission type, authority, due date, matter reference, fee-earner, status",
+        "many client entities across rows; several authorities",
+        "no institution-and-account header and no invoice block",
+        "conditional formatting on proximity of due dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the product calculates, validates or acts on any deadline",
+        "that this is the firm's OWN compliance programme - the rows are CLIENT entities' obligations, which is the only legacy-`law.compliance-programme` residue this row absorbs",
+        "that it is `law_practice.deadlines-diary` - that sibling is refused; portfolio shape alone never activates",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Submission bundle - REF-2026-44891.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive header readable; manifest shows member paths repeating REF-2026-44891 across Form, Schedules, Annexes, Acknowledgement",
+        "mixed PDF and XLSX members; no unpacking performed",
+        "filename carries the submission reference and a bundle word"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "facts from member contents that were not read - \"the normal scan should never extract archive contents to the filesystem\"",
+        "permission to force-open a password-protected sibling volume",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "CS01 confirmation statement - ACME 12345678 - filed receipt.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registry acknowledgement with company number, form type, submission reference and received moment",
+        "submitting presenter line names an external filing agent matching the holder's firm",
+        "file sits beside a matter-opening record and a time-entry export carrying the same matter reference",
+        "byte-similar copy could equally sit in the company's own minute book"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that company number or form type alone activated this row",
+        "that this displaces `business_operations.corporate-regulatory-filings` when the SAME receipt is held in the entity's own corpus without practitioner apparatus - THAT is the collision fixture",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Notice of Electronic Filing - Motion to Compel.eml",
+      "source_type": "email",
+      "observations": [
+        "court electronic-filing system sender",
+        "case identifier, document number, filed-on moment, filer account",
+        "recipient block partitioned into electronic and non-electronic service",
+        "tribunal caption in the subject line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE PRIMARY COLLISION FIXTURE: every 'filing' and 'acknowledgement' token is present and the file is `law_practice.court-filing-record`'s on a tribunal transmission structure this row expressly does not claim",
+        "that a filing word in a regulatory folder name could reassign it",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Office Action - Application 18-742-113 - our ref P4412-US.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "office-issued application number in a labelled front-page slot beside an attorney-docket slot",
+        "numbered objections citing claim numbers with a reply period",
+        "examiner and art-unit slots; no client slot",
+        "no merger, licence, clearance or compelled-return vocabulary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. SECOND COLLISION FIXTURE: it is a registry submission on a client's behalf in the parent's work_type sense, and it belongs to `law_practice.ip-prosecution` on the dual-docket right-identifier pairing and claim-amendment apparatus this row does not own",
+        "that 'office' or 'application' vocabulary pulls IP examination here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Competition authority decision - Example/2024/88 - public register.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "published decision PDF downloaded from a public register",
+        "submission-shaped reference and party names in labelled slots",
+        "no authorised-agent block, no matter reference, no filer account",
+        "no surrounding outbound packet in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row from a public register download - the dual-reference pairing is absent, so the substitute second leg fails",
+        "that public availability makes a different local annotated copy low-sensitivity",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Firm AML policy and training log - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "internal policy titled anti-money-laundering with training attendance table",
+        "the regulated person is the FIRM itself; no client matter reference",
+        "compliance-officer sign-off and a regulator-questionnaire annex about the practice",
+        "dense compliance vocabulary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row under the legacy `law.compliance-programme` label. THE FIRM RUNNING ITSELF is business_operations / hr / career material; this row absorbs only CLIENT-obligation monitors",
+        "that compliance vocabulary activates a law_practice template",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Self assessment tax return acknowledgement - my UTR.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "revenue-authority acknowledgement with a submission reference and received moment",
+        "the submitting person is the HOLDER personally; no agent block for a client",
+        "file sits beside personal bank statements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row - the holder is the taxpayer, not an agent for a client; `finance.tax-filings` and personal finance/safety paths own it",
+        "that a revenue authority name is regulatory-submission evidence",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.court-filing-record",
+      "signal": "SAME FIXTURE BOTH SIDES: `Notice of Electronic Filing - Motion to Compel.eml` - a machine acknowledgement with a reference, a received moment and a filer account that BOTH rows' vocabulary would claim as a 'filing receipt'. THIS ROW DOES NOT OWN IT. Discriminator: the neighbour needs a COURT OR TRIBUNAL transmission structure - caption, docket or entry number, and often a recipient partition into parties who must be served - asserted by a court electronic-filing system, clerk, process server or carrier. This row needs a NON-COURT authority submission cycle - applicant/agent slots, a regulator or registry submission reference, and typically an RFI or clearance path - with NO adverse-party service partition. A filing word decides nothing; the issuer class and the presence or absence of a tribunal caption do.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: `CS01 confirmation statement - ACME 12345678 - filed receipt.pdf` - byte-identical registry acknowledgement with company number, form type, submission reference and received moment. Discriminator: a matter or engagement reference, a filed-by-agent authorisation held as the agent's own record, or a time-recording anchor keyed to a matter supports THIS row (practitioner filing on a client's behalf); the same return held in the ENTITY'S OWN corpus beside board minutes and the statutory book, with no practitioner apparatus, supports the neighbour. The neighbour already authored this seam; this entry reciprocates it. Form number and authority name decide nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.ip-prosecution",
+      "signal": "SAME FIXTURE BOTH SIDES: `Office Action - Application 18-742-113 - our ref P4412-US.pdf` - an authority examination letter with an official reference beside a firm docket reference, which is exactly this row's dual-reference shape and exactly that sibling's dual-docket shape. Discriminator: the neighbour owns the EX-PARTE IP-OFFICE exchange that creates or maintains a TRANSFERABLE REGISTERED RIGHT - claim-number objections, claim-amendment status listings, attorney-docket pairing on office forms, renewal portfolios over patent or trademark numbers. This row owns authorisation, notification, clearance and compelled-return cycles that create NO such transferable IP right. The parent schema's work_type phrase covers both; the structural split is real and is also NJ-REG-1 / NJ-IPP-1 for R1c. Neither row may claim the other from the shared word 'application'.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.corporate-secretarial",
+      "signal": "SAME FIXTURE BOTH SIDES: a Companies registry change-of-particulars packet that contains both an updated register-of-directors extract and the filed registry form with its acknowledgement. Discriminator: the neighbour owns the ENTITY'S CONTINUOUS CONSTITUTIONAL RECORD - registers, draft resolutions, entity calendars - and stops at the point of submission; this row owns the SUBMISSION ACT and what comes back. Where only the filing artefact exists, this row has it; where the register, resolution and calendar are present, the set is the neighbour's and the filing artefact remains this row's. Reciprocates the seam that sibling already authored.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "SAME FIXTURE BOTH SIDES: `Clearance decision - Project Cedar - Phase 1.pdf` as held in a practitioner matter folder versus the same decision sitting in the authority's own case-management export. Discriminator: authority-side administration, decision custody and registry operation support `government`; the practitioner's outbound packet, agent authorisation, matter-keyed correspondence and copy of what came back support this row. Public money or an authority letterhead alone does not make the practitioner's copy governmental, and receipt of an authority document does not activate government by itself - which that schema already says from its side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "SAME FIXTURE BOTH SIDES: a licence-application acknowledgement PDF. Discriminator: the neighbour is the AUTHORITY'S (or the applicant organisation's government-side) permit and licensing administration; this row is the PRIVATE PRACTITIONER acting as agent for a client applicant, evidenced by matter reference and authorised-agent apparatus. A permit vocabulary hit alone activates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: `Self assessment tax return acknowledgement - my UTR.pdf` and, separately, a corporate tax e-file receipt prepared by a practitioner for a client company. Discriminator toward finance: the holder as taxpayer, or an issuer-and-taxpayer structure on the holder's own return, supports `finance.tax-filings` / finance safety paths. Discriminator toward this row: authorised-agent filing of a CLIENT entity's return with matter apparatus. A revenue-authority name alone decides nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: a planning or licensing application acknowledgement where the applicant named in the slot is the HOLDER personally, with the file beside a home lease and no firm matter apparatus. Discriminator: practitioner-side agent apparatus and a client distinct from the holder support this row; the holder as applicant in their own life supports the neighbour, and being a `legal` safety template its protection runs first.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.opinions-advice",
+      "signal": "SAME FIXTURE BOTH SIDES: a letter on firm letterhead addressed to a regulator. Discriminator: a SUBMISSION PACKET seeking a decision, clearance or registration - with forms, schedules and a submission reference - supports this row; an OPINION OR ADVICE document whose body separates questions asked from conclusions, even if a regulator is the addressee, supports the neighbour. A regulator in the address block decides nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.transactional-deal",
+      "signal": "SAME FIXTURE BOTH SIDES: a merger-control notification that sits inside a live deal room beside the SPA and the closing checklist. Discriminator: the neighbour owns the BOUNDED TRANSACTION with counterparties, signing and completion; this row owns the REGULATORY SUBMISSION CYCLE nested inside it. The notification members are this row's; the deal spine remains the neighbour's. Shared project codenames are linkage only.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH RATHER THAN CONTESTED: `Merger notification Form CO - Project Cedar - as submitted.pdf` may enclose executed confidentiality undertakings or signed agent appointments whose bound party pair plus execution block is `legal`'s own instrument signal, while the notification cover, schedules and agent checklist are this row's. `legal` is a safety domain - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - so protection runs first; this row co-activates and takes nothing away.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH: a filing-fee or portal-payment receipt that carries an issuer, amount and confirmation number (finance's structure) AND the same submission reference as the acknowledgement beside it (this row's binding). Finance is a safety schema and its protective ordering runs first. Where the submission binding is absent this row has no claim.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH: a determination letter in a practitioner folder can carry authority-side decision structure (government) and practitioner-side submission-cycle membership (this row's schema) on disjoint evidence. Co-activation, not a mutex; neither copies the other's facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH: a client filing-monitor workbook may sit beside the client's own board calendar export in one advisory corpus. Matter-keyed client-obligation rows support this family's reading; the organisation's own governance and filing calendar structures support business_operations. Disjoint evidence in one folder.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH: beneficial-owner or director identity packs routinely travel as annexes to registry and licensing submissions. The identity documents are `identity`'s on their own evidence; the submission index that lists them is this row's. Protection applied on the stricter side; no identity values become law_practice facts.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Default home when this row does not confidently activate: an isolated RFI, a decision letter naming parties, an agent authorisation, or a schedule listing beneficial owners exposes third parties who never chose this filesystem. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Also: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated portal acknowledgements and fee receipts with no matter apparatus and no third-party exposure beyond a transactional confirmation. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Published decisions, public register extracts, authority guidance PDFs and saved practice notes that look like submissions but carry no agent-and-matter pairing. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Real-looking authority correspondence whose SIDE is unresolved - agent for a client, entity's own filing, or holder as personal applicant. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected portal exports and split submission bundles are ordinary here and must not be forced open. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone registration certificate or blank statutory form with no cycle around it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A screen capture of a filing portal whose OCR does not establish the dual-reference pairing. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Potentially sensitive on three grounds beyond the schema default. FIRST, pre-announcement filings - merger control, certain licence applications, market-sensitive notifications - make the EXISTENCE of the submission the secret; a visible client, party or project-codename branch would publish a deal or activity into the filesystem before any content is read, against \"The default posture must therefore be local-first and data-minimizing.\" SECOND, RFI responses and annexes routinely carry another organisation's commercial, pricing, customer and beneficial-ownership detail - third-party data the holder did not generate and the subjects did not place on this disk. THIRD, identity packs travel as annexes, so identity-safety co-activation is common and \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" Public availability of a later decision never downgrades the local pre-decision packet. Handling classes remain P7's.",
+  "open_question": "Four. (1) NJ-REG-1 / NJ-IPP-1, THE IP SEAM, reciprocal with `law_practice.ip-prosecution`: an IP-office application is a registry submission on a client's behalf under the parent work_type phrase. Alternatives: (a) keep both with the transferable-right / claim-amendment discriminator this row and that sibling both state; (b) merge IP prosecution into this row and demote IP to a work_type value; (c) merge this row into IP prosecution and lose non-IP clearance work. This row prefers (a) and cannot settle it. (2) NJ-REG-2, THE COURT/REGULATOR LINE: whether a tribunal that is administratively housed inside a regulator (some licensing panels, professional-discipline tribunals) reads as `law_practice.court-filing-record` once a caption and service list appear, or stays here until a court system is named. Alternatives: (a) caption-plus-service always wins for court-filing-record; (b) issuer-gazetteer decides; (c) Review Later until a human picks. This row prefers (a). (3) NJ-REG-3, LEGACY COMPLIANCE-PROGRAMME ABSORPTION: this row absorbs ONLY client-obligation monitors; firm-own AML/CPD/PI programmes route to business_operations / career / finance. If R1c wanted the legacy id to mean firm-own compliance, the honest outcome is to refuse that absorption rather than widen this node. (4) NJ-REG-4, also_holds_with reciprocity: schema-level joins to `legal`, `finance`, `government`, `business_operations` and `identity` are authored one-way here; R1c owes reciprocals on those anchors. Template-to-template co-activation is deliberately omitted per CONNECTION's schema↔schema rule."
+}
