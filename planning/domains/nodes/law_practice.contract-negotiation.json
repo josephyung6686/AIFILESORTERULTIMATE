@@ -1,0 +1,591 @@
+{
+  "id": "law_practice.contract-negotiation",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Contract drafting and negotiation work product",
+  "one_line": "J-DEPTH placeholder template for the INSTRUMENT-LEVEL record of getting ONE contract agreed on the practitioner side: the document-comparison or blackline header that names two source versions of the same instrument, the clause-keyed issues list with side-owned positions and open/closed status, the playbook whose columns encode preferred / fallback / walkaway positions against clause topics, the deviation-approval matrix for playbook exceptions, and the turn or circulation log that joins successive marked-up drafts. It is NOT activated by the words draft, redline, blackline, playbook, issues list, markup or negotiation, by a version token, by tracked-changes metadata, by a firm name, or by an entity pair. Its distinct default is a CLAUSE-REFERENCED NEGOTIATION APPARATUS over ONE named instrument whose party slots are already filled and whose execution block is still open - which is precisely what the schema default's matter-and-role pair does not describe, what `law_practice.precedent-bank` inverts (blank parties by design), what `law_practice.transactional-deal` refuses to hold (deal-level spine, not one instrument), and what `legal` cannot yet see (no completed execution block). It deliberately does NOT hold the deal-level working group list, steps plan, CP tracker, disclosure letter or insider list (`law_practice.transactional-deal`), the completion event and its delivery-status matrix (`law_practice.closing-binder`), the blank firm precedent (`law_practice.precedent-bank`), the dispute-ending offer exchange (`law_practice.settlement`), the live obligations under an already-executed contract (`business_operations.contract-administration`), or the executed and dated instrument itself (`legal`, on `legal`'s own evidence, and `legal` is a safety domain whose protection runs first). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION. These are activation signals only; the `law_practice` schema declares no field rows, so nothing here licenses a law_practice fact. Every accepted signal is a STRUCTURE plus a LABELLED SLOT, and this row's family test replaces the schema default's rather than repeating it: (i) a REPEATED INSTRUMENT STEM - a document title, short name or filename stem carried across two or more artefacts - PLUS (ii) at least one artefact whose own labelled slots are a CLAUSE-REFERENCED NEGOTIATION APPARATUS (comparison header naming two versions, issues-list columns keyed to clause numbers with side ownership and status, playbook position columns, deviation-approval columns, or a turn log with from-firm / to-firm / version). The schema's deletion test applies unchanged: strike every entity name and every document-type word, and if no comparison header, no clause-keyed column set and no position columns survive, nothing fires.",
+      "A DOCUMENT-COMPARISON or BLACKLINE HEADER, and it is this row's cleanest signal because no sibling produces it as its centre: a marked-up draft whose own comparison or revision metadata names TWO SOURCE VERSIONS of the same instrument (for example 'compared against v11 SC markup', 'blackline vs clean', or a document-comparison tool header naming Firm A Draft and Firm B Draft), together with a present-but-unexecuted signature or execution block and party slots that already carry real names rather than placeholders. Read through 00's text-document path, which yields \"full text, headings, metadata, links, and structural information\". The discriminating evidence is the TWO-VERSION COMPARISON STRUCTURE over one instrument, not the presence of tracked changes - tracked changes alone appear on pleadings, opinions, marketing decks and training scripts.",
+      "AN ISSUES LIST keyed to ONE instrument: a spreadsheet or table whose COLUMN SET pairs a clause or schedule cross-reference with an issue description, an OUR-POSITION or CLIENT-POSITION column, a COUNTERPARTY-POSITION or THEIR-POSITION column, a STATUS drawn from a small closed set (open, closed, parked, agreed, escalate), and frequently an OWNER or RESPONSIBLE-SIDE column. Read through 00's spreadsheet path - \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". The discriminating evidence is the CLAUSE CROSS-REFERENCE plus the SIDE-OWNED POSITION pair: a deal CP tracker cross-references clauses too, but its rows are conditions of a transaction with satisfied/waived status, not bargaining positions on an instrument; a contract-administration register's rows are live obligations across many contracts.",
+      "A PLAYBOOK or POSITION MATRIX: a table or structured note whose COLUMN SET pairs a clause topic or playbook rule with POSITION columns - preferred, fallback, walkaway, approve-if, or equivalent closed labels - and often a rationale or authority column. The discriminating evidence is the POSITION GRAMMAR aimed at the DRAFTER or NEGOTIATOR, not at a bound party. A blank firm precedent's drafting notes instruct the drafter about optional clauses without encoding walkaway positions against a live counterparty; that is `law_practice.precedent-bank`'s. A playbook with filled party names in its header and position columns against a live negotiation is this row's.",
+      "A DEVIATION or APPROVAL MATRIX: one row per requested departure from the playbook, carrying a playbook-rule or clause reference, the requested deviation, a requester, an approver role, a decision, and a date. It is the governance layer over the playbook and is detected in order to be protected - it encodes which commercial concessions the client authorised - never in order to be moved.",
+      "A TURN or CIRCULATION LOG for ONE instrument: one row per negotiation turn carrying a turn number or date, a FROM-FIRM or FROM-SIDE slot, a TO-FIRM or TO-SIDE slot, a version stem, and often a delta or covering-note reference. The side-crossing circulation of successive versions of one instrument is the grouping spine; a firm email domain or a legal-sounding subject alone never fires.",
+      "AN EMAIL whose structured slots tie it to an already-evidenced instrument negotiation: a subject carrying the instrument stem plus a version or turn token, sender and recipient roles crossing a named side boundary, and a redline or issues-list attachment named in the message. Position is weighted for the reason 00 gives - a token in a filename, title or page-one heading is more meaningful than the same text in a reference list. A firm email domain, a source type, or a negotiation-sounding subject alone never fires.",
+      "AN ARCHIVE whose manifest, read WITHOUT unpacking because \"the normal scan should never extract archive contents to the filesystem\", shows member paths repeatedly encoding one instrument stem across clean, redline, issues-list and playbook families. Directory names are observations and become facts on no member."
+    ],
+    "needs_llm": [
+      "DECIDING THE SIDE, inherited from the schema and worse here because both sides circulate near-identical redlines. Buyer markup and seller markup of the same SPA differ only in which comparison header and which issues-list OWNER column match the holder's own apparatus. Where the side is unresolved the model must abstain: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "Separating a practitioner-run negotiation from the holder's OWN contract being negotiated - the founder negotiating their own sale, the employee reviewing their own offer letter with counsel's redlines they received as client. The practitioner-side anchor is the schema's: an allocated matter reference belonging to the holder's firm, a time record, work product the holder produced. Absent that, this is `legal.personal-legal-matters` or career material and the row must abstain.",
+      "Separating a LEGAL negotiation from a CONSULTING or commercial markup of a statement of work. Scope, fees, confidentiality, deliverables, tracked changes and two-organisation signature blocks occur on both; explicit counsel or representation roles, a legal-services scope, a playbook with walkaway positions, or a clause-keyed issues list with side-owned legal positions carry the legal side. Where only the engagement paper exists, the honest outcome is Review Later.",
+      "Separating a LIVE negotiation draft from a KEPT precedent or a published model. Bracketed placeholders across all party positions with blank execution blocks are `law_practice.precedent-bank`'s; filled party names plus an open execution block plus comparison or issues apparatus are this row's. One leftover `[TBC]` in a schedule of an otherwise populated draft does not demote it to a precedent.",
+      "Deciding whether two instrument stems are one negotiation or two - a main agreement and its disclosure letter, an SPA and its tax deed, a master services agreement and a statement of work. Bridging by matching party names or clause text similarity is forbidden; only an exact cross-reference or user decision authorises multi-membership.",
+      "Reading unlabelled negotiation prose - a running-text summary of open points, a scanned marked-up page, a handwritten markup photographed then OCRed - where no column set exists to detect.",
+      "Abstaining whenever the instrument-stem-and-clause-apparatus pair cannot be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "The words draft, redline, blackline, markup, playbook, issues list, negotiation, clean, compared, or tracked changes in a filename, title or folder. These are document-type and lifecycle words; the family's deletion test strikes them.",
+      "A VERSION TOKEN ALONE - v12, -final, -CLEAN, -REDLINE, Rev.C. 00 already treats version family as a universal file fact, and a version marker sits equally on pleadings, opinions, decks and training scripts.",
+      "TRACKED-CHANGES METADATA or a document-comparison tool producer name alone. Authoring tools write those slots on every kind of professional document; 00: \"It should avoid using authorship or creator identity as a destination dimension\".",
+      "AN ENTITY PAIR ALONE - two company names with or without registration numbers. Suppliers, litigants, landlord and tenant, payer and payee all appear as pairs. This row rests on a clause-referenced apparatus over one instrument, not on two named entities.",
+      "A LAW-FIRM, COUNSEL, CLIENT or COUNTERPARTY NAME ALONE, or any of them beside a document-type word. Read across from \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "A CLAUSE, SCHEDULE or PARAGRAPH REFERENCE ALONE. An identifier supplies LINKAGE only after its own labelled role is established.",
+      "A CONFIDENTIAL, PRIVILEGED, SUBJECT-TO-CONTRACT, WITHOUT-PREJUDICE or COMMERCIALLY-SENSITIVE LABEL. The literal observation is preserved and no legal status is decided; such a label appears on commercial, HR and insurance documents constantly.",
+      "A SOURCE TYPE or EXTENSION ALONE, including text_document, spreadsheet, email, archive, image, ocr and every extension this row lists.",
+      "A FILENAME or FOLDER containing SPA, MSA, NDA, agreement, contract, deal, project or final. Paths stay local; a folder name is an unlabelled position.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE or CURRENT-DIRECTORY MEMBERSHIP. 00: \"A session should never be treated as proof of topic\". A data-room bulk download of drafts is a session, not a negotiation group.",
+      "MATCHING PARTY NAMES, CLAUSE TEXT or SEMANTIC SIMILARITY ACROSS TWO INSTRUMENTS. Negotiation drafts are near-identical by drafting convention; similarity would bridge unrelated confidential negotiations. This is a privacy rule before it is an accuracy one.",
+      "PUBLIC AVAILABILITY of a form of agreement, a regulatory filing or a news report about the deal as proof that the local draft, the playbook or the issues list is low-sensitivity.",
+      "A PERSON'S NAME ALONE in any negotiator, approver or signatory role."
+    ]
+  },
+  "proposed_context_terms": [
+    "blackline",
+    "redline",
+    "document comparison",
+    "issues list",
+    "open points",
+    "playbook",
+    "fallback position",
+    "walkaway",
+    "deviation approval",
+    "turn sheet",
+    "circulation log",
+    "markup",
+    "clean copy",
+    "subject to contract",
+    "clause cross-reference"
+  ],
+  "work_types": [
+    "marked-up draft and blackline comparison of one instrument",
+    "clean draft circulated for markup",
+    "clause-keyed issues list or open-points schedule",
+    "negotiation playbook with preferred, fallback and walkaway positions",
+    "deviation or exception approval matrix against a playbook",
+    "turn or circulation log for successive versions",
+    "covering note or markup email transmitting a redline turn",
+    "approval email or sign-off on a playbook deviation",
+    "archived negotiation pack of clean, redline, issues list and playbook members"
+  ],
+  "grouping_reasons": [
+    "ONE INSTRUMENT FROM FIRST MARKUP TO PRE-EXECUTION CLEAN, joined by the instrument stem plus the clause-referenced apparatus: the clean drafts, the blacklines, the issues list, the playbook, the deviation matrix and the turn log. Content-incoherent and purpose-coherent, which is 00's own licence - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no party, price, position or status fact onto any member.",
+    "ONE ISSUE THREAD INSIDE THAT INSTRUMENT, joined by an exact clause or schedule cross-reference repeated across an email, a marked-up extract, an issues-list row and a playbook rule. Internal fragments frequently omit the instrument stem, which is why the clause reference is admitted as linkage and struck as never-alone when it appears without one.",
+    "ONE VERSION FAMILY across sides: successive drafts of the same instrument, linked by an explicit document-comparison header naming its two source versions. 00 already treats membership of a version family as a universal fact, so `version_family` carries this without any law_practice field.",
+    "SPARSE MEMBERS JOIN WITHOUT INHERITING. A single marked-up schedule page, a scanned signature-block extract still showing blanks, or a short covering email may enter the candidate neighbourhood by an exact reference and still carry no instrument, party or position fact of its own. \"It should not form a supported group when there is no valid anchor\", and the converse holds: a valid anchor does not write itself onto its members.",
+    "NOT grouping reasons: shared party names across two instruments; shared practice area; a common firm name; a download session; semantic similarity of clause text."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, for the schema's three reasons - no declared field to branch on under PR-6, no deep template unlocking from a safety co-activation since \"Finance, identity, medical, and legal material should be implemented first as safety domains\", and the disclosure cost of client and matter levels. WHERE THIS ROW'S PROSE RECOMMENDATION DIFFERS FROM THE SCHEMA'S, and it is a reason the row exists: the schema default recommends client (only where multi-client and approved), then matter, then document function, then period. HERE THE FIRST ORGANISING TOKEN IS THE INSTRUMENT STEM, then the ISSUE or CLAUSE THREAD, then the version or turn. An issues-list row, a playbook rule and a blackline are unintelligible without the instrument they belong to - 00's own argument is \"A work type such as Homework 3 is meaningful only after the course is known\". The instrument stem is still seeded destination-INELIGIBLE whenever it embeds a client or counterparty name (an SPA titled with both parties discloses the negotiation's existence); a neutral short name or matter-scoped alias is the only candidacy worth offering, and only with explicit user approval. A NAMED THIRD PARTY - counterparty, beneficial owner named in a schedule, individual signatory - may NEVER be a folder level. NOT TIME-FIRST: circulation time, document date, approval date and filesystem time mean different things, and \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".docx",
+      ".doc",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".pptx",
+      ".rtf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Project Hartley - SPA - v12 (blackline vs v11 SC markup).docx",
+      "source_type": "text_document",
+      "observations": [
+        "document-comparison header names two source versions of the same share purchase agreement",
+        "party recital carries real buyer and seller names; execution blocks are present and unsigned",
+        "tracked insertions and deletions concentrate on indemnity, MAC and completion-accounts clauses",
+        "footer carries a firm document-assembly marker and a matter reference belonging to the holder's firm"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none",
+        "that this is `legal`'s. THERE IS NO COMPLETED EXECUTION BLOCK; `legal`'s executed-instrument signal has not fired, and that is the point of the fixture",
+        "that this is only `law_practice.transactional-deal`'s. The deal sibling claims the deal-level spine and cedes this exact fixture to this row",
+        "that any marked position is agreed, binding, waived or advised",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SPA Issues List - Project Hartley - turn 7.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers: clause, issue, our position, their position, status, owner side, last turn",
+        "status values drawn from open, closed, parked, escalate",
+        "owner-side column alternates between Buyer counsel and Seller counsel",
+        "instrument title repeated in the sheet header; no working-group role enumeration and no CP-satisfaction column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of positions is finance or a project tracker - the CLAUSE CROSS-REFERENCE plus SIDE-OWNED POSITION pair is the discriminating structure",
+        "that this is `law_practice.transactional-deal`'s CP tracker; those rows carry satisfied/waived against conditions of a transaction, not bargaining positions",
+        "that any status value is a legal conclusion about agreement or waiver",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Commercial Contracts Playbook - Vendor MSA - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "table pairing clause topics with Preferred, Fallback and Walkaway columns",
+        "a separate Approvals section listing which deviations need GC or business-owner sign-off",
+        "header names the holder's firm and a practice group; no blank party placeholders across an instrument body",
+        "no matter reference and no named counterparty - it is a standing playbook reused across matters"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that absence of a matter reference makes this `law_practice.precedent-bank`. A precedent's party and execution slots are blank BY DESIGN inside an instrument body; a playbook encodes POSITION GRAMMAR against future counterparties and is strategy, not a blank form",
+        "that walkaway positions may be summarised into a cloud prompt by default",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Playbook deviation approvals - Hartley MSA - August 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: playbook rule, clause, requested deviation, requester, approver, decision, date",
+        "several rows record approved liability-cap and indemnity deviations naming the counterparty",
+        "matter reference in the workbook title"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "authority, consent, waiver or that an approval was effective",
+        "that the named approvers become folder levels or prompt content by default",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE SPA v12 markup - open points on indemnity and MAC.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries instrument stem SPA and version token v12",
+        "sender and recipient blocks cross a buyer-counsel / seller-counsel boundary",
+        "body enumerates open clause points; attachment name matches the blackline fixture",
+        "exact matter reference in the first line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a negotiation-sounding subject alone activates this row without the instrument stem and side-crossing structure",
+        "privilege or work-product status from a confidentiality footer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vendor MSA - Acme / Northwind - negotiation pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists clean, redline, issues-list and playbook members under one instrument stem",
+        "no working-group list, no CP tracker, no disclosure letter, no insider list in the member paths",
+        "archive is readable without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts on any member from directory names alone",
+        "permission to unpack solely to improve classification - \"the normal scan should never extract archive contents to the filesystem\"",
+        "that bilateral MSA negotiation requires a deal-codename spine; this pack is exactly the coverage `law_practice.transactional-deal` cannot see",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Share Purchase Agreement - Hartley v Nash - EXECUTED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bound party pair in the recitals and completed dated signature blocks",
+        "no comparison header, no open issues columns, no playbook position grammar",
+        "firm counsel block in the signature pages"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE OVER-FIRING COLLISION FIXTURE: a bound party pair plus completed execution is `legal`'s executed-instrument signal, `legal` is a safety domain, and its protection runs first. Negotiation membership never reclaims an executed instrument",
+        "that any covenant remains current, complied with or enforceable",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PRECEDENT - Share purchase agreement (firm standard) v7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "instrument-shaped body with bracketed placeholders in every party slot",
+        "blank unnamed execution blocks and footnoted drafting notes",
+        "firm template reference and version marker; no matter and no client"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE PRECEDENT COLLISION FIXTURE and `law_practice.precedent-bank`'s inverse-recognition signal: parties and execution are empty BY DESIGN. A playbook is not a precedent and a precedent is not a playbook",
+        "a party fact from a bracketed placeholder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Project Hartley - Working Group List - v6.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "organisation column paired with a deal-role column naming buyer, seller, target and several counsel firms",
+        "initials column whose values reappear in draft footers",
+        "codename in the sheet title; no clause-keyed position columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE DEAL-SPINE COLLISION FIXTURE: the N-sided role enumeration is `law_practice.transactional-deal`'s centre. This row claims only the redline life of one instrument",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Completion Agenda - Project Hartley - v14 (clean).docx",
+      "source_type": "text_document",
+      "observations": [
+        "document-status matrix with signatory and delivery columns",
+        "completion date slot and populated status values",
+        "no issues-list position columns and no playbook walkaway grammar"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row. As a completion running order with delivery status it is `law_practice.closing-binder`'s; as a circulating pre-completion draft of the same agenda without populated delivery status it may be deal-level material, but it is still not a clause-keyed negotiation of one instrument",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme Market Entry - Statement of Work - redline v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "tracked changes on milestones, fees and acceptance criteria",
+        "prepared-for and prepared-by consulting role blocks",
+        "no counsel block, no legal-services scope, no clause-keyed issues list with legal positions, no playbook walkaway columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE CAREER COLLISION FIXTURE: consulting markup of a statement of work shares tracked changes and two organisations with legal negotiation, and only explicit counsel / legal-services / playbook-position / clause-keyed legal issues structure carries the legal side. Route toward `career.consulting-client-engagement` or Review Later",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Without prejudice - Part 36 offer - Hartley claim.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "offer to settle a pleaded claim with without-prejudice and Part 36 labels",
+        "caption and claim reference; no commercial-instrument stem, no playbook, no clause-keyed commercial issues list"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Dispute-ending offer exchange is `law_practice.settlement`'s situation (or `legal`'s once executed), not commercial contract formation. Shared vocabulary - offer, negotiation, without prejudice - is never-alone",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contract register - renewals and notice dates - 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per live executed contract with renewal, notice and owner columns",
+        "no clause-keyed bargaining positions and no open execution blocks",
+        "spans many unrelated counterparties"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Live obligations under already-executed contracts are `business_operations.contract-administration`'s. A portfolio table with dates is not a negotiation apparatus",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NDA - my startup and BigCo - signed scan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bound party pair naming the holder personally and a counterparty",
+        "completed signature blocks; no practitioner matter apparatus produced by the holder",
+        "filename and addressee treat the holder as a party, not as counsel"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. UNDER-FIRING COLLISION: the holder is the PARTY. `legal.personal-legal-matters` owns the personal record; a signed NDA is also `legal`'s on execution evidence",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-18 - DocuSign envelope SPA.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence; OCR shows an envelope list and unsigned signature tabs",
+        "instrument stem visible in the envelope subject"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row from a screenshot alone without an accepted instrument-and-apparatus neighbourhood",
+        "that missing EXIF proves a screenshot or that browser chrome proves a matter",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "LPC Skills - sample SPA markup exercise (marked).docx",
+      "source_type": "text_document",
+      "observations": [
+        "tracked changes and a mock issues list over a fictional SPA",
+        "tutor comments and a mark in the margin; training-provider header and module code",
+        "parties named as a problem-question scenario"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row from perfectly formed negotiation structure. The profession teaches by producing exact replicas; \"purpose answers what the file was for\" is the only test that works",
+        "that a fictional client name is a client",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Negotiation pack - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive header identifies encryption; member manifest unavailable to the approved scanner",
+        "filename carries negotiation and pack tokens"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row, a client, an instrument or a member family from the filename - \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "permission to force it open",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.transactional-deal",
+      "signal": "THE SCOPE SEAM, already authored from the sibling and reciprocated here with the SAME FIXTURE BOTH SIDES: `Project Hartley - SPA - v12 (blackline vs v11 SC markup).docx`. The redline-by-redline life of ONE instrument - comparison headers, tracked changes against named versions, the issues list against that instrument, the playbook and the turn record - is this row's; the sibling claims only DEAL-LEVEL artefacts that belong to no single instrument: the working group list, the steps plan, the CP tracker while open, the disclosure letter, the signing pack, the insider list. Reciprocal already on that row. If R1c judges the split too fine, one row folds - see NJ-CN-1. Provenance: inference."
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "SAME FIXTURE BOTH SIDES: `PRECEDENT - Share purchase agreement (firm standard) v7.docx`. Blank party and execution slots plus drafting notes are the neighbour's inverse-recognition signal; filled party names plus an open execution block plus comparison or issues apparatus are this row's. A standing playbook with Preferred/Fallback/Walkaway columns is strategy about future counterparties and stays here; it must not be stolen as a blank form. Provenance: inference."
+    },
+    {
+      "domain": "law_practice.closing-binder",
+      "signal": "SAME FIXTURE BOTH SIDES: `Completion Agenda - Project Hartley - v14 (clean).docx`. A circulating pre-completion draft of an agenda without populated delivery status can look like negotiation paperwork; a document-status matrix with signatory and delivery columns plus a completion date is the neighbour's completion apparatus. This row never claims delivery-status matrices. Provenance: inference."
+    },
+    {
+      "domain": "law_practice.settlement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Without prejudice - Part 36 offer - Hartley claim.pdf`. Dispute-ending offers, without-prejudice exchanges and settlement instruments are the neighbour's; commercial contract formation playbooks and clause-keyed issues lists on an unexecuted instrument are this row's. Shared words - offer, negotiation, without prejudice - decide nothing. Provenance: inference."
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Share Purchase Agreement - Hartley v Nash - EXECUTED.pdf`. Unexecuted, versioned, with an open execution page and comparison or issues apparatus, the instrument is this row's working material; executed and dated with a bound party pair and completed execution blocks it is `legal`'s on `legal`'s own evidence. `legal` is one of the domains where \"Finance, identity, medical, and legal material should be implemented first as safety domains\", so its protection runs first and this row never reclaims the executed bytes. Provenance: design for the safety-first clause, inference for the seam."
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `NDA - my startup and BigCo - signed scan.pdf`. Practitioner-side negotiation apparatus produced by the holder's firm is this row's; the holder as PARTY to their own contract, with no practitioner apparatus they produced, is the neighbour's. A firm name on the other side's letterhead decides nothing. Provenance: inference."
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Acme Market Entry - Statement of Work - redline v3.docx`. Tracked changes, fees, confidentiality and two-organisation blocks occur on both. Explicit counsel or representation roles, a legal-services scope, a clause-keyed issues list with legal positions, or a playbook with walkaway positions carry this row; consulting prepared-for / prepared-by roles with milestones and acceptance carry Career. Provenance: inference."
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Contract register - renewals and notice dates - 2026.xlsx`. Live obligations under already-executed contracts with renewal and notice dates are the neighbour's; clause-keyed bargaining positions on an unexecuted instrument are this row's. Shape of a portfolio table discriminates nothing; what the rows are about decides everything. Provenance: inference."
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: a consideration or pricing schedule circulating as an annex to an unexecuted SPA or MSA. Issuer-and-billed-to or institution-and-account structure is finance's on finance's own evidence; membership of a negotiation pack via an exact instrument stem supports packet membership and converts nothing into a law_practice fact. Provenance: inference."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: a negotiation pack folder that holds both `Project Hartley - SPA - v12 (blackline vs v11 SC markup).docx` and `Share Purchase Agreement - Hartley v Nash - EXECUTED.pdf`. Disjoint evidence in one corpus: comparison/issues apparatus activates this template's schema (`law_practice`); completed execution activates `legal`. `legal` is a safety schema so protective ordering runs first. Schema↔schema only; one-way here; R1c owes the reciprocal. Provenance: inference."
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Completion accounts / consideration schedule - draft annex.xlsx` inside a negotiation pack. Pricing, consideration and account-like columns are finance's on finance's structure; the instrument-stem membership is this family's. Neither reading erases the other. Schema↔schema only; one-way here; R1c owes the reciprocal. Provenance: inference."
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: an in-house legal team's Vendor MSA negotiation pack living beside the company's contract register and board papers. Disjoint evidence, one corpus: clause-keyed negotiation apparatus is this family's; the register and board papers are business_operations'. A legal-department folder does not move a policy here. Schema↔schema only; one-way here; R1c owes the reciprocal. Provenance: inference."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Principal fallback for a stray blackline, issues list, playbook or deviation matrix when no accepted instrument group is active. These encode counterparty names and bargaining positions about someone who may never have chosen this filesystem. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Also: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Readable negotiation-shaped artefacts whose SIDE or legal-versus-consulting character is unresolved. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected negotiation packs and proprietary comparison binaries. 00 names \"Unsupported or Encrypted may hold\" for unreadable and encrypted material, and separately: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Published model agreements, textbook markup exercises without training marks, and form libraries with no firm-playbook apparatus. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone clean draft with no comparison header, no issues list and no matter neighbourhood. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of an e-sign envelope or portal whose OCR does not establish an accepted instrument neighbourhood. 00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Strictest posture available at this row, and it is a leg of the node test this row passes distinctly rather than by inheritance alone. FIRST, the corpus sentence in 00 names legal records inside a highly personal collection, and a negotiation pack routinely also carries counterparty identity, pricing and private correspondence. SECOND, playbooks and issues lists encode BARGAINING POSITIONS - walkaway lines, approved deviations, side-owned concessions - whose disclosure can harm a client even when no third-party witness list is present; that is a posture the schema default argues from third-party exposure, and this row extends it to STRATEGY EXPOSURE before any instrument is executed. THIRD, existence is disclosive: a visible folder named for a counterparty and an SPA announces that a deal is being negotiated. 00's UI point lands here: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" FOURTH, \"The default posture must therefore be local-first and data-minimizing.\" Privilege, agreement, waiver and authority are NEVER inferred from labels. Handling classes are P7's and are not set here.",
+  "open_question": "NJ-CN-1, THE DEAL FOLD: `law_practice.transactional-deal` already carved this row out and flagged NJ-TD-2. Alternatives: (a) keep both - deal-level spine versus instrument-level negotiation - as both rows argue; (b) fold this row into transactional-deal and accept that bilateral MSA/NDA negotiations without a codename-plus-N-sided working group become schema-default or Review Later; (c) fold transactional-deal into this row and lose the pseudonymous multi-firm anchor. This row prefers (a) because bilateral commercial negotiation is real coverage the deal spine cannot see, but would rather be refused than force a fine split R1c rejects. NJ-CN-2, THE PLAYBOOK HOME: a standing firm playbook with no matter reference sits awkwardly between this row (position grammar) and `law_practice.precedent-bank` (no client/matter). Alternatives: (a) keep standing playbooks here on position-grammar evidence; (b) send matter-free playbooks to precedent-bank; (c) refuse playbooks as a document type and keep only matter-scoped issues lists. This row prefers (a) and cannot settle it. NJ-CN-3, INSTRUMENT-NAMED BRANCHES: if D1/PR-6 lifts, may an instrument short name become destination-eligible when it embeds no party name? Same disclosure problem the schema recorded for client/matter labels."
+}
