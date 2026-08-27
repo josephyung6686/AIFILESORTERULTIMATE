@@ -31,12 +31,23 @@ import dataclasses
 import json
 import sqlite3
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from database_agent.db import transaction
+from llm_harness.vocabulary import (
+    ABSTAIN as P8_ABSTAIN, CHOOSE_BROAD_PARENT, CHOOSE_RESIDUAL_DESTINATION,
+    LEAVE_IN_CURRENT_LOCATION, MARK_PROTECTED_OR_UNSUPPORTED,
+    MARK_REVIEW_LATER as P8_MARK_REVIEW_LATER, RESIDUAL_ACTIONS,
+    RETURN_ACCEPTED_PACKET, RETURN_CONFIRMED_GROUP,
+)
 
 from placement import events as placement_events
+from placement.store import subject_ref_of
 from placement.vocabulary import (
-    LEAVE_IN_PLACE, REVIEW_WITH_MODEL, SEND_TO_APPROVED_NODE, SET_CHOICES, check,
+    ABSTAIN, ACCEPTED_GRAPH_OR_PURPOSE_PACKET, ASK_USER, CONFIRMED_DOMAIN_GROUP,
+    LEAVE_IN_PLACE, MARK_REVIEW_LATER, MARK_STATE, MARKED_STATES,
+    NO_SUPPORTED_DESTINATION, PLACE, RETURN_TO_PLACEMENT, REVIEW_WITH_MODEL,
+    SEND_TO_APPROVED_NODE, SET_CHOICES, check,
 )
 
 
@@ -292,3 +303,163 @@ def require_model_call_permitted(conn: sqlite3.Connection, *, plan_version: str,
             f"chose to {LEAVE_IN_PLACE!r} produces zero model calls."
         )
     return decision
+
+
+# --- §7.7's eight actions, and §7.9's loop -----------------------------------------
+
+class ReturnCycleLimitRequired(RuntimeError):
+    """SPEC Open question 8 is open; no bound is stated and P11 chooses none."""
+
+
+class ReturnCycleExhausted(RuntimeError):
+    """This file has already cycled §7 → §6 as many times as the caller allows."""
+
+
+#: §7.7's eight actions, in P8's machine spelling, mapped onto §6's outcome
+#: vocabulary. Two pairs differ only by a qualifier, which is why the eight need
+#: no field the §6 path does not already have (SPEC:386-399). There is no ninth
+#: (SPEC:95), and the totality assertion below is what makes a P8 addition break
+#: here loudly rather than fall through to a default.
+ACTION_OUTCOME: MappingProxyType = MappingProxyType({
+    RETURN_CONFIRMED_GROUP: RETURN_TO_PLACEMENT,
+    RETURN_ACCEPTED_PACKET: RETURN_TO_PLACEMENT,
+    CHOOSE_RESIDUAL_DESTINATION: PLACE,
+    CHOOSE_BROAD_PARENT: PLACE,
+    P8_MARK_REVIEW_LATER: MARK_REVIEW_LATER,
+    LEAVE_IN_CURRENT_LOCATION: LEAVE_IN_PLACE,
+    MARK_PROTECTED_OR_UNSUPPORTED: MARK_STATE,
+    P8_ABSTAIN: ABSTAIN,
+})
+assert set(ACTION_OUTCOME) == set(RESIDUAL_ACTIONS)
+assert ASK_USER not in ACTION_OUTCOME.values()   # SPEC:437-439: placement only
+
+_RETURN_KIND: MappingProxyType = MappingProxyType({
+    RETURN_CONFIRMED_GROUP: CONFIRMED_DOMAIN_GROUP,
+    RETURN_ACCEPTED_PACKET: ACCEPTED_GRAPH_OR_PURPOSE_PACKET,
+})
+
+
+def outcome_for_action(action: str, *, target) -> tuple[str, object]:
+    """One action as (outcome, qualifier). Raises on anything outside the eight.
+
+    The qualifier is what the record's outcome-shaped field takes:
+    `return_target.kind` for the two returns, `destination.node_id` for the two
+    choices, `marked_state` for the mark, `abstention_reason` for the abstention,
+    and nothing at all for Review Later and leave-in-place -- whether those two
+    result in a move is the Review Later node's `disposition` (§7.4, set by P10),
+    not this record's decision.
+
+    A `target` is required exactly where the record needs one and refused exactly
+    where it does not. Returning `(place, None)` for a destination-less choice
+    would build a decision `PlacementDecision` cannot construct, and the failure
+    would land a stage away from the action that caused it; accepting a target on
+    `leave_in_current_location` would let a caller believe it named a destination
+    and then watch the file stay where it was.
+    """
+    outcome = ACTION_OUTCOME[action]
+    if action in _RETURN_KIND:
+        if not target:
+            raise ValueError(
+                f"{action!r} returns the file to a named group or packet and "
+                "`ReturnTarget` requires that id; a return that names nothing "
+                "cannot be recorded and cannot be walked by §8.8's diff"
+            )
+        return outcome, _RETURN_KIND[action]
+    if outcome == PLACE:
+        if not target:
+            raise ValueError(
+                f"{action!r} chooses an approved node and named none; "
+                "`PlacementDecision` requires `destination` on exactly the "
+                "`place` outcome, so a place with no node is unbuildable"
+            )
+        return outcome, target
+    if outcome == MARK_STATE:
+        if target not in MARKED_STATES:
+            raise ValueError(
+                f"§7.7 action 7 marks a file {MARKED_STATES}; {target!r} is "
+                "neither, and a third state would be P11 inventing a category"
+            )
+        return outcome, target
+    if target is not None:
+        raise ValueError(
+            f"{action!r} names no destination and was given {target!r}; dropping "
+            "it silently would report a choice the record never carried"
+        )
+    if outcome == ABSTAIN:
+        return outcome, NO_SUPPORTED_DESTINATION
+    return outcome, None
+
+
+def link_return(conn: sqlite3.Connection, *, residual_decision,
+                placement_decision, component_version: str,
+                observed_at: str) -> int:
+    """§7.9's loop, logged. Both records persist; neither supersedes the other.
+
+    The residual finding is never discarded because placement later succeeded --
+    it is the record of what the residual review noticed, and SPEC:443-445 keeps
+    it readable beside the placement it caused.
+    """
+    if residual_decision.outcome != RETURN_TO_PLACEMENT:
+        raise ValueError(
+            f"the residual decision is {residual_decision.outcome!r}, not "
+            f"{RETURN_TO_PLACEMENT!r}; linking one would log a §7.9 traversal "
+            "that never happened and leave §8.8's diff walking half a loop"
+        )
+    if placement_decision.returned_from != residual_decision.decision_id:
+        raise ValueError(
+            "the placement decision must name the residual decision that handed "
+            "the file back; without the link §8.8's diff cannot walk the loop"
+        )
+    residual_subject = subject_ref_of(residual_decision.subject)
+    placement_subject = subject_ref_of(placement_decision.subject)
+    if residual_subject != placement_subject:
+        raise ValueError(
+            f"the return concerns {residual_subject!r} and the placement "
+            f"concerns {placement_subject!r}; §7.9 hands ONE file back, and a "
+            "loop joining two subjects explains neither of them"
+        )
+    return placement_events.return_issued(
+        conn, residual_decision_id=residual_decision.decision_id,
+        placement_decision_id=placement_decision.decision_id,
+        component_version=component_version, observed_at=observed_at,
+        file_id=placement_decision.subject.file_id,
+        content_hash=placement_decision.subject.content_hash,
+    )
+
+
+def check_return_cycle(conn: sqlite3.Connection, *, subject_ref: str,
+                       max_return_cycles) -> int:
+    """How many times this subject has already gone §7 → §6, and whether that is
+    one too many.
+
+    SPEC Open question 8 is open: the loop is required and no bound, termination
+    rule or forced-abstention condition is stated, which threatens P2's replay
+    determinism. The bound is therefore injected. P11 picks no number, and a
+    caller that supplies none is refused rather than allowed to loop.
+
+    Only LIVE rows are counted. `one_current_placement_decision` allows exactly
+    one unsuperseded decision per (plan version, subject), so a live count is the
+    number of plan versions in which this subject currently returns -- which is
+    what "trips round the loop" means. Counting superseded rows too would make
+    the number mean "times somebody edited the record", and one corrected return
+    would exhaust a bound the file never actually reached.
+    """
+    if max_return_cycles is None:
+        raise ReturnCycleLimitRequired(
+            "§7.9 requires the loop back to §6 and states no bound (SPEC Open "
+            "question 8). `max_return_cycles` is injected; absent means refuse, "
+            "because an unbounded loop is a replay that never terminates."
+        )
+    row = conn.execute(
+        "SELECT count(*) AS c FROM placement_decisions WHERE subject_ref = ? "
+        "AND outcome = ? AND superseded_by IS NULL",
+        (subject_ref, RETURN_TO_PLACEMENT),
+    ).fetchone()
+    seen = row["c"]
+    if seen > max_return_cycles:
+        raise ReturnCycleExhausted(
+            f"{subject_ref!r} has returned to placement {seen} times against a "
+            f"limit of {max_return_cycles}; the caller decides what happens next "
+            "and P11 does not silently keep cycling"
+        )
+    return seen
