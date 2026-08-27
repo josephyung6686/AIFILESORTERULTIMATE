@@ -192,6 +192,26 @@ REVIEW_POLICIES: tuple[str, ...] = (
     AUTO_ELIGIBLE, REVIEW_REQUIRED, BLOCKED_PENDING_USER,
 )
 
+# --- §8.7's correction polarity: P1's axis, one value spelled like P8's verdict ---
+
+#: §8.2's polarity, in P1's own words: "polarity ∈ accept | reject and is supplied
+#: by the acting part". P1 publishes no constant for either, so P11 spells them.
+#:
+#: `POLARITY_REJECT` is the same string as P8's verdict outcome `REJECT`, imported
+#: above, and is deliberately NOT bound to it. The axes are unrelated: a verdict is
+#: what the validator concluded about a response, a polarity is what the user did
+#: about a proposal. A module recording a user's rejection must not reach for the
+#: verdict constant to spell it, which is the rule this file opens with.
+POLARITY_ACCEPT: str = "accept"
+POLARITY_REJECT: str = "reject"
+POLARITIES: tuple[str, ...] = (POLARITY_ACCEPT, POLARITY_REJECT)
+
+#: Pinned, not shared. If P8 ever respells its verdict this assertion fails and a
+#: reader is told the two strings drifted apart, rather than P11 silently
+#: following a change that was never about polarity.
+assert POLARITY_REJECT == REJECT
+
+
 # --- residual sets ---------------------------------------------------------------
 
 REVIEW_WITH_MODEL: str = "review_with_model_against_approved_residual_folders"
