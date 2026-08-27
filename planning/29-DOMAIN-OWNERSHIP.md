@@ -175,7 +175,7 @@ law_practice.depositions-testimony | OTHER-TEAM | active
 law_practice.discovery | OTHER-TEAM | active
 law_practice.due-diligence | OTHER-TEAM | active
 law_practice.engagement-terms | OTHER-TEAM | active
-law_practice.estates-administration | OTHER-TEAM | active
+law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.evidence-exhibits | OTHER-TEAM | active
 law_practice.expert-materials | OTHER-TEAM | active
 law_practice.family-law | OTHER-TEAM | active
@@ -337,7 +337,7 @@ and the four remaining `resource_operations.*`). Claiming the 16 OTHER-TEAM can 
 
 law_practice.contract-negotiation | OTHER-TEAM | active
 law_practice.due-diligence | OTHER-TEAM | active
-law_practice.estates-administration | OTHER-TEAM | active
+law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.investigation | OTHER-TEAM | active
 law_practice.legal-research | OTHER-TEAM | active
 law_practice.regulatory-submission | OTHER-TEAM | active

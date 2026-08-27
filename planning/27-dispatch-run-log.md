@@ -1240,3 +1240,7 @@ OTHER-TEAM Cursor wave will not claim, edit, or commit these four.
 ### Landed — nonprofit.advocacy-campaign (salvage)
 
 Refusal kept. Memo only committed (`5578443`). Pair complete.
+
+### Landed — law_practice.estates-administration (salvage)
+
+Landed JSON kept. Memo committed. Pair complete. proposed_fields: subject_of_record (cluster with clinical/depositions).
