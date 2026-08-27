@@ -46,15 +46,6 @@
       "destination_eligible": true,
       "why": "00: 'Finance files may use institution, account type, tax year, and record type'. Rule family: a document-kind term in a title, page-one heading, or labelled slot together with the structure that term implies - a statement carries a labelled period and balance, an invoice carries labelled line items and a total. Members are VALUES discovered at runtime (00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically'), and jurisdiction-specific form names are values from R5's one-jurisdiction catalogue, never field names (D4).",
       "provenance": "design"
-    },
-    {
-      "field": "account_holder",
-      "type": "string",
-      "example": "the named holder on the statement",
-      "reliability_ceiling": "direct",
-      "destination_eligible": false,
-      "why": "00 requires this facet by name and the canonical list has no key for it: 'The system must separate roles that happen to contain the same entity type.' ... 'A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets'. institution holds the issuing side; nothing holds the holder side. A search and privacy field only - destination_eligible false because 00 forbids the folder use directly: 'It should avoid using authorship or creator identity as a destination dimension.' Listed in proposed_fields; the role_split edge that binds it to institution lives in canonical_fields.json and is R1a/R1c's to author, not this node's.",
-      "provenance": "design"
     }
   ],
   "proposed_fields": [

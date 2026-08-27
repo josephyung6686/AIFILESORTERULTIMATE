@@ -1566,3 +1566,129 @@ left without a home.** One item to record centrally: six refusals hand coverage 
 (`med.veterinary-pet-owner`, `pers.pet`, `trade.timesheet`, `eng.engineering-project`, `law.adr`,
 `pers.creative-project`) — each names a live R1 destination alongside, but the retirement of those ids
 is asserted six times in prose and recorded nowhere central.
+
+### ⚠️ THE LATENT INTEGRATION RISK — the product's code knows 10 schemas; the roster declares 23
+
+`src/facts/domains.py`:52 defines the closed vocabulary the product recognises:
+
+```
+SCHEMA_IDS = ("academic", "college_applications", "research", "career", "photos", "code",
+              "finance", "identity", "medical", "legal")   # 10
+```
+
+The roster declares **23**. The **13** with no counterpart in code are the J-IND professional
+worlds: business_operations, clinical_practice, construction_property, creative, engineering,
+government, hr, law_practice, logistics, manufacturing, nonprofit, resource_operations,
+retail_hospitality — and **262 of 335 template rows (78%) point at them.**
+
+**This is inert today and deliberate** — the firewall means nothing in `src/` loads the catalogue,
+and the 13 are placeholders that write no field rows and mint no canonical keys, which is exactly
+why the 37-key table is still clean. **But it does not stay inert.**
+`src/tree_design/catalogue.py`:4-8 states the endgame: *"a later deterministic compiler consumes
+ratified catalogue records and emits a versioned manifest… this module reads that manifest and
+nothing else."* On that day, 13 of 23 schema ids and 78% of the roster become unmappable against a
+tuple whose own docstring calls itself "the ten domains the product recognises".
+
+**Nothing in `src/`, `tests/`, or any contract records whether the compiler must fold the thirteen,
+reject them, or widen SCHEMA_IDS — and no test would catch it.** That decision is Joseph's and P6's,
+not this audit's. It is recorded here so it is not discovered by the compiler.
+
+Note the compounding: `check.py` — the only gate in the directory — sees the 574 legacy entries and
+none of the 358 rows where this divergence lives, so the divergence is invisible to every automated
+check that exists.
+
+### Integration lane — remaining confirmations
+
+- **Firewall airtight at runtime.** No `src/` module imports, opens or path-constructs into
+  `planning/domains/`; every mention is a prose citation. `tests/p6/test_p6_no_invention.py`:517 is a
+  genuine fresh-subprocess import-delta probe. **But `tests/p8/test_p8_fact_validation.py`:714
+  (`assert "planning/domains" not in source`) is near-vacuous** — it greps the module's own raw text
+  including docstrings, so a P8 module that *documented* the firewall the way `src/facts/fields.py`:15
+  does would FAIL. Low severity (the other two guards cover the real risk), but it is a text taboo,
+  not an import guard.
+- **Residual vocabulary: byte-identical, 9/9, in `00`'s order**, from a single home
+  (`src/tree_design/vocabulary.py`:246). Default parents match too — the four `00` names, not five
+  invented. P8/P11 do not re-declare them.
+- **Field table: exactly the two documented swaps** (`capture_date` added, `sensitivity_status`
+  withheld). No third difference. 37 keys both sides; the four value kinds are set-identical.
+- **Universals agree including the delta** — CONNECTION absorbed P6's `download_session` addition
+  rather than diverging. `facts/domains.py` implements CONNECTION's allowlist algebra exactly.
+- **Stale, MEDIUM:** `src/facts/fields.py`:16 and `src/facts/domains.py`:37 both describe
+  `planning/domains/` as "a research artifact of 574 proposed entries". It now holds 358 roster rows;
+  the 574 is the superseded pre-R0 flat catalogue. Both point a reader at the wrong artifact's size
+  and character. (`tests/p6/test_p6_domains.py`:329 same, LOW — comment only.) **P6/P7 owns `src/`;
+  not corrected here.**
+- **Naive gate extension quantified:** pointing `check.py`'s existing rulesets at `nodes/` yields
+  **4,564 findings, every one a false positive** (716 missing REQUIRED + 358 FORBIDDEN_EDGE_KEYS hits
+  + 3,490 outside ALLOWED_ENTRY_KEYS). Correct fix: **move the three contract lines, not the corpus**,
+  then shape-dispatch the gate. Note `_CONTRACT.md`:155 reaches for `kind` as the discriminator, but
+  `kind` is present on BOTH shapes and cannot separate them — dispatch on `schema_id` or the path.
+- **43 malformed `falls_through_to` entries in 11 files** (hr family ×39 as `{template, when}`,
+  plus 4 as `{residual, why}`). Values are all valid nine-names, so the vocabulary is clean — but any
+  consumer keying on `residual_template` **silently drops these 43 edges**. This is the concrete,
+  already-paid cost of the gate gap. Left for R1c (cross-team files); the widened authority covers it.
+
+### FIXED IN THIS PASS — `finance.account_holder`
+
+Removed from `finance.json`'s `fields[]`; **kept in `proposed_fields` and the `open_question` kept
+verbatim.** The row's intent was visibility, and `proposed_fields` serves that fully — but a key in
+BOTH lists makes "visible" indistinguishable from "answered" to any consumer reading `fields[]`, and
+P8's `FIELD_NOT_IN_ACTIVE_SCHEMA` validator reads `canonical_fields.json`, so every extraction of it
+would have been rejected at runtime.
+
+It was the **only** non-canonical key in the entire corpus (only 6 of 358 rows declare a non-empty
+`fields[]` at all — 31 entries total). **The invariant `fields[] ⊆ canonical_fields.json` now holds
+corpus-wide, verified: 0 violations.** It becomes a one-line check in R1c's new ruleset.
+
+### NORTH STAR — would this be the best file sorter today? Not yet, and the reason is structural
+
+**298 of 358 rows cannot produce a folder.** Only 60 rows carry a non-empty `dimension_order`, and
+all of them sit inside `00`'s original six launch domains — minus `career`, plus `finance`.
+`_CONTRACT` rule 12 is the mechanism: a dimension may only branch on a field its schema declares, and
+17 of 23 schemas declare none.
+
+**The sharpest single finding: `career` is a named full-support launch domain with zero dimensions.**
+`00`:52 names it among the six; `00` gives its order verbatim; `_CONTRACT` rule 10 says *"Career is
+owed before P10."* `career.recruiting.json` holds `00`'s own recommendation as dead prose: *"EMPTY BY
+CONTRACT, not by refusal… 00 records the recommendation verbatim — 'a Career template may define
+company → role or recruiting cycle → document type' — but a dimension may only branch on a field the
+schema declares."* Meanwhile `finance`, a *safety* domain, now has more templated rows than any other
+schema. A job search is one of the messiest, most time-boxed, highest-stakes folders a person has,
+and today every resume, recruiter thread and offer letter goes to residuals.
+
+**The damage this does is not neutral — it decides collisions by the wrong criterion.** Where two
+rows collide and only one side has fields, the side with a tree wins *regardless of the signal*:
+
+- A builder's job-site photo `IMG_4471.HEIC` loses `construction_property.progress-photos` to
+  `photos.camera-events` and files as `2026/<event>` **next to his kids' birthday photos**.
+- A company's `VAT_return_Q2_2026.pdf` loses `business_operations.corporate-regulatory-filings` to
+  `finance.tax-filings` — **the personal household template** — for the same reason.
+
+**No `display_label` anywhere in the corpus** (`grep '"display_label"' nodes/*.json` → 0 hits), while
+`00`:102 requires every tree node to carry a display label and `00`:59 has the LLM propose "a concise
+human-readable display label". So folders would be named *"payer-issued year-end information form"*
+where a person says **"W-2s"**, and the reorder canvas would show users raw snake_case keys. The
+corpus already knows better — `finance.tax-filings.template.why` writes the label it actually wants:
+*"a folder named Payer Forms or Assessment is intelligible once the year is known."*
+
+**Prioritised (from the north-star lane, recorded for the template work):** P0 declare `career`
+fields · P1 add `display_label` to every destination-eligible field and enum value · P2 land fields
+for the four highest-volume placeholders (creative 42 rows, law_practice 37, construction_property 28,
+manufacturing 20) · P3 reverse `photos.screenshot-captures` from `media_type/capture_year` to
+`capture_year/media_type` (six near-synonymous kinds split before year, on the highest-count file type
+on a normal drive) · P4 make applications institution-first for consistency · P5 make research
+project-first (`conference-presentation` is venue-first, tearing a poster from its paper) · P6 an
+opt-in user-labelled *person* level under `medical.dependant-child-health` (a carer for two parents
+cannot separate them; "Dad" is not a health disclosure the way a condition name is) · P7 add the
+person-shaped rows the corpus has no name for: **house move, estate/bereavement, elder care, pet
+owner** — verified absent across all 358 row names.
+
+**What is genuinely good, stated plainly:** collision signals are evidence-shaped rather than
+keyword-shaped and resolve the hard seams wherever both sides have fields; depth discipline is exactly
+what `00` asked for (median two levels across the 60 templated rows, with rows arguing *against* a
+third level by name); every non-refused row carries a residual fallback; and the refusals are rigorous
+forensics rather than shrugs. **For a student with coursework, applications, research, code, photos
+and taxes this would already sort better than anything on the market.** The gap is that the last
+seventeen schemas are recognition without placement — the product tells a photographer, a builder, a
+manufacturer and a job-seeker it understands every file they have, then files nine in ten of them
+under "Review Later".
