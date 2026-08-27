@@ -1300,3 +1300,11 @@ Refused (schema work-product / work_type duplicate). Pair committed.
 ### Landed — retail_hospitality.catering-contract
 
 Accepted (client-facing commercial engagement chain). Pair committed.
+
+### Landed — law_practice.contract-negotiation
+
+Already in history at `f08ebef` (row agent committed). refuse_node=false; pair complete. Cleared assume-unchanged flags so status is honest.
+
+### Cursor OTHER-TEAM wave close — 16/16 owned rows
+
+All 16 claimed OTHER-TEAM owed rows now have JSON+memo pairs in history. Recompute next; remaining owed are outside this claim (CODEX / peer resource_operations block).
