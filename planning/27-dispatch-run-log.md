@@ -1308,3 +1308,261 @@ Already in history at `f08ebef` (row agent committed). refuse_node=false; pair c
 ### Cursor OTHER-TEAM wave close — 16/16 owned rows
 
 All 16 claimed OTHER-TEAM owed rows now have JSON+memo pairs in history. Recompute next; remaining owed are outside this claim (CODEX / peer resource_operations block).
+
+---
+
+## AUDIT — full-corpus review of the closed catalogue, 2026-08-27 22:00–22:45
+
+Run at Joseph's instruction over the **closed** 358/358 corpus. Seven read-only lanes (coverage,
+prompt-purpose, repo integration, design fidelity, downstream consumers, north-star product
+judgement, fresh rows + refusals) plus mechanical passes. Every count below was recomputed; none is
+quoted from an earlier document.
+
+**State: 358 roster rows, 358 complete pairs, 0 owed, 0 partial, 0 strays, 44 argued refusals,
+23 schemas / 335 templates, 54 bindable template rows across 6 field-declaring schemas.**
+
+### What is clean (verified, worth stating)
+
+- **No fabricated quotations.** 2,335 `00`-attributed spans across all 358 node JSONs matched
+  verbatim against a normalized `00`; 46 non-matches all hand-checked and innocent. The project's
+  recorded worst failure mode did not recur. (One cosmetic defect: `career.employer-side-hiring.json`
+  has a mangled `u2192` where `→` belongs.)
+- **Zero coverage lost.** All 574 legacy ids carry an explicit cited verdict in ROSTER.md Appendix A
+  (270 ROW / 263 FOLD / 41 DROP); all 533 FOLD+ROW targets resolve to a live roster row. No silent
+  losses, no dangling folds.
+- **PR-6 / J-IND held perfectly.** 0 of 335 template rows declares a field. All 17 field-less schemas
+  have `fields: []` and empty `dimension_order` throughout.
+- **Schemas stayed small.** All 23 within `00`'s "usually three to six"; max 6.
+- **Facts ≠ paths, activation ≠ grouping.** 0 rows branch on an undeclared field; 0 file on a
+  destination-ineligible fact; every apparent firewall hit was the rule being *asserted*, not broken.
+- **Residuals.** All nine used, 1,756 edges, 0 off-vocabulary names. The 3 rows naming none are all
+  refusals — correct.
+- **R2–R6 all ran and all pass their own gates.** None silently skipped. R5's which-jurisdiction and
+  R2's twelve detector questions are deliberate deferrals to Joseph, recorded as such.
+- **The `src/` firewall is real**, test-enforced, and not a wiring gap. `canonical_fields.json` is
+  still exactly 37 keys as `src/facts/fields.py` claims.
+
+### Defects found, by severity
+
+**HIGH — `also_holds_with` authored on 81 template rows** (215 edges; 31 rows template→template),
+against CONNECTION §5 / `_CONTRACT` rule 14 "schema ↔ schema only". The severity is the *split mind*,
+not the count: 4 rows (`creative.book-manuscript`, `finance.small-business-bookkeeping`,
+`creative.commissioned-shoot`, `photos.social-media-export`) deliberately emptied the field and wrote
+a note quoting the rule. The corpus holds two incompatible readings of a binding edge at once, and
+P6/P8/P9 all read that edge.
+
+**HIGH — 149 cross-kind `collides_with` edges** across 81 rows (134 template→schema, 15
+schema→template). CONNECTION §4 step 3 resolves collisions between *schemas*; a template→schema
+collision has no defined semantics in that algorithm at all.
+
+**HIGH — the software/IT hole.** 15 legacy entries (source projects, libraries, IaC, secrets, CI/CD,
+DB migrations, API specs, SDKs, data pipelines, performance tests, security findings, vulnerability
+disclosure, OSS licence compliance, releases) all route to `code.software-project`, which is itself
+one of the 44 refusals. Nothing sits between the whole software world and the bare `code` schema.
+
+**HIGH — the medical asymmetry.** 21 legacy patient-side situations collapsed into the single row
+`medical.personal-health-records` (launch: **safety**, so v1 exercises it immediately) while the
+clinician side received 11 rows. One row cannot express discharge summary vs imaging vs EOB.
+
+**HIGH — R1c cannot legally close its own gate.** Its edit authority (`01c`:5) permits only
+(a) reciprocal edges, (b) canonical field renames, (c) refuse_node — so the 215 template-borne
+`also_holds_with` and 149 cross-kind collisions are unrepairable, and `01c`:68 correctly forbids the
+third option. **Amended in place 2026-08-27**: authority widened to (d) lift-or-delete, (e) lift-or-push,
+(f) normalise a bare-string edge only where the memo already supplies the argument.
+
+**HIGH — `one_way_reason` is unusable.** Reciprocity is 47.9% (`collides_with`) and 12.5%
+(`also_holds_with`) against a ≥90% bar, but **0 files carry the `one_way_reason` key**, while ~71 rows
+argue one-wayness in prose inside `signal` where no gate can read it. 1,519 deliberate one-way edges
+are indistinguishable from oversights. Mass back-filling reciprocals would manufacture edges for seams
+rows already argued against. Recorded in the `01c` amendment.
+
+**MEDIUM-HIGH — should-have-been-refused**, concentrated in `law_practice`:
+`motions-and-briefs` (a VALUE at the document-function level that killed `pleadings`),
+`appeals` (a lifecycle STAGE), `hearing-transcripts` (a document type — and it opens by denying it,
+while `depositions-testimony` claims the same page-and-line evidence). Also
+`business_operations.meeting-record` (self-describes as "a WORKING meeting that no other situation
+already owns" — that is the residual definition, and `organisational-records` was refused for it),
+`business_operations.retrospective-postmortem`, `engineering.stage-gate-review`,
+`construction_property.quote-estimate`, `creative.post-production`, `creative.print-production`.
+
+**MEDIUM — `finance.account_holder`** sits in BOTH `fields` and `proposed_fields` and is absent from
+`canonical_fields.json`. The argument is sound (`00`:44 names "an account holder and an issuing bank")
+but P8's `FIELD_NOT_IN_ACTIVE_SCHEMA` validator reads `canonical_fields.json`, so every extraction of
+it will be rejected at runtime. It also pushes finance to 5 fields where `00`:47 names 4.
+
+**MEDIUM — the gate does not cover the corpus.** `check.py`:436 globs the `domains/` root only; the
+358-row `nodes/` corpus has never been gated. Pointed at `nodes/` unmodified it would fail all 358 on
+key-set grounds first: it REQUIRES `schema` + `supercategory` (0/358 have either), lists `role_split`
+in FORBIDDEN_EDGE_KEYS (358/358 have it), and 24 further keys fall outside ALLOWED_ENTRY_KEYS.
+`check_edges.py` is referenced by **no prompt and no contract** — an unratified side tool whose 1,892
+findings block nothing. Both recorded in the `01c` amendment.
+
+**MEDIUM — `_CONTRACT.md` rule 12 is the stale side, not the corpus.** It demands `uses_schema`;
+0 files have it, 358 use `schema_id`, and `01c`:42 uses the corpus spelling. **Corrected in place**
+with an explicit "do not fix this by renaming 358 node files" warning. Same drift on
+`file_kind_plausible` → `file_kinds`.
+
+**MEDIUM — `nodes/_refused/` does not exist.** `01c`:43 requires refusals to move there; all 44 sit
+in the live set and are counted in every metric. `26-research-dispatch-state.md`:73-81 records 6 —
+38 behind disk.
+
+**MEDIUM — the fresh nine.** All nine are contract-clean (correct `{domain, signal}` edges,
+`also_holds_with: []`, no bare strings — the cohort defect did NOT recur). But written blind and in
+parallel, two reciprocated pairs name a *different fixture on each side*
+(`customs-export`↔`shipment`, `last-mile-pod`↔`shipment`): arguments align, bytes do not, so neither
+side is testable against the other's. The one pair whose fixtures match perfectly —
+`tooling-fixture`→`shipment` on `Tooling-Shipping-Manifest_T-2048.pdf` — is documented in shipment's
+memo and **missing from its JSON**. And `route-dispatch` *refuses* collision edges with `shipment` and
+`last-mile-pod` on principle (run/day-level vs consignment-level vs stop-level = group membership,
+not mutex) while both siblings authored edges into it. **Adjudicate; do not back-fill.**
+
+**LOW — shape drift.** The `hr` family (10 rows) + `law_practice.deadlines-diary` write
+`falls_through_to` as `{template, when}` or `{residual, why}` instead of `{residual_template, why}`.
+`law_practice.admission-cle` writes `collides_with` under the key `neighbour` (refused row, so
+documentation not live data). `creative.deliverable-handoff` has prose in a field-key slot
+("recipient (no canonical field proposed)"). Two spellings for one concept: `also_holds_note` (2)
+vs `also_holds_with_note` (53). 28 `role_split` operand pairs use non-canonical field names.
+
+### Whole-world gaps (beyond the legacy catalogue)
+
+1. **Accountancy and audit as a practice — 0 rows**, against `law_practice` 37 and
+   `clinical_practice` 11. `finance.small-business-bookkeeping` is the business's own books;
+   `business_operations.compliance-audit` is internal audit. Neither is a practice. Dense document
+   profession, obvious early customer, and the roster already proves it knows how to model a practice.
+2. **Sport, athletics, coaching, clubs — 0 rows.** A universal life area. The one legacy entry that
+   touched it (`acad.athletics-eligibility`) was folded into `academic.coursework`, a row keyed on
+   school + term + subject. A club season is not a school term.
+3. **Individual-side military service** — `government.defence-veterans` is the *authority's* record;
+   a veteran's own orders and benefit claims land on the wrong side. Role-side ambiguity, not absence.
+4. **Insurance broking / loss adjusting** — all `finance.insurance-*` rows are policyholder-side.
+
+The nine residuals do **not** catch these. Every one is scoped by `00`:118-120 to an *isolated* file;
+these gaps produce coherent multi-file corpora. Routing a 400-file genealogy archive into
+"Independent Records" produces exactly the flat dump `00`:118 forbids.
+
+Also flagged for reopening on judgement: the DROP-residual argument is weakest for `pers.genealogy`
+and `pers.journal` — both durable, high-volume, deliberately-curated corpora with obvious dimensions.
+
+### Documents corrected in this pass
+
+- `41-TEMPLATE-DECISION-BRIEF.md` — **it was not safe to answer.** §3 told Joseph "there is no
+  fourth" and "if you want one cut, cut Recipe 2"; `42`:22 finds a fourth recipe *bigger than all
+  three* (55 rows / 11 domains) and `42`:20 says "Do not cut it" (11 rows / 5 domains — mis-flagged
+  by a 6-domain sample). `41` cited none of 42/43/44/45/46. Two inline corrections + a header note
+  added; the struck sentence is struck, not deleted, so the reasoning stays visible.
+- `_CONTRACT.md` rule 12 — stale-key correction (above).
+- `01c-merge-and-gate.md` — edit authority widened; `check_edges.py` fold instructed;
+  `one_way_reason` and `_refused/` gaps named (above).
+- `42-HANDOFF-FINISH-THE-CATALOGUE.md` — marked **CLOSED**; running its §7 would re-research
+  finished rows and overwrite real work.
+- `31-DOMAIN-AUDIT.md` — marked superseded; its "191 missing" is now 0.
+
+### Not checked — stated plainly
+
+- No fabrication verdict on the 358 `.research.md` memos as a corpus (the node JSONs were fully
+  checked and are clean; a 15-memo sample gave 12/12 verbatim). `01c`:47's `cited_quotes` gate has
+  never been pointed at `nodes/`.
+- Threshold-number check (`01c`:48) has never reached `nodes/`.
+- `01c`:51's worked-`00`-files re-check was not performed.
+- Not all 291 kept rows were read for the should-have-been-refused test (~18 candidates read in full;
+  the rest scanned at name level).
+- 42/43/45's recipe *directions* were not re-derived against the 21 prose rows that landed after they
+  froze; only established that the rows are unread.
+
+### CORRECTIONS to the audit above — issued before commit, on re-examination
+
+**The software hole and the medical asymmetry are WITHDRAWN as HIGH findings.** Both were ranked on
+fan-in counts without reading the refusals' actual arguments. Reading them dissolves both.
+
+- **Software.** `code.json` already carries `dimension_order [project, repository, artifact_type]`,
+  and its `work_types` enumerate the distinctions said to be lost. Any `code.*` row for CI/CD or IaC
+  would key on those same three dimensions — the definition of a non-node, and precisely the
+  fake-schema class the recut exists to eliminate. `code.software-project.json` says so itself:
+  *"A missing value is a value-list gap for R1c, never a licence for a roster row."*
+  **Real repair, cheap:** 5 of the 15 folded ids have no matching `artifact_type` value — add
+  *infrastructure definition, CI/CD pipeline definition, container or deployment manifest, database
+  migration, API specification*. **Plus a reroute:** `soft.security-finding-report`,
+  `soft.vulnerability-disclosure`, `soft.licence-oss-compliance` are assurance records keyed on report
+  date and assessor, not repo artifacts — route them to `business_operations.compliance-audit`, as
+  `soft.tech-compliance-evidence` already is. **Blocker for Joseph:** `code.json`'s open question —
+  is a repository root ATOMIC (relocatable only whole)? If yes, `artifact_type` is decorative for
+  rooted projects and the value-list fix buys nothing for the common case. That ruling, not a new row,
+  decides whether software has real resolution.
+
+- **Medical.** The 21-into-1 collapse is a ratified **privacy** design, not an oversight.
+  `medical.json`'s `template.why`: the natural dimensions — *"a condition, a specialty, a provider, a
+  person - become visible folder LABELS, publishing in the namespace exactly what the protection
+  exists to hide."* A `medical.lab-results` or `medical.mental-health` row would write "Mental Health"
+  into a path. The resolution is present as 16 `work_types` values; it is deliberately not allowed to
+  become a folder. The asymmetry with `clinical_practice`'s 11 rows is justified — a clinician's files
+  are a practice's business records; a patient's are protected health data under a different rule.
+  **Minimal additional patient-side rows: ZERO.** **Real fix-list item:** an unresolved-template path
+  for protected files (`medical.personal-health-records` open_question — how P10 chooses among the
+  three templates while Medical declares no fields).
+
+**Accountancy/audit and sport/athletics stand** as the only two gaps needing actual rows.
+
+**The nonprofit anchor characterization was wrong** wherever "5 of 9 rows against the same
+precondition" was recorded (including `42-HANDOFF`). Truth: **6 refusals of 10 nonprofit template
+rows, and only 2 turn on the shared non-exchange precondition** (`governance`, `standards-body`).
+The other four refuse on four different grounds — `grant-reporting` explicitly states the opposite
+(*"The non-exchange precondition is satisfied here"*) and refuses for being the schema's activation
+spine; `advocacy-campaign` is a `work_types` VALUE; `political-campaign` fires the schema's own
+defaults; `volunteer-management` duplicates the default on all three legs. **This is not one
+family-level decision to make — it is five independent judgements that already reasoned separately.**
+Do not "settle nonprofit" as a single ruling.
+
+### The creative family needs a genuine re-dispatch — the sharpest remaining quality finding
+
+The ~180 headerless memos are mostly **benign**: 33 are pre-J-DEPTH launch rows that RESEARCH-BRIEF
+names as the reference standard, and 147 are placeholder rows whose median memo size (business_operations
+35.9 KB, clinical_practice 25.7 KB, resource_operations 25.2 KB) is at or above the ~13 KB target —
+deep work missing a label, fixable with a header pass.
+
+**The inverse is the real defect: `creative` stamps the label on work that is missing.**
+`creative.fashion-collection.research.md`:3 is **3.9 KB** and its header literally reads
+*"**Depth: J-DEPTH.** Mechanical deepening marker"* — an in-file admission the label was applied
+without the research. It cites zero verbatim design-doc quotation, delegates files-considered-and-rejected
+to the JSON, and never names its collision fixture. Same pattern in `creative.print-production` (4.2 KB)
+and `creative.3d-asset` (4.6 KB).
+
+Corpus-wide: **39 memos contain no quoted span ≥40 chars — 17 of them `creative`, nearly the whole
+family. 11 memos miss two or more of the six J-DEPTH requirements, and 9 of the 11 are `creative`.**
+This matches `26-research-dispatch-state.md`:59-71, which records creative as dispatched twice, killed
+by the usage limit both times with nothing to salvage, and names it *"the riskiest family."*
+
+**A header pass fixes the other 147. Creative needs the research actually done.**
+
+### The fresh nine — edge defects to fix before they are trusted
+
+All nine are contract-clean on shape (correct `{domain, signal, provenance}` objects,
+`also_holds_with: []`, `fields: []`, empty `dimension_order`, zero invented residuals across 47
+entries, zero fabricated quotations across 39 quoted spans). The blind-parallel risk landed exactly
+in the edges:
+
+1. `manufacturing.production-planning` collides against three **schema** ids (`engineering`,
+   `logistics`, `business_operations`) — same-kind violation.
+2. `creative.commissioned-shoot` → `code.software-project` and
+   `manufacturing.quality-management-system` → `engineering.requirements-specification` each point a
+   collision at a **refused** row. Refusals sound; edges stale.
+3. `logistics.shipment`'s memo documents 9 collisions, its JSON authors 8 — and the dropped one
+   (`manufacturing.tooling-fixture`, `Tooling-Shipping-Manifest_T-2048.pdf`) is **the only pair in the
+   set whose fixtures match perfectly**.
+4. The two reciprocated within-family pairs name a **different fixture on each side**
+   (`customs-export`↔`shipment`; `last-mile-pod`↔`shipment`) — arguments align, bytes do not, so no
+   pair is testable end-to-end.
+5. **Adjudicate, do not back-fill:** `logistics.route-dispatch` argues in writing that its seams with
+   `shipment` and `last-mile-pod` are group membership, not collisions (run/day vs consignment vs
+   stop level). Both siblings authored collision edges into it anyway. One side says mutex, the other
+   says group. A human decides.
+
+Cosmetic, project-wide: the `SAME FIXTURE BYTES:` vs `SAME FIXTURE BOTH SIDES:` prefix split (both
+memos claim downstream code reads that prefix — pick one string), and the missing `Depth: J-DEPTH`
+header on `logistics.last-mile-pod` and `manufacturing.work-instruction`.
+
+**Refusals are the strongest artifact in the corpus:** zero bare assertions across all 44, every
+"X owns this" chain terminating at a live row or a surviving schema default, and **no filing situation
+left without a home.** One item to record centrally: six refusals hand coverage to legacy pre-R0 ids
+(`med.veterinary-pet-owner`, `pers.pet`, `trade.timesheet`, `eng.engineering-project`, `law.adr`,
+`pers.creative-project`) — each names a live R1 destination alongside, but the retirement of those ids
+is asserted six times in prose and recorded nowhere central.

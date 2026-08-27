@@ -1,5 +1,21 @@
 # Handoff — finish the domain catalogue
 
+> # ✅ CLOSED 2026-08-27 22:11 — THIS HANDOFF IS DISCHARGED. DO NOT EXECUTE §7.
+>
+> **The catalogue is finished: 358/358 rows, 0 owed, 0 partial, 44 argued refusals.** The last 9
+> rows (`creative.commissioned-shoot`, 4 × `logistics.*`, 4 × `manufacturing.*`) were written by
+> CODEX and landed at 22:11. Every count in §2 below is stale (it says 329 complete / 27 owed /
+> 40 refusals) and the "remaining work" in §4 is done as far as new rows go.
+>
+> **Running §7 now would re-research rows that already exist and overwrite finished work.**
+>
+> What is still owed is NOT in this document: it is the **R1c merge-and-gate**
+> (`planning/prompts/01c-merge-and-gate.md`) over a closed corpus, plus the audit findings recorded
+> in `planning/27-dispatch-run-log.md`. Start there instead.
+>
+> Kept unedited below for the history — the failure modes in §6 are still true and still worth
+> reading before touching this corpus.
+
 Date: 2026-08-27 · Written for the next agent, who should need nothing but this file and the repo.
 Repo: `/Users/jy/GRAPH AGENT` (**the path contains a space — quote it in every shell command**).
 Branch: `build/p6-p7-first-packages`, pushed clean at `103548d`.

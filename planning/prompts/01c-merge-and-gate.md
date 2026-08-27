@@ -4,6 +4,57 @@ Copy everything below the line into a **single** new agent **after** R1b has lan
 
 Give it read access. It may extend `planning/domains/check.py` and `_CONTRACT.md`, write `planning/domains/FOREST-REPORT.md`, and **only** patch node files to (a) add missing reciprocal edges, (b) replace synonym fields with canonical keys, (c) mark refuse_node that R1a should have dropped. It does **not** invent schemas. It does **not** edit `src/`.
 
+> ### ⚙️ AMENDMENT 2026-08-27 — edit authority widened, or this gate cannot close
+>
+> The catalogue closed at **358/358 rows** on 2026-08-27. Running the edge gate over the finished
+> corpus (`python3 planning/domains/check_edges.py`) returns **1,892 findings**, and under the
+> authority as originally written **364 of them are unrepairable** — the agent would be dispatched
+> to close a gate it is forbidden to close. Specifically:
+>
+> - **215 `also_holds_with` edges authored on `kind: template` rows** (81 rows; 31 of them
+>   template→template). `also_holds_with` is schema↔schema only (CONNECTION §5, `_CONTRACT` rule 14).
+>   The only sound repairs are **lift the edge to the schema pair** or **delete it** — and (a)/(b)/(c)
+>   authorize neither. Reciprocating them would *propagate* the violation; and "Do not collapse
+>   `also_holds_with` into `collides_with`" below correctly forbids the third option.
+> - **149 cross-kind `collides_with` edges** (81 rows). `collides_with` is same-kind only. Repair is
+>   to lift to the schema pair or push down to the template pair.
+>
+> **Therefore this agent MAY additionally:**
+> **(d)** lift a template-borne `also_holds_with` to its schema pair, or delete it, recording which
+> and why per row; **(e)** resolve a cross-kind `collides_with` by lifting to the schema pair or
+> pushing to the template pair; **(f)** normalise a bare-string edge into `{domain, signal}` — but
+> **only where the row's own memo already supplies the argument**. Where it does not, record it as
+> `NEEDS-R1b-REFIRE`, do not invent a signal.
+>
+> **Lifting is not collapsing.** The prohibition below stands: never convert an `also_holds_with`
+> into a `collides_with`. They mean opposite things — co-holding vs mutual exclusion — and guessing
+> destroys the distinction CONNECTION §5 exists to protect.
+>
+> **Also fold in `check_edges.py`.** It postdates this prompt pack, is referenced by no prompt and no
+> contract, and its 1,892 findings currently block nothing. The done-when below ("green on the live
+> node set") cannot be met while the edge gate runs outside the gate. Merge its checks into
+> `check.py` and delete the standalone, or state why not.
+>
+> **The `one_way_reason` escape hatch is unusable as written.** §5 below says reciprocate "unless
+> `one_way_reason` exists", and the done-when sets the bar at ≥90%. Measured on the closed corpus:
+> `collides_with` is 47.9% reciprocated (1,252 one-way), `also_holds_with` 12.5% (267 one-way) —
+> and **zero node files carry the `one_way_reason` key at all.** Meanwhile ~71 rows *do* argue their
+> one-wayness, in prose buried inside the `signal` string, where no gate can read it. So 1,519
+> deliberate one-way edges are currently indistinguishable from 1,519 oversights. Before mass
+> back-filling reciprocals, **lift those existing prose arguments into a real `one_way_reason` key** —
+> otherwise this gate will manufacture reciprocal edges for seams a row already argued should not
+> have them.
+>
+> **`nodes/_refused/` does not exist.** §3 below requires refusals to move there; all **44** argued
+> refusals currently sit in the live set and are counted in every metric. Decide whether to move them
+> or to amend §3 — but note the count is 44, while `planning/26-research-dispatch-state.md`:73-81
+> still records 6, so the state file is 38 behind disk.
+>
+> **Note its one misleading label:** `check_edges.py` buckets `resource_operations`'s four
+> bare-string `also_holds_with` entries under `KEY_DRIFT_target`, whose message reads "uses <key> not
+> 'domain'". They are not key drift — they are bare strings carrying no argument at all. Fix the
+> label before trusting the bucket.
+
 ---
 
 You are the **merge gate** for a swarm of per-domain research agents.

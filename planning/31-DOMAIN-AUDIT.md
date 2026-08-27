@@ -5,6 +5,12 @@ Status: **inventory and integrity audit complete; cohesion gaps are recorded, no
 
 ## Inventory
 
+> ⚠️ **SUPERSEDED 2026-08-27 22:11 — the inventory below is a snapshot from mid-build, not the
+> current state.** The catalogue has since CLOSED: **358 roster IDs, 358 node JSON files, 0 missing,
+> 23 schema anchors, 335 templates, 44 argued refusals.** The "191 missing" figure is what was owed
+> at the time of this audit and is now zero. The audit's *findings* below may still hold; its
+> *counts* do not.
+
 - Roster IDs: **358**
 - Node JSON files: **167**
 - Missing/unwritten roster rows: **191**

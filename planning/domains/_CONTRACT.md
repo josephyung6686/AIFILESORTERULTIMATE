@@ -155,6 +155,17 @@ and are superseded by R1's roster, not migrated in place.
     kind-scoped checks below only to entries that carry `kind`, so the legacy 574 gain no new
     findings before R1 replaces them.
 
+> ⚙️ **CORRECTION 2026-08-27 — rule 12's key name below is STALE. The corpus is right; this rule is
+> wrong.** The serialized key is **`schema_id`**, not `uses_schema`. All 358 node files, `roster.json`
+> itself, and R1c's own brief (`planning/prompts/01c-merge-and-gate.md`:42, *"Every template has
+> `schema_id` that exists"*) use `schema_id`; **0 files anywhere contain `uses_schema`**. Read every
+> "`uses_schema`" below as "`schema_id`". `01c`:56 authorises this correction ("`_CONTRACT.md`
+> required keys to match R1b's object"); R1c should make it properly and update `check.py`'s key
+> sets with it. The same drift affects rule 14's `file_kind_plausible`, serialized as **`file_kinds`**
+> and present on template rows as well as schema rows.
+>
+> **Do NOT "fix" this by renaming 358 node files.** The contract text is the outlier, not the data.
+
 12. **Every `kind: template` entry carries `uses_schema: "<schema id>"` — exactly one.** At this
     catalogue layer the row is one applicability source. A row references its schema's fields; it never copies the field list, and its
     `template.dimension_order` may only branch on fields that schema declares (rule 8's second

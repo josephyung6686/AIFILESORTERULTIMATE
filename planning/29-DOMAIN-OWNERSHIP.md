@@ -357,3 +357,69 @@ JSON, refuse=false, no memo) and `nonprofit.advocacy-campaign` (landed refusal J
 Salvage = write the matching `.research.md` (and only edit the JSON if it fails parse / contract).
 Do **not** reverse `advocacy-campaign`'s argued refusal — it is one of the five nonprofit refusals
 R1c must settle at the family level.
+
+## Claims — OTHER-TEAM, 2026-08-27 21:58 (final 9 — takeover from CODEX's dormant block)
+
+**This is a takeover inside another team's open claim, made at Joseph's explicit instruction
+("can you finish the last 9?"). It is recorded here rather than done silently, because a silent
+write inside a live claim is exactly the failure this register exists to prevent.**
+
+Evidence the block is dormant, gathered before claiming:
+
+- Recomputed owed from `roster.json` requiring **both** `.json` and `.research.md`: 9 rows owed of
+  358 (349 complete, 0 partial). All 9 sit in CODEX's 2026-08-26 block.
+- **None of the 9 has a single file on disk** — no JSON, no memo, no partial. Nothing to salvage
+  and nothing to overwrite.
+- CODEX's last write anywhere in `nodes/` was **19:57 today**, on
+  `resource_operations.farm-records` — it worked through its `resource_operations` half of the
+  block and stopped without starting these 9.
+- The only files touched since are the 30 from OTHER-TEAM's own `git pull` at 21:52.
+
+The 9 taken over (were CODEX, now OTHER-TEAM):
+
+creative.commissioned-shoot | OTHER-TEAM | active
+logistics.customs-export | OTHER-TEAM | active
+logistics.last-mile-pod | OTHER-TEAM | active
+logistics.route-dispatch | OTHER-TEAM | active
+logistics.shipment | OTHER-TEAM | active
+manufacturing.production-planning | OTHER-TEAM | active
+manufacturing.quality-management-system | OTHER-TEAM | active
+manufacturing.tooling-fixture | OTHER-TEAM | active
+manufacturing.work-instruction | OTHER-TEAM | active
+
+**If CODEX is in fact still working these ids, stop and say so — do not write over them.** The
+four uncommitted `resource_operations.*` rows CODEX wrote at 19:51–19:57 remain CODEX's; they are
+untouched by this claim and were not staged.
+
+After these 9 land, the roster's node catalogue is closed and the remaining work is R1c
+(`planning/prompts/01c-merge-and-gate.md`), not new rows.
+
+### ⛔ WITHDRAWN 22:05 — CODEX is live on all 9. OTHER-TEAM never wrote and never dispatched.
+
+The claim immediately above is **retracted in full**, 7 minutes after it was made. It was made in
+good faith on evidence that was true at 21:55 and false by 21:59.
+
+**What actually happened.** At 21:55 all 9 rows had zero files on disk and CODEX's last write
+anywhere was 19:57 — two hours cold. On that evidence the block read as dormant and OTHER-TEAM
+claimed it. At 21:59, one minute after the claim was appended, CODEX began writing the same 9 rows.
+By 22:05, 8 of the 9 had files and `manufacturing.work-instruction.research.md` had been modified
+5 seconds earlier. CODEX was not dormant; it was between waves.
+
+**OTHER-TEAM dispatched nothing.** The 9 agents were prepared and held at Joseph's instruction
+("pause it") before firing. Not one of these files was written or edited by OTHER-TEAM. Had the
+dispatch gone out at 21:58 as planned, two agents would have been writing each of these 9 files
+concurrently and both sides' work would have been lost — the exact failure this register exists to
+prevent.
+
+**All 9 revert to CODEX | active.** OTHER-TEAM will not write, edit, stage or commit any of them.
+
+**The lesson, recorded because the rule that failed is a real one:** *"no files on disk"* plus
+*"the other team has been quiet for N hours"* is **not** evidence a claim is dormant — it is equally
+consistent with a team that is about to start. A registered `active` claim means active until the
+owning team releases it in writing. Cold evidence does not expire someone else's claim. If a block
+looks abandoned, the correct move is to ask the owner to release it, not to infer release.
+
+Status of CODEX's in-flight wave, observed 22:05 (do not act on this — it is a snapshot, not a claim):
+
+- 7 rows have JSON + memo · `manufacturing.production-planning` JSON only, memo pending ·
+  `logistics.last-mile-pod` not yet started.
