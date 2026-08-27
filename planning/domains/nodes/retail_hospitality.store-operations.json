@@ -1,0 +1,535 @@
+{
+  "id": "retail_hospitality.store-operations",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Store and site operations (the trading floor's operating day)",
+  "one_line": "The record a TRADING OPERATION keeps of RUNNING ONE SITE through one operating day or shift cycle: labour hours planned against forecast covers or sales, the opening and closing of the trading floor itself, the shift handover of trading-floor state, a brand or mystery-shopper standards walk of the selling space, and a reactive call raised from the floor during service. Its anchor is the SITE OPERATING DAY - bounded by open and close of that selling space - not a till session, not a stock count, not a licence file, and not the occupier's multi-month facilities calendar. It is the OPERATOR's side only. A PLACEHOLDER TEMPLATE on the fieldless retail_hospitality schema: it declares NO field rows (PR-6, _CONTRACT rules 10 and 15, D1 as narrowed) and recommends NO serialised dimension_order, so its difference from the family default is held as prose.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The `retail_hospitality` schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, held under this row's privacy posture, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "A LABOUR-AGAINST-FORECAST structure - this row's strongest and most decisive signal, and the discriminator the parent schema already named as NJ-RH-1. A rota or labour plan with names or roles down one axis and days or shifts across the other, PLUS a FORECAST COVERS, FORECAST SALES, SALES-PER-LABOUR-HOUR, LABOUR-PERCENTAGE or LABOUR-COST-AGAINST-SALES column in the same sheet. The forecast-trade column is what fires; without it the bare rota is undecidable against `hr` and this row must not claim it alone.",
+      "A TRADING-FLOOR OPENING-AND-CLOSING CHECK structure. A dated checklist keyed to a named site, store or unit, whose rows name trading-floor acts - float set or counted into the safe, tills opened or closed, alarm set or unset, shutters, lights, visual merchandising or brand-standards walk, fire-exit check as a daily tick, keys signed out - with an INITIAL or signature slot per row or per section. The discriminator against `retail_hospitality.food-safety` is the VOCABULARY OF THE CHECK: probe, core temperature, fridge, freezer, use-by and cleaning-schedule rows decide for food-safety; float, till, alarm, shutter and visual-merch rows decide for this row. The discriminator against `business_operations.facilities-workplace` is TIME SHAPE: a multi-month planned-maintenance or statutory-inspection calendar decides for facilities; a same-day open/close diary decides for this row.",
+      "A BRAND-STANDARDS OR MYSTERY-SHOPPER VISIT structure. A scorecard or visit report keyed to one store and one visit date, with scored sections over the SELLING SPACE (greeting, queue, merchandising, cleanliness-as-presented-to-guest, brand script) and usually a mystery-shopper or regional-manager producer mark. The discriminator against `business_operations.compliance-audit` is decisive in both directions: that row's anchor is an ASSESSMENT OCCURRENCE with a request-to-evidence-to-finding-to-sign-off chain against a REGULATORY or POLICY CONTROL framework performed by a party structurally distinct from the party assessed; this is a BRAND-OPS score of the trading floor, with no PBC request list and no control-framework citation.",
+      "A SHIFT-HANDOVER OF TRADING-FLOOR STATE. A dated note or form naming the outgoing and incoming duty manager or shift lead, carrying a short list of OPEN TRADING CONDITIONS handed across - float status, known till exceptions, guest issues still live, equipment down, deliveries expected - without being a till close and without being a personnel case. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "A TRADING-FLOOR REACTIVE INCIDENT CALL raised DURING SERVICE. A short ticket or email naming a failed fridge, a broken till, a blocked door or a guest-affecting fault, keyed to a site and a trading date, with an urgency mark and often a temporary workaround. The discriminator against `business_operations.facilities-workplace` is that facilities owns the CONTRACTOR SCHEDULE and the planned-maintenance calendar for the same appliance; this row owns the SAME-DAY CALL raised from the floor so trading can continue.",
+      "A SITE-DAY PACK ASSEMBLY. A bound or zipped pack whose manifest or contents page lists, for ONE site and ONE period, two or more of: opening/closing checks, a labour plan, a standards visit, a handover log, AND often neighbours' members (Z-reads, food-safety sheets, a licence copy) as CONTAINED items. This row owns THE PACK AS AN ASSEMBLY - its cover, its ordering, the reason the site holds it together. Containment is not ownership of the contained closes or temp logs. “The documents are content-incoherent but purpose-coherent.”",
+      "An email whose labelled subject slot names a rota, an opening check, a closing check, a standards visit, a mystery shop, a shift handover or a site pack AND whose attachment-name slot names a checklist, a scorecard, a labour plan or a pack. The reference-plus-attachment pairing fires; a hospitality-sounding sender domain alone does not.",
+      "An archive whose manifest names a site pack, a store-ops export, a week's opening-check scans or a standards-visit batch - read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+      "Parent-folder context naming a store or unit number, a trading week, opening checks or store ops, treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's ordinary output names STAFF on labour plans and often carries till-exception suspicion and guest-affecting incident prose, so a model step runs under the user's policy and after P7. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "Deciding whether a bare rota is this row's labour-against-forecast plan or `hr`'s workforce schedule. The SPLH / labour-percentage / forecast-covers column decides for this row; contracted hours, absence codes or pay rates decide for hr. Where neither is present, abstain - this is NJ-SO-1 / the parent's NJ-RH-1, not a quiet win.",
+      "Separating a TRADING-FLOOR open/close checklist from a FOOD-SAFETY daily diary and from a FACILITIES statutory calendar when the same scanned clipboard sheet mixes rows. Vocabulary of the check decides; mixed sheets are review candidates, not automatic activations.",
+      "Separating a BRAND standards visit from a REGULATORY compliance assessment when both score a store. Presence of a PBC request list, a control-framework citation or a findings-and-corrective-action register decides for `business_operations.compliance-audit`; a mystery-shopper or regional brand scorecard without those decides for this row.",
+      "Separating a REAL operating record from a FRANCHISE OPERATIONS MANUAL, a training blank, a specimen checklist or a downloaded compliance pack. A blank opening-check sheet and a completed one are the same form with the ticks removed. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Unlabelled operational prose: a duty manager's handover scribble, an incident write-up naming a guest and a staff member, a chaser about a failed fridge during dinner service. No header block, and frequently the most sensitive files in the set.",
+      "Reading a SCANNED OR PHOTOGRAPHED paper checklist or rota. Handwriting is often the whole content; OCR confidence on initials and ticks is low. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.”",
+      "In every case above, abstention is the required outcome when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE DOCUMENT-TYPE WORDS THEMSELVES - rota, opening checks, closing checks, standards audit, mystery shopper, handover, maintenance call, site pack - standing alone. The parent schema's never-alone list already says a document-type word is a value of a function dimension, and a row resting on one is the schema's default template wearing a name. `Rota.xlsx` with no forecast-trade column is not this row.",
+      "A TRADE NAME, STORE NUMBER OR BRAND standing alone - `Camden`, `Store 214`, `The Bell`. Constitutionally never-alone; read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "A STAFF MEMBER'S NAME on a rota or a signature slot. A person's name must never anchor a group and must never become a folder level - “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”",
+      "A DATE, however trading-day-shaped. `2026-03-14.xlsx` is not an operating-day record.",
+      "A CLEANING WORD standing alone - clean, deep clean, hygiene. Cleaning-schedule structure with food or probe vocabulary is `retail_hospitality.food-safety`'s; a facilities cleaning contract is `business_operations.facilities-workplace`'s.",
+      "A MAINTENANCE OR CONTRACTOR WORD standing alone. A fridge-maintenance contract spanning a year is facilities'; a same-day call raised mid-service may be this row's only when the trading-floor urgency and site-day context are present.",
+      "AN EXTENSION OR SOURCE_TYPE alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "Membership in a download session that dropped a folder of store paperwork at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "work_types": [
+    "labour plan against forecast trade - rota with covers or sales forecast, SPLH or labour-percentage column",
+    "opening checklist - trading-floor open acts with initials, keyed to site and date",
+    "closing checklist - trading-floor close acts with initials, keyed to site and date",
+    "shift handover note - trading-floor state passed between duty managers",
+    "brand standards or mystery-shopper visit scorecard - scored selling-space walk",
+    "reactive trading-floor incident call - same-day fault raised during service",
+    "site-day or site-week pack - assembled cover and contents binding the day's operating records"
+  ],
+  "grouping_reasons": [
+    "ONE SITE OPERATING DAY across its trail: the labour plan for that day, the opening check, the closing check, the handover notes, any standards visit that day, and any reactive call raised during it - joined by site identity and trading date, never by a staff name. “The documents are content-incoherent but purpose-coherent.”",
+    "ONE STANDARDS VISIT across its trail: the scorecard, the photographic evidence of the selling space, the action list and the follow-up tick - joined by visit reference or visit date at one site.",
+    "ONE SITE-WEEK PACK: the bound assembly whose contents page lists checks, rotas and visits for one site over one week - the pack is the group reason; contained Z-reads and food-safety sheets keep their own schema evidence and are not rewritten.",
+    "No group at all is a valid and common outcome. A lone blank checklist, a lone staff rota with no forecast column, or a lone maintenance contract has not demonstrated a site operating day."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the `retail_hospitality` schema with no field rows, and a dimension may only branch on a field the same schema declares. THE RECOMMENDATION IS HELD AS PROSE, AND ITS DIFFERENCE FROM THE PARENT'S DEFAULT IS THE WHOLE ARGUMENT FOR THIS ROW. The schema's default is: TRADING UNIT (site, venue or channel) where the corpus spans more than one, then TRADING OCCASION - named there as the session, count, order cycle, booking, function or licensed premises the material belongs to - then OPERATIONAL RECORD FUNCTION. This row recommends: TRADING UNIT, then THE SITE OPERATING DAY AS ITS OWN OCCASION, then function. The difference is at the OCCASION level. A site operating day is none of the parent's five enumerated shapes: a SESSION is a till close (`retail_hospitality.pos-reporting`); a COUNT is a stocktake; an ORDER CYCLE is supplier replenishment; a BOOKING or FUNCTION is capacity sold; a LICENSED PREMISES is the permission file. This occasion is bounded by OPEN AND CLOSE OF THE SELLING SPACE, centres on LABOUR CAPACITY PLANNED AGAINST FORECAST TRADE and the operative diary of the floor, and assembles checks, handovers and brand walks that no other sibling requires as a set. NOT TIME-FIRST: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The trading date identifies the day; it does not root the tree. The photos exception does not apply: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” A STAFF NAME must never become a dimension. Any later order remains editable - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "presentation",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".pptx",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Week 12 rota - Camden - forecast covers.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names down the side, days across the top, hours in the cells",
+        "a Forecast covers row and a Sales per labour hour column on the same sheet",
+        "a labour-percentage total beneath",
+        "no contracted-hours column, no absence codes and no pay rates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a site or trading_occasion as a stored fact; both are proposed keys awaiting R1c",
+        "that a staff name may anchor a group or become a folder level",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Opening closing checks March - Store 214.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one page per day with a Store 214 header and a trading date",
+        "rows for float set, tills opened, alarm unset, shutters up, visual merch walk, fire exits clear",
+        "an initials column with handwritten marks",
+        "no probe, fridge-temperature or use-by row anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is retail_hospitality.food-safety; the absent probe vocabulary is the discriminator",
+        "that this is business_operations.facilities-workplace; a same-day diary is not a multi-month maintenance calendar",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Mystery shopper - Store 214 - 14 Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a visit date and a store identity in the header",
+        "scored sections for greeting, queue time, merchandising, cleanliness-as-presented, brand script",
+        "a mystery-shopper producer mark and an overall percentage",
+        "no PBC request list, no control-framework citation and no findings register"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that a scored visit is business_operations.compliance-audit; the absent PBC chain is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Shift handover - dinner 14 Mar - Camden.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled outgoing and incoming duty-manager slots",
+        "bullets for float status, one known till exception, a guest complaint still live, fridge 2 on temporary ice",
+        "a trading date and a service session named dinner",
+        "no Z-read figures and no personnel-case language"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that naming a till exception creates a pos-reporting close; the close is the neighbour's artefact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fridge 2 failed during dinner - Store 214.eml",
+      "source_type": "email",
+      "observations": [
+        "subject naming Store 214 and a failed fridge during dinner service",
+        "body asking for an urgent engineer and describing a temporary ice workaround",
+        "a trading date in the body",
+        "no maintenance-contract schedule and no next-due calendar attached"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this email owns the fridge as a facilities asset; facilities owns the contractor schedule for the same appliance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Camden - March site pack.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a contents page listing opening checks, a rota, a standards audit AND the month's end-of-day reads",
+        "a cover naming Store Camden and March 2026",
+        "the pack binds several document families behind one cover",
+        "individual Z-read pages appear inside as contained members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that containment of Z-reads makes those closes this row's - pos-reporting owns the closes; this row owns the pack as an assembly",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Week 12 rota.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names down the side, days across the top, hours in the cells",
+        "NO forecast covers column, NO sales-per-labour-hour column, NO labour-percentage column",
+        "no contracted-hours, absence or pay columns either",
+        "a store name in the filename only"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - THIS IS THE UNDECIDABLE FIXTURE the parent named as NJ-RH-1; on these bytes alone neither this row nor hr should win",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fridge temps March.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed paper sheet with a printed grid",
+        "one row per day with morning and evening readings, a target column and an initials column",
+        "two rows carrying a handwritten corrective-action note",
+        "no float, till, alarm or visual-merch row anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - this is retail_hospitality.food-safety's daily diary, and the parent's own file example already used these bytes for that structure",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "EOD 2026-03-14 Till 2 - Camden.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a header naming a store and a terminal, with a labelled business date",
+        "tender split, declared-cash against expected, over/short line",
+        "void and no-sale counts",
+        "no opening-check rows and no labour plan anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - this is retail_hospitality.pos-reporting's close; this row must not take a loose Z-read because site packs sometimes contain them",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Employee Handbook v4.2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a versioned staff handbook with sections on conduct, uniform and till procedures",
+        "a document-control block with approver and review date",
+        "no site operating day, no checklist ticks and no labour forecast",
+        "addressed to staff in general rather than to one day's duty managers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - this is business_operations policy/governance material, and the parent's collision with business_operations already forbids taking the shop's running of itself as a company",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Unit 4 - opening checks March.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a unit address header matching a commercial-lease demise",
+        "rows that could be read as either property-condition checks or trading-floor opens",
+        "sitting beside a service-charge certificate and a schedule of condition in the same folder",
+        "no forecast-trade column and no till or float vocabulary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation without a trading-floor vocabulary discriminator - the parent's construction_property seam says a lease record survives a change of trade and a trading record does not survive a change of premises",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Store 214 CCTV export - 14 Mar evening.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "a video export whose filename names a store and an evening",
+        "images of customers and staff on the trading floor",
+        "no checklist, no rota and no scorecard alongside in the same export",
+        "no door-access log structured as labelled slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES FROM THE FILENAME - the parent's NJ-RH-4 leaves CCTV ownership unsettled; on these bytes alone prefer Protected Records over a domain claim",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Premises licence 12345 - conditions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a premises address, a licence reference and a schedule of licensable activities with hours",
+        "a conditions annex and a named premises supervisor",
+        "no opening-check ticks and no labour plan",
+        "the durable permission the site must be able to produce"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - this is retail_hospitality.premises-licensing's permission-to-trade structure; the roster hint's 'compliance paperwork the site must hold' must not steal the licence file into store-operations",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Franchise ops manual - opening procedure.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a blank specimen opening checklist with no site name and no dates filled",
+        "franchise branding and a training-module footer",
+        "instructional prose addressed to any operator",
+        "no initials, no trading date and no forecast column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW ACTIVATES - a specimen or training blank is not an operating day; purpose is instruction, not contemporaneous site evidence",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: `Week 12 rota.xlsx` - names down the side, days across the top, hours in the cells. This row owns THE SHIFT AS A CAPACITY PLAN against forecast covers or sales, with a sales-per-labour-hour or labour-percentage column; hr owns THE EMPLOYEE schedule keyed to contracted hours, absence codes or pay rates. Discriminated by THE FORECAST-TRADE COLUMN: present, the sheet is this row's; absent and replaced by contracted-hours/absence/pay, it is hr's; absent entirely, neither row should activate on these bytes alone (NJ-SO-1 / parent NJ-RH-1). Reciprocal: THIS ROW MUST NOT TAKE a named employee's disciplinary file, training certificate or payroll register; HR MUST NOT TAKE the labour forecast, the opening-checks sheet, or a brand-standards scorecard merely because an operative signed it. AUTHORED TO MATCH THE PARENT SCHEMA'S HR SEAM; R1c owes the reciprocal on landed hr rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "SAME FIXTURE BOTH SIDES: `Opening closing checks March - Store 214.pdf` and the related `Fridge 2 failed during dinner - Store 214.eml`. This row owns THE TRADING-FLOOR DIARY AND THE SAME-DAY CALL - float/till/alarm/visual-merch checks keyed to a trading date, and a reactive incident raised during service so trading can continue; the neighbour owns THE OCCUPIER'S PREMISES ADMINISTRATION - the multi-month maintenance calendar, the contractor schedule, access control and fit-out for the same appliance and the same demise. Discriminated by TIME SHAPE AND VOCABULARY: same-day open/close with trading-floor acts decides for this row; planned-maintenance or statutory-inspection calendar decides for the neighbour. RECIPROCAL ALREADY LANDED on the neighbour: it states that a trading premises' opening checks support the sector row when a trading or guest-facing anchor is present, and this row correspondingly must not take a year-long fridge contract or a desk-allocation plan because the tenant sells food.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: `Mystery shopper - Store 214 - 14 Mar 2026.pdf`. This row owns THE BRAND-OPS SCORE OF THE SELLING SPACE - mystery-shopper or regional visit sections over greeting, queue, merchandising and brand script, with no PBC chain; the neighbour owns THE ASSESSMENT OCCURRENCE - request-to-evidence-to-finding-to-sign-off against a regulatory or policy control framework by a party structurally distinct from the party assessed. Discriminated by WHETHER A PBC REQUEST LIST OR CONTROL-FRAMEWORK CITATION EXISTS. Reciprocal: THIS ROW MUST NOT TAKE an internal-audit report, a findings register or a corrective-action tracker; COMPLIANCE-AUDIT MUST NOT TAKE a mystery-shopper scorecard because a store was visited. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.food-safety",
+      "signal": "SAME FIXTURE BOTH SIDES: `Fridge temps March.jpg` and any clipboard sheet titled opening checks that mixes probe rows with till rows. This row owns TRADING-FLOOR OPEN/CLOSE ACTS - float, till, alarm, shutter, visual merch; the neighbour owns THE FOOD-HANDLING DIARY - probe temperatures, cleaning schedule, use-by and delivery checks. Discriminated by THE VOCABULARY OF THE CHECK ROW. Reciprocal: THIS ROW MUST NOT TAKE a temperature log or a hygiene cleaning schedule because it was signed at opening; FOOD-SAFETY MUST NOT TAKE a float-and-alarm checklist because a fridge also appears on the premises. AUTHORED ONE-WAY HERE - the neighbour had not landed when this was written; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.pos-reporting",
+      "signal": "SAME FIXTURE BOTH SIDES: `Camden - March site pack.pdf` - RECIPROCAL ALREADY LANDED AND ENDORSED. The neighbour authored this seam first: it owns THE CLOSES THEMSELVES wherever they appear; this row owns THE PACK AS AN ASSEMBLY - its manifest, its cover, its ordering and the reason the site holds it. Discriminated by WHETHER THE EVIDENCE IS A CLOSE OR THE THING CONTAINING CLOSES. This row accepts that wording without amendment and adds the matching half: STORE-OPERATIONS MUST NOT TAKE a loose Z-read, cash-up sheet or banking slip merely because site packs sometimes contain them; POS-REPORTING MUST NOT TAKE the pack, its cover, or the checks and rotas beside the reads.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.premises-licensing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Premises licence 12345 - conditions.pdf`. This row's roster hint tempted it to absorb 'the compliance paperwork the site must hold'; the neighbour owns THE PERMISSION-TO-TRADE STRUCTURE - licence reference, licensable activities with hours, conditions annex, named responsible individual. Discriminated by WHETHER THE DOCUMENT IS THE GRANT OR CONDITIONS THEMSELVES versus a SAME-DAY OPERATING DIARY that merely assumes the permission exists. Reciprocal: THIS ROW MUST NOT TAKE the licence pack, a variation notice or a hygiene-rating certificate because the site keeps a copy on the wall; PREMISES-LICENSING MUST NOT TAKE opening-check sheets because a licence condition requires checks. AUTHORED ONE-WAY HERE - the neighbour had not landed when this was written; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property",
+      "signal": "SAME FIXTURE BOTH SIDES: `Unit 4 - opening checks March.pdf`. construction_property owns THE PREMISES AS AN INTEREST - commercial-lease, service charge, schedule of condition - and a lease record survives a change of trade; this row owns WHAT IS SOLD FROM the unit and the trading-floor diary that does not survive a change of premises. Discriminated by WHETHER TRADING-FLOOR VOCABULARY (float, till, covers forecast, brand score) IS PRESENT versus PROPERTY-INTEREST APPARATUS (rent, dilapidations, service charge). Reciprocal: THIS ROW MUST NOT TAKE a rent review or dilapidations schedule because the tenant is a cafe; CONSTRUCTION_PROPERTY MUST NOT TAKE the trading-floor open/close diary generated inside the demise. Matches the parent schema's construction_property seam. AUTHORED ONE-WAY AT TEMPLATE LEVEL; R1c owes template-level reciprocals where needed.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Employee Handbook v4.2.pdf`. business_operations owns THE SHOP'S RUNNING OF ITSELF AS A COMPANY - policies, board packs, budgets, IT estate, contract register; this row owns THE TRADING FLOOR'S OPERATING DAY. Discriminated by WHETHER A SITE-DAY STRUCTURE IS PRESENT (labour-against-forecast, open/close diary, brand visit) versus GOVERNANCE APPARATUS WITH A DOCUMENT-CONTROL BLOCK AND NO TRADING DATE. Reciprocal: THIS ROW MUST NOT TAKE the handbook, the budget or the board pack because the entity trades from a shopfront; BUSINESS_OPERATIONS MUST NOT TAKE the open/close diary or the labour forecast because staff are employees. Matches the parent schema's existential seam. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The primary fallthrough for this row's undecidable cases - the bare `Week 12 rota.xlsx` with no forecast column and no hr columns, a mixed clipboard whose probe rows and till rows cannot be separated, a Unit 4 opening-check sheet whose property-versus-trade vocabulary is unsettled. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a durable standalone site document with no operating day around it - a single hygiene-rating certificate on the wall, a lone blank checklist template, a one-off licence copy filed without a pack. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when store-ops material turns out to be a staff or public dossier rather than an operating record - CCTV of customers and staff with no accompanying checklist, a handover naming a guest allegation and a staff member, a labour plan used as a suspicion list. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” Also: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated transactional document that only looks site-shaped - a lone contractor call-out invoice with no site-day context, a single purchase receipt for cleaning supplies. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected site-pack export or an unreadable rota binary. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "SAME VALUE AS THE FAMILY, DIFFERENT SUBJECT MIX, and the delta is what passes leg 3. The parent posture rests on volume of third-party guest data. This row's ordinary output is STAFF-FACING FIRST: labour plans naming employees, shift handovers naming duty managers, till-exception mentions that are allegation-adjacent, and reactive incident prose that often names both a guest and a staff member. It can ALSO carry guest-affecting material and - if NJ-SO-4 admits them - trading-floor CCTV images of the public. The posture is therefore potentially_sensitive because the family cannot separate safe checklists from named-person members at recognition time. It does not invent a handling class. “Privacy policy must be enforced before content reaches any model or external connector.”",
+  "open_question": "Five, recorded rather than smoothed. NJ-SO-1 (sharpest, inherits parent NJ-RH-1): the bare rota `Week 12 rota.xlsx` with names, days and hours is undecidable between this row and `hr` on its own bytes. Proposed discriminator: sales-per-labour-hour / labour-percentage / forecast-covers decides for this family; contracted-hours / absence / pay decides for hr; neither present means abstain. Alternative: hr takes every rota and this family takes only the trade forecast sheet it is built from. Both rows must say the same thing. NJ-SO-2: does the roster hint's 'compliance paperwork the site must hold' survive as a member of this row, or is every durable permission file `retail_hospitality.premises-licensing` / `retail_hospitality.food-safety` / Independent Records? This pass narrows to refuse the durable pack as a defining structure and keeps only the site-day diary - R1c should confirm. NJ-SO-3: is a brand-standards / mystery-shopper visit truly outside `business_operations.compliance-audit`, or does any scored third-party visit become an assessment occurrence? Alternatives: keep the brand/regulatory split (this pass); fold mystery shopper into compliance-audit and narrow this row to open/close + labour + handover only. NJ-SO-4: trading-floor CCTV and door-access media - inherits parent NJ-RH-4. Alternatives: admit under this row when paired with a site-day pack; privacy-only route to Protected Records with no domain claim (this pass's file-example posture); or a security world that does not yet exist. NJ-SO-5: should `trading_occasion` widen to admit SITE OPERATING DAY as a sixth shape beside session/count/order/booking/function/licence, or does this row need the day to remain prose-only until fields exist? Widening is preferred; minting `operating_day` would be a synonym."
+}

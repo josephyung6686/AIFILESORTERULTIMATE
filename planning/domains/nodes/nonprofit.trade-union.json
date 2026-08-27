@@ -1,0 +1,621 @@
+{
+  "id": "nonprofit.trade-union",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Trade union and staff association records",
+  "one_line": "The private association's own record of what a union or staff association does that no other membership body does: representation and casework for a named member against an EMPLOYER, collective bargaining for a bargaining unit, a statutory industrial-action ballot with notice to the employer and a turnout return, and check-off of subscriptions through an employer's payroll. It is NOT activated by a union name, a shop-steward title, the words strike or ballot, an LM filing, or a plain membership roll with no employer counterparty. PLACEHOLDER ROW (J-IND): the nonprofit schema declares no field rows (PR-6; D1's deferral stands), so this row writes none.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION. The nonprofit schema's own gate runs first and is not weakened here: the evidence must name a non-exchange relation between labelled parties. This row's addition is a SECOND gate that the schema default does not state: an EMPLOYER (or employing authority) must appear as a counterparty to the association's act - as respondent in a representation case, as the other party to a recognition or collective agreement, as the addressee of an industrial-action notice, or as the payroll through which check-off is deducted. A union name, a staff-association letterhead, or a plain roll with no employer counterparty never fires this row.",
+      "A REPRESENTATION OR CASEWORK FILE held on the ASSOCIATION's side: a member's request for accompaniment or representation, a case or file reference repeated across dated notes, a named representative or caseworker, and an EMPLOYER named as respondent, hearing chair, or addressee - typically a grievance accompaniment, a disciplinary hearing brief, a capability meeting pack, or an appeal. Discriminated from the schema's beneficiary or service-user case by the employer counterparty and the employment-procedure frame; discriminated from hr.employee-relations by HOLDER - the union's file for the member, not the employer's personnel file for the same dispute.",
+      "A COLLECTIVE-BARGAINING PACKET: a recognition or facilities agreement, a pay or terms claim for a named bargaining unit, negotiation or joint-meeting minutes that name the employer and the association as parties, a draft or signed collective agreement or memorandum, and a ratification instrument put to the affected membership. One claim reference or bargaining round repeated across two or more of those artefacts is enough; a single published CBA downloaded as reading material is not.",
+      "A STATUTORY INDUSTRIAL-ACTION BALLOT STRUCTURE: a notice addressed to the employer stating the intention to ballot, a ballot paper whose QUESTION is whether to take industrial action (strike or action short of a strike), a closing date, and a scrutineer or independent return stating votes cast, spoilt papers, turnout, and the declared result, typically with a subsequent notice of industrial action to the employer. Discriminated from nonprofit.member-association's ordinary AGM or officer ballot by the employer as addressee and by the industrial-action question - not by the word ballot alone.",
+      "A CHECK-OFF OR PAYROLL-DEDUCTION STRUCTURE on the ASSOCIATION's side: an authorisation naming the member, the association, and the employer or payroll office; or a remittance schedule from the employer listing deductions payable to the association; or a branch workbook whose subscription column is sourced from employer deduction rather than from member direct debit. Discriminated from hr.payroll-benefits-administration by whose wages are being run - the employer's employees' deductions remitted TO the association, not the association's own staff payroll.",
+      "A LABELLED-SLOT reading of any of the above from 00's direct-fact path, “a labeled form field”: Case Ref, Member No., Employer, Bargaining Unit, Recognition Date, Ballot Closing Date, Turnout, Check-off Authorisation, Right to be Accompanied. Position is weighted for the reason 00 gives - “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen”.",
+      "An association-side email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment and reference slots tie it to an ALREADY EVIDENCED representation case, bargaining round, ballot or check-off structure above. A union email domain, a newsletter, or an organising leaflet alone never fires.",
+      "An ARCHIVE MANIFEST whose member paths repeatedly encode one case reference, bargaining round, ballot identifier or check-off period - inspected without unpacking, because “the normal scan should never extract archive contents to the filesystem”, using what 00 says an archive yields: “The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names”."
+    ],
+    "needs_llm": [
+      "Deciding the HOLDER SIDE of a grievance, disciplinary or collective-agreement packet that names both the association and the employer - union case file versus employer personnel file versus instructed legal matter. Interpretation may use only a bounded local dossier and must abstain when the side is unresolved, on 00's own rule that “A model that cannot cite sufficient evidence must return unknown.”",
+      "Separating a statutory industrial-action ballot from an ordinary members' meeting ballot when the employer-addressee block is missing or the question text is ambiguous.",
+      "Separating check-off remittance schedules from the association's own staff payroll and from a member's personal bank statement showing a union subscription.",
+      "Recognising an unlabelled casework narrative, bargaining update, or workplace bulletin whose function is expressed only in prose and whose vocabulary overlaps campaign or HR material.",
+      "Distinguishing operative union records from a downloaded exemplar - a model recognition agreement, a published national CBA of a different sector, a regulator's guidance on balloting. Topic will not separate them: “purpose answers what the file was for” is the only test that works.",
+      "Abstaining whenever the evidence cannot cite an employer counterparty: a plain branch roll, a union constitution, or a conference programme is not this row."
+    ],
+    "never_alone": [
+      "A trade-union, staff-association, guild or federation NAME alone. This is the schema's own existential risk applied to this row, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - one union name can appear as employer, counterparty, cited authority, campaign target, or merely the venue of a meeting.",
+      "A role word alone: shop steward, branch secretary, convenor, caseworker, full-time officer, workplace representative. A role without the representation, bargaining, ballot or check-off structure it should sit in names an ambiguous person, not a relation.",
+      "Industrial-action or labour-dispute vocabulary alone - strike, picket, ballot, mandate, walkout, work-to-rule, lockout. Every one of these words appears in news reading, campaign literature and employer communications.",
+      "A document-type word alone, and a document-type word beside a union name: grievance, recognition, collective agreement, LM-2, Form AR21, check-off. A document-type word is not a labelled employer counterparty.",
+      "A plain membership roll, subscription run or AGM instrument with no employer counterparty. Those are nonprofit.member-association's artefacts; claiming them here would be organisation-type activation.",
+      "A regulator or statutory filing token alone: an LM-2, LM-3, AR21, Certification Officer return, or equivalent. The association's self-running statutory return is business_operations.corporate-regulatory-filings (or government on the authority side); the token says nothing about representation, bargaining, balloting or check-off.",
+      "A person's name alone, in any of this row's roles. The privacy claim of the row is that named members and represented workers appear here, so a bare name is simultaneously the least discriminating evidence and the most dangerous."
+    ]
+  },
+  "proposed_context_terms": [
+    "collective bargaining",
+    "bargaining unit",
+    "recognition agreement",
+    "facilities agreement",
+    "shop steward",
+    "workplace representative",
+    "right to be accompanied",
+    "casework",
+    "representation",
+    "check-off",
+    "payroll deduction authorisation",
+    "industrial action ballot",
+    "action short of a strike",
+    "turnout",
+    "scrutineer return",
+    "notice of industrial action",
+    "pay claim",
+    "collective agreement",
+    "memorandum of understanding",
+    "ratification",
+    "joint negotiating committee",
+    "branch secretary",
+    "member case file"
+  ],
+  "work_types": [
+    "member representation and casework against an employer (grievance accompaniment, disciplinary, capability, appeal)",
+    "collective bargaining claim, negotiation, draft and signed collective agreement, and ratification",
+    "recognition and facilities agreement",
+    "statutory industrial-action ballot, notice to employer, and result return",
+    "check-off authorisation and employer remittance schedule",
+    "branch or workplace organising record tied to an evidenced bargaining unit or case"
+  ],
+  "grouping_reasons": [
+    "one REPRESENTATION CASE from request to closure: the member's request, the case notes, the hearing pack, the outcome and the appeal, joined by a repeated case reference. Content-incoherent and purpose-coherent, which is 00's own licence - “The documents are content-incoherent but purpose-coherent.”",
+    "one BARGAINING ROUND: the claim, the joint minutes, the drafts, the signed agreement and the ratification return, joined by a claim or round identifier.",
+    "one INDUSTRIAL-ACTION BALLOT: the employer notice, the ballot paper, the scrutineer return and the subsequent action notice, joined by the ballot identifier.",
+    "one CHECK-OFF PERIOD: the authorisations and the employer remittance for that period.",
+    "no group at all is a valid outcome - a single downloaded national CBA, a single membership card, a single organising leaflet. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply as written: two employers' cases do not merge, two bargaining units do not merge, and “The graph does not automatically copy those missing facts onto sparse files.” - a case reference read from a hearing pack is not copied onto a bare email that happens to sit beside it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract - a dimension may only branch on a field the same schema declares and the nonprofit schema declares none (PR-6, _CONTRACT rules 10 and 15). The recommendation is held as PROSE, and it differs from the schema's default paragraph. The schema's default is: association, then the NON-EXCHANGE COUNTERPARTY OR FUND (grant, restricted fund, appeal, membership class, case, register), then the period, then the document function. This row's characteristic counterparty is either a named MEMBER (in representation casework) or a BARGAINING UNIT / EMPLOYER PAIR (in bargaining and ballots). The named member may NEVER be a folder level, for the schema's own reason and for 00's - “The default posture must therefore be local-first and data-minimizing.” - so the member-as-counterparty level collapses. What remains as the prose recommendation: the ASSOCIATION only where the corpus genuinely spans more than one and never in a single-association corpus, where it is “use an author or organization merely as a collector” and would “create meaningless one-child levels”; then the BARGAINING UNIT OR CASE-OR-BALLOT REFERENCE (an opaque token, never a person's name); then the PERIOD (bargaining round, ballot, check-off year); then the DOCUMENT FUNCTION. The opaque case or ballot token is not a preference for minting a field - it is a filing recommendation awaiting R1c if PR-6 lifts. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "presentation",
+      "image",
+      "ocr",
+      "archive",
+      "contacts",
+      "audio_video"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Case CW-2026-0147 - representation request and employer response.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled member name and membership number",
+        "a case reference CW-2026-0147 in the header",
+        "a named workplace representative and branch",
+        "an employer named as respondent with a hearing date",
+        "a sentence recording the member's request to be accompanied"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any nonprofit field fact - the schema declares none",
+        "that the employer personnel file for the same dispute is this row's - that is hr.employee-relations",
+        "a folder path named after the member",
+        "legal privilege or a solicitor-client relationship from accompaniment alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Disciplinary hearing brief - J Patel - CW-2026-0147.docx",
+      "source_type": "text_document",
+      "observations": [
+        "case reference matching the representation request",
+        "chronology of allegations prepared for the representative",
+        "employer procedure clauses quoted with page pins",
+        "an annex list of documents the member authorises the representative to use"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is the employer's investigation report - holder-side evidence is required",
+        "a legal.practice-matter-file activation without practitioner engagement apparatus",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pay claim 2026 - Local Authority Admin Unit - submitted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "parties block naming the staff association and the employing authority",
+        "a labelled bargaining unit",
+        "numbered claim heads with proposed rates",
+        "a claim reference repeated in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a published national pay scale PDF with no claim apparatus is this row's",
+        "an hr compensation-planning fact from the rate tables alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "JNC minutes - 2026-03-12 - claim LA-ADMIN-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "attendance listing employer negotiators and association negotiators as two sides",
+        "the claim reference LA-ADMIN-2026 in the header",
+        "action points on offers and responses",
+        "next meeting date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that ordinary trustee or board minutes of the association are this row's - those are business_operations",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Collective Agreement - District 12 and Teachers Association 2026-2029.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "parties block naming the employing district and the teachers association",
+        "articles on salary schedule, grievance procedure, class size and assignment",
+        "signature blocks for both parties",
+        "an effective-date and term span"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "holder side from the parties block alone - the same bytes are government.school-district-administration's when held with the district's staffing plans",
+        "that downloading a published CBA as reading material activates this row",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Notice of intention to ballot - industrial action - EmployerCo - 2026-04-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressee block naming the employer",
+        "statement of intention to ballot for industrial action",
+        "description of the bargaining unit affected",
+        "proposed opening and closing dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that an AGM election notice with no employer addressee is this row's",
+        "a government.elections-administration activation from ballot vocabulary alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Industrial action ballot paper - EmployerCo Admin Unit - closing 2026-04-30.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "question text asking whether to take part in strike action",
+        "closing date and return instructions",
+        "bargaining-unit description matching the employer notice",
+        "independent scrutineer name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "turnout thresholds or legal validity of the ballot - the product records structure, not compliance outcomes",
+        "that a committee-officer ballot of the association is this row's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Scrutineers return - IA ballot EmployerCo - 2026-05-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "votes cast for and against",
+        "spoilt papers count",
+        "electorate size and turnout percentage stated as figures on the page",
+        "declaration of result tied to the same bargaining unit"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "numeric thresholds as catalogue rules - figures on a page are observations, not product policy",
+        "a public-election result from the return shape alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Check-off authorisation - M-4471 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled member name and number",
+        "employer and payroll-office addressee",
+        "authorisation to deduct association subscriptions from wages",
+        "signature and date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is hr payroll of the association's own employees",
+        "a finance fact about the member's bank account from the authorisation alone",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Employer remittance - union deductions - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers for employee name or payroll number, deduction amount, and association payee",
+        "an employer letterhead or payroll-run identifier",
+        "a period column for March 2026",
+        "no gross-to-net columns for the association's own staff"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "hr.payroll-benefits-administration ownership of the association's employee wages - wrong payroll",
+        "a membership-register activation from names alone without standing columns",
+        "a folder path",
+        "facts copied onto sparse neighbouring files"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Branch case export - CW-2026-0147.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive member paths repeating CW-2026-0147 across request, brief, correspondence and outcome filenames",
+        "contained extensions .pdf .docx .eml",
+        "file count and uncompressed size available without extraction"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "contents of members without user-approved extraction - “the normal scan should never extract archive contents to the filesystem”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE CW-2026-0147 - hearing rearranged.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line carrying the case reference",
+        "sender is the workplace representative's association address",
+        "recipient is the member",
+        "body names the employer hearing chair and a new date",
+        "an ICS invitation attachment referenced"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from the association email domain alone without the case reference tie",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Staff handbook - disciplinary procedure - EmployerCo.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead",
+        "a section titled disciplinary procedure",
+        "a sentence stating a right to be accompanied by a work colleague or trade union representative",
+        "sanction ladder and appeal route addressed to employees generally"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this row owns it - THIS IS THE COLLISION FIXTURE: an employer procedure addressed to nobody, held as HR policy, despite dense union vocabulary",
+        "a representation case from the right-to-be-accompanied sentence alone",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Branch membership and check-off 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named member with membership number, joining date, subscription rate and status",
+        "a check-off flag column",
+        "employer or payroll site column on some rows",
+        "no case references and no bargaining-unit claim apparatus on the sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a plain roll with only standing columns and no employer-mediated deduction is this row's - that is nonprofit.member-association",
+        "that the check-off flag alone without remittance or authorisation structure is enough",
+        "a folder path named after members"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Form LM-2 - Labor Organization Annual Report - FY2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "federal labor-organization annual report title",
+        "schedules of assets, liabilities and disbursements",
+        "officer names and salaries",
+        "a file number in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this row owns statutory self-running returns - business_operations.corporate-regulatory-filings (association side) or government (authority side)",
+        "representation, bargaining or ballot activation from the LM token alone",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "National model recognition agreement - exemplar.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title marking the document as a model or exemplar",
+        "blank parties blocks",
+        "generic bargaining-unit clauses",
+        "no signatures and no employer name filled in"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row from topic vocabulary - “purpose answers what the file was for”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "SAME FIXTURE BOTH SIDES: `Branch membership and check-off 2026.xlsx` - one row per named member with a number, joining date, subscription rate and status. That row owns the roll, the subscription run, the general meeting and the officer election as an association's ordinary constitutional life, with no employer counterparty required. This row owns what a union does that no other association does - representation and casework against an employer, collective bargaining, a statutory industrial-action ballot with notice to the employer, and check-off deducted through a payroll - and takes a branch workbook ONLY where an employer or payroll column plus remittance or authorisation structure is present. Discriminated by the presence of an employer as counterparty. A plain roll with standing columns alone stays with member-association; claiming it here would be organisation-type activation. RECIPROCAL AND ALREADY AUTHORED from that side; this entry matches it and narrows the plain-roll claim.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Case CW-2026-0147 - representation request and employer response.pdf` and the matching employer grievance or disciplinary pack for the same dispute. This row owns the ASSOCIATION's file for the member - request for accompaniment, caseworker notes, hearing brief prepared for the representative. That row owns the EMPLOYER's personnel process - served allegation, investigating officer, decision-maker, appeal hearer, outcome with a live period. Discriminated by holder and by whose procedure is controlling, never by the words grievance or disciplinary. In the reverse direction, the employer's file does not become this row because a union representative attended, and the union's file does not become hr because the employer is named. Where the corpus cannot resolve the holder, abstain: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: `Employer remittance - union deductions - March 2026.xlsx` - a spreadsheet of named people and money moving through a payroll. This row owns it as check-off: deductions from the employer's employees remitted TO the association. hr owns it where the sheet is the association's OWN staff payroll - gross-to-net, tax codes, deduction lines for people the association employs. Discriminated by whose wages are being run and by the payee of the deduction. In the reverse direction, a union that employs organisers does not move its staff payroll here merely because the employer is a union.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.school-district-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Collective Agreement - District 12 and Teachers Association 2026-2029.pdf`. Held by the association with its own membership, mandate, bargaining-committee and ratification-ballot material it is this row; held by the employing authority alongside its staffing plans, deployment and cross-school payroll administration it is that row. The parties block names both; the surrounding operative material decides. RECIPROCAL AND ALREADY AUTHORED from that side; this entry matches it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `JNC minutes - 2026-03-12 - claim LA-ADMIN-2026.pdf` beside the association's own trustee or executive minutes. This row owns joint negotiating minutes that name the employer and the association as opposite parties to a claim. business_operations owns the association's self-running record - budgets, board minutes, policies, procurement, IT - including when the body is a union. Discriminated by whether an employer sits across the table as counterparty. In the reverse direction, a union's internal executive minutes do not come here because the body is a union.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: `Form LM-2 - Labor Organization Annual Report - FY2025.pdf`. That row owns the association's statutory self-running return. This row does not take LM, AR21 or Certification Officer filings from the form token alone - those are never-alone here. Discriminated by whether the artefact is a regulatory return about the organisation's finances and officers, or an operative representation, bargaining, ballot or check-off record. In the reverse direction, a bargaining packet does not become a regulatory filing because a union file number appears in a footer.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Collective Agreement - District 12 and Teachers Association 2026-2029.pdf` and `Case CW-2026-0147 - representation request and employer response.pdf`. legal owns the executed instrument, dispute or privileged advice framing under practitioner apparatus; this row owns the association's operative bargaining and lay-representation file. Discriminated by practitioner engagement, matter reference and counsel blocks against workplace-representative and caseworker apparatus. A union instructing solicitors may co-activate; a shop steward's accompaniment file alone does not make a legal matter.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Check-off authorisation - M-4471 - signed.pdf` and the member's own bank line showing a union subscription. This row owns the association-side authorisation and the employer remittance schedule. finance owns the member's personal payment record and the association's bank reconciliation of remittances when institution-and-account headers dominate. Discriminated by holder and by whether the artefact is an authorisation or remittance structure versus an account statement. In the reverse direction, a personal dues receipt does not become this row because the payee is a union.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.elections-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Scrutineers return - IA ballot EmployerCo - 2026-05-02.pdf`. This row owns it where the electorate is a bargaining unit balloting on industrial action under a private association's mandate with notice to an employer. That row owns it where the electorate is a public electoral roll administered by a statutory office. Discriminated by the electorate's basis and the employer-addressee ballot apparatus, never by the word ballot alone. In the reverse direction, a public poll does not come here because a union administered something similar.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.governance",
+      "signal": "SAME FIXTURE BOTH SIDES: the association's rule book that defines recognition, discipline and ballot procedure. That row owns the INSTRUMENT - the constitution, rule amendments, registration. This row owns the OPERATION of representation, bargaining and industrial-action ballots under those rules. Discriminated by whether the artefact states the rule or applies it to an employer-facing act. In the reverse direction, a case file does not become governance because the rules require case records to be kept.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "SAME FIXTURE BOTH SIDES: `Staff handbook - disciplinary procedure - EmployerCo.pdf`. That row (and hr) own the employer's generally addressed procedure. This row does not take it from the right-to-be-accompanied sentence. Discriminated by addressee and operative use: a general handbook versus a case-tied representation pack. This is the collision fixture that kills vocabulary-only activation.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Collective Agreement - District 12 and Teachers Association 2026-2029.pdf` - one executed instrument. legal may activate on execution, parties and instrument structure; this row's schema may activate when the same file sits inside an evidenced bargaining-and-ratification packet on the association side. Disjoint evidence duties; neither promotes the other. legal is a safety placeholder, so protection orders first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Employer remittance - union deductions - March 2026.xlsx` reconciled against a bank statement in one workbook - institution-and-account headers for finance, check-off remittance structure for this schema. finance is a safety schema, so protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: a single archive export that genuinely contains both the employer's grievance pack and the union's representation pack for the same dispute. Each schema activates on its own holder-side members; neither copies facts onto the other. hr's privacy posture governs employee-identifying members even where this schema activates on the association's case notes. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: a branch year-archive holding executive minutes and budgets (business_operations) beside a bargaining packet and case export (this schema) - disjoint evidence, one corpus. A union name in the footer of the minutes does not move them here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "SAME FIXTURE BOTH SIDES: a recognition or ballot file that also contains an authority's certification or decision notice. Authority-side structures activate government; association-side bargaining or ballot structures activate this schema. Disjoint evidence in one folder. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first. Representation case files, check-off remittances and membership-linked ballots disclose affiliation and workplace allegations. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for an isolated membership card, a single joining letter, or a lone recognition certificate with no employer-facing packet behind it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members: a dues payment confirmation, a conference ticket, a platform notification. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Holder side unresolved between union case file and employer personnel file; or ballot whose employer-addressee block cannot be read. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Downloaded national CBAs, model recognition agreements, and labour-law guides with no operative packet. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected case-management exports are ordinary here and must not be forced open. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Stricter in mechanism than the nonprofit schema default, and that difference is a node-test leg rather than a slogan. The schema's protected party is typically a third person disclosed under NEED - a beneficiary or safeguarded child. This row's ordinary artefacts disclose (1) TRADE-UNION AFFILIATION of named workers, which can itself be a workplace detriment risk, (2) ALLEGATIONS and health or performance detail inside representation files, and (3) HOW A WORKFORCE INTENDS TO ACT from ballot materials before any action occurs. A folder level named after a member, a steward, or a thin bargaining unit that identifies a small workplace is forbidden for the same reason the schema forbids naming a beneficiary: “The default posture must therefore be local-first and data-minimizing.” Sensitivity here is only potentially_sensitive; handling classes are P7's.",
+  "open_question": "NEEDS-JOSEPH NJ-TU-1: settle the plain branch roll against nonprofit.member-association. That landed row said the more specific situation should take a union's plain roll whole; this pass disagrees - a plain roll with no employer counterparty is organisation-type evidence and stays with member-association, while check-off-backed rolls and employer-facing packets come here. Alternatives: (a) adopt this pass's split; (b) adopt member-association's whole-roll claim; (c) refuse this row and keep only member-association plus hr for employer-facing disputes. NEEDS-JOSEPH NJ-TU-2: settle collective bargaining against hr.employee-relations NJ-ER-1. That row already lists union recognition and collective bargaining on the employer side and asks whether the collective half belongs there. This row claims the association side. Alternatives: keep the holder-side split; move all collective bargaining to one side only; or introduce a later dedicated collective row on hr or business_operations. NEEDS-JOSEPH NJ-TU-3: if PR-6 lifts, whether an opaque case_ref / ballot_ref / bargaining_unit key may be destination-eligible, given that a thin unit name can re-identify a workplace."
+}

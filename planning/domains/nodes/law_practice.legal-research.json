@@ -1,0 +1,440 @@
+{
+  "id": "law_practice.legal-research",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Legal research and authorities",
+  "one_line": "REFUSED. Memoranda, research notes and the authorities collected to support them are not a filing world of their own: they are the `law_practice` schema's own INTERNAL WORK-PRODUCT deterministic signal (a memorandum whose sections separate instructions or facts supplied, issues, research and authorities, analysis, options, risk and next steps) plus one entry of that schema's `work_types` enum (\"legal research note, authorities list and opinion or advice record\"), under the same empty dimension order and the same third-party protected posture. Subtract what the schema already holds, what `law_practice.opinions-advice` holds as addressed reliance-bearing advice, what `law_practice.precedent-bank` holds as standing know-how with no matter, what `law_practice.trial-preparation` holds as an authorities section of a hearing compilation, and what Reading Inbox / `research.reading-library` hold as published third-party material with no accepted purpose, and what remains is a document-type word. Coverage is not lost: it stays on those neighbours and residuals.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "FAILS ALL THREE LEGS OF CONNECTION.md's template node test against its own schema's default, and fails them for three independent reasons that would each be sufficient alone.\n\nLEG 1 — DETECTION SIGNALS ARE NOT DIFFERENT; THEY ARE THE SAME SENTENCES. The `law_practice` schema's deterministic list already carries, as its INTERNAL WORK-PRODUCT structure: \"a memorandum or note whose own header labels a matter reference and whose sections separate instructions or facts supplied, issues, research and authorities, analysis, options, risk and next steps, together with a producer marker for the practitioner side.\" That is this row's entire proposed world, written down before the row was dispatched. The schema's `work_types` already enumerates, verbatim, \"legal research note, authorities list and opinion or advice record\". The schema's own `work_type` proposal states the governing principle against this row: \"a template row justified only by holding a different legal document kind is the schema's default template with a narrower filename filter.\" A template whose signals are its parent schema's signals quoted back is not a node.\n\nLEG 2 — RECOMMENDED DIMENSIONS CANNOT DIFFER AND DO NOT. Under PR-6 the schema declares no field rows, so `dimension_order` is `[]` here and `[]` on the default — identical by contract. The prose recommendation the schema already holds is client (only on explicit approval) then matter then DOCUMENT FUNCTION then period. \"Research\" and \"authorities\" are labels at that function level; they do not reorder, remove, or add a level. Filling one branch label of the parent's recommendation is not differing from it. The one order the row might be tempted to claim — topic or authority-citation first — would \"use an author or organization merely as a collector\" (court names, reporter series, statute titles) and would \"create meaningless one-child levels\" in a single-matter corpus. `time_first` is false for the same reason it is false family-wide: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"\n\nLEG 3 — PRIVACY RULES DO NOT DIFFER, AND IN ONE DIRECTION ARE LOOSER. The schema's posture exists to protect a third party who never chose this filesystem. A research memorandum naming a client and disclosing issues and strategy is exactly that posture, already fixed. Public published opinions, statutes and articles that form the bulk of an \"authorities\" pile carry no client and no third party BY DESIGN; their honest residual is Reading Inbox, which the schema already routes that class to. A row whose characteristic members are often less sensitive than the schema default has not found a stricter rule; it has found a reason not to exist. The node still records `potentially_sensitive` for the matter-anchored memo and annotated copies — public availability of a citation does not make the holder's selection, annotations or surrounding packet safe to expose — but that rule is the schema's, not this id's.\n\nAND THE ROW IS ALSO THE CHARGE'S OWN KILL LIST. It is a work_type value (enum entry already present). It is a document type (memo, note, authorities list, citator report). It is a lifecycle stage (\"research\" before pleading or advice). What looks like a structural rescue — the SURVEY shape an authorities list or issue-to-authority map — is the schema's work-product section grammar under another name, and the classes that DO carry distinct structure are already owned by siblings: addressed reliance-bearing advice (`law_practice.opinions-advice`), blank-slot know-how (`law_practice.precedent-bank`), hearing-compilation authorities (`law_practice.trial-preparation`). Refusing costs no coverage.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "STATED FOR THE REFUSAL RECORD, NOT AS THIS ROW'S RECOGNITION — the schema owns recognition and this row authors none. THE WORDS research, authorities, memo, memorandum, note, citator, Shepard, KeyCite, legislative history, case law, statute, or precedent in a filename, title or folder. These are the row's entire name and they are document-type and topic words; delete them and the entity names and what survives a research memo is the schema's own section grammar, and what survives a downloaded opinion is a caption that is `legal`'s.",
+      "A CITATION STRING, A CASE NAME, A REPORTER REFERENCE, A STATUTE SECTION OR A DOI ALONE. Citation shape is never-alone under `research.reading-library` and under this family's own rule that a caption or citation alone never proves the holder acted for anybody. The tempting false file it trips: `Supreme Court Opinion - Example Holdings v Example Agency.pdf`, a public download with no matter around it.",
+      "A MATTER REFERENCE BESIDE A DOCUMENT-TYPE WORD. Two struck tokens do not make a signal. An exact matter reference supports GROUPING into an already-evidenced matter under the schema's first grouping reason; it does not mint a research template.",
+      "A HIGHLIGHTED, ANNOTATED OR BOOKMARKED PDF OF A PUBLISHED OPINION. Annotations are observations about the holder's reading; they do not by themselves establish a matter, a client, a side or a schema, and treating them as activation would convert every marked-up textbook into practice material.",
+      "A WESTLAW, LEXIS, BAILII, COURT WEBSITE OR JOURNAL MASTHEAD. A publisher or database name is an organisation name, and organisation names are constitutionally never-alone: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "A SOURCE TYPE OR EXTENSION, including text_document, archive, spreadsheet, email, ocr, image and every extension this row lists. file_kind_plausible is constitutionally never-alone, and \"the file extension as a routing signal rather than an assumption about meaning\" governs.",
+      "A FOLDER OR ARCHIVE PATH NAMED Research, Authorities, Memos or Know-how. A drawer is an unlabelled position; \"A session should never be treated as proof of topic\"",
+      "A PRIVILEGED, CONFIDENTIAL, ATTORNEY-CLIENT OR WORK-PRODUCT LEGEND ON A MEMO. Preserved as a literal observation; never a legal status and never activation."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "NO GROUPING REASON IS AUTHORED HERE, and the reason is the refusal itself. The schema's first grouping reason already joins \"the work product\" and the filings into ONE MATTER by an exact repeated matter reference: \"The documents are content-incoherent but purpose-coherent.\" A research memo and its authorities are members of that group when the anchor exists; they do not found a second group type.",
+    "The schema's hearing-or-event grouping already names \"the authorities\" beside the bundle index and the skeleton. `law_practice.trial-preparation` owns the compilation shape. This refused row adds nothing.",
+    "Published authorities with no accepted matter or research association form no group and fall to Reading Inbox: \"It should not form a supported group when there is no valid anchor\"",
+    "Cross-matter bridging by shared citation, shared issue or semantic similarity is suppressed under the schema's own never-alone rule; this row would have had no licence to loosen that."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BECAUSE THE ROW IS REFUSED, AND EMPTY AGAIN FOR THE THREE REASONS THE SCHEMA ALREADY GAVE — which is precisely the finding. Under PR-6 `law_practice` declares no field rows, so no dimension is available; the material co-activates the `legal` safety domain on captioned authorities, so no deep template unlocks from safety activation; and the natural dimensions of a research world (client, matter, topic, authority name) are disclosive or collector-shaped. The specific order this row would have been most tempted to claim is authority-or-topic first, and that is the claim 00 refuses when it forbids using an author or organization merely as a collector and when it requires a parent dimension to make the child intelligible: \"A work type such as Homework 3 is meaningful only after the course is known\" A pinpoint citation is meaningless without the matter that asked the question. NOT TIME-FIRST: research dates, decision dates, download dates and filesystem dates mean different things, and nothing here is capture-based. Whatever lands stays advisory: \"the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "archive",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "presentation"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".pptx",
+      ".html"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Research memo - limitation under s.2 - 41127-0006.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a header carrying the exact matter reference 41127-0006 and a producer fee-earner marker",
+        "labelled sections: Facts / Instructions, Issues, Authorities, Analysis, Options, Next steps",
+        "an authorities section listing case names with pinpoints and a statute section",
+        "no addressee block and no clause restricting who may rely on the conclusions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE PROOF FIXTURE: the identical section grammar is the schema's INTERNAL WORK-PRODUCT deterministic signal, already written on `law_practice`. A template whose central fixture is its schema's own signal is the default template with a narrower filename filter",
+        "privilege, work-product protection, correctness or legal effect from the section headings or from a privileged legend",
+        "any law_practice fact — none is declared",
+        "a folder path, and specifically not a Research branch that publishes the issue under research"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Table of Authorities - Motion for Summary Judgment - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption zone naming a court and parties, then a matter-reference footer",
+        "numbered case and statute entries with pinpoint page references",
+        "no analysis prose; the document is a survey list",
+        "sits beside a motion PDF in the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a table of authorities is a distinct filing world. It is a work_type value already named on the schema (\"authorities list\") and a member of an already-evidenced matter group; the caption zone is `legal`'s proceeding signal where present",
+        "that citation entries create facts about the cited cases as this schema's fields — there are none",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "KeyCite report - Acme Holdings v Beta Trading.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a citator masthead and a treatment history table for one cited case",
+        "flags for negative and positive citing decisions",
+        "a download timestamp and a database watermark",
+        "no matter reference and no practitioner or client role slot anywhere on the page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this schema or this refused row from a citator printout alone. Without an exact accepted matter or research anchor elsewhere in the corpus it is published research tooling output and falls to Reading Inbox",
+        "that a database masthead is practitioner-side evidence; it is an organisation name",
+        "a legal-status fact from a treatment flag",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Supreme Court Opinion - Example Holdings v Example Agency - annotated.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a court caption, citation, bench and operative disposition — a published judicial opinion",
+        "yellow highlights and margin notes keyed to paragraphs about limitation",
+        "a sticky note on page one reading \"use for 41127-0006 issue 2\"",
+        "publisher pagination continuous with a reporter volume"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that annotations manufacture a law_practice activation. The document's own face is a published opinion; purpose answers what the file was for, and purpose here is supplied only by a sticky note that is a possible clue for review, not a folder proposal",
+        "that the caption makes this `law_practice` material; caption structure is `legal`'s, and as a safety domain its protection runs first when it fires",
+        "that a public opinion is low-sensitivity in its local annotated form — the selection and notes can disclose strategy even when the text is public",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Authorities bundle - Day 1 hearing - 41127-0006.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking shows an index member, sequentially named volume members and an Authorities member",
+        "pagination implied by member names is continuous across the compilation",
+        "the matter reference repeats in several member paths",
+        "archive is unencrypted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE TRIAL-PREPARATION COLLISION FIXTURE: a compilation whose index runs over pleadings, statements, correspondence and authorities with continuous pagination is `law_practice.trial-preparation`'s own cleanest signal, not a free-standing research pile",
+        "permission to unpack the archive to improve classification — \"the normal scan should never extract archive contents to the filesystem\"",
+        "facts copied onto members from directory names",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Advice on merits - limitation defence - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled addressee block naming the client, distinguished in the body as \"our client\"",
+        "a clause stating the advice may be relied on only by the addressee",
+        "assumptions, qualifications and scope-of-law sections before a graded conclusion",
+        "an authorities survey appears as a supporting schedule"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE OPINIONS-ADVICE COLLISION FIXTURE named on that sibling's own edge into this id: the ADDRESSEE-AND-RELIANCE PAIR plus the opinion grammar make it `law_practice.opinions-advice`'s; the authorities schedule does not pull the whole document into a research node that does not exist",
+        "privilege or correctness from the word advice or a privileged legend",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PRECEDENT - Research note - limitation under the Limitation Act - firm know-how v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a standing practice note on a point of law with issue and authorities sections",
+        "bracketed placeholders where a matter or client would go, and a firm template version marker",
+        "drafting notes addressed to the next fee-earner who will adapt it",
+        "no matter reference and no practitioner/client role pair"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE PRECEDENT-BANK COLLISION FIXTURE: a standing know-how note with no matter is already a work_type on `law_practice.precedent-bank` (\"standing know-how note or internal practice note on a point of law\"), and the blank-slot apparatus is that row's inverse-recognition signal",
+        "sensitivity_status as protected material — no client and no third party are in the file, so its residual is Reading Inbox",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Supreme Court Opinion - Example Holdings v Example Agency.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a court caption, citation, judge names, reasoning and dispositive section",
+        "no matter reference, no annotation, no practitioner header",
+        "a download filename and a court-website footer",
+        "byte-identical to a member that also appears inside an annotated research folder elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "THIS ROW OR A MATTER MEMBERSHIP FROM TOPIC ALONE. THIS IS THE COLLISION FIXTURE: every surface signal a research row would have used — caption, citation, legal analysis — is present, and there is no accepted purpose. Topic will not separate a public opinion from a matter authority; \"purpose answers what the file was for\" is the only test that works",
+        "that duplicate_family with an annotated copy copies the annotation's matter clue onto this clean download",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Legislative history pack - Limitation Act 1980 - Westlaw export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest shows Hansard extracts, committee reports and bill versions as member PDFs",
+        "outer name carries a statute title and a database export word",
+        "no matter reference in any visible member path",
+        "archive is readable without a password"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a matter or a representation from a statute title in an archive name — \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\" applies a fortiori to a readable archive whose only cue is topical",
+        "this schema from a database export watermark",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-08-18 at 11.02.14 - Westlaw search - limitation.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence and a browser chrome",
+        "OCR yields a search query string and hit titles with citations",
+        "no matter reference visible in the OCR region",
+        "account name in the chrome is partly visible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a research or matter activation from a search screenshot. Absent an accepted anchor the capture falls to Temporary Screenshots; account names stay redacted",
+        "that missing EXIF proves a screenshot or proves it is not one",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Market-entry legal issues memo - Acme Holdings - prepared for board.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a consulting firm letterhead and a prepared-for / prepared-by pair",
+        "sections on regulatory risks, timeline milestones and deliverables",
+        "citations to statutes and cases in a bibliography",
+        "no counsel block, no matter reference, no reliance-restricted opinion grammar"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE CAREER COLLISION FIXTURE: legal vocabulary plus citations inside a consulting deliverable are `career.consulting-client-engagement`'s on the prepared-for / prepared-by roles and milestones, not practitioner-side research for a client matter",
+        "that citations convert a consulting memo into law_practice material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Research DMS export - 41127 - privileged.7z",
+      "source_type": "archive",
+      "observations": [
+        "archive header identifies a password-protected volume",
+        "member manifest is unavailable to the approved scanner",
+        "filename carries a matter-shaped token and the words research and privileged",
+        "basic filesystem metadata and a content hash remain available locally"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this schema, a matter, a client or a member family from the filename — \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "permission to force it open or request credentials — \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.opinions-advice",
+      "signal": "SAME FIXTURE BOTH SIDES: `Advice on merits - limitation defence - 41127-0006.pdf` — one memorandum that answers a client's legal question and may carry both an authorities survey and a covering line naming a reader. THE BOUNDARY IN BOTH DIRECTIONS, recorded on a refused row because the sibling already authored the reciprocal into this id and R1c must re-point it: that sibling owns the artefact when the ADDRESSEE-AND-RELIANCE PAIR is present (labelled addressee block naming a body the document distinguishes from the author, PLUS a clause restricting reliance) together with assumptions / qualifications / scope-of-law grammar; the survey-without-reliance shape this row would have claimed is absorbed by the `law_practice` schema's INTERNAL WORK-PRODUCT signal, not by a research template. A named reader, a citation list, a legal conclusion and the word memo decide nothing alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "SAME FIXTURE BOTH SIDES: `PRECEDENT - Research note - limitation under the Limitation Act - firm know-how v3.docx`. Both sides look like \"research\": issue headings, authorities, analysis. THE BOUNDARY IN BOTH DIRECTIONS: `law_practice.precedent-bank` owns it when party, client and matter slots are blank by design — placeholders, drafting notes to the next drafter, firm template version marker, no practitioner/client role pair; the schema default owns a LIVE matter research memo when an exact matter reference and a producer marker are present. This refused row owns neither. Filled-versus-blank matter slots is the whole test; the word research discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.trial-preparation",
+      "signal": "SAME FIXTURE BOTH SIDES: `Authorities bundle - Day 1 hearing - 41127-0006.zip`. An authorities member sits inside a hearing compilation on both readings. THE BOUNDARY IN BOTH DIRECTIONS: `law_practice.trial-preparation` owns the artefact when the manifest shows an index plus continuously paginated volumes spanning pleadings, statements, correspondence and authorities for one sitting; a free-standing research pile without that compilation grammar is ordinary matter work product under the schema default, or Reading Inbox when unanchored. The shared item — a folder or member named Authorities — is a drawer label and decides neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "SAME FIXTURE BOTH SIDES: `Supreme Court Opinion - Example Holdings v Example Agency.pdf` — a third-party published opinion with caption, citation and reasoning. THE BOUNDARY IN BOTH DIRECTIONS: `research.reading-library` (and Reading Inbox when no research association is accepted) owns published work by other people kept for reading, recognised by publication structure without a holder project or matter purpose; a practitioner corpus may also carry the identical bytes as a matter authority only through an exact accepted matter or research-memo reference elsewhere, which supports GROUP membership under the `law_practice` schema without minting a research template. Topic will not separate them — \"purpose answers what the file was for\"",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Supreme Court Opinion - Example Holdings v Example Agency - annotated.pdf` and any captioned judicial opinion saved into a research folder. THE BOUNDARY IN BOTH DIRECTIONS: `legal` activates on the proceeding or instrument structure on the document's own face (caption, operative disposition), and as a safety domain its protection runs first; this refused row would have claimed the same bytes as \"authority collected for research.\" Caption and citation therefore discriminate nothing in a research template's favour — they are the neighbour's evidence — and annotations do not displace `legal` or create law_practice fields.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Market-entry legal issues memo - Acme Holdings - prepared for board.pdf`. Legal citations and issue analysis appear on both a consulting deliverable and a practitioner research memo. THE BOUNDARY IN BOTH DIRECTIONS: `career.consulting-client-engagement` owns it on prepared-for / prepared-by roles with milestones and acceptance language; the `law_practice` schema owns a matter research memo only on an exact matter reference plus practitioner/client apparatus. Citations, the word legal and a two-organisation letterhead are common and decide neither. Where only the engagement paper exists, Review Later is the honest outcome.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: a downloaded opinion or a solicitor's research-looking note sitting in the holder's own dispute folder. THE BOUNDARY IN BOTH DIRECTIONS: `legal.personal-legal-matters` owns it when the holder is a PARTY to their own proceeding and there is no practitioner-side apparatus produced by the holder; the `law_practice` schema owns practitioner-side work product produced FOR someone else. A citation, a case name and the word research decide nothing about which signature block is the holder's.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES, COACTIVATION NOT MUTEX: on `Table of Authorities - Motion for Summary Judgment - 41127-0006.pdf` and on any captioned judicial opinion inside a matter packet, `legal` is held by the caption / proceeding structure on the document's own face, while the `law_practice` schema (absorbing this refused row's coverage) is held by the exact matter reference recurring across artefacts and by a separate practitioner/client role artefact. Disjoint evidence, one corpus; `legal` is a safety domain so protective ordering runs first. One-way here; R1c owes the reciprocal onto the schema, not onto this refused id.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "SAME FIXTURE BOTH SIDES, COACTIVATION NOT MUTEX: a published paper or opinion kept both as third-party reading (`research` / `research.reading-library` on publication structure) and as a member of an accepted matter group under `law_practice` when an exact research-memo or authorities-list reference joins it. 00 licenses multi-membership — \"A file may validly belong to more than one accepted group\" — and forbids copying the matter anchor onto the reading item or the DOI onto the matter. Schema↔schema only; this refused template authors the edge so R1c can lift it to the `law_practice`↔`research` pair.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Principal fallback for matter-anchored research memoranda, annotated authorities that disclose issues or strategy, and authorities lists tied to an accepted matter when no group is active. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Also: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The characteristic false home this refused row would have stolen from: published opinions, statutes, citator reports, legislative-history packs and practice notes with no accepted matter or research association. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" Routing them here rather than to Protected Records keeps a public library out of the protected set.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For readable research-shaped artefacts whose SIDE or PURPOSE is unresolved — a memo that might be consulting or legal, an annotated opinion whose sticky-note matter clue is too weak to accept. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected research exports and unreadable DMS volumes. 00: \"Unsupported or Encrypted may hold\" inaccessible material, and \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Positively evidenced screen captures of research-database search results whose OCR does not establish a matter. 00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone durable research tool with no group and no third party exposed — a personal citation checklist, a blank research-memo template. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded despite the refusal, because the material is real even though the row is not. A matter research memorandum discloses a third party's affairs, issues and strategy; annotated authorities can disclose which questions the holder is asking even when the underlying opinion is public; an authorities list can imply the theory of a case. That is the schema's third-party posture — someone \"who never chose this filesystem and cannot consent\" — applied to work product, not a stricter rule this id invents. Public clean downloads without annotations or matter anchors are not themselves the sensitive object and belong in Reading Inbox; the refusal must not sweep a public library into Protected Records. Only `potentially_sensitive` is available in this phase; P7 owns handling classes and none is assigned. Cross-matter bridging by shared citation remains suppressed. \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\"",
+  "open_question": "Four items for R1c; none changes the refusal. (1) RECIPROCITY DEBT: `law_practice.opinions-advice` already authors a collides_with edge into this id describing the survey-versus-reliance seam. That edge now points at a refused node. Recommend R1c re-point it at the `law_practice` SCHEMA (whose INTERNAL WORK-PRODUCT signal is the survey side) and keep the reliance side on opinions-advice; this row may not edit the neighbour. (2) ANNOTATED PUBLIC OPINIONS: decide whether a published opinion carrying holder annotations that name a matter issue is Protected Records (protective of strategy disclosure) or Reading Inbox with a reviewable membership clue (honest about the document's public face). This row recommends Protected Records only when the annotation itself states an exact accepted matter reference; otherwise Reading Inbox plus Review Later for the weak sticky-note case. (3) SCHEMA↔RESEARCH COACTIVATION: the also_holds_with entry onto `research` is authored here so it can be lifted to the schema pair; confirm whether court opinions in a practitioner corpus should coactivate `legal` alone, `research` alone, or both on disjoint evidence. (4) If PR-6 lifts and `work_type` is declared on `law_practice`, re-test once: the expected answer remains refusal because the id is still an enum value, but the test should be run rather than assumed."
+}
