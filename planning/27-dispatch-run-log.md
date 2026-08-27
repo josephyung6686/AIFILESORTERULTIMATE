@@ -1236,3 +1236,7 @@ resource_operations.{farm-records,fisheries-catch,forestry-records,mining-operat
 Joseph reports another agent is actively writing:
 `resource_operations.{mining-operations,farm-records,fisheries-catch,forestry-records}`.
 OTHER-TEAM Cursor wave will not claim, edit, or commit these four.
+
+### Landed — nonprofit.advocacy-campaign (salvage)
+
+Refusal kept. Memo only committed (`5578443`). Pair complete.

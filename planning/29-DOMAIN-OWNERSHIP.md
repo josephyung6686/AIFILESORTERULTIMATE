@@ -222,7 +222,7 @@ manufacturing.supplier-qualification | OTHER-TEAM | active
 manufacturing.tooling-fixture | OTHER-TEAM | active
 manufacturing.warranty-claim | OTHER-TEAM | active
 manufacturing.work-instruction | OTHER-TEAM | active
-nonprofit.advocacy-campaign | OTHER-TEAM | active
+nonprofit.advocacy-campaign | OTHER-TEAM | complete
 nonprofit.fundraising-donor | OTHER-TEAM | active
 nonprofit.governance | OTHER-TEAM | active
 nonprofit.grant-reporting | OTHER-TEAM | active
