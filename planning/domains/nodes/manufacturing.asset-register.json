@@ -1,0 +1,418 @@
+{
+  "id": "manufacturing.asset-register",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Asset register and equipment records",
+  "one_line": "The controlled population of owned production, inspection and utility equipment held as one standing document: the file's ROWS ARE ASSETS, each carrying a stable identity, an installed position and a standing lifecycle obligation, rather than records ABOUT one asset. The schema default's site-then-asset-then-record-type branch cannot place it, because a register has no single asset value to branch on. It is not one purchase, not one performed job, not a calibration outcome, not a depreciation schedule, and not an IT estate merely because equipment carries a serial number. Placeholder template on the fieldless manufacturing schema; it declares no field rows under PR-6 and serialises no destination dimensions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "CNC-07",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The manufacturing schema anchor already proposes `asset` for the enduring machine that receives maintenance, calibration and inspection records, and engineering.commissioning-handover deliberately adopted the same spelling rather than minting a variant. This row seconds it and supplies the population-level evidence that makes it necessary. No canonical key covers it: `repository` is software, `camera_information` describes capture equipment, `project` is bounded work, and `location` is the Photos capture-place role rather than an installed operating position.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Seconded TRUE, but with a restriction this row is the reason for: `asset` is a destination dimension only for a file that HAS one asset value — a single-asset card or history index. A multi-asset register export has no single value and must not be forced under an asset level; it belongs at the site level as the site's population document.",
+      "reliability_ceiling": "validated",
+      "validation_rule_family": "asset-tag pattern occurring in a labelled Asset, Equipment, Instrument or Machine slot, corroborated by register-row structure or a local controlled asset list. A serial number or an identifier-shaped token alone never validates it. R2/R6 own the pattern; this row writes no regex and no threshold.",
+      "provenance": "proposal",
+      "adjudication_note": "Adjudicate once, on the manufacturing schema, in R1c. This row must not be counted as a competing private proposal. See NJ-MFG-ASSET-3 and manufacturing.calibration-record's NJ-CAL-1 on whether one `asset` key can carry both the producing machine and the measuring instrument."
+    },
+    {
+      "key": "site",
+      "type": "string",
+      "example": "Plant 2 - Kowloon / Line 4",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The manufacturing schema anchor already proposes `site` for the facility that controls an asset. Canonical `location` is the Photos capture-location role and may differ from the installed operating location; `organization` names a custodian rather than a plant or a line; `institution` is a financial issuer.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Seconded TRUE, and it is the ONLY level this row can offer for a multi-asset register. For a genuinely single-site corpus the template validator should flatten the one-child level.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Plant, Site, Facility, Area, Line or Functional Location slot can support it directly. An address, a company name or a filename token stays possible, because it may name a supplier, an issuing laboratory or a document custodian rather than the plant the equipment stands in.",
+      "provenance": "proposal",
+      "adjudication_note": "Adjudicate once, on the manufacturing schema, in R1c; see the anchor's NJ-MFG-3 on site-versus-capture-location."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a multi-row table whose stable header joins an Asset, Equipment, Machine or Instrument identifier to a description or model, an installed site, line or functional location, and an operating status — and whose ROWS ARE ASSETS rather than dated events",
+      "a population table in which each asset row carries at least one STANDING lifecycle-control attribute — maintenance interval, next service due, calibration due date, inspection class, criticality rating, commissioning date or retirement state — without a per-row outcome column",
+      "a functional-location or equipment-master export joining parent system, position and child equipment identifiers, with repeated installed-position and service-state fields rather than shipment-movement or work-performed fields",
+      "a single-asset card or equipment-history cover sheet that states what is permanently true of one controlled asset and indexes its maintenance, calibration, inspection and modification records without containing them",
+      "a decommissioning, transfer or relocation register that updates standing status across several controlled equipment identities and retains prior installed position or disposition",
+      "an archive manifest whose members are a register export plus asset-specific certificates or history sheets sharing labelled asset identifiers; the archive is inspected without being unpacked to disk"
+    ],
+    "needs_llm": [
+      "a legacy spreadsheet called Equipment List.xlsx whose columns could describe owned production assets, spare parts held in stock, IT devices, purchased line items or equipment being shipped",
+      "an OCR-poor photograph of a wall-mounted machine register where the row structure survives visually but the header labels and identifiers do not",
+      "a fixed-asset workbook whose first sheet records custody and service obligation while a second sheet records acquisition cost and depreciation for the same tags",
+      "a shop-floor equipment export where machine identity and network identity occupy adjacent columns on the same rows",
+      "an equipment dossier of manuals, certificates, purchase records and service reports where only the cover or index establishes that the packet is the enduring asset record",
+      "a mixed register holding both fixed plant rows and road-going vehicle rows under one header",
+      "a multilingual register whose column roles cannot be recovered deterministically"
+    ],
+    "never_alone": [
+      "a serial number, asset tag, machine number or equipment-shaped identifier outside a labelled role slot",
+      "the words asset register, equipment list, plant register, machinery, tool, instrument or inventory in a filename or a folder name",
+      "a manufacturer, model, product, supplier, organization, site, line or person name alone",
+      "a next-due or calibration-due date alone; a due date is a scheduling attribute of the population and is not evidence that any service or calibration happened",
+      "a purchase date, service date, status word, cost, quantity or signature alone",
+      "a table with only item, quantity and bin columns; that can be stock, spare parts or goods held for sale",
+      "a source_type or extension alone; XLSX, CSV, PDF, image and structured exports occur in every neighbour",
+      "a parent folder called Maintenance, Engineering, Plant, Operations or Assets alone",
+      "a bounded download session as topic: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that an equipment photograph is a screenshot"
+    ]
+  },
+  "proposed_context_terms": [
+    "asset tag",
+    "equipment number",
+    "functional location",
+    "installed location",
+    "plant section",
+    "production line",
+    "criticality",
+    "in service",
+    "commissioned",
+    "decommissioned",
+    "maintenance interval",
+    "next service",
+    "calibration due",
+    "inspection class",
+    "parent equipment",
+    "equipment history"
+  ],
+  "work_types": [
+    "plant and equipment master register",
+    "machine or production-line asset list",
+    "instrument and gauge roster",
+    "functional-location hierarchy or equipment-master export",
+    "asset status and criticality register",
+    "commissioning and in-service register",
+    "asset transfer, relocation or custody record",
+    "decommissioning, disposal or retirement register",
+    "equipment-history index, asset card or dossier cover sheet",
+    "maintenance and calibration obligation matrix"
+  ],
+  "grouping_reasons": [
+    "one controlled asset across its register row, commissioning evidence, maintenance history, calibration certificates and retirement record",
+    "one production line or functional location across its parent system and its child equipment population",
+    "one register across periodic exports and reviewed snapshots as a version family rather than as calendar-separated subjects",
+    "a sparse certificate or service photograph may join an accepted asset neighbourhood for review without copying an asset fact onto it"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: `asset` and `site` remain proposals on the fieldless manufacturing schema. The researched recommendation, held as prose for R1c: site or line, then asset — with the asset level used ONLY for a file that carries one asset value, such as an asset card or a history index. A multi-asset register export has no single asset value and must sit at the site level as that site's population document; forcing it under an asset level would require inventing an asset fact the file does not carry. Record type is deliberately absent: the register itself is the constant situation, so a record-type level would be a single-child level for every branch. No asset-class level is proposed, because no such key is licensed anywhere on the roster and inventing one here would be padding. Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Annual exports and reviewed snapshots are versions of one enduring register; a year-first order would split that version family. The user may reverse, remove or flatten any of this after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "tif",
+      "eml",
+      "xml",
+      "json",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Plant 2 Equipment Register 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header columns Asset No, Description, Model, Serial, Functional Location, Criticality, Status, PM Interval and Calibration Due",
+        "each row is one machine or instrument installed across the production lines",
+        "a review-date cell identifies which snapshot of the register this is"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "a folder path",
+        "one `asset` fact for the file; the file has hundreds of asset values and none of them is the file's subject",
+        "that a serial is a validated asset outside its labelled row role",
+        "that the review date is any asset's acquisition or commissioning date",
+        "a worker name as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Asset card CNC-07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SAME FIXTURE BOTH SIDES with manufacturing.maintenance-work-order",
+        "one labelled Equipment ID CNC-07 and Functional Location Line 4",
+        "permanent attributes: manufacturer, serial, in-service date, cost centre, criticality, next-due interval",
+        "an index of maintenance, calibration and modification records cited by date and reference, not reproduced"
+      ],
+      "facts_legal": ["asset", "site"],
+      "must_not_conclude": [
+        "facts contained only in the cited records, which were not read",
+        "that the latest listed service returned the machine to service",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Equipment Master Export 2026-08-01.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "repeating EQUIPMENT records carry EQUIPMENT_ID, FUNCTIONAL_LOCATION, PARENT_ID, STARTUP_DATE and SYSTEM_STATUS",
+        "the hierarchy joins child machines to a parent production system"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that XML implies software or repository evidence",
+        "the truth of an undocumented free-text location string",
+        "that the export's parent/child hierarchy is a folder hierarchy"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Retired Equipment Disposal Register Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows join Asset ID, prior functional location, decommission date, disposition method and approval reference",
+        "several former production assets share the controlled status Retired"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that an approval reference proves physical destruction",
+        "a finance disposal gain or loss",
+        "that the quarter is the primary organizational subject"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CNC network and maintenance inventory.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SAME FIXTURE BOTH SIDES with business_operations.it-asset-inventory",
+        "each row carries Machine No, Asset Tag, Line, Criticality, Next PM, Hostname, IP Address and OS Version",
+        "the machine identity and the network identity refer to the same physical equipment"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that hostname, IP address or OS version is a manufacturing destination fact",
+        "that the presence of network columns erases the machine's maintenance evidence",
+        "that the shared asset tag decides either side"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration due list 2026-Q4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SAME FIXTURE BOTH SIDES with manufacturing.calibration-record",
+        "columns Instrument ID, Description, Lab Area, Calibration Class, Interval, Next Due and Custodian",
+        "no per-instrument result, as-found value or pass/fail column"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that any listed calibration was performed",
+        "a calibration outcome or a traceability statement from a due date",
+        "a laboratory research project from the word Lab"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fleet list - inspection due 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SAME FIXTURE BOTH SIDES with logistics.fleet-vehicle",
+        "one row per asset with identifier, in-service date, location and inspection interval",
+        "some rows are forklifts and mobile plant with site-bound cost-centre columns; others carry registration-shaped identifiers, plated weights and statutory test dates"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that a shared table header assigns the whole file to one row",
+        "a road-use obligation for a forklift row, or a plant criticality for a van row",
+        "that either row may copy its facts onto the other's rows"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_8842.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a wall-mounted equipment list with ruled rows",
+        "OCR recovers Asset, Line and Status plus fragments of three machine identifiers, but not the full header",
+        "camera metadata indicates a photograph rather than a screen capture"
+      ],
+      "facts_legal": [
+        "site only where a labelled line cell survives legibly"
+      ],
+      "must_not_conclude": [
+        "an asset fact from identifier fragments alone",
+        "that every visible row belongs to one site when the title is unreadable",
+        "a screenshot origin from the absence of metadata"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Fixed Asset Register FY26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "COLLISION FIXTURE: one sheet carries Asset Tag, Machine, Line and Service Status, while a second sheet carries Acquisition Cost, Depreciation Method, Accumulated Depreciation and Net Book Value for the same tags",
+        "serials and equipment descriptions repeat across both sheets"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that cost, depreciation or net book value are manufacturing facts",
+        "that the phrase asset register in the filename assigns the whole workbook to this row",
+        "that a shared serial lets evidence from one sheet count for the other"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Packing list - CNC spindle unit SN883104.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE: supplier and ship-to headers",
+        "one line item naming a spindle unit and serial SN883104",
+        "carrier, package count and delivery terms beside the item",
+        "no population, no installed position, no standing obligation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an asset fact from the serial number",
+        "an installed site from the ship-to address",
+        "in-service status from a delivery"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Work order history CNC-07 2019-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SAME FIXTURE BOTH SIDES with manufacturing.maintenance-work-order",
+        "one equipment column repeating CNC-07, then job identifier, date, planned-or-corrective type, failure code, downtime and labour",
+        "the ROWS ARE EVENTS against one machine, not assets"
+      ],
+      "facts_legal": ["asset"],
+      "must_not_conclude": [
+        "that an equipment column makes this a register",
+        "a standing maintenance interval from a series of performed jobs",
+        "that technician identity is a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Asset Handover Schedule - Line 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "SAME FIXTURE BOTH SIDES with engineering.commissioning-handover",
+        "rows list installed units with tag numbers, models, positions and warranty start dates",
+        "a takeover signature block and outstanding punch-item references appear on the cover"
+      ],
+      "facts_legal": ["site"],
+      "must_not_conclude": [
+        "that a delivered unit is yet an operated asset with a maintenance regime",
+        "an in-service status from a takeover signature",
+        "that the schedule's punch items are maintenance history"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "SAME FIXTURE BOTH SIDES: `CNC network and maintenance inventory.csv` carries Machine No, Asset Tag, Line, Criticality, Next PM, Hostname, IP Address and OS Version on the same rows. P6 activation step 3 and P8 must count machine-number, line, criticality and next-PM evidence toward this row, and hostname, operating-system, licence-entitlement and network-address evidence toward business_operations.it-asset-inventory; the shared asset tag counts toward neither side by itself. This row owns the controlled production-equipment population and its lifecycle obligations; that row owns device configuration, entitlement and the network estate. The neighbour states the identical discriminator from its side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: the same maintenance system exports either `Asset card CNC-07.pdf` or `Work order history CNC-07 2019-2026.xlsx`, and both carry the equipment identifier, dates and an interval. This row owns the file when its ROWS ARE ASSETS and its columns state what is permanently true of each machine — manufacturer, serial, in-service date, position, cost centre, criticality, next-due interval. That row owns the file when its ROWS ARE EVENTS against a machine — job identifier, date, planned-or-corrective type, failure code, downtime, labour. Discriminated by what a row IS, not by the presence of an asset column: a register with a Next PM Due column is still this row's, and a history with an equipment column is still theirs. Wording aligned with the neighbour's own signal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "signal": "SAME FIXTURE BOTH SIDES: `Calibration due list 2026-Q4.xlsx`. This row owns it when its rows are durable population attributes only — instrument identifier, description, area, custodian, class, nominal interval, next due — with no per-instrument result. That row owns it when its rows carry a calibration outcome or an as-found status, which makes the file dated evidence that calibrations happened. Discriminated by the presence of a calibration-outcome column; an instrument roster stays here even when every row carries a next-due date, because a due date is a scheduling attribute of the population. Wording aligned with the neighbour's own signal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "SAME FIXTURE BOTH SIDES: `Fleet list - inspection due 2026.xlsx` — one row per asset with identifiers, in-service dates and intervals on both sides. This row owns rows that are fixed or site-bound equipment carried for capital, criticality and maintenance-planning reasons, with a location or cost-centre column and no road-use obligation; that row owns rows carrying registration-shaped identifiers, plated weights and statutory test dates, because those columns exist only because of an external roadworthiness duty. A forklift row sits here, a van row sits there, and a table holding both is a genuine mixed file that should group without either row copying its facts onto the other's rows. Wording aligned with the neighbour's own signal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.spare-parts",
+      "signal": "SAME FIXTURE BOTH SIDES: `Equipment and Spares Master.xlsx` holds equipment rows and replaceable-part rows under one set of Item, Description, Location, Status and Quantity columns. P6/P8 must count stable equipment identity plus installed functional location plus a standing lifecycle obligation toward this row, and stock code plus quantity, bin, reorder level and compatible-equipment evidence toward manufacturing.spare-parts. An item number and a location discriminate neither. The deciding question is whether a row names a thing that is INSTALLED and maintained or a thing that is HELD and consumed.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "SAME FIXTURE BOTH SIDES: `Asset Handover Schedule - Line 3.xlsx`, the same physical units on opposite sides of a transfer, keyed on the same proposed `asset` handle. That row owns the units as DELIVERABLES — as-built definition, acceptance evidence, outstanding punch items, warranty start, the dossier that travels with them. This row owns the same units as OPERATED assets — register rows, criticality, maintenance regime, in-service history. The handover schedule is literally the seed of the register; a takeover signature block and punch-item references support that row, while in-service status updates and a maintenance regime support this one. Recorded here as a collision because CONNECTION.md section 5 types `role_split` as field-to-field only; see NJ-MFG-ASSET-2.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone manual, warranty card, equipment certificate or isolated asset card with durable purpose but insufficient population or controlled-asset context is exactly 00's \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A purchase invoice, delivery note, packing list or disposal acknowledgement proving only a transaction and not standing asset control belongs with 00's \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "An isolated equipment photograph with no readable tag, no register structure and no accepted asset group is one of 00's \"images with no event, project, reference collection, or photo-family association\" and must not acquire an asset fact.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor equipment list, a mixed plant-and-vehicle table, or a workbook whose finance, IT and plant column roles are unresolved is a file \"whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The harm here is AGGREGATION, and it differs in kind from the schema default's single-record exposure: one register file discloses the complete productive capability of a plant — every machine, its exact installed position, its criticality ranking, its condition and its service vulnerabilities — in a way no single work order does. Retirement and disposal registers additionally disclose forward plans. Custodian and responsible-worker names appear in register columns; they remain search and privacy observations and never become destination dimensions. The operational consequence this row asks of review: a compact evidence packet should carry column ROLES and row counts rather than register contents, because excerpting a register means excerpting the plant. The row assigns no handling class, and privacy policy must run before any model or connector sees register rows.",
+  "open_question": "NEEDS-JOSEPH NJ-MFG-ASSET-1: when one workbook holds a maintenance/custody sheet and a depreciation sheet for the same machines, should review present a single multi-schema file with sheet-level evidence spans, or require the user to choose a primary placement after both schemas activate? The catalogue can state the boundary but cannot decide the review interaction. NJ-MFG-ASSET-2: engineering.commissioning-handover authored a `role_split` entry naming this DOMAIN, but CONNECTION.md section 5 types `role_split` as field-to-field, living in the canonical field list. R1c should decide whether that entry is re-typed as a `collides_with` (as this row has recorded it) or whether the edge vocabulary gains a domain-to-domain lifecycle-handover relation; this row must not edit a neighbour to resolve it. NJ-MFG-ASSET-3: the proposed `asset` key is asked to carry a producing machine here, a measuring instrument in manufacturing.calibration-record (its NJ-CAL-1) and a delivered installed instance in engineering.commissioning-handover; decide whether one key with a role distinction suffices or whether a canonical role split is required. NJ-MFG-ASSET-4: a multi-asset register carries no single `asset` value, so `asset` is destination-eligible for some files on this row and not others; decide whether destination eligibility can legitimately be per-file rather than per-field, or whether the register must instead be modelled as a site-level document that simply never uses the asset level. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}

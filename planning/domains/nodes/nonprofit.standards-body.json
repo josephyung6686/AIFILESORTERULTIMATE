@@ -1,0 +1,328 @@
+{
+  "id": "nonprofit.standards-body",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Standards development bodies",
+  "one_line": "REFUSED. The standards-development record - committee, working draft, ballot, comment resolution, publication, periodic review - is a consensus DOCUMENT-PRODUCTION process, and it evidences no non-exchange party, which is the whole of the nonprofit schema's activation precondition. The material that would distinguish this row cannot activate its own schema; the material that does activate the schema here (a committee roster, a dues notice, a members' ballot) is verbatim the schema's default template. Coverage routes to engineering.standards-library (the standard and its circulated drafts), business_operations.meeting-record and business_operations.board-governance (the body's self-running record, which the nonprofit schema already cedes by name), government.regulatory-rulemaking (a body exercising a delegated rulemaking power), government.education-accreditation (institutional review, which has already claimed that side reciprocally), engineering.product-certification (certifying a named product or management system), engineering.invention-disclosure and legal (IPR and patent-policy declarations), and the nonprofit schema's own default template for the roster and the subscription.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test (CONNECTION section 2) on all three legs, and fails leg 1 in the strongest available way - not 'the same signals as the schema default' but 'signals that cannot activate this schema at all'. (1) DETECTION SIGNALS. The nonprofit schema states its own precondition and calls it the whole schema: every accepted signal must evidence a NON-EXCHANGE relation between two labelled parties - money or labour given without a commensurate return, or service given to a named person who is not paying for it. Sort this row's candidate evidence against that. A working draft, a ballot on a draft, a disposition-of-comments table, a normative-references clause and a designation-plus-edition front matter evidence NO party at all: they are the internal states of a document being written. They are this row's only distinctive evidence and none of it clears the schema's gate, so a row built on them would never fire. The evidence that DOES clear the gate - a committee roster with one row per named member and a membership class, a members' ballot with a notice period and a vote count, a volunteer's unpaid participation, a subscription status - is the schema's MEMBERSHIP-REGISTER default signal, word for word, with the ballot's object changed from the association's own rules to a technical document. Changing what a member votes ON is a value, not a structure. The remaining tempting signal is a standards body's NAME - ISO, IEC, ASTM, IEEE, NFPA, W3C, BSI - and that is constitutionally never-alone; engineering.standards-library already bans it in exactly this world, extending 00's role-ambiguity reasoning: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” (2) DIMENSIONS. The nonprofit schema's prose default is association, then the NON-EXCHANGE COUNTERPARTY OR FUND - the grant, the restricted fund, the appeal, the membership class, the case - then the period, then the document function. A standards-development corpus has no non-exchange counterparty and no fund, so the schema's second and load-bearing level is unfillable. What this corpus actually wants is issuing_body, then standard_designation, with edition carried as metadata - which is engineering.standards-library's researched order, verbatim. Differing from your own schema's default by silently adopting a DIFFERENT schema's default is evidence of being on the wrong schema, not evidence of being a node. (3) PRIVACY RULES. The nonprofit schema's posture is stricter than business_operations for one argued reason: the exposed party is a third party who is neither the user, an employee nor a customer, often disclosed under need or vulnerability - a safeguarded child, a service user. A standards-development record has no such party. Participants are named professionals acting in a declared public capacity, drafts exist in order to be circulated for comment, and the output is published for sale or free download. The posture here is LOOSER than the schema default, which is again an argument for a different schema rather than for a child row. Separately, the hint's own spine - 'committees, working drafts, ballots and comment resolution, publication and review' - is a LIFECYCLE STAGE SEQUENCE over one document type, which the node test names as a disqualifier and which engineering.standards-library has already ruled on: reading a gate word out of 'Draft International Standard' would import the publisher's balloting stage as if it were the holder's design maturity, a fabricated fact. Refusing costs nothing, because every real fixture has a landed home: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored, and that is the finding rather than an omission. The one structure that is genuinely specific to this world - a disposition-of-comments table with one row per comment carrying a commenter or member body, a clause and line reference, a comment type, a proposed change and a committee disposition - is real, is recognisable, and is recorded here so a later reader can check the refusal rather than take it on trust. It is not written as a signal because it evidences no non-exchange party and therefore cannot activate the nonprofit schema; if it is ever wanted, it belongs beside engineering.standards-library's consensus-process fingerprint, not here."
+    ],
+    "needs_llm": [
+      "Nothing is routed here. A standards-shaped file that matches no landed sibling goes to the ordinary bounded model step against whichever schema its structure actually supports - engineering for the document, business_operations for the body's self-running record - and then to a residual home if nothing lands."
+    ],
+    "never_alone": [
+      "a standards body's name - ISO, IEC, ASTM, IEEE, SAE, NFPA, W3C, BSI, DIN, ANSI. It appears on the published standard, on the reseller's order confirmation, on a member's dues invoice, in a drawing note, in a certification file and in the footer of an unrelated marketing PDF. True of a tempting false file: ISO-9001-awareness-training-slides.pptx carries the body's name and the word standard on every slide and is business_operations training material.",
+      "a designation-shaped token (ISO 27001, ASTM D638, IEEE 802.11, NFPA 70) - it is a citation as often as a subject, and engineering.standards-library owns it when it is the subject.",
+      "a stage word - Working Draft, Committee Draft, DIS, FDIS, Public Input, Second Draft. A stage is a value on a document, and reading the publisher's stage as the holder's situation is a fabricated fact.",
+      "the words committee, ballot, comment or consensus beside an organisation name. A residents' association, a company change board and a university senate all ballot committees."
+    ]
+  },
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored. A standards-participation corpus does group - one designation across its drafts, ballots, comment tables and published edition, joined by an exact designation plus project or N-number reference - but that group is engineering.standards-library's to reason about, and P9 forms neighbourhoods from evidence regardless of whether this row exists. Nothing here licenses copying a designation read off a published standard onto a bare ballot form that happens to sit beside it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case by binding contract - the nonprofit schema declares no field rows under PR-6 and D1's deferral, so no dimension may branch on one (_CONTRACT rules 10 and 15). The emptiness is itself part of the refusal on leg 2: the schema's default order turns on a non-exchange counterparty or a fund, and this corpus has neither, while the order it actually wants - issuing_body then standard_designation, edition as metadata - is already researched and recommended on engineering.standards-library. Not time-first in any case: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a standard's edition is a content period, never a capture date. Whatever a user does with these files afterwards stays theirs: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "ISO_IEC_27001_2022(en).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "designation-shaped token plus a four-digit edition year in the filename and on the cover",
+        "front matter with a foreword naming a joint technical committee, a scope clause, a terms-and-definitions clause and a normative-references clause",
+        "the issuing body's copyright and single-user licensing notice",
+        "no named recipient, no product, no holder approval slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - it is refused; and a published standard evidences no non-exchange party, so the nonprofit schema does not fire on it either",
+        "that the holder participated in developing it - the same bytes sit on the machine of a reader who bought one copy",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "SC27-N24118-WD-27001-rev3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a committee document number and a stage marking in the filename",
+        "tracked changes, change bars and a circulation-and-comment-deadline header",
+        "clause numbering identical to the published edition's"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - engineering.standards-library already names 'standards-body draft circulated for comment' among its own work types",
+        "that the stage marking describes the holder's situation or maturity rather than the publisher's process",
+        "a member, volunteer or donor relation - a draft names no parties"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "SC27_N24500_Disposition_of_Comments_CD_27001.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per comment with columns for member body or commenter, clause, paragraph and line, comment type, proposed change, and committee disposition with a reason",
+        "a header naming the document under ballot and the ballot closing date",
+        "no monetary column, no fund partition, no named individual beneficiary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - THIS IS THE ROW'S BEST CASE AND IT STILL FAILS. The structure is genuinely specific and genuinely unowned, and it still evidences no money or labour given without return and no service to a named non-paying person, which is the nonprofit schema's stated precondition. A distinctive structure that cannot activate its schema is a row that never fires.",
+        "that a member body named in a comment row is a donor, member or beneficiary of the holder's association",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ballot_JTC1_SC27_FDIS-27001_result.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an enumerated vote per member body - approve, disapprove with comments, abstain - against a named document at a named stage",
+        "a closing date and a tallied outcome",
+        "a note that disapprovals carry an obligation to resolve comments"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - the nonprofit schema's own default already claims a members' meeting instrument carrying a notice period, a motion, a ballot form and a member-vote count. This is that structure with the object changed from the association's rules to a technical document, and the object of a vote is a value, not a node.",
+        "any vote, position or affiliation fact about a named person",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ASTM-D20-Committee-Roster-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named member with an affiliation, a membership classification such as producer, user or general interest, a join date and a subcommittee list",
+        "a header naming the technical committee and the year"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - this is the fixture that DOES activate the nonprofit schema, and it activates the SCHEMA'S DEFAULT: a roll with one row per named member carrying a class and a join date is the schema's membership-register signal verbatim. A child row whose only firing fixture is its parent's default template is the definition of a duplicate.",
+        "that any named member volunteers, donates or benefits - affiliation is an employer string, not a role",
+        "a folder level named for any person on the roll"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SC27-WG1-Meeting-Minutes-Bangkok-2026-04.docx",
+      "source_type": "text_document",
+      "observations": [
+        "attendance list, numbered resolutions, action items with owners and due dates, a next-meeting slot",
+        "references to document numbers discussed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - the nonprofit schema explicitly cedes the association's self-running record by name, and business_operations.meeting-record and business_operations.board-governance are landed and already own committee minutes and resolutions",
+        "that charitable or member-association status of the body changes the structure of a minute"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "W3C-Patent-Disclosure-AB-Corp-2026-03-11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a declaring organisation, a named specification, patent or application numbers, and a licensing-commitment statement",
+        "a signature block and a dated declaration"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - an essential-patent disclosure is a commercial and legal instrument; engineering.invention-disclosure and the legal safety placeholder are its homes",
+        "that a licensing commitment is valid, binding, current or enforceable"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ASTM-Membership-Invoice-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer and bill-to blocks, a membership year, an amount, a due date and a payment reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - a dues notice held by the PAYING member is that person's own money record and is finance by role, exactly as the nonprofit schema says of a donor-side receipt; only the association's own subscription run is nonprofit, and then on the schema default",
+        "that paying a standards body's dues makes the payer a participant in developing anything"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Accreditation-Standards-2026-Edition-and-Team-Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered standards edition with criteria",
+        "findings keyed to individual criteria by a visiting peer-review team",
+        "an institution-facing decision letter with a reaffirmation term"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - THE COLLISION FIXTURE. It carries a numbered standards edition and a private membership association as issuer, which is the strongest surface match this row could have. It is government.education-accreditation's, which already claimed it reciprocally and stated the discriminator: an institutional review cycle with a reviewed institution, a volunteer peer-review team and a reaffirmation term. The discriminator is the REVIEW CYCLE, not the standards edition.",
+        "that the issuer's private-association status moves the packet onto the nonprofit schema"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "NFPA-70-2026-Public-Input-Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered public inputs with submitter names, a proposed change and a committee statement",
+        "a public review period with opening and closing dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - government.public-consultation names a standards body's public review of a draft standard among the exercises it must separate itself from, so it disclaims the fixture rather than claiming it; the document and its comment apparatus stay with engineering.standards-library",
+        "that public participation makes the issuing body a public authority"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 at 09.14.31 - ballot portal.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in filename shape and dimensions",
+        "OCR may reveal a document number, a stage and a vote control"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row, or of the nonprofit schema, from OCR of a portal page",
+        "a vote, a position or a participation fact about the holder from a screen capture"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "ISO-9001-awareness-training-slides.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "the issuing body's name and a designation on nearly every slide",
+        "learning objectives, a quiz and a completion slot",
+        "no clause structure, no ballot, no comment table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the densest possible concentration of standards-body names and designations - this is the never_alone case made concrete; it is internal training material and belongs to business_operations",
+        "that the holder's organisation is certified, compliant or a committee participant"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The principal residual for this refused row, because its characteristic isolated file is a downloaded standard, draft or public-input report with no participation evidence around it. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone committee appointment letter, a participation agreement, a patent-policy declaration or a single set of minutes with nothing around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this world's defining failure - a ballot form, comment table or accreditation packet whose SIDE is unresolved, because a body's copy and a participant's copy are byte-identical. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members: a dues invoice, a standard purchase confirmation from a reseller, a meeting registration. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "For the one fixture in this set that names people row by row - a committee roster with affiliations and contact columns. Cautious routing is the cheap error, and no roster may become a folder level named for a person.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded at the schema's level rather than argued down, because a refused row must not weaken its parent's posture. The row's own material is unusually PUBLIC - drafts exist to be circulated, ballots are tallied among declared participants, and the output is published - and that looseness is part of leg 3 of the refusal rather than a licence. Two fixtures still carry real exposure: a committee roster is a list of named people with affiliations and often contact columns, and an essential-patent disclosure is commercially sensitive to the declaring organisation. Neither is a nonprofit-family vulnerability - there is no beneficiary, no safeguarded person and no service user anywhere in this world - which is exactly why the family's stricter-than-business_operations posture has nothing to bite on here. The handling class is P7's and is not set.",
+  "open_question": "Three. (1) NJ-SB-1: the disposition-of-comments table is a genuinely distinctive structure with no landed owner. This refusal routes it to engineering.standards-library on the grounds that it is apparatus of the document rather than of an association, but standards-library's researched signals are about the PUBLISHED artefact - a foreword naming a balloting committee, a normative-references clause - and do not currently name a comment table. Alternatives for R1c: (a) add the comment-table and ballot-record structures to engineering.standards-library's signals, which is this row's recommendation and requires an edit this row did not make; (b) leave them unowned so participant-side files land in Review Later; (c) build a standards-development row on the ENGINEERING schema rather than nonprofit, where the consensus-process fingerprint and the issuing_body-then-designation order already live. Option (c) is the only version of this id that could survive a node test, and it would not be a nonprofit row. (2) NJ-SB-2, reciprocal and already half-written by the neighbour: government.education-accreditation's own open question asks whether it belongs on the government schema at all, since most education accreditors are private membership associations, and it points at THIS id as the alternative home. This row is refused, so that alternative no longer exists. R1c must resolve the neighbour's NJ-1 knowing its named escape hatch is gone - the choices become keep it on government, or split assessor-side review by the reviewer's own public-body status. This row did not edit the neighbour. (3) NJ-SB-3: government.regulatory-rulemaking flags as unresolved whether a delegated standards body or self-regulatory organisation is exercising a delegated rulemaking power or acting as a private association. This refusal removes the private-association branch of that question from the nonprofit side without answering it: where a standards body's output is incorporated by reference into law, the notice-and-comment record is rulemaking-shaped and rulemaking is the better home, but the discriminator - incorporation by reference - is a legal fact the product must not decide. R1c should state whether that branch is simply abstention."
+}
