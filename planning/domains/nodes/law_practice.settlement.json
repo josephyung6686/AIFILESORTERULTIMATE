@@ -1,0 +1,439 @@
+{
+  "id": "law_practice.settlement",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Settlement negotiation and settlement instruments",
+  "one_line": "REFUSED. The offers, exchanges and agreement that end a dispute without a tribunal decision are a WORK_TYPE VALUE, a DOCUMENT TYPE and a definition by ABSENCE, already enumerated on the law_practice schema and already flagged by that schema's NJ-LP-3 as a document-kind fold against orders-and-judgments. The material is not lost: an executed settlement, release or Tomlin/consent order is legal's on legal's own instrument-or-proceeding evidence and is protected there first; without-prejudice offer traffic and settlement-authority instructions are the law_practice default template's email and client-instruction signals; a blank settlement form is law_practice.precedent-bank's; a family mediation packet whose privacy differs is law_practice.family-law's; a transaction completion set is law_practice.closing-binder's; a settlement payment or fee note is finance's; an employment compromise is hr's when it is the employer's own process; and the holder-as-party settlement is legal.personal-legal-matters'.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "THE NODE TEST FAILS ON ALL THREE LEGS, AND THE SCHEMA ANCHOR HAD ALREADY NAMED THIS ROW IN ITS DOCUMENT-KIND FOLD.\n\nLEG 1 - DETECTION SIGNALS ARE NOT THIS SCHEMA'S AND ARE NOT A NEW STRUCTURE. Every candidate artefact collapses into an existing home. (a) An executed settlement agreement, deed of release, compromise agreement or mutual release carries a bound party pair plus an execution or notarial block - legal's instrument signal, which the law_practice one_line already cedes: the schema 'deliberately does NOT hold the executed instruments and proceeding records inside a matter file'. (b) A Tomlin order, consent order or sealed settlement schedule carries a tribunal caption, party pair and operative paragraphs - legal's proceeding signal, and the identical surface law_practice.orders-and-judgments already refused into legal. (c) A without-prejudice, Calderbank, Part 36 or subject-to-contract offer email is the schema's own deterministic email signal ('labelled sender and recipient roles crossing the practitioner-client or counsel boundary, a subject carrying the exact matter reference') plus a WITHOUT-PREJUDICE legend the schema already strikes as never-alone. (d) A settlement-authority instruction from the client is client-instruction prose the schema's needs_llm list already names. (e) A blank settlement or release form with bracketed party slots is the schema's inverse-recognition precedent-bank signal, and law_practice.precedent-bank landed on it. A template cannot own signals its schema conceded to legal, already carries as default, or already handed to a sibling.\n\nLEG 2 - DIMENSION ORDER IS NOT DIFFERENT. It is one label at the schema's DOCUMENT FUNCTION level. The roster hint and the schema work_types entry both name 'settlement, mediation and negotiated-outcome record'. Branching Settlement in a single-matter corpus is what 00 forbids the engine to validate - it must not 'create meaningless one-child levels'. The siblings that survived this family's document-kind charge survived by arguing the function level away (court-filing-record) or finding a second structure the function level cannot express (appeals; opinions-advice). This row does neither: it is the function level's value, and the schema's own NJ-LP-3 already listed 'settlement versus orders-and-judgments' as the fold this refusal completes.\n\nLEG 3 - PRIVACY RULES ARE THE DEFAULT, AND THE TEMPTING STRICTER RULE IS FORBIDDEN. Without-prejudice, privileged, confidential and subject-to-contract legends look like a stricter posture, but the product must preserve them as literal observations and decide no legal status, waiver, admissibility or disclosure right - the schema already says so. The third-party posture that distinguishes law_practice from legal applies to the whole matter apparatus, not to a document-kind drawer inside it. Being looser on a public Tomlin schedule is not a licence either, and public availability is never-alone.\n\nFIVE INDEPENDENT KILL VECTORS. (a) WORK_TYPE VALUE - a proper match to the schema enum entry, not even a subset. (b) DOCUMENT TYPE - settlement, release, compromise, Tomlin, Calderbank, Part 36, mediation agreement, mediation position paper; apply the anchor's deletion test and what survives is either legal's party-pair-plus-execution or the schema's email-plus-matter-reference. (c) DEFINED BY ABSENCE - the roster hint's own words: 'ends a dispute without a decision'. An absence of a tribunal decision is not an observation and cannot activate anything; law_practice.orders-and-judgments refused the mirror definition. (d) LIFECYCLE STAGE - offer, exchange, accepted offer, engrossment, execution, payment, discharge. (e) LEGACY ADR LABEL - law.adr is a procedure-mode name; a mode is not a structure, and family-law already holds mediation where the privacy rule actually differs.\n\nNO COVERAGE IS LOST - collides_with, falls_through_to and every file example name the row or residual that receives the material.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "A DOCUMENT-TYPE WORD - settlement, release, compromise, Tomlin, Calderbank, Part 36, mediation, ADR, without prejudice, subject to contract, mutual release, deed of release. This is the row's entire proposed content, and the anchor already struck it: 'A DOCUMENT-TYPE WORD, AND A DOCUMENT-TYPE WORD BESIDE A FIRM OR CLIENT NAME.'",
+      "A WITHOUT-PREJUDICE, PRIVILEGED, CONFIDENTIAL, SUBJECT-TO-CONTRACT, WITHOUT-PREJUDICE-SAVE-AS-TO-COSTS or CALDERBANK LEGEND ALONE. The product preserves the literal observation and decides no legal status, admissibility, waiver or costs consequence - and the legend appears on commercial and HR paper constantly.",
+      "A TRIBUNAL CAPTION, SEAL, CONSENT-ORDER FORMULA or TOMLIN SCHEDULE ALONE. That surface is legal's proceeding signal, identical to the surface orders-and-judgments already refused.",
+      "A BOUND PARTY PAIR PLUS AN EXECUTION BLOCK ON A SETTLEMENT OR RELEASE. That surface is legal's instrument signal; law_practice deliberately does not hold it.",
+      "A MEDIATION, ARBITRATION, ADR or NEGOTIATED-OUTCOME WORD ALONE. A practice mode is a value, not a structure, exactly as the anchor ruled a practice-area word to be.",
+      "A LAW-FIRM, MEDIATOR, COUNSEL, CLIENT or ADVERSE-PARTY NAME ALONE. Read across from 00: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'",
+      "A CASE NUMBER, MATTER REFERENCE, CLAIM NUMBER or OFFER REFERENCE ALONE. An identifier supplies linkage only after its own labelled role is established.",
+      "A PAYMENT AMOUNT, BANK DETAIL or COSTS FIGURE ON A SETTLEMENT PAGE. Money slots without an issuer-and-billed-to or institution-and-account structure are not finance activation, and with those structures they are finance's - never this row's.",
+      "A FILENAME or FOLDER containing Settlement, Release, Mediation, ADR, Offers or WP, and DOWNLOAD-SESSION MEMBERSHIP in a batch of offer PDFs. 00: 'A session should never be treated as proof of topic'.",
+      "A SOURCE TYPE or EXTENSION ALONE - text_document, email, spreadsheet, archive, ocr, image and every extension this row would have listed. file_kind_plausible is constitutionally never-alone.",
+      "THE ABSENCE OF A TRIBUNAL DECISION. The roster hint defines the row by what did not happen. An absence is not an observation and cannot activate anything."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BECAUSE THE ROW IS REFUSED, and empty for two further reasons that would each hold on their own. (1) BY CONTRACT: law_practice declares no field rows under PR-6, so no dimension may branch. (2) BY THE SUBSTANTIVE FINDING: this row does not DIFFER from the schema's recommendation, it is one label at the schema's own DOCUMENT FUNCTION level, which the anchor already places after the matter on 00's reasoning that 'A work type such as Homework 3 is meaningful only after the course is known' - an offer, a release schedule or a payment direction is unintelligible without the matter it belongs to. Nothing in this world is capture-based, so time_first stays false: an offer date, an acceptance date, an execution date, a payment date and a filesystem date mean five different things, and 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "ocr",
+      "image"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".eml",
+      ".msg",
+      ".xlsx",
+      ".csv",
+      ".zip",
+      ".png",
+      ".jpg"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Settlement Agreement and Mutual Release - Hartley v Nash - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties recital naming two organisations and a release reciprocal",
+        "numbered operative clauses on payment, release, confidentiality and costs",
+        "signature blocks with dates and capacity lines for both parties",
+        "a without-prejudice-save-as-to-costs legend on the front sheet of an earlier draft lineage sitting beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE CENTRAL FIXTURE AND THE ROW CONCEDES IT: a bound party pair plus an execution block is legal's instrument signal on legal's own evidence, legal is a safety domain, and its protection runs first. law_practice may co-activate only through a separate matter-and-role artefact elsewhere in the corpus, and takes the instrument away from no neighbour",
+        "that any term is binding, current, waived, satisfied or enforceable",
+        "that the without-prejudice legend on a draft lineage decides privilege, admissibility or costs",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Tomlin Order - Hartley v Nash - sealed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption, a case identifier and a short stay-on-terms formula",
+        "a confidential schedule attached carrying the settlement terms",
+        "a judicial signature and a court seal",
+        "a counsel block naming the holder's firm"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. A Tomlin order is a DECISION INSTRUMENT with a settlement schedule, not a settlement-without-decision; the caption-plus-operative surface is legal's, and law_practice.orders-and-judgments already refused the identical surface into legal. The schedule does not rescue a document-kind node",
+        "that the schedule's confidentiality legend is this product's handling class",
+        "that the stay is current, lifted, breached or enforceable",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "WITHOUT PREJUDICE - Calderbank offer - 41127-0006 - 2026-08-12.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient crossing a practitioner-to-opposing-counsel boundary",
+        "subject line carries the exact matter reference and the words WITHOUT PREJUDICE SAVE AS TO COSTS",
+        "body states a quantified offer open for a stated period, with costs consequences recited",
+        "a PDF attachment repeats the same legend and offer figure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from the legend or the word Calderbank. The schema already owns the email-plus-matter-reference structure as its default deterministic signal, and it already strikes without-prejudice as never-alone. A refused matter-correspondence sibling deferred this traffic here; that deferral is redirected by this refusal back to the schema default",
+        "privilege, admissibility, waiver or costs consequences from the legend",
+        "that the offer was accepted, rejected, withdrawn or beaten at trial",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE 41127-0006 Hartley - your instructions on the without prejudice offer.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is the client contact; recipient is the fee-earner",
+        "subject carries the exact matter reference",
+        "body authorises a maximum figure and attaches the incoming Calderbank PDF",
+        "no tribunal caption and no execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Settlement-authority traffic is client-instruction prose the schema's needs_llm list already names ('an attendance note, a file note of a telephone call, a strategy email in running text'); the schema default covers it, and legal.practice-matter-file already used a near-identical fixture from the neighbouring side",
+        "that the instruction constitutes informed consent, legal authority or a binding client decision",
+        "any law_practice field value - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mediation position paper - Hartley - WITHOUT PREJUDICE - 2026-06-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a front sheet naming the mediator, the venue and the mediation date",
+        "sections for background, issues, without-prejudice proposals and costs",
+        "a counsel block and an exact matter reference in the header",
+        "no party execution block and no tribunal caption"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from the word mediation or the without-prejudice header. A position paper is practitioner work product keyed to a matter reference - the schema default and, where the matter is a family proceeding whose privacy rule differs, law_practice.family-law. An ADR word is a practice-mode value, not a node",
+        "that mediation occurred, succeeded, failed or produced a binding outcome",
+        "privilege or confidentiality status from the header legend",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PRECEDENT - Deed of Release (firm standard) v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an instrument-shaped release with full clause numbering",
+        "party slots are bracketed placeholders; signature lines are blank and unnamed",
+        "footnoted drafting notes and optional-clause alternatives",
+        "a firm template version marker; no matter reference and no client"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row. This is the schema's INVERSE-RECOGNITION precedent-bank signal - 'an instrument-shaped document whose PARTY AND EXECUTION SLOTS ARE DELIBERATELY EMPTY' - and law_practice.precedent-bank landed on it. Claiming it here would duplicate a sibling",
+        "legal activation: instrument vocabulary with no bound parties and no execution fires nothing on that side",
+        "sensitivity_status as protected material - there is no client, no matter and no third party in the file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Completion statement and settlement funds direction - 41127-0006.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets for purchase price, apportionments, retentions and a funds-flow table",
+        "payee names, sort codes and amounts in labelled columns",
+        "an exact matter reference repeated in the header of every sheet",
+        "no issuer invoice block and no bank-institution reconciliation header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. Transaction completion and funds-flow on a deal matter is law_practice.closing-binder's situation (and that landed row already recorded that settlement's execution mechanics should merge there rather than pad a sibling). A money table without an institution-and-account header is not finance's either",
+        "that any payment was made, received or cleared",
+        "a fiscal_period or tax_year fact - neither key exists on this schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Settlement payment remittance - invoice 8841 - Nash SA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an issuer block, a billed-to block, an invoice number and payment terms",
+        "a narrative line referencing the Hartley settlement",
+        "bank details and a paid stamp",
+        "no matter-opening apparatus and no practitioner-client role slots on the face"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. An issuer-and-billed-to invoice structure is finance's on finance's own evidence; the word settlement in the narrative is a document-type token and never-alone. The law_practice anchor already drew this seam on the bill",
+        "that the underlying dispute is resolved because a remittance exists",
+        "any law_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Mutual Settlement and Release - my employment claim - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties recital naming the holder personally and a former employer",
+        "release, payment, confidentiality and non-disparagement clauses",
+        "both signature blocks executed; the holder's own signature is on the employee side",
+        "no firm letterhead, no matter reference and no practitioner apparatus anywhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row, or law_practice at all. THE UNDER-FIRING COLLISION FIXTURE: every token a settlement template would claim is present - settlement, release, execution, payment - and the holder is the PARTY. The discriminator is which slot the holder occupies and whether any practitioner-side apparatus exists; here neither does, so legal.personal-legal-matters owns it under legal's safety protection. Where the same paper is the employer's own HR compromise without outside counsel, hr owns the process",
+        "an identity or employment fact merely from adjacency to other personal files",
+        "that the release is current, waived or enforceable",
+        "a folder path recording the existence or subject of the holder's own dispute"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Commercial Mutual Release - Acme Ltd and SupplyCo - no dispute file.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two commercial parties, reciprocal release language and executed signature blocks",
+        "no claim history, no allegation schedule, no matter reference and no tribunal correspondence",
+        "a governing-law clause and a confidentiality clause",
+        "the file sits with other executed commercial contracts"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. A release without dispute apparatus is an agreement by form - legal.leases-agreements already draws the seam: reciprocal agreement terms and execution without a broader dispute file support that situation; a matter or proceeding reference and dispute-resolution apparatus would support the dispute side. Either way this refused row owns nothing",
+        "that a dispute existed, was threatened or was settled",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Offers and ADR - Jul 2026 download.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest, read without unpacking, lists Calderbank PDFs, a mediation brochure and a blank release template",
+        "member paths encode no matter reference",
+        "creation timestamps fall within one afternoon",
+        "one member is byte-identical to a file inside an active matter's correspondence folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "this row or any matter fact. A batch of offer-shaped PDFs that arrived together is a download session, and 00 is explicit: 'A session should never be treated as proof of topic'. The anchor adds 'It should not form a supported group when there is no valid anchor'",
+        "that the archive should be unpacked to improve classification",
+        "that the byte-identical copy promotes this archive into the matter; duplicate_family records sameness and copies no fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-08-21 at 16.02.11 - mediation portal booking.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: a browser chrome band and a system clock strip",
+        "OCR recovers the word Mediation, a venue and a date",
+        "no matter reference, no counsel block and no position-paper structure are visible",
+        "the capture sits in a downloads folder with unrelated images"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from a recovered ADR word. A truncated OCR document-type token is the weakest instance of the row's only proposed evidence",
+        "that a mediation was booked, attended or concluded",
+        "screenshot status from missing EXIF; the screen-origin evidence here is positive and independent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Settlement Agreement and Mutual Release - Hartley v Nash - executed.pdf` — this row owns nothing on the face; the neighbour owns the bound party pair plus the execution block (legal's instrument activation). Discriminated by that party-pair-plus-execution structure itself, which law_practice's one_line already cedes, and which is why this row is refused rather than bounded. A second same-evidence surface on the same neighbour: `Tomlin Order - Hartley v Nash - sealed.pdf`, where the caption-plus-operative paragraphs are legal's proceeding signal and the settlement schedule does not create a second node.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Mutual Settlement and Release - my employment claim - signed.pdf` — this row owns nothing; the neighbour owns the holder-as-party executed release under legal's safety protection. Discriminated by which signature slot the holder occupies and by the absence of any practitioner-side apparatus (intake, matter reference allocated by the holder's firm, time record, work product) anywhere in the corpus.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.closing-binder",
+      "signal": "SAME FIXTURE BOTH SIDES: `Completion statement and settlement funds direction - 41127-0006.xlsx` — this row owns nothing; the neighbour owns transaction-completion agendas, funds-flow tables and closing indexes keyed to a deal matter. Discriminated by completion/funds-flow structure versus dispute-offer or dispute-release structure; the neighbour's own memo already recorded that settlement's execution mechanics should merge there rather than pad this id.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Settlement payment remittance - invoice 8841 - Nash SA.pdf` — this row owns nothing; the neighbour owns the issuer-and-billed-to invoice structure (and, separately, any institution-and-account reconciliation of settlement funds). Discriminated by that finance structure versus a matter-and-role apparatus; the word settlement in a narrative line is never-alone and decides neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: `Mutual Settlement and Release - my employment claim - signed.pdf` read from the employer's corpus rather than the employee's — this row owns nothing; the neighbour owns an internal personnel compromise, grievance outcome or settlement negotiation run by the employer over its own workforce. Discriminated by whose process it is: an instructed matter keyed to a practitioner matter reference would be the law_practice default (still not this refused document-kind row); an internal HR process is hr's. A law firm's own HR file about its own employee is hr's twice over.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "SAME FIXTURE BOTH SIDES: `PRECEDENT - Deed of Release (firm standard) v4.docx` — this row owns nothing; the neighbour owns the instrument-shaped document whose party and execution slots are deliberately empty. Discriminated by blank placeholders and drafting notes with no matter and no client — the schema's inverse-recognition signal — versus an executed or matter-keyed settlement paper.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "SAME FIXTURE BOTH SIDES: `Commercial Mutual Release - Acme Ltd and SupplyCo - no dispute file.pdf` — this row owns nothing; the neighbour owns reciprocal agreement terms and execution without a broader dispute file. Discriminated by the presence or absence of matter/proceeding reference, allegations, claim history or dispute-resolution apparatus; a release clause, payment amount, party name or signature block alone cannot choose either side, which that landed neighbour already stated.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first. An isolated settlement agreement, release, without-prejudice offer, mediation paper or settlement-authority email is third-party-sensitive matter material even when no accepted group is active. 00: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the SIDE is unresolved - practitioner or client, dispute release or commercial release, instructed matter or internal HR process. 00: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' Also the honest home for an ADR-shaped download session with no matter anchor.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Blank settlement and release precedents with no client and no third party, plus published ADR guidance kept to read. 00: 'Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated settlement remittance or court-fee receipt with no matter apparatus. 00: 'Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected settlement packs and encrypted mediation-portal exports must not be forced open. 00: 'Unsupported or Encrypted may hold'.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a mediation or offers portal whose OCR does not establish a matter. 00: 'Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone commercial release with no dispute apparatus and no accepted group. 00: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Refused, but the material the id would have covered remains potentially_sensitive under the law_practice and legal defaults. Settlement papers routinely expose a third party's dispute, payment, and sometimes medical or employment facts; without-prejudice legends are preserved as observations and never become a handling class. The handling class is P7's and is not set here. 00: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.'",
+  "open_question": "Four. (1) NJ-SET-1 DEAD DEFERRAL FROM matter-correspondence: that refused sibling wrote that genuine without-prejudice offer traffic belongs to law_practice.settlement's structural anchor. This refusal finds no such anchor and redirects that traffic to the law_practice default template (and Protected Records when inactive). Alternatives: (a) accept the redirect - recommended; (b) reopen matter-correspondence on new evidence; (c) mint a narrower without-prejudice-offer row, which this agent may not do. (2) NJ-SET-2 SCHEMA NJ-LP-3 COMPLETION: the anchor asked whether settlement versus orders-and-judgments should fold as document-kind values. orders-and-judgments refused; this row refuses; R1c should record the pair closed on one argument rather than reopen either. (3) NJ-SET-3 CLOSING-BINDER RECIPROCAL: that landed row already said settlement's execution mechanics should merge into completion rather than pad this id. This refusal agrees and authors the collides_with edge; R1c owes any reciprocal cleanup on that neighbour if its text still points at a live settlement row. (4) NJ-SET-4 LEGACY law.adr: absorbed coverage is mediation/ADR as a procedure label. Alternatives: (a) leave it absorbed into the schema work_type enum value - recommended; (b) reopen only where a privacy rule differs, which family-law already owns for family mediation; (c) mint an ADR-administration row for mediator appointment apparatus alone - outside one-node scope, and the appointment paper without a matter is thin."
+}
