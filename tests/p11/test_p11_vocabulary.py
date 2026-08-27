@@ -11,6 +11,39 @@ from placement import vocabulary as v
 PLACEMENT_ROOT = Path(__file__).resolve().parents[2] / "src" / "placement"
 
 
+def _vocabulary_bindings() -> dict[str, ast.AST]:
+    """What each module-level name in `placement/vocabulary.py` is bound TO.
+
+    This is the property the re-export guards below test, and it replaced an
+    `is` comparison that tested the wrong one twice over.
+
+    `is` was too STRICT: object identity across modules is not stable under
+    re-import, and something in the full suite re-imports a module by path, so
+    the guard failed under some random orderings while nothing was wrong. A test
+    that cries wolf gets read as noise and then stops being read at all.
+
+    `is` was also too WEAK: Python interns short string literals, so
+    `RESIDUAL_ROLE = "residual"` -- a fresh spelling, exactly what MINOR 6
+    forbids -- satisfied `is p10.RESIDUAL`. Both symptoms have one cause.
+
+    MINOR 6 makes two claims and neither of them is identity: the values must be
+    EQUAL to the owner's, and P11 must not DEFINE its own spelling of them. This
+    helper answers the second -- a name bound to a `Name` node is carrying the
+    owner's object, a name bound to a literal is a second spelling -- and it is
+    stable across re-import because it reads the source, not the objects.
+    """
+    tree = ast.parse((PLACEMENT_ROOT / "vocabulary.py").read_text(encoding="utf-8"))
+    bound: dict[str, ast.AST] = {}
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target])
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    bound[target.id] = node.value
+    return bound
+
+
 def test_every_closed_set_has_one_named_constant_per_member():
     sets = {
         "OUTCOMES": v.OUTCOMES, "ORIGIN_STAGES": v.ORIGIN_STAGES,
@@ -52,9 +85,13 @@ def test_the_four_colliding_spellings_stay_equal_to_p8s():
     assert v.MARK_REVIEW_LATER == p8.MARK_REVIEW_LATER
 
 
-def test_the_verdict_vocabulary_is_p8s_object_and_not_a_copy():
+def test_the_verdict_vocabulary_is_p8s_own_and_not_a_second_spelling():
+    # SPEC:462, MINOR 7. Value equality, plus the source-level claim that P11
+    # binds P8's NAME rather than writing out P8's five members.
     from llm_harness.vocabulary import OUTCOMES as P8_OUTCOMES
-    assert v.VERDICTS is P8_OUTCOMES
+
+    assert v.VERDICTS == P8_OUTCOMES
+    assert isinstance(_vocabulary_bindings()["VERDICTS"], ast.Name)
 
 
 def test_evidence_types_are_the_live_spellings_not_the_specs():
@@ -204,11 +241,14 @@ def test_p11s_node_vocabulary_is_p10s_objects_and_not_a_second_spelling():
     P10 publishes them, at which point this becomes a re-export."* P10 publishes
     them now, so the re-export is due.
 
-    Identity and not equality. All fifteen values agree today; three of them are
-    closed TUPLES, and a tuple that merely agrees is one P10 edit away from
-    disagreeing -- at which point `index.py` would refuse a node role P10 had just
-    added, and the refusal would read as a malformed tree rather than as two
-    parts holding different lists.
+    TWO claims, and neither is identity. First, the values must EQUAL P10's.
+    Second, P11 must not DEFINE them -- each name is bound to P10's name, never
+    to a literal. A tuple that merely agrees is one P10 edit away from
+    disagreeing, at which point `index.py` would refuse a node role P10 had just
+    added and the refusal would read as a malformed tree rather than as two parts
+    holding different lists; and a literal that agrees today is precisely the
+    drift MINOR 6 exists to prevent, because it passes an equality check right up
+    until somebody edits one copy.
 
     The local NAMES stay. P11 has its own `RESIDUAL` origin stage, its own
     `LEAVE_IN_PLACE` outcome and its own `PROTECTED` marked state, all on
@@ -220,26 +260,15 @@ def test_p11s_node_vocabulary_is_p10s_objects_and_not_a_second_spelling():
     """
     from tree_design import vocabulary as p10
 
-    # The twelve scalars are checked by AST and NOT by `is`. Python interns short
-    # string literals, so `RESIDUAL_ROLE = "residual"` -- a fresh spelling, the
-    # exact thing MINOR 6 forbids -- satisfies `is p10.RESIDUAL` and this test
-    # passed over it. Binding to a NAME rather than to a CONSTANT is the property
-    # that actually distinguishes carrying from respelling, and interning cannot
-    # defeat it.
-    source = ast.parse(
-        (PLACEMENT_ROOT / "vocabulary.py").read_text(encoding="utf-8"))
-    bound_to = {}
-    for node in source.body:
-        if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
-            targets = (node.targets if isinstance(node, ast.Assign)
-                       else [node.target])
-            for target in targets:
-                if isinstance(target, ast.Name):
-                    bound_to[target.id] = node.value
+    bound_to = _vocabulary_bindings()
 
-    assert v.NODE_ROLES is p10.NODE_ROLES
-    assert v.DISPOSITIONS is p10.RESIDUAL_DISPOSITIONS
-    assert v.NODE_TYPES is p10.NODE_TYPES
+    for ours, theirs in (("NODE_ROLES", "NODE_ROLES"),
+                         ("DISPOSITIONS", "RESIDUAL_DISPOSITIONS"),
+                         ("NODE_TYPES", "NODE_TYPES")):
+        assert getattr(v, ours) == getattr(p10, theirs), (ours, theirs)
+        assert isinstance(bound_to[ours], ast.Name), (
+            f"{ours} is written out here instead of bound to P10's name; a tuple "
+            f"that merely agrees is one P10 edit away from disagreeing")
     for ours, theirs in (
             ("ORDINARY", "ORDINARY"), ("SCOPED_GENERAL", "SCOPED_GENERAL"),
             ("RESIDUAL_ROLE", "RESIDUAL"), ("SHARED_MATERIAL", "SHARED_MATERIAL"),
@@ -253,6 +282,52 @@ def test_p11s_node_vocabulary_is_p10s_objects_and_not_a_second_spelling():
         assert isinstance(bound_to[ours], ast.Name), (
             f"{ours} is bound to a literal, not to P10's name; string interning "
             f"makes an `is` check pass over exactly that")
+
+
+def test_no_placement_module_writes_out_a_closed_set_another_part_owns():
+    """The half an equality check can never reach: a DUPLICATE DEFINITION.
+
+    A local tuple that happens to equal P10's passes every `==` in this file and
+    is one edit away from disagreeing. This is the shape `groups.py` actually
+    held -- its own spelling of §6.9's four shared-material policies, and its own
+    `_BRANCH_BEARING` -- and the identity guard did not catch it; a human reading
+    the file did.
+
+    Collection-level, so the claim sits where the docstring makes it. The
+    element-level guard below is strictly stronger and catches a single borrowed
+    literal too; both are sabotaged.
+    """
+    owned = _owned_values()
+    offenders = []
+    for path in sorted(PLACEMENT_ROOT.glob("*.py")):
+        if path.name == "vocabulary.py":
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+                continue
+            members = {item.value for item in node.elts
+                       if isinstance(item, ast.Constant)
+                       and isinstance(item.value, str)}
+            if members and members <= owned:
+                offenders.append((path.name, node.lineno, sorted(members)))
+    assert offenders == []
+
+
+def test_the_collection_scan_would_catch_a_duplicate_definition():
+    # The negative twin, and the case the identity guard missed: a local tuple
+    # spelling out P10's own shared-material policies.
+    owned = _owned_values()
+    tree = ast.parse('_BRANCH_BEARING = ("shared-branch", "primary-home")\n'
+                     'FIELDS = ("node_id", "plan_version")\n')
+    hits = [node.lineno for node in ast.walk(tree)
+            if isinstance(node, (ast.Tuple, ast.List, ast.Set))
+            and {item.value for item in node.elts
+                 if isinstance(item, ast.Constant)
+                 and isinstance(item.value, str)}
+            and {item.value for item in node.elts
+                 if isinstance(item, ast.Constant)
+                 and isinstance(item.value, str)} <= owned]
+    assert hits == [1]
 
 
 def test_the_borrowed_node_names_stay_distinct_from_p11s_own_axes():
