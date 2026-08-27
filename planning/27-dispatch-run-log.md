@@ -1252,3 +1252,7 @@ Refused (work_type / absence-defined). Pair committed.
 ### Landed — law_practice.contract-negotiation
 
 Accepted (instrument-level negotiation apparatus). Pair committed.
+
+### Landed — law_practice.investigation
+
+Accepted narrowly (enquiry apparatus + subject privacy). Pair committed.

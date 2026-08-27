@@ -181,7 +181,7 @@ law_practice.expert-materials | OTHER-TEAM | active
 law_practice.family-law | OTHER-TEAM | active
 law_practice.hearing-transcripts | OTHER-TEAM | active
 law_practice.immigration-casework | OTHER-TEAM | active
-law_practice.investigation | OTHER-TEAM | active
+law_practice.investigation | OTHER-TEAM | complete
 law_practice.ip-prosecution | OTHER-TEAM | active
 law_practice.legal-research | OTHER-TEAM | active
 law_practice.matter-correspondence | OTHER-TEAM | active
@@ -338,7 +338,7 @@ and the four remaining `resource_operations.*`). Claiming the 16 OTHER-TEAM can 
 law_practice.contract-negotiation | OTHER-TEAM | complete
 law_practice.due-diligence | OTHER-TEAM | active
 law_practice.estates-administration | OTHER-TEAM | complete
-law_practice.investigation | OTHER-TEAM | active
+law_practice.investigation | OTHER-TEAM | complete
 law_practice.legal-research | OTHER-TEAM | active
 law_practice.regulatory-submission | OTHER-TEAM | active
 law_practice.settlement | OTHER-TEAM | complete
