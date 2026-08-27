@@ -288,3 +288,26 @@ and the remaining unclaimed rows stay outside the block until both teams recompu
 ⚠ Note for whoever commits next: OTHER-TEAM commits **by explicit file list**, so CODEX's files are
 never swept in — but a `git add planning/domains/nodes/` wildcard from either side would cross the
 boundary. Do not use one.
+
+## Claims — OTHER-TEAM, 2026-08-27 (16 unassigned rows, wave 3)
+
+Picked by recomputing from the roster, then excluding CODEX's active 16-row block, the
+`resource_operations` family, and `creative.commissioned-shoot` (held outside per CODEX's note).
+Spread four-per-family so no shard hammers one schema anchor.
+
+law_practice.motions-and-briefs | OTHER-TEAM | active
+manufacturing.asset-register | OTHER-TEAM | active
+nonprofit.member-association | OTHER-TEAM | active
+retail_hospitality.product-catalogue | OTHER-TEAM | active
+law_practice.orders-and-judgments | OTHER-TEAM | active
+manufacturing.spare-parts | OTHER-TEAM | active
+nonprofit.volunteer-management | OTHER-TEAM | active
+retail_hospitality.supplier-order | OTHER-TEAM | active
+law_practice.expert-materials | OTHER-TEAM | active
+manufacturing.field-service-report | OTHER-TEAM | active
+nonprofit.standards-body | OTHER-TEAM | active
+retail_hospitality.pos-reporting | OTHER-TEAM | active
+law_practice.trial-preparation | OTHER-TEAM | active
+manufacturing.hse-incident | OTHER-TEAM | active
+nonprofit.governance | OTHER-TEAM | active
+retail_hospitality.returns-warranty | OTHER-TEAM | active
