@@ -1272,3 +1272,11 @@ Accepted (operator capacity/status apparatus; NJ-BR-1 dimensional thinness flagg
 ### Landed — nonprofit.grant-reporting
 
 Refused (duplicate of nonprofit restricted-grant schema default). Pair committed.
+
+### Landed — law_practice.regulatory-submission
+
+Accepted (practitioner non-court submission cycle). Pair committed.
+
+### Landed — retail_hospitality.food-safety
+
+Accepted (statutory diary pack). Pair committed.

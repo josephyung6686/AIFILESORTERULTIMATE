@@ -191,7 +191,7 @@ law_practice.orders-and-judgments | OTHER-TEAM | active
 law_practice.pleadings | OTHER-TEAM | active
 law_practice.precedent-bank | OTHER-TEAM | active
 law_practice.pro-bono | OTHER-TEAM | active
-law_practice.regulatory-submission | OTHER-TEAM | active
+law_practice.regulatory-submission | OTHER-TEAM | complete
 law_practice.settlement | OTHER-TEAM | complete
 law_practice.time-and-billing | OTHER-TEAM | active
 law_practice.transactional-deal | OTHER-TEAM | active
@@ -236,7 +236,7 @@ retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active
 retail_hospitality.ecommerce-ops | OTHER-TEAM | active
 retail_hospitality.event-production | OTHER-TEAM | active
-retail_hospitality.food-safety | OTHER-TEAM | active
+retail_hospitality.food-safety | OTHER-TEAM | complete
 retail_hospitality.guest-feedback | OTHER-TEAM | active
 retail_hospitality.menu-recipe-costing | OTHER-TEAM | active
 retail_hospitality.pos-reporting | OTHER-TEAM | active
@@ -340,7 +340,7 @@ law_practice.due-diligence | OTHER-TEAM | complete
 law_practice.estates-administration | OTHER-TEAM | complete
 law_practice.investigation | OTHER-TEAM | complete
 law_practice.legal-research | OTHER-TEAM | active
-law_practice.regulatory-submission | OTHER-TEAM | active
+law_practice.regulatory-submission | OTHER-TEAM | complete
 law_practice.settlement | OTHER-TEAM | complete
 manufacturing.energy-audit | OTHER-TEAM | complete
 nonprofit.advocacy-campaign | OTHER-TEAM | active
@@ -348,7 +348,7 @@ nonprofit.grant-reporting | OTHER-TEAM | complete
 nonprofit.trade-union | OTHER-TEAM | active
 retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active
-retail_hospitality.food-safety | OTHER-TEAM | active
+retail_hospitality.food-safety | OTHER-TEAM | complete
 retail_hospitality.premises-licensing | OTHER-TEAM | active
 retail_hospitality.store-operations | OTHER-TEAM | active
 
