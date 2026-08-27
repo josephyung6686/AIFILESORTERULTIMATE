@@ -23,6 +23,8 @@ def test_every_closed_set_has_one_named_constant_per_member():
         "MODEL_ELIGIBILITY": v.MODEL_ELIGIBILITY,
         "REVIEW_POLICIES": v.REVIEW_POLICIES, "SET_CHOICES": v.SET_CHOICES,
         "OUTLIER_ROUTES": v.OUTLIER_ROUTES, "STAGE_IDS": v.STAGE_IDS,
+        "REVIEW_SURFACES": v.REVIEW_SURFACES,
+        "REVIEW_ACTIONS": v.REVIEW_ACTIONS,
     }
     bound = {name: value for name, value in vars(v).items()
              if isinstance(value, str) and not name.startswith("_")}

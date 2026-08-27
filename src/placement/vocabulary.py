@@ -212,6 +212,61 @@ POLARITIES: tuple[str, ...] = (POLARITY_ACCEPT, POLARITY_REJECT)
 assert POLARITY_REJECT == REJECT
 
 
+# --- P13's review action: the surfaces and actions P13 routes to P11 --------------
+#
+# P13 is specification only -- its three event types are registered and no producer
+# exists -- so these are spelled here from P13 SPEC:264-294 and this module is
+# their one home until P13 publishes them, exactly as P10's node vocabulary is
+# above. `placement/review.py` imports them and spells none.
+
+SURFACE_PLACEMENT: str = "placement"
+SURFACE_GROUP_PLAN: str = "group_plan"
+SURFACE_RESIDUAL_SET: str = "residual_set"
+SURFACE_RESIDUAL_FILE: str = "residual_file"
+
+#: P13 SPEC:294's four. A fifth would be P13 routing a surface P11 does not own.
+REVIEW_SURFACES: tuple[str, ...] = (
+    SURFACE_PLACEMENT, SURFACE_GROUP_PLAN, SURFACE_RESIDUAL_SET,
+    SURFACE_RESIDUAL_FILE,
+)
+
+#: Pinned, not shared: the surface named `placement` and the origin stage named
+#: `placement` are different axes that happen to share a spelling, and a module
+#: reading a surface must not reach for the origin-stage constant to spell it.
+assert SURFACE_PLACEMENT == PLACEMENT
+
+ACTION_ACCEPT: str = "accept"
+ACTION_ACCEPT_BULK: str = "accept_bulk"
+ACTION_CHANGE_DESTINATION: str = "change_destination"
+ACTION_RETURN_TO_ACCEPTED_GROUP: str = "return_to_accepted_group"
+ACTION_CREATE_CUSTOM_FOLDER: str = "create_custom_folder"
+ACTION_MARK_PRIVATE: str = "mark_private"
+ACTION_DEFER: str = "defer"
+ACTION_LEAVE_UNTOUCHED: str = "leave_untouched"
+ACTION_REJECT: str = "reject"
+ACTION_EDIT_RECOMMENDATION: str = "edit_recommendation"
+ACTION_DISABLE_SUGGESTION_TYPE: str = "disable_suggestion_type"
+
+#: The subset of P13's actions a placement or residual surface collects.
+#: `adopt_version`, `restore_version`, `select_consent_option`, `set_redaction`,
+#: `refresh_plan`, `approve_for_apply` and `reset_learning` route elsewhere and
+#: are deliberately absent -- an action outside this set reaching P11 is a routing
+#: error, not an action P11 has no branch for.
+REVIEW_ACTIONS: tuple[str, ...] = (
+    ACTION_ACCEPT, ACTION_ACCEPT_BULK, ACTION_CHANGE_DESTINATION,
+    ACTION_RETURN_TO_ACCEPTED_GROUP, ACTION_CREATE_CUSTOM_FOLDER,
+    ACTION_MARK_PRIVATE, ACTION_DEFER, ACTION_LEAVE_UNTOUCHED, ACTION_REJECT,
+    ACTION_EDIT_RECOMMENDATION, ACTION_DISABLE_SUGGESTION_TYPE,
+)
+
+#: Two more collisions, pinned rather than bound. An ACTION is what the user did;
+#: a POLARITY is what P11 recorded about it. They agree today for exactly these
+#: two names, and `defer` proves they are not the same axis: it is an action with
+#: no polarity at all.
+assert ACTION_ACCEPT == POLARITY_ACCEPT
+assert ACTION_REJECT == POLARITY_REJECT
+assert ACTION_DEFER not in POLARITIES
+
 # --- residual sets ---------------------------------------------------------------
 
 REVIEW_WITH_MODEL: str = "review_with_model_against_approved_residual_folders"
