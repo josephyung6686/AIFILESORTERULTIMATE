@@ -1,0 +1,632 @@
+{
+  "id": "manufacturing.energy-audit",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Energy audits and efficiency surveys",
+  "one_line": "The operator's own file for how much energy a site or named system uses and what would reduce it: a defined energy boundary, a measured baseline of consumption or intensity, the walkthrough and meter evidence that built the baseline, and the opportunity register of efficiency measures with estimated savings and payback. Its anchor is a surveyed energy system and a baseline period — not a product lot, not a maintained asset's work order, not a utility supplier's bill, and not a statutory emissions scheme return. Placeholder template on the fieldless manufacturing schema; researched to J-DEPTH.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "energy_system",
+      "type": "string",
+      "example": "Plant 2 compressed-air system",
+      "why_no_existing_key": "No canonical key names the surveyed consumption boundary of an energy study. The manufacturing schema's proposed `asset` is one maintained machine (CNC-07, Boiler B-3); an energy audit routinely scopes a functional system that spans many assets and distribution (compressed air, HVAC, steam, lighting, Line 2 ovens). `location` is the Photos capture-location role and may differ from the system the readings describe. `project` is bounded work rather than a recurring consumption boundary that several audits revisit over years. This key should hold a labelled System, Energy System, Boundary, End Use or Survey Scope slot, never an organisation name or an inferred topic.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE beneath site because opportunity sheets, meter exports and thermal surveys are unintelligible without the system they cover; the template validator should flatten when a corpus holds exactly one system.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct from a labelled System/Boundary/End-use/Scope slot on an audit or baseline sheet. Free-text names stay possible because the same words appear in maintenance manuals and capital proposals. A validated ceiling would need a local system register plus labelled-role context; R4/R6 own that rule family.",
+      "adjudicate": "R1c",
+      "note_for_r1c": "R1c may fold this into `asset` with a role qualifier. The argument against is the multi-asset system boundary; the counter-argument that a named boiler plant is an asset is real and recorded as NJ-MEA-2."
+    },
+    {
+      "key": "reporting_period",
+      "type": "string",
+      "example": "Baseline year 2025",
+      "why_no_existing_key": "REUSE of the proposal already argued on `manufacturing.environmental-compliance`, not a new spelling. No canonical key names the interval a baseline or survey covers. `term` is Academic, `tax_year` is Finance, `capture_year` is Photos, and `creation_date` is when the file was made — routinely a different interval from the baseline year. This key must carry the covered interval from a labelled Baseline Period, Survey Period, Reporting Period or Audit Period slot.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE as a leaf-adjacent level only. The baseline interval is a subject here, not a timestamp, because savings are defined against it. It is still NOT proposed as a first dimension.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct from a labelled period slot; possible from a filename token such as 2025 Baseline, which is ambiguous with a financial year and a document version. Never validated alone.",
+      "adjudicate": "R1c",
+      "note_for_r1c": "Prefer one global period key shared with environmental-compliance rather than minting `audit_period` or `baseline_period`."
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "energy opportunity register",
+      "why_no_existing_key": "REUSE of the contested manufacturing-schema proposal (NJ-MFG-1), not a new spelling. If R1c widens the canonical Finance `record_type` into a global document-function key, this row adopts it as a leaf beneath site, energy system and period.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherited if reuse is approved; normally a leaf.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Explicit document titles and labelled form headers support the value; filenames and isolated words do not.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an energy-audit or energy-review structure that names a site or installation, defines an energy boundary or system scope, states a baseline period, and presents measured consumption or intensity for that scope; the boundary-plus-baseline-plus-measurement relation is the signal, not the words energy or audit alone",
+      "an opportunity or ECM register whose rows pair a named measure with estimated energy savings, estimated cost and a payback or simple-return figure, tied to one site or energy system; a capital-project list without savings/payback against a measured baseline does not satisfy this structure",
+      "an interval or cumulative meter-data export whose columns carry a meter or end-use identity, timestamps or billing periods, and energy quantity (kWh, therms, MJ, steam mass), used as baseline evidence for a labelled site or system rather than as a supplier invoice",
+      "a walkthrough or end-use survey sheet with equipment or fixture inventories, nameplate or operating data, hours-of-use or load estimates, and a link to one energy system under survey",
+      "a combustion, boiler, chiller, compressed-air or motor efficiency test sheet with measured input, useful output or specific power, and an efficiency or intensity result for one named system — not a product inspection against a drawing tolerance",
+      "a lighting, HVAC or steam-trap survey table whose rows are fixtures or traps with condition, measured reading and a recommended action that feeds an opportunity register",
+      "an energy-balance or Sankey workbook that allocates site total energy across labelled end uses for one baseline period",
+      "an EnMS or ISO 50001 energy-review extract that states significant energy uses, EnPIs and a baseline, without being merely a downloaded copy of the standard text",
+      "an email whose labelled subject names an energy audit, baseline, ECM or opportunity register for an identified site or system and whose attachments are audit, meter or opportunity records",
+      "an archive whose manifest links one site or energy-system token across a baseline workbook, walkthrough sheets, thermal images and an opportunity register for one survey; the manifest is read without unpacking the archive to disk"
+    ],
+    "needs_llm": [
+      "a spreadsheet of kWh figures with no header block, which could be a supplier settlement, a process-control log, a GHG activity-data sheet or an energy baseline",
+      "a GHG inventory workbook whose verification tab and savings tab pull the same meters in opposite directions",
+      "a consultancy slide deck that mixes sales claims with measured site data, where the measured boundary may or may not be separable",
+      "an OCR-poor walkthrough form where equipment tags survive visually but column labels do not",
+      "a thermal image of a steam line or facade with no visible tag, system label or accompanying survey sheet",
+      "a multilingual EnMS form whose baseline and SEU labels are absent from the deterministic context catalogue",
+      "a home or small-office energy certificate that may be personal-property evidence rather than a manufacturing-site survey"
+    ],
+    "never_alone": [
+      "the word energy, audit, efficiency, kWh, therm, sustainability, net-zero, carbon, EnMS, ECM or retrofit alone",
+      "an organisation name alone — a utility, an ESCO, a consultancy, a certification body or ENERGY STAR; an organisation name is never-alone evidence and identifies the issuer or the advisor, not the surveyed system",
+      "an ISO 50001, ASHRAE or equivalent standard designation alone; a downloaded copy of a standard is a reference document, not evidence that the holder ran a survey under it",
+      "a meter number, account number, serial number or asset tag outside a labelled role slot",
+      "a savings percentage, payback figure, date or signature alone",
+      "a source_type or extension alone; spreadsheets, PDFs, images, email and archives occur in every neighbouring row",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "a parent folder called Energy, Sustainability, Utilities, ESG or HSE alone",
+      "missing EXIF as proof that a plant photograph or thermal image is a screenshot: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+      "a utility bill, invoice or payment confirmation alone; those prove a transaction until a baseline boundary and measured end-use structure independently support this row"
+    ]
+  },
+  "proposed_context_terms": [
+    "energy audit",
+    "energy review",
+    "energy baseline",
+    "baseline period",
+    "energy boundary",
+    "significant energy use",
+    "EnPI",
+    "energy performance indicator",
+    "end use",
+    "interval data",
+    "load profile",
+    "specific energy consumption",
+    "opportunity register",
+    "energy conservation measure",
+    "ECM",
+    "estimated savings",
+    "simple payback",
+    "combustion efficiency",
+    "specific power",
+    "leak survey",
+    "steam trap survey",
+    "lighting inventory",
+    "degree day",
+    "energy balance",
+    "Sankey",
+    "ASHRAE Level",
+    "ISO 50001"
+  ],
+  "work_types": [
+    "site or system energy audit report",
+    "energy review or EnMS baseline statement",
+    "interval or cumulative meter-data export used as baseline evidence",
+    "walkthrough, end-use or fixture inventory survey",
+    "combustion, boiler, chiller, compressed-air or motor efficiency test",
+    "lighting, HVAC, steam-trap or leak survey sheet",
+    "energy-balance or Sankey allocation workbook",
+    "opportunity or ECM register with savings and payback",
+    "implementation tracking sheet tied to a prior opportunity register",
+    "thermal or ultrasonic survey image set linked to a named system",
+    "audit kickoff, findings or closeout correspondence",
+    "bounded audit deliverable archive"
+  ],
+  "grouping_reasons": [
+    "one site across baseline, walkthrough, meter exports and opportunity registers for the same survey",
+    "one energy system across efficiency tests, leak surveys and the ECM rows that reference it",
+    "one baseline period across the meter exports and the report that consumes them",
+    "one opportunity register across implementation evidence that cites the same measure identifiers",
+    "duplicate and version families remain universal facts and never manufacture site, system or period facts by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the manufacturing schema declares no canonical fields. The recommendation held as prose is site → energy_system → reporting_period → record_type. That is deliberately unlike the schema default's product → batch_lot → record_type and site → asset → record_type branches: an energy survey of a compressed-air system has no product and no lot, and filing it under a single compressor asset would split the distribution and end-use evidence that make the baseline intelligible. Period is leaf-adjacent, not first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Parent context still follows \"a parent dimension should provide the context required to understand the child\" — an ECM row is meaningless without the system and baseline it was sized against. The user may reverse, remove or flatten after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "pptx",
+      "jpg",
+      "png",
+      "eml",
+      "ics",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Plant 2 - ASHRAE Level II energy audit - 2026-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled site and energy-boundary sections",
+        "baseline-year consumption tables by end use",
+        "opportunity list with estimated savings and simple payback"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "site (schema proposal)",
+        "energy_system (proposed where labelled)",
+        "reporting_period (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that every recommended measure was implemented",
+        "a statutory emissions compliance outcome",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Compressed air system - baseline and ECM register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a labelled System sheet naming Plant 2 compressed-air boundary",
+        "baseline-period kWh and specific-power columns",
+        "ECM rows with measure id, estimated savings, cost and payback"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "energy_system (proposed)",
+        "reporting_period (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that payback figures are finance facts",
+        "an asset folder for every compressor listed",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Plant 2 - 15min interval kWh - Meter M-17 - 2025.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for timestamp, meter id and kWh",
+        "filename and header name Meter M-17 on Plant 2",
+        "no invoice total, no account-holder payment block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (schema proposal)",
+        "energy_system (proposed, possible)",
+        "reporting_period (proposed, possible from the year span)"
+      ],
+      "must_not_conclude": [
+        "this row from meter columns alone without site or system context",
+        "a supplier billing fact from interval data",
+        "a folder path"
+      ],
+      "also_schema": "resource_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Lighting inventory - Warehouse A - survey 2026-02.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows for fixture type, wattage, count, hours of use and estimated annual kWh",
+        "labelled survey area Warehouse A",
+        "recommended replacement column feeding an ECM list"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "energy_system (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that fixtures were replaced",
+        "a construction snag list from the word survey",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Boiler B-3 combustion efficiency test 2026-03-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled boiler identity and fuel type",
+        "measured O2, stack temperature, input and efficiency result",
+        "test date and technician block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "energy_system (proposed)",
+        "asset (schema proposal, where the boiler is also the maintained item)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a maintenance work-order completion from a test sheet alone",
+        "product or lot from a boiler identity",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Steam trap survey - Plant 2 - Route 4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "trap id, location, ultrasonic or temperature reading, pass/fail and recommended action columns",
+        "route and plant header",
+        "summary of failed traps feeding leak-loss estimates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "energy_system (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that every failed trap was repaired",
+        "an HSE incident from a fail word",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Plant 2 energy balance Sankey - baseline 2025.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "site total energy allocated across labelled end uses",
+        "baseline-year header",
+        "units reconciled to the same total"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "reporting_period (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a product genealogy from end-use allocation",
+        "statutory GHG verification from a Sankey alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "2026 GHG inventory - Scope 1 and 2 - Plant 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "activity-data rows for fuel and purchased electricity with emission factors",
+        "a labelled reporting year and organisational-boundary note",
+        "a verification tab naming a verification body and an opinion date",
+        "a consumption-and-savings tab using the same meter readings"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "reporting_period (proposed)",
+        "energy_system (proposed, only from the savings/end-use structure)"
+      ],
+      "must_not_conclude": [
+        "this row from the verification opinion alone; that frame belongs to environmental-compliance",
+        "that the verification opinion is unqualified",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing.environmental-compliance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Plant 2 energy audit findings - compressed air.eml",
+      "source_type": "email",
+      "observations": [
+        "subject names Plant 2 energy audit and compressed air",
+        "body summarises leak-loss estimates and next steps",
+        "attachment names the ECM register workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (schema proposal)",
+        "energy_system (proposed)"
+      ],
+      "must_not_conclude": [
+        "implementation approval from a findings email",
+        "attendee or author names as destination dimensions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FLIR_8841_steam_header.jpg",
+      "source_type": "image",
+      "observations": [
+        "thermal image of a steam header with a hot spot",
+        "camera make/model and capture time in EXIF",
+        "no visible system label, trap id or site marker in frame"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates"
+      ],
+      "must_not_conclude": [
+        "energy_system or site from visual appearance alone",
+        "that missing GPS means screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Plant 2 energy audit deliverables - Mar 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists audit report, baseline workbook, lighting survey, thermal images and ECM register sharing Plant 2",
+        "mixed PDF, XLSX and JPG members",
+        "archive itself has no labelled slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (schema proposal, possible from manifest)"
+      ],
+      "must_not_conclude": [
+        "facts from unread members",
+        "that every member is an implemented measure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Electricity bill - Plant 2 - Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "utility letterhead, account number, billing period, meter reading, charges and amount due",
+        "payment instructions and tax block",
+        "no energy boundary, no end-use allocation, no ECM or savings table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row from kWh and a plant name on a bill",
+        "energy_system or baseline from a billing period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "WO-9102 Boiler B-3 burner cleaning.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled work-order and equipment fields",
+        "task description burner cleaning and returned-to-service status",
+        "labour and parts used; no baseline kWh, no efficiency result, no ECM savings"
+      ],
+      "facts_legal": [
+        "file_type",
+        "asset (schema proposal)",
+        "site (schema proposal)"
+      ],
+      "must_not_conclude": [
+        "this row from a boiler identity and a maintenance task",
+        "energy_system from a work-order number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ISO 50001-2018 Energy management systems - downloaded.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "published standard text and clause numbering",
+        "no site name, no measured baseline, no opportunity register",
+        "filename carries ISO 50001 and Energy"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row from a standard designation or the word Energy in the title",
+        "that the holder operates an EnMS",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Commissioning report - AHU-4 performance test.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "design-versus-actual airflow and power at handover",
+        "witness and acceptance signature blocks",
+        "no multi-period baseline, no site-wide end-use allocation, no ECM payback register"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row from a one-time performance test at handover",
+        "energy_system baseline from commissioning readings alone",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "LED retrofit proposal - Acme Lighting.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "vendor brochure with catalogue wattages and claimed savings percentages",
+        "prepared-for and prepared-by sales blocks",
+        "no measured site baseline, no fixture inventory of the holder's plant, no labelled boundary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this row from claimed savings in a sales brochure",
+        "site or energy_system from a prepared-for organisation name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.environmental-compliance",
+      "signal": "SAME FIXTURE BOTH SIDES: `2026 GHG inventory - Scope 1 and 2 - Plant 2.xlsx` — this row owns consumption profiling, end-use allocation, efficiency measures, payback and savings against a measured baseline; the neighbour owns the statutory or scheme reporting frame — registration or permit reference, organisational boundary for the scheme, reporting period and independent verification opinion; discriminated by whether the activating structure is the savings/ECM/baseline-efficiency apparatus or the verification/scheme apparatus. When both structures are present on disjoint tabs they coexist rather than compete, matching that row's own edge and NJ-MEC-3.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: `Boiler B-3 combustion efficiency test 2026-03-12.pdf` beside `WO-9102 Boiler B-3 burner cleaning.xml` — this row owns the measured efficiency or intensity result against a surveyed energy system and baseline; the neighbour owns the asset work order with failure or task code, work performed, parts or labour and returned-to-service status; discriminated by efficiency/baseline/ECM structure versus work-order execution structure. A boiler identity alone activates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.utility-metering-billing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Plant 2 - 15min interval kWh - Meter M-17 - 2025.csv` — this row owns the operator-side use of meter quantities as baseline or end-use evidence inside an energy boundary and survey; the neighbour owns the supplier-side metering and billing operations that produce settlement quantities for an account; discriminated by survey/baseline/ECM context versus account/settlement/billing context. Interval columns alone discriminate neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.subscriptions-utilities",
+      "signal": "SAME FIXTURE BOTH SIDES: `Electricity bill - Plant 2 - Feb 2026.pdf` — this row does not activate on a bill; the finance row owns the account, billing period, charges and amount due as a recurring utility record; discriminated by presence of a payment/charges block without an energy boundary or ECM register (finance/residual) versus boundary-plus-baseline-plus-opportunity structure (this row). A plant name and a kWh total on a bill are never enough here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "SAME FIXTURE BOTH SIDES: `Commissioning report - AHU-4 performance test.pdf` — this row owns a multi-period baseline and opportunity analysis for an operating energy system; the neighbour owns design-versus-actual performance at handover with witness and acceptance; discriminated by baseline-period end-use or ECM structure versus handover acceptance structure. One-time commissioning readings are not an energy audit.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: an ISO 50001 surveillance report covering document control, competence and energy-review clauses under one numbering — this row owns the energy-review findings that cite a measured baseline, significant energy uses or an opportunity register; the neighbour owns the organisational-control audit as a whole, including inseparable integrated-system findings; discriminated by whether the activating evidence is the measured energy apparatus or the management-system clause apparatus. Abstain on the report as a whole when the two cannot be separated.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-survey",
+      "signal": "SAME FIXTURE BOTH SIDES: `Lighting inventory - Warehouse A - survey 2026-02.xlsx` — this row owns an end-use energy inventory with wattage, hours and estimated kWh feeding an ECM; the neighbour owns a property or works survey under a professional instruction about the building or site condition; discriminated by energy-quantity and savings structure versus property/works instruction structure. The word survey alone activates neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "engineering",
+      "signal": "SAME FIXTURE BOTH SIDES: an ECM that includes a scrubber, heat-recovery or control-sequence design attachment — this row owns the measured baseline and the savings/payback justification; engineering owns the design revision, calculation or P&ID that would implement the measure. Disjoint evidence; neither copies its anchor onto the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Compressed air system - baseline and ECM register.xlsx` — this row owns the measured baseline and opportunity sizing; business_operations may own the programme tracker, owner and due-date workflow that implements the same measure ids when those management slots are present on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: a workbook that pastes utility-bill line items into a baseline sheet — finance owns the bill's charges and account facts from the invoice block; this row owns the end-use allocation and savings analysis built from the quantities. \"One file may hold facts from more than one domain without losing information.\" Quantities are not copied onto a sparse invoice merely because the files group.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Plant 2 - 15min interval kWh - Meter M-17 - 2025.csv` — when the same export carries both settlement identity for utility operations and labelled baseline/end-use context for a site energy survey, each schema activates from its own slots on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "SAME FIXTURE BOTH SIDES: `FLIR_8841_steam_header.jpg` — Photos owns capture-time and camera facts; this row activates only when accompanying survey text or an exact system reference in the packet ties the image to an energy survey. Image bytes alone stay with Photos or One-Off Images.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone efficiency certificate, one-off test sheet or survey PDF with durable purpose but insufficient site, energy-system or baseline evidence remains \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A utility bill, ESCO invoice or payment confirmation proves a transaction rather than a surveyed baseline; 00's residual for \"isolated invoices, delivery confirmations, booking records\" is the correct home.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "A downloaded standard, vendor brochure or generic efficiency article with no site baseline is reading material, not a survey record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A kWh spreadsheet or GHG workbook whose scheme-versus-savings role remains ambiguous is a file \"whose meaning is partly understood but whose final location requires a future decision\". Abstain rather than guess between this row and environmental-compliance.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An encrypted audit pack or unreadable meter-logger binary is represented without inferring an energy system from its filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A thermal or plant photograph with no survey label, system marker or accompanying sheet carries no energy-system evidence of its own.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Load profiles, specific energy consumption, leak losses and opportunity registers can disclose process intensity, operating schedules and commercially valuable savings pathways. Utility account numbers and meter identifiers are account-adjacent. Named technicians and auditors remain search and privacy observations, never destination dimensions — \"It should avoid using authorship or creator identity as a destination dimension.\" This row assigns no handling class; P7 owns that vocabulary and privacy policy must run before any model or connector.",
+  "open_question": "NEEDS-JOSEPH NJ-MEA-1 (joint with NJ-MEC-3): is the discriminator between this row and manufacturing.environmental-compliance the statutory-scheme frame versus the efficiency/baseline frame argued on both sides, or should carbon/GHG reporting be pulled to its own row (not recommended here — that would be a topic word)? NJ-MEA-2: is `energy_system` distinct from manufacturing `asset`, or should R1c fold system boundaries into asset with a role qualifier? NJ-MEA-3: should `reporting_period` be one global period key shared with environmental-compliance, or does a baseline-year need a differently named key? NJ-MEA-4: inherits NJ-MFG-1 on `record_type` reuse. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}
