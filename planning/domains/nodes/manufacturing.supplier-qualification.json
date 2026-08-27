@@ -10,7 +10,15 @@
   "design_cite": "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.",
   "refuse_node": false,
   "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "leg_1_detection_signals": "DIFFERENT, and different by an axis the schema default does not have. The manufacturing schema's twelve deterministic signals are all single-party: a batch record, a genealogy table, an inspection table, a nonconformance structure, a CAPA structure, a calibration certificate, a work order, an asset register, a line log, an HSE structure, a lot-named email, a lot-named archive. Every one of them is evidence of the holder's own transformation or control cycle on the holder's own product, lot, asset or site. This row's discriminators are two-party structures the default never names: a disposition block directed at a SECOND party (a customer-disposition slot that only exists because someone else is being granted permission); an auditee slot whose occupant is an external organisation; a submitting-organisation slot and an accepting-organisation slot that hold DIFFERENT companies on the same page; and an approved-supplier register whose rows pair a counterparty with a scope of supply and a standing status. The schema row itself concedes this gap: its own needs_llm list contains \"a supplier certificate that may be procurement evidence, incoming-quality evidence, or both depending on whether the holder accepted it against a received lot\" — the default cannot resolve the supplier case and defers it. This row resolves it on the two-party structure rather than on the word supplier, which its never_alone list forbids.",
+    "leg_2_dimension_order": "DIFFERENT. The manufacturing schema's researched default is branch-shaped: product -> batch_lot -> record_type for production and quality records, site -> asset -> record_type for maintenance and calibration, quality_event -> record_type for NCR/CAPA. This row recommends supplier -> approval scope -> record type, and the parent level is a key the schema does not propose at all. The reason is evidential, not aesthetic: these files exist BEFORE and ABOVE any particular production run and usually carry no batch or lot of the holder's own making, so a lot-led branch would strand a standing management-system certificate, an approved-supplier register and a self-assessment questionnaire in a level none of them can fill. The parent is the supplier because \"a parent dimension should provide the context required to understand the child\": a warrant, an audit finding and a corrective-action request are unintelligible without knowing whose approval they concern. Approval status is deliberately NOT recommended as a level even though it is the most salient thing on every file, because a status-led branch would move a file when nothing about the file changed.",
+    "leg_3_privacy": "DIFFERENT IN KIND, not in degree. The schema's default sensitivity concerns the holder's own commercial exposure — recipes, tolerances, yields, failures, plant layouts — plus workers named in incident and competence records. Every file this row holds is instead a judgement about a SECOND organisation, held under a confidentiality obligation owed to that organisation: an audit finding, a capability result, a capacity or financial-health answer, a disqualification record. The exposure is asymmetric and contractual in a way no batch record is, and a leak damages a third party who never chose this holder's filing system. Social-compliance and site-audit material additionally names individual workers at another company. Marked inference: 00 supplies the binding rule that privacy runs before any model or connector receives content; it does not name supplier audit files.",
+    "charge_answered": "The strongest case against this row is that supplier qualification is an ORGANISATION NAME row — never-alone evidence, the exact failure the brief forbids — because its parent dimension is a company and companies are what the roster refuses to file by. That case is answered in the memo: the anchor is not the supplier's name but the pairing of a counterparty held in the SUPPLIER role with an approval scope, carried by an assessment or disposition structure, and the row's never_alone list refuses a supplier name, a supplier code, a supplier email domain and a Suppliers folder outright. The second charge — that this is a duplicate of business_operations.vendor-management, which also files by supplier — is answered by the mutex on Vendor-Scorecard_Vertex_2026-Q2.xlsx and is NOT fully settled: it is escalated as NJ-SQ-3. The third charge — that these are document types (audit, certificate, warrant, questionnaire) rather than a situation — is answered by the row refusing to split on them: a warrant, an audit report and a certificate all file identically under one supplier and one scope, which a document-type node could not do."
+  },
   "fields": [],
+  "fields_note": "Empty by contract. PR-6 leaves the manufacturing schema a placeholder with fields: [], and a template may never copy its schema's list. Subject to R1c adjudicating the schema row's proposals, the legal set on a file this row recognizes is the manufacturing schema's proposed product and record_type, plus this row's proposed supplier, plus the universals (file_type, creation_date, language, duplicate_family, version_family, sensitivity_status). The schema's batch_lot, asset and quality_event proposals are explicitly NOT expected on this row's files: their absence is part of what discriminates it.",
   "proposed_fields": [
     {
       "key": "supplier",
@@ -24,6 +32,7 @@
       "adjudicate": "R1c"
     }
   ],
+  "proposed_fields_note": "One key only, and the restraint is deliberate. Three further keys tempt this material and none is proposed. (1) An approval SCOPE key — the part number or named process the approval covers. It is not minted because the manufacturing schema already proposes `product` for a labelled part identity, and a process-scope value would be a second spelling of the same role; where the scope is a process rather than a part, R1c should widen `product` rather than let this row mint a synonym. (2) An approval STATUS key. It is the most useful fact on every file here and the most dangerous: it changes without the file changing, so a folder level named for it would move files that nobody edited, and a stale extracted status is worse than no status. Recorded as NJ-SQ-2 rather than minted. (3) An audit or submission event identifier (SCAR number, PSW number, audit reference). It is a record identifier: a folder level named for it yields one-file directories and scatters a supplier's evidence trail. Its job is retrieval and the group edge, not destination. The `record_type` reuse question is inherited from the schema row's NJ-MFG-1 and is not re-proposed here.",
   "recognition": {
     "deterministic": [
       "an approval-warrant structure with a labelled supplier or supplier-code slot, a part number and engineering change level, a submission reason and level, a declaration that samples were made from production tooling at production rate, and a customer disposition slot carrying approved, interim or rejected; the disposition box directed at a second party is the signal, not the word approval",
@@ -60,6 +69,29 @@
       "missing EXIF as proof that a supplier-visit image is a screenshot rather than a field photograph"
     ]
   },
+  "proposed_context_terms": [
+    "approved supplier list",
+    "approved vendor list",
+    "supplier code",
+    "auditee",
+    "audit scope",
+    "objective evidence",
+    "finding severity",
+    "part submission warrant",
+    "submission level",
+    "reason for submission",
+    "customer disposition",
+    "interim approval",
+    "production tooling at production rate",
+    "first article",
+    "characteristic accountability",
+    "requalification due",
+    "scope of certification",
+    "flow down",
+    "sub-tier",
+    "supplier corrective action request"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only and does not list these. They are candidates for confirming a two-party assessment structure around an already-labelled supplier slot, never for firing on their own — several of them (audit scope, objective evidence, finding severity) occur verbatim in the holder's own internal audit of its own plant, which is manufacturing.quality-management-system's file and not this row's.",
   "work_types": [
     "supplier self-assessment or pre-qualification questionnaire",
     "on-site or remote supplier audit report and findings log",
@@ -76,6 +108,7 @@
     "supplier quality performance review filed as approval evidence",
     "supplier process-change notification received against an approved scope"
   ],
+  "work_types_note": "Values of the manufacturing schema's proposed record_type role, not nodes. No child node is requested for any of them. `audit report`, `certificate` and `questionnaire` in particular are document types and a node built on any one of them would be the 574's failure repeated — the charge this row had to answer, and the reason a warrant, an audit and a certificate all file identically here.",
   "grouping_reasons": [
     "one supplier across questionnaire, audit, findings, corrective action, certificates and requalification evidence",
     "one approval scope (a part number with a revision, or a named process) across submission, study, first-article and warrant members",
@@ -432,7 +465,7 @@
     },
     {
       "domain": "manufacturing.inspection-record",
-      "signal": "Direction one: inspection-record owns measurement of a received or produced quantity — an incoming-inspection result against a delivered lot, with a lot identifier and a disposition of that quantity. Direction two: this row owns measurement submitted to establish or maintain a standing approval, which has no lot of the holder's own making. Same fixture bytes: FAIR_AS9102_Form-3_BPA-210.pdf is this row because its accepting-organisation slot and characteristic accountability make it a submission; Incoming-Inspection_BPA-210_receipt-DN-88214.xlsx is inspection-record because its subject is one received quantity. A run of incoming-inspection results cited as requalification evidence is held by both on disjoint evidence and neither copies the other's anchor.",
+      "signal": "Direction one: inspection-record owns measurement of a received or produced quantity — an incoming-inspection result against a delivered lot, with a lot identifier and a disposition of that quantity. Direction two: this row owns measurement submitted to establish or maintain a standing approval, which has no lot of the holder's own making. Same fixture bytes: FAIR_AS9102_Form-3_BPA-210.pdf is this row because its accepting-organisation slot and characteristic accountability make it a submission; Incoming-Inspection_BPA-210_receipt-DN-88214.xlsx is inspection-record because its subject is one received quantity. A run of incoming-inspection results cited as requalification evidence is held by both on disjoint evidence and neither copies the other's anchor. That row named the harder shared fixture reciprocally — a supplier-issued material test report or certificate of analysis, where its composition and property tables activate inspection-record and its issuer identity plus approval-scope context activates this row; neither may write the other's fact, because a conforming certificate does not make a supplier approved and an approved supplier does not make an unread certificate an accepted inspection.",
       "provenance": "inference"
     },
     {
@@ -461,8 +494,8 @@
       "provenance": "inference"
     },
     {
-      "domain": "government.public-procurement",
-      "signal": "Direction one: public-procurement owns a regulated public competition — tender notices, statutory evaluation records, award publication and challenge procedures, where the anchor is the procedure and its legal frame. Direction two: this row owns a private buyer's technical approval, which is not a procedure of public law and continues between competitions. Same fixture bytes: a supplier pre-qualification questionnaire returned under a public tender is public-procurement's when its questions and retention are set by the tender procedure, and is this row's when the same supplier's answers are filed as the holder's own standing approval evidence.",
+      "domain": "engineering.material-specification",
+      "signal": "Reciprocal to the collision that row already landed against this one, on the fixture it named. Direction one: material-specification owns the normative definition — what the material or process IS, governing any supplier who makes it. Direction two: this row owns evidence that one named organisation is approved and remains approved to supply it. Same fixture bytes: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — its declaring-organisation block and signatory make it standing relationship evidence here, while its substance table is a material-content statement there; both hold on disjoint evidence rather than fighting, which is what that row also concluded. A supplier-issued process-approval scope letter goes the other way: it is this row's when its object is who may run the process, and material-specification's when its object is how the process must be run.",
       "provenance": "inference"
     }
   ],
@@ -483,6 +516,7 @@
       "provenance": "inference"
     }
   ],
+  "also_holds_with_note": "Schema-level only, per CONNECTION §5: this row is a template and may not put a schema in a template slot or a template in this slot. The three entries are the manufacturing schema's own coactivation partners as they apply to this material. `photos` is deliberately NOT listed: the supplier-portal screenshot fixture is a per-file also_schema case, not a schema coactivation this row may author. The intended template-level coactivations — with business_operations.vendor-management on a mixed scorecard, and with engineering.material-specification on a supplier-issued declaration — are recorded in the memo for R1c, because CONNECTION does not let a template write them here.",
   "falls_through_to": [
     {
       "residual_template": "Independent Records",
@@ -511,6 +545,7 @@
     }
   ],
   "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most obviously wants is the two-party role itself — the ISSUING party against the RECEIVING party, which sit in labelled slots on the same page of a warrant, a first-article report and a corrective-action request, and which is the very thing that discriminates this row from its schema default. It is not written as a role split because there is no canonical key for either side: `client` and `our_firm` are the canonical engagement pair and they point the other way (here the holder is the buyer, not the seller), and minting a role-key pair to solve one template's problem is how thousands of private field names were produced. The distinction is carried instead by the recognition structures and by must_not_conclude on the warrant, first-article and SCAR fixtures, and escalated as NJ-SQ-1.",
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Audit findings, capability results, capacity and financial-health answers, price-linked qualification terms and disqualification records are commercially damaging to a second party as well as to the holder, and the holder is usually contractually restricted in how it may share them. Social-compliance and site-audit material can name individual workers and describe working conditions. The row assigns no handling class; person names remain search and privacy observations rather than destination dimensions, and privacy policy must run before any model or connector sees an audit body.",
   "open_question": "NEEDS-JOSEPH NJ-SQ-1: is `supplier` the right key, or should R1c mint a canonical `counterparty` with a role qualifier so that the seller side of a two-party file reuses one key across supplier qualification, subcontracting and vendor management rather than one key per industry? NJ-SQ-2: approval status is the most useful fact on every file here and the most dangerous dimension, because it changes without the file changing; decide whether a status-like fact may exist as a search-only, non-destination fact or must not be extracted at all. NJ-SQ-3: this row and business_operations.vendor-management organise the same counterparty on the same folder level; decide whether they remain two templates with a mutex, or one template with a function dimension, before either grows fields. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."

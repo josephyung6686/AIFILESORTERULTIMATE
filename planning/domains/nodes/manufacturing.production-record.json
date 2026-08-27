@@ -52,7 +52,7 @@
       "a foreign-language or heavily abbreviated route card where the operation vocabulary is present but unrecognised"
     ],
     "never_alone": [
-      "a bare order- or lot-shaped token such as `4471` or `L240817-03`. 00 forbids a bare 4-digit number as proof, and a job number is the same shape as an invoice, ticket, purchase-order or support-case number - this is exactly what a file named `4471.pdf` in a folder called Jobs would trip",
+      "a bare order- or lot-shaped token such as `4471` or `L240817-03`. INFERENCE, not a design citation: the schema anchor already forbids `a serial number, asset tag, work-order number, deviation number or other identifier-shaped token outside a labelled role slot`, and a job number is the same shape as an invoice, ticket, purchase-order or support-case number - this is exactly what a file named `4471.pdf` in a folder called Jobs would trip",
       "the words `Traveller`, `Route Card`, `Router`, `Batch Record` or `Job Packet` in a filename or parent folder. These are document-type words and this row is not named after them; `Router` additionally names a network device and a woodworking tool, so `Router setup.pdf` is a plausible false positive from three unrelated worlds",
       "a part or product number alone. The same token appears on an engineering drawing, a purchase order, an inspection report and a packing list",
       "a printed process-parameter table alone with no populated actual cells and no instance identifier - that is `manufacturing.work-instruction`, and it is the single most convincing false positive in this domain",
@@ -62,6 +62,25 @@
       "a date sequence alone. A serial dated operational record with shift and downtime columns is equally a construction site diary until an order, batch or line reference appears"
     ]
   },
+  "proposed_context_terms": [
+    "route card",
+    "job packet",
+    "operation number",
+    "work centre",
+    "quantity issued",
+    "quantity good",
+    "quantity scrapped",
+    "kitting slip",
+    "material issue slip",
+    "device history record",
+    "build record",
+    "released to production",
+    "order closed",
+    "as run",
+    "actual value",
+    "signed off",
+    "reprocess"
+  ],
   "work_types": [
     "traveller, route card, router or job packet",
     "batch production record or master batch record execution copy",
@@ -371,7 +390,7 @@
     },
     {
       "domain": "manufacturing.inspection-record",
-      "signal": "Shared fixture: `Final inspection AX410 lot L240817-03.csv` beside the in-process check entries inside `BPR_AX410_L240817-03.pdf`. Inspection owns a characteristic / specification / measured / disposition table standing on its own against a lot or unit, with instrument and inspector slots. This row owns check values recorded as operation rows inside the execution record. Reciprocally, an in-process check embedded in a traveller is not extracted into an inspection record, and a standalone inspection report sharing the lot token is not absorbed into the order packet without an order reference.",
+      "signal": "SAME FIXTURE BOTH SIDES, and the landed neighbour already authored it in the identical direction: `manufacturing.inspection-record` states that `BPR_AX410_L240817-03.pdf, the schema anchor's own traveller fixture, is production-record's on both sides even though it has a quality-release sign-off; Final inspection AX410 lot L240817-03.csv, also the anchor's, is this row's on both sides.` This row therefore owns the batch record including its embedded in-process check rows, where an inspection row records that a check HAPPENED; inspection-record owns the separately identified datasheet carrying limits, actuals and per-characteristic verdicts. The discriminating evidence is whether the measurement table stands on its own identity against a lot or unit, or is an operation row inside a routed sequence. Reciprocally, a traveller does not become an inspection record because an operation row says `inspect`, and a standalone inspection report sharing the lot token is not absorbed into the order packet without an order reference.",
       "provenance": "inference"
     },
     {
@@ -393,17 +412,7 @@
   "also_holds_with": [
     {
       "domain": "manufacturing.nonconformance-capa",
-      "signal": "One traveller page can carry both on disjoint slots: the routed operation rows and reconciliation are this row's evidence, while a labelled nonconformance identifier with a requirement-versus-observed condition, containment and disposition raised at that operation is the NCR row's evidence in the same bytes. Neither copies the other's anchor.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "logistics",
-      "signal": "A released-order packet may contain the execution record and shipment custody evidence together. Each schema activates from its own slots; the order or lot fact is never copied onto a sparse packing list merely because the files group.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "engineering",
-      "signal": "A traveller header that names a change effectivity, or a deviation note that requests a design change, carries manufacturing execution evidence and engineering definition evidence in one file. Actual quantities and signoffs support this row; from/to revisions and design rationale support engineering.",
+      "signal": "SAME FIXTURE BOTH SIDES: one traveller page carrying a deviation raised at operation 40. This row owns the routed operation rows and the reconciliation triple; the NCR row owns the labelled nonconformance identifier with its requirement-versus-observed condition, containment and disposition, in the same bytes on disjoint slots. Neither copies the other's anchor onto the other's members.",
       "provenance": "inference"
     }
   ],
@@ -437,5 +446,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "The execution record concentrates two different sensitivities in the same bytes: the executed process recipe - actual times, temperatures, feeds, tooling, yields and scrap rates - is commonly the trade secret, and the per-row operator initials, names and clock numbers make it the densest named-worker record in the manufacturing corpus. Yield and scrap figures are also commercially damaging in isolation. The row assigns no handling class; that is P7's. Operator and shift identity remain search and privacy observations and are never promoted to destination dimensions, and where an excerpt must leave the machine the header plus one operation row is preferred over the whole document.",
-  "open_question": "NJ-PROD-1: is the execution anchor a new `work_order` key, or should the schema anchor's proposed `batch_lot` be widened from 'material lot' to 'execution instance' so that discrete jobs and process batches share one key? A third option is that R1c mints a general `case`-shaped key and manufacturing, quality and maintenance all bind to it. NJ-PROD-2: the roster has no line-log or shift-log row, so `Line 2 shift log 2026-08-17.xlsx` currently has no template home - does it fall to the schema default, to Independent Records, or does R1c widen this row to cover line-primary execution records? This row deliberately excludes it rather than annexing coverage it did not argue. NJ-PROD-3: should serial numbers under an order be a dimension level below the order, or facts on members only? Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+  "open_question": "NJ-PROD-0 (edge shape): this row is a TEMPLATE, and CONNECTION §5 records `also_holds_with` as `schema ↔ schema only`. Two schema-level coactivations were therefore REMOVED from this row's `also_holds_with` during salvage and are recorded here for R1c to author on the `manufacturing` schema anchor instead: (a) manufacturing ↔ logistics - a released-order packet may hold the execution record and shipment custody evidence together, each activating from its own slots, with the order or lot fact never copied onto a sparse packing list; (b) manufacturing ↔ engineering - a traveller header naming a change effectivity, or a deviation note requesting a design change, carries execution evidence and definition evidence in one file. The schema anchor already asserts both pairs, so no coverage is lost. NJ-PROD-1: is the execution anchor a new `work_order` key, or should the schema anchor's proposed `batch_lot` be widened from 'material lot' to 'execution instance' so that discrete jobs and process batches share one key? A third option is that R1c mints a general `case`-shaped key and manufacturing, quality and maintenance all bind to it. NJ-PROD-2: the roster has no line-log or shift-log row, so `Line 2 shift log 2026-08-17.xlsx` currently has no template home - does it fall to the schema default, to Independent Records, or does R1c widen this row to cover line-primary execution records? This row deliberately excludes it rather than annexing coverage it did not argue. NJ-PROD-3: should serial numbers under an order be a dimension level below the order, or facts on members only? NJ-PROD-4 answers the landed `manufacturing.inspection-record` NJ-INSP-2, which asks whether a statistical process-control chart or capability study belongs to inspection, to this row `as line evidence`, or to `manufacturing.quality-management-system`. This row DECLINES it: an SPC chart's subject is one characteristic over time across many orders, it has no instance identifier, no routed operation sequence and no reconciliation triple, so it fails all three of this row's deterministic signals. This row agrees with the neighbour that it should fall to Review Later until R1c places it, and states so rather than annexing the coverage. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
 }

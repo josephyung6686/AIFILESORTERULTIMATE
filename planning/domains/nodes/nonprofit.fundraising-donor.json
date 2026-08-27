@@ -1,0 +1,504 @@
+{
+  "id": "nonprofit.fundraising-donor",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Fundraising and donor records",
+  "one_line": "The association's own record of ASKING for voluntary money and of WHO GAVE it: the appeal or campaign that made the ask, the gift record and its acknowledgement, the tax-relief declaration that prints the non-exchange on the face of the document, the pledge and its instalments, the fundraising event with its declared benefit split, and the prospect and donor dossiers held about living people who never asked to be filed. It is NOT activated by a charity name, a charity number, the word donation, or a payment with no invoice attached - this row's gate is that the non-exchange is PRINTED, never inferred from an absence. It does not hold conditional restricted grant money with a report-back obligation (nonprofit.grant-reporting), the giver's own copy of the same acknowledgement (finance), membership dues that buy rights (nonprofit.member-association), sponsorship sold for branded benefits (business_operations.partnerships-bd), or the association's own governance, budgets and regulator returns (business_operations). Declares no field rows under PR-6; activation unlocks recognition, a stricter-than-schema folder prohibition, universal facts and safety posture only.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "campaign",
+      "type": "string",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "PROPOSED WITH A PREFERENCE FOR NOT MINTING IT. The one structure that makes this row a node rather than a work_type value is the nested named-effort triple that fundraising software carries as its standard gift-coding hierarchy - a campaign (the bounded multi-period effort with a goal), an appeal (the specific solicitation that produced this gift), and a fund (the accounting destination). No canonical key names a bounded solicitation effort. `event` is wrong by role: a gala is an event, but the spring mail appeal that raised more than the gala is not, and coding gifts by event would lose every non-event ask. `project` is the closest canonical key and is destination-eligible, and this row's FIRST preference is that R1c simply reuse it - a campaign is a bounded named effort with a goal, a period and constituent materials, which is `project`'s role exactly. What `project` cannot do is carry two nested named levels at once, which is why the request is raised at all. `purpose` is wrong: purpose answers what a file was for, and every file in this row shares one purpose (raising money) while differing entirely in campaign. `fiscal_period` is the nonprofit schema's key for the appeal's PERIOD and is not a substitute for its NAME.",
+      "preferred_resolution": "Adjudicate ONCE for the roster, in this order: (a) reuse canonical `project` for the campaign level and treat the appeal and the fund as VALUES read from the coding triple rather than as levels - the cheapest answer and this row's preference; (b) adopt `campaign` once, roster-wide, so that marketing, advocacy and fundraising rows share one key; (c) explicitly DO NOT mint `appeal`, `fund`, `fund_code`, `source_code` or `solicitation` - those are the three-synonym mint this proposal exists to prevent, and a template author who finds no key here will produce all three.",
+      "why": "Named so that the row's single distinctive structure has one adjudicated home instead of three invented ones."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION - the nonprofit schema's whole non-exchange gate applies first and is not restated here, and these are schema-activation signals, not licences to write nonprofit facts, because the schema declares no field rows. This row adds ONE gate of its own and it is the answer to the charge against the row: the non-exchange must be PRINTED ON THE ARTEFACT, never inferred from what is missing. A payment with no invoice beside it is not a gift; a payment whose own page states that nothing was given in return is. Every signal below names a present, labelled structure.",
+      "A GIFT ACKNOWLEDGEMENT structure: a recipient association's letter or statement carrying an amount, a gift date, a named or explicitly anonymised giver, and a PRINTED non-exchange or benefit-valuation sentence - a statement that no goods or services were provided in exchange, or a good-faith estimate of the value of what was. The sentence is a required element of a contemporaneous written acknowledgement in real practice and it is on the page; it is the signal, and gratitude prose is not.",
+      "A TAX-RELIEF DECLARATION structure: a form naming the recipient charity, the giver's full name and home address, a printed taxpayer statement in the first person, a coverage clause stating which past, present or future gifts the declaration applies to, and a signature and date. Distinct from an acknowledgement because it is signed by the GIVER and held by the RECIPIENT, and distinct from a receipt because it covers an open-ended set of gifts rather than one payment - so it must not yield a tax_year fact.",
+      "A QUID-PRO-QUO SPLIT: one payment line printed as three parts - the amount paid, the fair market value of the benefits received, and the deductible or gift portion. This is the only place in the roster where a document declares on its own face that it is PARTLY an exchange, and it is what makes a fundraising event ticket, a table sponsorship or an auction lot this row's rather than a retail receipt.",
+      "A DONOR or CONSTITUENT REGISTER column set: a constituent or supporter identifier plus gift date plus amount plus the campaign, appeal and fund coding triple, held with any of acknowledgement status, soft credit, matching gift, recognition or giving level, pledge balance, or a first and last gift date pair. This is a structure and it is this row's signature - no other roster row's register carries an acknowledgement-status or soft-credit column. Read through 00's spreadsheet path: “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells”. A fund partition with no gift or appeal coding is the schema's restricted-fund signal or business_operations.budget-forecast, not this row.",
+      "A PLEDGE structure: a commitment to give carrying an instalment or payment schedule, a balance outstanding or fulfilment status, and NO delivery obligation on the recipient. The absent deliverable is not the signal - the present schedule-plus-balance-with-no-consideration is; where a recognition, naming or benefit clause appears the file has acquired an exchange element and legal and business_operations claims must be considered alongside.",
+      "A PROSPECT-RESEARCH or WEALTH-SCREENING structure: a per-person dossier compiled from third-party and public sources carrying capacity, rating, propensity or affinity slots, real-property or public-giving history, board and family affiliations, and an internal assignment to a solicitor or officer. The subject is frequently not yet a party to anything and has not seen the document. THIS IS DETECTED IN ORDER TO PROTECT IT, never in order to move it.",
+      "An APPEAL PACKAGE structure: an ask document paired with a GIFT INSTRUMENT - a reply device carrying a gift-amount grid, a pledge or response card, a donate address or link carrying a source code, a standing-order or direct-debit mandate - together with a send, segment or mail-house count. The gift instrument is the discriminating half. An ask with no gift instrument is advocacy or marketing.",
+      "An ARCHIVE MANIFEST whose member paths repeatedly encode one appeal, campaign or source code across a letter, a reply device, artwork and a count sheet - inspected without unpacking, because “the normal scan should never extract archive contents to the filesystem”, using what 00 says an archive yields: “The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names”.",
+      "A LABELLED-SLOT reading of any of the above from 00's direct-fact path, “a labeled form field”: Appeal, Campaign, Fund, Constituent ID, Gift Date, Gift Amount, Soft Credit, Matching Gift, Acknowledgement Status, Gift Aid, Deductible Amount, Fair Market Value, Pledge Balance, Recognition Name. Position is weighted for the reason 00 gives - “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen” - and a table is read for the reason 00 gives: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their”.",
+      "An association-side email or calendar record whose structured sender, recipient, organizer, attendee, subject or attachment slots tie it to an ALREADY EVIDENCED gift, pledge, appeal or event above. A donation-platform notification, a fundraising newsletter or a giving-day calendar entry alone never fires."
+    ],
+    "needs_llm": [
+      "Deciding the SIDE on an acknowledgement, which is this row's defining unresolvable and is frequently unrecoverable from the bytes: the association keeps the acknowledgement it issued, and the giver keeps the identical page as their own tax substantiation. The letterhead and the charity number are on both copies and discriminate neither. Abstain unless a signature block, a covering email, a file's position in an outbound batch, or an accompanying register resolves the side.",
+      "Separating a GIFT from a restricted GRANT when a trust or foundation award letter carries a non-exchange sentence AND a report-back obligation in the same document. The reporting and expenditure-reconciliation obligation is what moves it to nonprofit.grant-reporting; the word grant does not, and neither does the funder being a foundation.",
+      "Separating a corporate SPONSORSHIP from a corporate GIFT, where the deck vocabulary, the logo placement and the tiering language are identical. A stated package of branded benefits at a stated value is an exchange and belongs to business_operations.partnerships-bd; an unconditional corporate gift with an acknowledgement is this row's. The model must be able to name the benefit, not merely fail to find one.",
+      "Recognising an unlabelled case for support, major-gift proposal, stewardship letter or impact report written to donors, whose function is expressed only in narrative and whose vocabulary is indistinguishable from a marketing deck's.",
+      "Deciding whether a list of named people is the association's OWN donor or supporter register or a purchased, rented, appended or scraped prospect list, which changes both the routing and the protection owed and is very often decided by a vendor footer rather than by the columns.",
+      "Distinguishing an operative appeal from a downloaded exemplar - another charity's appeal letter kept as a swipe file, a published annual report used as a benchmark, a fundraising-regulator code of practice, a sector benchmarking study. Topic will not separate them: “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Deciding whether a pledge carrying a naming, recognition or reporting clause has stopped being a gift and become an instrument, in which case legal co-activates and protects first.",
+      "Abstaining whenever the evidence cannot cite a printed non-exchange or benefit-valuation element: “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE ROW'S OWN STRIKE, and the one that answers the charge: the ABSENCE of an invoice, a deliverable, an order line or a consideration clause. This row does not fire on an absence. A payment record with nothing attached is a payment record, and it is finance's or Receipts and Confirmations'. The schema flags its own volunteer template as WEAK for exactly this reason, and this row refuses to acquire the same weakness by the back door.",
+      "A person's name beside a money amount. This is the most tempting pair on the node and it is worthless alone: the identical shape is a payroll line, an invoice, an expense reimbursement, a dues notice, a loan repayment and a settlement. It is also the most dangerous, because acting on it writes a living person's name and their giving into a filesystem.",
+      "A charity, foundation, appeal or fund NAME alone, and a registered-charity number alone. Inherited from the schema and struck again here because this row is where the temptation is strongest, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - one charity name appears as recipient, as funder, as sponsor, as employer, as venue, and as a cited authority.",
+      "A vocabulary or document-type word alone - donation, donor, gift, appeal, fundraiser, giving, supporter, patron, benefactor, legacy, campaign - and any of them beside an association name. A document-type word is not a labelled party and resolves nothing about which side holds the file.",
+      "A money amount plus a gratitude sentence. A thank-you letter with a figure and no declaration, no code and no register around it is a receipt shape and belongs in Receipts and Confirmations.",
+      "A donation-platform, payment-processor, crowdfunding or fundraising-CRM brand alone, including a database export's vendor header. The tool identifies who produced the bytes, not whose record it is nor which side holds it.",
+      "A campaign or source code alone. The same short alphanumeric shape is a marketing tracking parameter, a mail-merge batch identifier, a print job number, a promotion code and a filename stub; it needs the gift or appeal structure it should sit inside.",
+      "A FUND column alone. A fund partition without gift or appeal coding is the nonprofit schema's restricted-fund signal, and a period-partitioned column set with no fund axis is business_operations.budget-forecast.",
+      "An OCR'd charity name and amount from a photographed novelty cheque, a collection-tin poster, a giving-day social graphic or a fundraising-thermometer screenshot. The amount is real, the charity is real, and the file is a picture."
+    ]
+  },
+  "proposed_context_terms": [
+    "no goods or services were provided",
+    "fair market value",
+    "deductible portion",
+    "contemporaneous written acknowledgement",
+    "gift aid",
+    "declaration",
+    "appeal",
+    "appeal code",
+    "campaign",
+    "source code",
+    "constituent",
+    "supporter",
+    "soft credit",
+    "matching gift",
+    "payroll giving",
+    "pledge",
+    "pledge balance",
+    "instalment",
+    "standing order",
+    "direct debit mandate",
+    "reply device",
+    "case for support",
+    "major gift",
+    "gift range table",
+    "prospect research",
+    "wealth screening",
+    "giving capacity",
+    "cultivation",
+    "solicitation",
+    "stewardship",
+    "recognition level",
+    "donor wall",
+    "legacy",
+    "bequest",
+    "residuary",
+    "in memoriam",
+    "table sponsorship",
+    "auction lot",
+    "raffle",
+    "peer-to-peer",
+    "giving day",
+    "anonymous - do not publish"
+  ],
+  "work_types": [
+    "appeal or campaign record - the ask, its segments, its send counts and its result",
+    "individual gift record and its acknowledgement or receipt",
+    "tax-relief declaration and the declaration register that feeds a claim",
+    "pledge, instalment schedule and fulfilment record",
+    "case for support, major-gift proposal and gift-range table",
+    "legacy or bequest notification file held by the recipient association",
+    "fundraising event record - tickets, table sponsorship, auction lots, and the declared benefit split",
+    "prospect research, wealth screening and portfolio assignment dossier",
+    "donor or supporter register, its segmentation and its exports",
+    "stewardship, recognition and impact report written to donors",
+    "matching-gift, payroll-giving and in-memoriam gift record",
+    "peer-to-peer or crowdfunding page record held by the benefiting association"
+  ],
+  "grouping_reasons": [
+    "one APPEAL end to end: the letter, the reply device, the artwork, the send count, the gifts coded to it and the acknowledgements it generated. The members share almost no content and share one purpose, which is 00's own licence for the group - “The documents are content-incoherent but purpose-coherent.”",
+    "one FUNDRAISING EVENT: the invitation, the table and ticket records with their benefit split, the auction lot sheet, the sponsor acknowledgements and the result report. The same event's venue contract and catering invoice are business_operations' and finance's and do not join.",
+    "one PLEDGE across its instalments: the commitment, the schedule, the payments received against it and the balance record.",
+    "one DONOR RELATIONSHIP longitudinally: declaration, first gift, acknowledgements, stewardship letters, upgrade ask. This is a genuine grouping axis and simultaneously the row's most protected one, and the split between the two is absolute - THE GROUP MAY FORM; THE FOLDER LEVEL MAY NOT BE THE PERSON'S NAME.",
+    "one DECLARATION or CLAIM PERIOD: the signed declarations and the register that aggregates them, which is a group even though the aggregate submission itself is not this row's.",
+    "no group at all is a valid and common outcome here - a single acknowledgement letter, a single downloaded funder guidance PDF, a single event ticket. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply as written: two appeals' gifts do not merge, two associations' registers do not merge, and “The graph does not automatically copy those missing facts onto sparse files.” - an appeal code read from a coded acknowledgement is never copied onto a bare thank-you letter that happens to sit beside it in the same batch folder."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract - a dimension may only branch on a field the same schema declares and the nonprofit schema declares none under PR-6 (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). Held as PROSE, and it is deliberately NOT the schema's default paragraph, which is the second leg of this row's node test. The schema's default recommends ASSOCIATION then the NON-EXCHANGE COUNTERPARTY OR FUND then PERIOD then DOCUMENT FUNCTION. This row recommends the APPEAL OR CAMPAIGN - the named fundraising instance - then the PERIOD (the appeal, the giving year, the fiscal year), then the DOCUMENT FUNCTION, with the association level seeded ineligible for the schema's own reason: in a single-association corpus it is “use an author or organization merely as a collector” and it would “create meaningless one-child levels”. Two differences from the default are load-bearing. FIRST, the counterparty level the schema PERMITS is here FORBIDDEN: a grant or a restricted fund may legitimately be a folder level, but this row's counterparty is a named living person, and a donor, prospect, pledgor or legator may NEVER be a folder level however strong the longitudinal grouping axis is, because a path writes their identity and their giving into the filesystem where every later process reads it - against “The default posture must therefore be local-first and data-minimizing.” The schema forbids this for beneficiaries; this row extends the same prohibition to people who are neither vulnerable nor served, purely because the disclosure is of what they gave. SECOND, the appeal is a genuinely different first level from a fund: a fund is an accounting destination that outlives everything, an appeal is a bounded effort, and putting the fund first would scatter one appeal's letter, reply device and results across accounting buckets. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and this row's periods are content periods (an appeal, a giving year) and never capture dates. And whatever lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "contacts",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Gift Aid declaration - J Okonkwo - signed 2026-01-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled form naming the recipient charity at the head",
+        "labelled slots for the giver's title, full name, house number and postcode",
+        "a printed first-person taxpayer statement",
+        "a coverage clause stating which past, present and future gifts the declaration applies to",
+        "a signature and a date, signed by the giver and held by the recipient"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any nonprofit fact - the schema declares none",
+        "the giver's name or home address as a stored value that could reach a prompt or a path",
+        "a tax_year fact. The declaration covers an open-ended set of gifts and names no year; reading one off the signature date is the classic bare-date error",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acknowledgement - 2026 Annual Fund - APR26-DM - 500.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an association letterhead and a registered-charity number in the footer",
+        "a named individual in the salutation, an amount and a gift date",
+        "a printed sentence stating that no goods or services were provided in exchange for the gift",
+        "an appeal code and a fund name in the footer block",
+        "no indication anywhere of which party's filesystem this copy sits on"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "WHICH SIDE HOLDS IT. This is the row's sharpest fork and the letterhead does not resolve it: the association keeps this as an issued acknowledgement and it is this row's; the GIVER keeps the identical bytes as their own charitable-giving tax substantiation and it is finance's. Named as the shared fixture on both sides of the finance collision",
+        "a donor fact, a campaign fact or a tax_year fact - no key exists and the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "constituent_gift_export_FY26.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers carrying a constituent identifier, gift date, gift amount, and a campaign, appeal and fund triple",
+        "further columns for soft credit, matching gift, acknowledgement status and giving level",
+        "one row per gift with full names, postal addresses and email addresses",
+        "no institution name and no account number anywhere",
+        "a vendor header row identifying the database that produced the export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is finance - the absence of an institution-and-account header is the discriminating evidence, exactly as the schema's own fund-statement fixture states it",
+        "that the vendor header fires the row. The tool names who produced the bytes, not whose record it is - struck in never_alone",
+        "any named person as a stored fact, a group label, or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Gala 2026 - table sponsorship and ticket receipt.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an amount paid for a table of ten",
+        "a printed line giving the fair market value of the dinner and entertainment received",
+        "a printed deductible or gift portion arrived at by subtraction",
+        "a table number, a sponsor recognition level, and a list of named guests",
+        "an auction lot schedule attached as a second page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that it is a retail receipt. The printed three-part split - paid, value received, gift portion - is a declaration that the payment is PARTLY a non-exchange, and it is the only place in the roster where a document says so on its own face",
+        "that the same evening's venue contract, catering invoice or AV quote join this group. They are business_operations' and finance's and share only the event's name",
+        "the named guests as facts or levels",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Prospect profile - screening batch 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one named living person per page with labelled capacity, rating and propensity slots",
+        "real-property holdings, public political giving history and board affiliations compiled from third-party sources",
+        "family relationships and an assignment to a named solicitation officer",
+        "no gift, no declaration, no acknowledgement anywhere - the subject is not yet a party to anything",
+        "a research-vendor footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any content of the dossier as a stored fact, and specifically not the subject's name, holdings or affiliations as values that could reach a model prompt",
+        "that detection licenses movement. This file is detected in order to be PROTECTED - it is a dossier the subject has never seen and did not consent to, which is a different privacy problem from the schema's vulnerable beneficiary and is this row's third node-test leg",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Spring appeal APR26-DM package.zip",
+      "source_type": "archive",
+      "observations": [
+        "member paths repeatedly encoding one appeal code across a letter, a reply device, an outer envelope artwork and a segment count sheet",
+        "a reply-device member whose filename carries a gift-amount grid label",
+        "a mail-house count sheet member",
+        "inspected from the manifest without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any member's content - “the normal scan should never extract archive contents to the filesystem”",
+        "that the repeated code is a campaign fact. The key does not exist and is only proposed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Community Trust - award letter 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a grant-making trust's letterhead and an award amount",
+        "a labelled purpose clause restricting the money to one named activity",
+        "an instalment schedule conditional on reports",
+        "a clause naming an interim and a final report against agreed outputs",
+        "and, in the same document, a printed sentence that no goods or services were provided in exchange"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW OWNS IT. This is the collision fixture. The non-exchange sentence is present, this row's own gate is satisfied, and the row still loses: the restricted purpose clause, the conditional instalments and the report-back obligation make it nonprofit.grant-reporting's, because a conditional accountable transfer is a grant and an unconditional one is a gift. Named as the shared fixture on both sides",
+        "that the word grant, or the funder being a foundation, decides anything on its own",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "You have a new donation.eml",
+      "source_type": "email",
+      "observations": [
+        "a structured sender identifying a donation platform, not an association",
+        "a subject line naming a campaign page",
+        "body slots for a giver's name and email, an amount, and a gross, fee and net breakdown",
+        "a link to a platform dashboard",
+        "no declaration and no acknowledgement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a platform brand fires this row - struck in never_alone; the notification identifies the tool, not the record's owner or side",
+        "that the gross-fee-net breakdown is this row's evidence. That is a processor settlement line and it is finance-shaped; this row would fire only once the association's own gift record or acknowledgement exists",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Thank you.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one page, an association signature block, warm prose",
+        "no amount, no gift date, no appeal or fund code, no declaration sentence",
+        "sitting in a folder alongside a coded acknowledgement batch"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the neighbouring batch's appeal code, fund or gift amount. This is the row's HW 3.pdf - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that proximity to a fundraising batch is evidence of a gift",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_4417.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a novelty presentation cheque held by two people",
+        "OCR yields a charity name, an amount and the word donation",
+        "no labelled slot, no form structure, no register anywhere near it",
+        "capture properties present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that an OCR'd charity name plus an amount plus the word donation is a gift record. All three are struck in never_alone individually and the combination adds no labelled structure - it is a picture of a prop",
+        "a photos-schema fact such as capture_year or camera_information from this row, which declares none and is not the photos schema",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit.grant-reporting",
+      "signal": "SAME FIXTURE BOTH SIDES: `Community Trust - award letter 2026.pdf` - the trust's award letter that carries BOTH a printed no-goods-or-services sentence and a report-back obligation. This row owns the UNCONDITIONAL transfer - a gift whose only obligation on the recipient is to acknowledge it, evidenced by the acknowledgement, the declaration, the appeal coding or the benefit split. The neighbour owns the CONDITIONAL, ACCOUNTABLE transfer - money carrying a restricted purpose clause, milestone or outcome reporting against agreed measures, and an expenditure statement reconciled to cost headings. Discriminated by the presence of a reporting-and-reconciliation obligation flowing back to the giver, never by the word grant, never by the funder being a foundation, and never by the size of the sum. The seam is real and moves: a major-gift pledge with an impact-reporting clause drifts toward the neighbour and a small unrestricted foundation grant drifts toward this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Acknowledgement - 2026 Annual Fund - APR26-DM - 500.pdf` - byte-identical on the giver's disk and the association's. This row owns the RECIPIENT ASSOCIATION's copy, evidenced by the issuing side: an outbound batch, an appeal and fund coding, a constituent identifier, or the register that generated it. finance owns the GIVER's copy, where the same page is the giver's own charitable-giving tax substantiation and joins their tax and expense records. Discriminated by side evidence outside the page - a covering email, batch position, or an accompanying register - because the letterhead, the charity number and the no-goods sentence are on BOTH copies and discriminate neither. Where side cannot be established the correct outcome is abstention: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Second fork, inherited from the schema: an association's bank statements and ledgers are finance's custodial records even when every line in them is a donation. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "SAME FIXTURE BOTH SIDES: a combined annual renewal form on which one person pays a subscription AND adds a voluntary gift with a tax-relief tick, on one page. This row owns the GIFT line - the amount that buys nothing, carrying the declaration or the acknowledgement. The neighbour owns the DUES line and the register it updates - the payment that confers membership rights, a class, a number, a vote and benefits. Discriminated by whether the payment confers rights: dues do, gifts do not. Both rows activate on this page, on disjoint lines, and neither promotes the other; the failure to avoid is treating the whole renewal batch as fundraising because a gift box exists on the form. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.partnerships-bd",
+      "signal": "SAME FIXTURE BOTH SIDES: a corporate sponsorship proposal deck with tiered packages - the neighbour already names this row from its side, and this is the reciprocal. This row owns the UNCONDITIONAL corporate gift, evidenced by an acknowledgement with a non-exchange or benefit-valuation statement and no stated benefit package. The neighbour owns the SOLD SPONSORSHIP - a stated package of branded benefits (logo placement, tickets, naming, hospitality) at a stated price, which is an exchange with a fee. Discriminated by a named, valued benefit package on the page; the model must be able to NAME the benefit, not merely fail to find one, because this row does not fire on absence. Note the neighbour's own signal frames a case for support as a pitch and a grant application as a proposal - agreed in that direction; the discriminator this row adds is the benefit package, not the charitable purpose. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "SAME FIXTURE BOTH SIDES: `constituent_gift_export_FY26.csv` read as a generic CRM export - one person per row, an identifier, dated money, a relationship history. This row owns the DONOR register, discriminated by columns no customer register has: acknowledgement status, soft credit, matching gift, the campaign-appeal-fund coding triple, recognition or giving level, pledge balance. The neighbour owns the CUSTOMER register, discriminated by orders, renewals, contract or subscription terms, entitlements and support history. The trap is that both are CRM exports from products that look identical and sometimes are the same product configured differently; the vendor header decides nothing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: a tax-relief repayment claim schedule listing each giver's name, address and gift date, prepared for submission to a revenue authority. This row owns the DECLARATION REGISTER - the signed declarations and the association's internal aggregation of them, which is a gift record. The neighbour owns the SUBMISSION - the moment the schedule becomes a return filed by a regulated entity to an authority, which is that landed row's whole relation, exactly as the nonprofit schema concedes for regulator returns generally. Discriminated by whether the artefact is addressed to the authority: a submission receipt, a filing reference or a claim period on an authority's form is the neighbour's. The roster's own one_line_hint gives 'tax-relief claims' to this row, which is why the seam is stated rather than assumed - raised as NJ-FD-2. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.political-campaign",
+      "signal": "SAME FIXTURE BOTH SIDES: a contributor listing - one named living person per row with a date and an amount. This row owns the CHARITABLE donor register, where the giving is private by default and a gift may be marked anonymous. The neighbour owns the POLITICAL contribution record, discriminated by structure the law forces onto it: a captured occupation and employer slot per contributor, a contribution limit or aggregate-to-date column, an itemisation cut, and a disclosure schedule prepared for publication. Discriminated by the occupation-and-employer pair and the disclosure schedule, never by the recipient organisation's cause. The privacy inversion is the point: this row's register is compiled to be kept private and the neighbour's is compiled to be published. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.religious-institution",
+      "signal": "SAME FIXTURE BOTH SIDES: an annual giving statement issued by a congregation, carrying a named household, dated amounts, a pledge or tithe commitment and a no-goods-or-services sentence. This row owns it as a GIFT record on the acknowledgement and declaration structure. The neighbour owns the congregational world proper - the rite register, the membership roll, the pastoral record - and owns this statement only where the giving is inseparable from the membership structure that generates it. Discriminated by whether the record's anchor is a campaign or appeal (this row) or a household's standing in the congregation (the neighbour). Where a congregation runs a named capital appeal, this row is the better home for that appeal's records and the neighbour keeps the roll. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: a call for applications with eligibility criteria, a scoring rubric and award letters - the neighbour already names this row from its side, and this is the reciprocal. That row owns the AUTHORITY-side administration of a public programme, discriminated by independently evidenced public-authority status for the awarding body. Neither row is a comfortable home for the PRIVATE GRANTMAKER's own side - a family foundation or corporate giving programme running the identical workflow - because this row is the RECIPIENT's fundraising record and nonprofit.grant-reporting is the grantee's. The neighbour's signal says such a corpus 'stays private-association material'; this row states plainly that it does not hold it, and raises the gap as NJ-FD-1 rather than absorbing coverage it cannot evidence. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Named first because this row's characteristic isolated file is a single acknowledgement, event ticket or platform confirmation with no register, code or declaration around it - the exact shape the schema's own never-alone rule sends here. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone fundraising document with no accepted group - a bare thank-you letter, a recognition certificate, a legacy pledge card, a single sponsorship form. It is where `Thank you.pdf` lands. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the schema's protective ordering bites hardest on this row: a donor register with home addresses, a signed declaration carrying a name and address, a prospect or wealth-screening dossier compiled about someone who has never seen it. Where the row does not confidently activate on such a file the protective home is the correct one and the cautious error is the cheap one. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's defining failure - an acknowledgement or award letter that is real and whose SIDE or whose gift-versus-grant character is unresolved, which here is frequent because giver and recipient copies are byte-identical. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This row's tempting false files are overwhelmingly reading material - another charity's appeal letter kept as a swipe file, a fundraising-regulator code of practice, a sector benchmarking study, a funder's guidance PDF. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "Where `IMG_4417.jpg` belongs: cheque-presentation photographs, fundraising-thermometer graphics, collection-tin posters and giving-day social images that OCR into a charity name and an amount and carry no record structure at all. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "sponsor",
+      "other_field": "organization",
+      "other_domain": "nonprofit.grant-reporting",
+      "why": "The GIVER and the RECIPIENT are both organisation-shaped strings on the same page and the page states no side, which is the nonprofit schema's own defining role pair raised at this row with one addition it does not face: in fundraising the same organisation string routinely appears in BOTH roles inside one corpus, because a great many givers are themselves charitable trusts, corporate foundations and community funds. A charity that receives from a foundation and also makes small onward grants holds the identical name as giver and receiver. This is the strongest instance of 00's own role-ambiguity warning, “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”. The pair is offered to R1c alongside the nonprofit schema's and research.grants-funding's existing `sponsor` proposals so that ONE key is adjudicated, not three; this row mints nothing and takes no position that would fork the key. Provenance: inference; the underlying role-ambiguity reasoning is design.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, and it differs from the nonprofit schema's default in KIND rather than degree, which is this row's third node-test leg. The schema's privacy paragraph is argued about a vulnerable third party who disclosed under need - a safeguarded child, a service user, a person seeking help. This row's protected party is a DONOR or a PROSPECT, who is typically neither vulnerable nor in need, and who is exposed by three mechanisms the schema's paragraph does not name. FIRST, NON-CONSENT: a prospect-research or wealth-screening dossier is compiled about a living person from third-party sources, assigns them a capacity and a rating, and is very often never seen by its subject - it is a file about someone who has not merely failed to consent but does not know it exists. SECOND, SELF-DECLARED DISCLOSURE RULES: a gift record carries its own publication rule on its face - anonymous and do not publish, a recognition name that differs from the legal name, an in-memoriam attribution, a do-not-solicit or deceased flag - so the artefact itself states a confidentiality the filesystem can violate, and no other roster row's material does that. THIRD, INFERENCE FROM THE FACT OF THE RECORD: what a person gives to discloses belief, politics, health history and family bereavement before any amount is read - a gift to a congregation, a party, a disease charity in memory of a named relative, a refugee or reproductive-health cause. 00's own corpus sentence covers the material directly - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” - and a signed declaration is a tax record carrying a home address, a register export is an account statement in all but name, and an in-memoriam gift file is private correspondence about a death. This row does NOT carry `is_safety_domain` and should not: 00's four are named and closed - “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” - which leaves the same gap the schema records, restated here because a donor register is a bulk list of named living people with addresses and is the single largest personal-data object this family produces. Until the substitute mechanism is named, the row's own rule stands: prospect and register structure is detected in order to PROTECT, never in order to move, and “If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.” The handling class is P7's and is not set here.",
+  "open_question": "Five. (1) NJ-FD-1, THE GRANTMAKER GAP: nobody on the roster holds the PRIVATE FUNDER's own side of philanthropy. government.grant-programme-administration explicitly pushes a private foundation's call, scoring and award corpus away as 'private-association material'; nonprofit.grant-reporting is the grantee's side; this row is the recipient's fundraising side. A family foundation, corporate giving programme or community trust that runs a call, scores applications and issues awards therefore has no home. Alternatives: (a) nonprofit.grant-reporting is widened to hold both sides with a role_split, (b) a new grantmaking row is added, (c) it routes to business_operations as programme administration. This row did not absorb it and recommends against absorbing it, because a grantmaker's records are almost the mirror image of this row's. (2) NJ-FD-2, DECLARATION VERSUS CLAIM: the roster's one_line_hint gives 'tax-relief claims' to this row, but the nonprofit schema cedes regulator and authority returns to business_operations.corporate-regulatory-filings. This row draws the line at the moment of submission - the declaration register is this row's, the filed claim is the neighbour's - and asks R1c to confirm or invert it. If inverted, the hint should be amended so a later reader does not re-derive the wrong seam. (3) NJ-FD-3, `campaign` VERSUS `project`: adjudicate once, preferring reuse of canonical `project` for the campaign level, and explicitly forbid the three-synonym mint (`appeal`, `fund`, `source_code`) that will otherwise appear. (4) NJ-FD-4, THE QUID-PRO-QUO PROBLEM: the nonprofit schema's gate is a NON-EXCHANGE relation, but a gala ticket, a table sponsorship, an auction lot and a naming-rights pledge are all PARTIAL exchanges that declare their own split on the page. Read strictly, the schema's gate excludes them and this row loses its entire event and major-gift coverage to business_operations and finance. This row reads the printed split as an admission that the gift portion exists and is therefore in scope, and flags that this is a genuine widening of the schema's own gate that only R1c can ratify. If it is rejected, the row shrinks to declarations, acknowledgements, appeals and registers - still a node, but a narrower one. (5) NJ-FD-5, PROTECTION WITHOUT A FLAG: a donor register export is a bulk file of named living people with home addresses and giving histories, and a prospect dossier is a non-consensual profile of one. Both must be detected to be protected and neither can carry `is_safety_domain`. This is the schema's NJ-NP-3 raised on different grounds - not vulnerability, but bulk personal data and non-consent - and it needs the same substitute mechanism named."
+}

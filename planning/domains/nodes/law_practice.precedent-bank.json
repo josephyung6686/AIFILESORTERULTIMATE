@@ -1,0 +1,466 @@
+{
+  "id": "law_practice.precedent-bank",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Precedent bank and know-how",
+  "one_line": "The one row in the `law_practice` family whose evidence is the schema's INVERSE: an instrument-, form- or note-shaped document kept for the NEXT matter rather than produced by one, recognised by a positive drafting apparatus - placeholder slots across ALL party positions, a present-but-blank execution block, drafting or guidance notes addressed to the drafter, optional-clause alternatives, a firm template reference with a version and owner marker - together with the structural absence of the schema's two default legs (no matter reference, no practitioner/client role pair). Because it contains no client, no matter and no third party BY DESIGN, it is the only member of this family whose privacy default is `none` rather than protected, and the only one that falls through to Reading Inbox rather than Protected Records. It is NOT activated by the words precedent, template, model or standard form, by a firm name in a footer or in document properties, by a template file extension, or by the mere absence of a signature.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PLACEHOLDER APPARATUS ACROSS ALL PARTY POSITIONS, and it needs both legs. (i) An instrument-, form- or agreement-shaped document whose party, date and amount slots carry bracketed or token placeholders THROUGHOUT - not in one schedule but in the recitals, the operative clauses and the schedules alike; and (ii) an execution or signature block that is PRESENT AND STRUCTURALLY COMPLETE but carries no name, no date and no signature. One blank slot on an otherwise populated document is a live draft and belongs to a matter row: `law_practice.corporate-secretarial` states the same line from its side, that its draft has one specific entity in the recitals with only the EXECUTION slots open. The placeholder tokens are marks PRESENT in the bytes; the absence of a party is the necessary condition that accompanies them, never the signal itself.",
+      "A DRAFTING-APPARATUS BLOCK, and this is the row's single strongest positive mark because it is the one thing a blank published form does not have: text that instructs the DRAFTER rather than binding a party - footnoted drafting notes or guidance notes, optional or alternative clause sets labelled by whose interest they serve, a `use this clause only where` instruction, a coloured or bracketed editorial layer, a `delete as applicable` rubric. An operative document speaks to its parties; a precedent speaks to the next person who will use it. Read through 00's text-document path, which yields \"full text, headings, metadata, links, and structural information\", and the observation is a heading-and-body structure, not a word.",
+      "A TEMPLATE PROVENANCE MARKER: a firm or practice template reference paired with a version marker and, usually, an owner or last-reviewed slot, in a header, footer or document properties. NEVER ALONE - a version marker sits on live matter drafts too, and 00 already treats versioning as a universal file fact rather than a domain signal (\"duplicate and version-family signals\"). It corroborates the placeholder apparatus and cannot substitute for it.",
+      "A BANK OR INDEX STRUCTURE, in either of two shapes. (a) ONE FILE holding N alternative versions of the SAME provision under function headings - a clause bank - where the repetition is of a legal function across variants rather than of a document across a matter. (b) A SPREADSHEET whose COLUMN SET pairs a precedent name, an owner or author, a last-reviewed date and a version with NO MATTER COLUMN. The missing matter column is doing real discriminating work: the same portfolio-table-with-a-date-column shape over MATTERS is the schema anchor's limitation-and-diary signal, and over CONTRACTS it is `business_operations.contract-administration`'s register. What the rows are ABOUT decides it.",
+      "THE NECESSARY CONDITION, stated so it can never be mistaken for a signal: no exact matter or engagement reference anywhere, no labelled slot separating a practitioner role from a client role, no bound party pair, no tribunal caption, no execution. This is the family's default precondition INVERTED, and on its own it is satisfied by a blank downloaded court form, a scanned page whose signature block was not captured, and an empty stationery file. It qualifies the signals above and proves nothing by itself."
+    ],
+    "needs_llm": [
+      "Separating a practice's KEPT precedent from a PUBLISHED model form, practice note, seminar paper, textbook precedent or regulator's specimen document. The schema anchor already names this as the family's hardest case and says why the exemplars are unusually convincing: the profession publishes its own templates. Surface, layout, clause numbering and drafting notes are identical on both sides; what separates them is a publisher and an official form code on one side against a firm template marker and a local owner on the other, and neither is reliably present.",
+      "Deciding whether a blank official court, registry or agency form is a kept precedent or reading material. `law_practice.family-law` routes it from its side to this row OR to Reading Inbox, and does not resolve which - correctly, because a downloaded blank form carries no evidence of why it was kept.",
+      "Reading a precedents pack delivered as an archive whose members are mixed, where the pack's own character does not transfer to every member. 00's archive path licenses inspecting the manifest, not concluding membership.",
+      "Judging whether a document described as sanitised or de-identified actually is - whether a party name survives in tracked changes, comments, a footer file path, or document properties. This is a real-bytes question and the row's activation depends on it.",
+      "Interpreting jurisdiction-specific or multilingual professional forms whose labelled slots no approved pattern covers, and internal know-how prose that carries no labelled structure at all."
+    ],
+    "never_alone": [
+      "The words `precedent`, `template`, `model`, `standard form`, `master`, `specimen` or `sample` in a filename, title or folder name. These are document-type words and the family's deletion test strikes them: delete every entity name and every document-type word and see whether anything structural survives. `Precedent - NDA.docx` is a filename; `Executed NDA.docx` renamed by a paralegal is the same filename.",
+      "A firm or organisation name in a footer, letterhead or in DOCX author/company properties. This is the family's canonical never-alone token, and it is the specific token most likely to appear on a precedent because firms brand their own templates.",
+      "A template file extension or Word template document type (`.dotx`, `.dot`, `.ott`). Extension alone is never sufficient under 00, and in practice most kept precedents are ordinary `.docx` or `.pdf` while genuine `.dotx` files are usually blank letterhead stationery with no legal content at all.",
+      "THE ABSENCE OF A SIGNATURE, A PARTY NAME OR A MATTER NUMBER. This is the row's most dangerous temptation and the one the charge against it turns on. A scan of an executed original whose signature page was never captured, a first page extracted from a longer instrument, an OCR pass that failed on a handwritten block, and a redacted disclosure copy all present exactly this absence. Absence qualifies; it never activates.",
+      "A bracketed or token placeholder in isolation. Live executed instruments routinely retain `[•]`, `[TBC]` and blank schedule slots; a placeholder in one schedule of a document whose recitals name real parties is a matter document, not a precedent.",
+      "A version token - `v7`, `_MASTER`, `-final`, `-clean`. 00 makes version family a universal file fact, and a version marker is equally at home on the fourth draft of a live pleading."
+    ]
+  },
+  "proposed_context_terms": [
+    "precedent",
+    "know-how",
+    "drafting note",
+    "guidance note",
+    "template version",
+    "standard form",
+    "model form",
+    "clause bank",
+    "optional clause",
+    "delete as applicable",
+    "for use with",
+    "last reviewed",
+    "precedent owner",
+    "house style"
+  ],
+  "work_types": [
+    "model instrument or firm standard form, unexecuted",
+    "clause bank or clause library",
+    "drafting note, guidance note or user note attached to a precedent",
+    "checklist, closing agenda or completion-checklist master",
+    "standing know-how note or internal practice note on a point of law",
+    "blank official court, registry or agency form kept for reuse",
+    "precedent index, register or know-how catalogue",
+    "house drafting style guide and document conventions",
+    "internal training or know-how deck and its handout"
+  ],
+  "grouping_reasons": [
+    "ONE PRECEDENT LINEAGE - a firm standard form across its successive versions. The schema anchor names this as the family's one grouping that contains NO client, NO matter and NO third party. It is joined by the universal `version_family` fact, licensed by 00's universal set - \"The product should have a small shared set of universal file facts, such as file type, creation date, language, duplicate family, version family, and sensitivity status.\" - and never by a `-final` or `-MASTER` suffix.",
+    "ONE PRECEDENT PACK - an index or catalogue file plus the documents it enumerates by an exact precedent reference. The index supplies the anchor; subject similarity between two model agreements does not.",
+    "NO GROUP AT ALL is the common and correct outcome. A single stray model form has no accepted group, and 00's residual sentence for standalone forms covers it directly.",
+    "A PRECEDENT MUST NEVER BE PULLED INTO A MATTER GROUP by shared instrument type, shared subject or shared vocabulary. Doing so would write a matter fact onto a document that contains none, which is the copying error 00 forbids in its own worked case; the correct outcome is \"It must return unknown where support is insufficient.\""
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, and this row reaches empty by a DIFFERENT route from the rest of the family, which is itself part of how it differs from the schema's default template. Two of the anchor's three reasons hold unchanged: (1) BY CONTRACT, a dimension may only branch on a field the schema declares and `law_practice` declares none under PR-6; (2) BY THE SAFETY NEIGHBOUR, no deep template unlocks where safety activation is in play. THE ANCHOR'S THIRD REASON DOES NOT APPLY HERE, and saying so is the point: the anchor's disclosure argument is that \"A visible client or matter label can itself disclose the existence and subject of a representation\" - but this row's material has no client and no matter to disclose, so the disclosure objection that seeds the client level ineligible everywhere else is silent here. THE RECOMMENDATION HELD AS PROSE, and it differs from the anchor's paragraph in its first two levels, not merely in its ordering: the anchor recommends CLIENT, then MATTER, then DOCUMENT FUNCTION, then period. Here the first two levels are not disclosure-restricted, they are STRUCTURALLY ABSENT - there is nothing on the bytes to branch on - so the recommendation begins at DOCUMENT OR INSTRUMENT FUNCTION (what the model document is for), and then version lineage sits BELOW it rather than as a level, because versions of one precedent are a version family and not a folder generation. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A precedent's dates - drafted, last reviewed, superseded - all mean different things and none is a capture date. And the practice or department name must not become the top level by default: that would \"use an author or organization merely as a collector\" and in a single-practice corpus would \"create meaningless one-child levels\".",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".docx",
+      ".doc",
+      ".dotx",
+      ".rtf",
+      ".pdf",
+      ".xlsx",
+      ".pptx",
+      ".md",
+      ".msg",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PRECEDENT - Share purchase agreement (firm standard) v7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an instrument-shaped document titled as a share purchase agreement with full clause numbering",
+        "the parties recital contains bracketed placeholders instead of names, and the signature page has blank, unnamed execution blocks",
+        "footnoted drafting notes and optional-clause alternatives run through the body",
+        "a firm template reference and a version marker in the footer",
+        "no matter reference and no client anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "`legal` activation. This is the family's inverse-recognition case: `legal` fires on a bound party pair plus an execution block, and this file has neither by design",
+        "a client, a matter, a deal or a counterparty. There is no party on the bytes to infer one from",
+        "that the document is legally sound, current, enforceable or fit for any use. The product records that a model document exists and decides nothing about its content",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Clause bank - limitation of liability (12 variants).docx",
+      "source_type": "text_document",
+      "observations": [
+        "one document holding twelve alternative drafts of the same provision under headings that name whose interest each serves",
+        "each variant is preceded by a short note stating when to use it and what to change",
+        "no parties, no recitals, no execution block and no document-level caption",
+        "an owner name and a last-reviewed date in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the repeated clause text indicates twelve documents or twelve versions of one document. The repetition is of a legal function across variants, which is the bank shape, not a version family",
+        "a matter, a client, or that any variant was ever used",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "TERMS OF BUSINESS (firm standard) v11 - CLEAN.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sections covering scope of work, fees and basis of charging, billing arrangements, termination and complaints",
+        "the client name, matter description, fee-earner and rate slots are bracketed placeholders throughout",
+        "an unsigned client acceptance block with blank name and date lines",
+        "a firm template version marker in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "an engagement. `law_practice.engagement-terms` holds this artefact the moment those slots carry a real client, a real matter description and a signature or acceptance; unfilled, no engagement exists to record",
+        "a client or a fee basis as a fact. A bracketed placeholder is not a value",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Claim Form N1 - blank - firm precedent v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the full caption layout and numbered-paragraph skeleton of a pleading",
+        "bracketed placeholder party slots; an empty statement of truth with a blank signature and date line",
+        "drafting notes and optional-clause alternatives in coloured text",
+        "a firm template version marker; no case number anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a proceeding, a case identifier, a court or a party. `law_practice.pleadings` states the reciprocal from its side: the pleading-shaped layout is present on both sides and discriminates nothing",
+        "that a statement-of-truth block indicates a verified pleading",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Completion checklist - share sale - MASTER.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for document, responsibility, condition, status and completion step",
+        "every row names a document type; no row names a party, an entity or a date",
+        "the responsibility column carries role words rather than people",
+        "a version marker in the sheet name; no deal name and no matter reference on any sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a transaction. `law_practice.transactional-deal` holds a completion checklist the moment the sheet carries a deal or matter reference and the responsibility and date cells carry real people and real dates",
+        "that role words in the responsibility column are people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Precedents index.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per precedent carrying a precedent name, a practice area word, an owner, a last-reviewed date and a version",
+        "no matter column, no client column, no counterparty column anywhere in the workbook",
+        "a portfolio-table-with-a-date-column shape"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a limitation or key-date diary. The schema anchor's diary signal is the same table shape over MATTERS; the missing matter column is the whole discriminator",
+        "a contract register. `business_operations.contract-administration`'s register is the same shape over live CONTRACTS with counterparties and obligations",
+        "that the named owners are third parties requiring protection. They are internal role holders on a catalogue of documents that contain no one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Model opinion letter - solvency (firm standard).docx",
+      "source_type": "text_document",
+      "observations": [
+        "the full opinion grammar: documents-examined list, assumptions, qualifications, scope-of-law paragraph, numbered conclusions",
+        "the addressee block reads to a bracketed placeholder; the document states no date it speaks as of",
+        "a guidance-note block at the head explaining when the opinion may be given and what must be verified first",
+        "no signature, no firm execution and no reliance restriction naming any party"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "an opinion was given. `law_practice.opinions-advice` records the reciprocal: the opinion grammar discriminates nothing here because a precedent bank's most-used member is a stripped opinion",
+        "an addressee, a client or a party entitled to rely",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Know-how note - change of control clauses after the 2024 amendments.docx",
+      "source_type": "text_document",
+      "observations": [
+        "running prose about a point of law with authority citations, written for colleagues",
+        "no addressee, no instructions taken, no advice given to anyone and no conclusion applied to facts",
+        "an internal circulation marker and an author who is a practitioner at the firm",
+        "no matter reference and no party anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "advice. `law_practice.opinions-advice` needs an addressee, a date the document speaks as of and a client's facts; a standing note has none of those and is held for the next matter",
+        "that the practitioner's name is a client or a third party",
+        "that the note is correct or current law",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 11.02.14.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of a single indemnity clause with a bracketed placeholder where a party name would sit and a marginal drafting note",
+        "no surrounding document, no header, no footer, no filename evidence at all",
+        "screen-resolution image dimensions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row's activation. One placeholder plus one note on a fragment is not the placeholder-apparatus-across-all-party-positions signal, and the fragment could equally be cropped out of a live draft",
+        "that missing EXIF proves it is a screenshot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "precedents-pack-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a blank NDA, a blank consultancy agreement, a drafting-notes document and a clause bank",
+        "the manifest also lists one member named as an executed agreement for a named counterparty",
+        "no matter reference in the archive name or the manifest"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that the pack's character transfers to every member. The executed member is not this row's and its own evidence decides it - a bound party pair and an execution block put it with `legal`, whose protection runs first",
+        "that the archive as a whole is unprotected material. The row's `none` privacy default belongs to the members that carry no party, not to the container",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Form N1 Claim form.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an official blank court form with a form code, a publisher footer and a form revision date",
+        "every slot empty; no drafting notes, no optional-clause alternatives, no firm marker, no owner and no last-reviewed slot",
+        "downloaded, unmodified"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row. THE COLLISION FIXTURE: it satisfies the necessary condition - no party, no matter, no execution - and none of the positive signals. What is missing is the kept-for-reuse apparatus, and 00 names its home directly: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+        "a proceeding, a court relationship or a practitioner role",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SPA - Project Harrier - execution version (clean).docx",
+      "source_type": "text_document",
+      "observations": [
+        "the recitals name two real corporate parties with registration numbers",
+        "several schedules still carry `[•]` and `[TBC]` placeholders",
+        "an execution block laid out for named signatories, unsigned",
+        "a matter reference in the footer beside a version marker"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THE SECOND COLLISION: the placeholders are real but they are not across all party positions, and the matter reference is present. `law_practice.corporate-secretarial` states the reciprocal - its draft has one specific entity in the recitals with only the execution slots open",
+        "that an unsigned execution block means an unexecuted precedent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: ONE share purchase agreement DOCX carrying identical clause numbering, identical schedules and an identical execution layout. This row owns it when the party recitals are bracketed placeholders throughout AND the execution block is present but unnamed AND drafting notes run through the body; `legal` owns it when a bound party pair and a completed execution block appear, and `legal` is one of 00's four safety domains, so where both readings are arguable the protective one runs first and the file is not this row's. Discriminated by the party-and-execution slots being filled versus deliberately empty - the schema anchor calls this row `legal`'s photographic negative for exactly this reason. Neither side may use the words precedent, template or model in the filename as evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.pleadings",
+      "signal": "SAME FIXTURE BOTH SIDES: `Claim Form N1 - blank - firm precedent v3.docx`. This row owns it on bracketed placeholder party slots, an empty statement of truth and signature line, drafting notes in coloured text, a firm template version marker and no case number anywhere; the pleadings row owns the same layout when a populated party pair and a live case identifier appear, and a filing or conformed stamp sends it further still, to `legal` or `law_practice.court-filing-record`. Discriminated by the caption and statement-of-truth slots being populated versus empty by design; the pleading-shaped layout itself is present on both sides and discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.opinions-advice",
+      "signal": "SAME FIXTURE BOTH SIDES: ONE model opinion letter carrying the full opinion grammar - documents-examined, assumptions, qualifications, scope-of-law, conclusions - because a precedent bank's most-used member IS a stripped opinion. This row owns it when the addressee, date, party and conclusion slots are unfilled and a guidance-note block explains when the opinion may be given; that row owns it when the addressee block names an actual body, the document states a date it speaks as of, and a reliance restriction binds named parties. Discriminated by filled-versus-blank slots. The opinion grammar is worthless as a discriminator here and the filename word `precedent` is evidence for neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.engagement-terms",
+      "signal": "SAME FIXTURE BOTH SIDES: `TERMS OF BUSINESS (firm standard) v11 - CLEAN.docx`. This row owns it on bracketed client, matter, fee-earner and rate placeholders, a blank acceptance block and a template version marker - no client, no matter and no third party in the file, which is why it falls through to Reading Inbox rather than Protected Records; that row owns it when those same slots carry a named client, a scope line and a signature or acceptance, at which point an engagement exists to record and the file becomes protected material. Discriminated by whether the party and execution slots are filled or deliberately empty. A firm's standard terms are the most `engagement terms`-named artefact in a practice, so the name is exactly the token neither side may rely on.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.corporate-secretarial",
+      "signal": "SAME FIXTURE BOTH SIDES: an `Articles of Association` DOCX. This row owns it when [COMPANY NAME] and the entity slots are bracketed throughout - that blankness across all entities is the document's purpose; that row owns it when one specific entity's name and registration number stand in the recitals with only the EXECUTION slots open. Discriminated by whether the entity slots are blank by design or carry one real entity. This is the boundary that defeats the lifecycle objection against this row: a precedent is not an early stage of the same document, it is a document that will never be executed at all.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.conflicts-check",
+      "signal": "SAME FIXTURE BOTH SIDES: a conflicts questionnaire or barrier-memo form whose labelled slots - prospective client, matter description, responsible practitioner, search result, reviewer, date - are structurally identical on both sides. This row owns it when those slots are EMPTY BY DESIGN across the whole document; that row owns it when they carry values, and then the artefact names third parties and becomes protected material. A single filled example inside an otherwise blank template pack does not flip the pack. Discriminated by populated versus empty labelled slots, never by the form's title.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Precedents index.xlsx` versus a contract register - both are a portfolio table with a name column, an owner column and a date column, and the shape alone decides nothing. This row owns the workbook when its rows are ABOUT DOCUMENTS HELD FOR REUSE - a precedent name, a version, a last-reviewed date, an internal owner, and no counterparty and no matter column anywhere; that row owns it when the rows are about LIVE OBLIGATIONS - a counterparty, a term, a renewal or notice date. The same discrimination separates this row from the schema anchor's limitation-and-diary signal, which is the identical shape over MATTERS. What the rows are about decides it, never which profession keeps the table.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "signal": "SAME FIXTURE BOTH SIDES: a reusable document whose slots are bracketed placeholders and whose purpose is to be copied for the next occasion - `Cover letter template.docx`, `CV master.docx`, a personal engagement-letter skeleton kept by a sole practitioner. The placeholder apparatus is identical and cannot discriminate. This row owns it when the reusable document is a PROFESSIONAL INSTRUMENT OR PRACTICE ARTEFACT held to serve a future client matter; `career` owns it when the reusable document is about the HOLDER'S OWN candidacy, employment or self-presentation, in which case the filled version would name the holder rather than a client. The discriminating evidence is whose identity the blank slots are waiting for - the holder's, or a third party's.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "NAMED FIRST, and this row is the only member of the `law_practice` family for which that is true - every sibling routes first to Protected Records. The schema anchor concedes the point in its own residual note: this family's tempting false files are overwhelmingly reading material and, uniquely, so is one class of its genuine material, the precedent bank, which contains no client and no third party at all. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for the blank-form half of this row's near-misses: an official downloaded court or registry form, a blank stationery file, a firm's own standard terms with nothing kept-for-reuse about them. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's defining failure, which is a real risk rather than a theoretical one: a professional-looking document whose emptiness is unresolved - blank by design, or blank because a page was not captured, or blank because it was redacted. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "THE CARVE-OUT, and it is the reason this row's `none` default is safe rather than reckless. Where a party name survives anywhere in the bytes - in tracked changes, in a comment, in a footer file path, in document properties, or in one member of a mixed pack - the placeholder-apparatus signal has not been met, this row does not hold the file, and the protective residual takes it: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Screen captures of a clause or a drafting note, which are common in this world and never carry enough structure to meet this row's two-leg signal.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected precedent packs and proprietary know-how-system exports are ordinary here and must not be forced open.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "none",
+  "sensitivity_why": "`none`, AND THIS IS THE ROW'S SHARPEST DIFFERENCE FROM ITS SCHEMA'S DEFAULT, which is `potentially_sensitive` on the ground that the exposed party is a third party who never chose this filesystem and cannot consent. That ground is absent here by construction: the document has no client, no matter and no third party in it, and the schema anchor states as much in its own recognition entry - this is why it is the one part of the family that is not protected material. The argument is not that precedents are unimportant but that the product's sensitivity axis protects PEOPLE'S data, and there is no person on these bytes; 00's corpus sentence names identity documents, account statements, tax records, medical information, legal records, credentials and private correspondence, and a blank model agreement is none of them. THE POSTURE IS CONDITIONAL, not unconditional, and the condition is the row's own activation test: `none` applies only where the no-party evidence has actually been observed. Where the evidence is silent or unread - an encrypted pack, an opaque binary, an OCR pass that captured only one page, an archive whose members are mixed - the row does not activate and the file routes to Review Later or Protected Records rather than inheriting `none`. Two residual exposures stay live and are recorded as open questions rather than smoothed away: a precedent produced by stripping a real deal can retain the original client in tracked changes, comments or document properties, and a firm's know-how is commercially confidential to the firm even when it exposes nobody.",
+  "open_question": "Three, and the first is the one that decides whether this row is safe as written. (NJ-1) DERIVED PRECEDENTS AND METADATA LEAKAGE: firms build precedents by stripping real transactions, and the stripped copy routinely retains the original client in tracked changes, comments, a footer file path or DOCX properties. This row's `none` default is correct on the visible body and wrong on those bytes. Alternatives: (a) `none` conditional on a metadata-and-revision check being part of the activation evidence, which is what this node currently assumes; (b) `potentially_sensitive` for the whole row, which is safe but discards the row's main contribution - the anchor's own statement that this is the family's one unprotected class - and would make the row differ from its schema's default on detection only; (c) `none` for the body with a separate observation recording that unexamined revision metadata exists. Joseph to choose; the node cannot settle it because P4 owns whether revision metadata is extracted at all. (NJ-2) FIRM-CONFIDENTIAL KNOW-HOW: a precedent bank exposes no person but is commercial property, and the row currently offers it no caution at all, which means it is the one `law_practice` class a cloud model could be shown in full. If the product's sensitivity vocabulary is only about personal exposure this is correct; if it is about disclosure generally it is wrong. The vocabulary at this phase is `none` | `potentially_sensitive` and it has no third value, so the question is whether P7's handling classes are the right place for it. (NJ-3) THE BLANK OFFICIAL FORM: `law_practice.family-law` routes a blank downloaded court form to this row OR to Reading Inbox and does not decide. This node's position is that the kept-for-reuse apparatus decides it - a pristine official form is Independent Records, a form with a firm marker and drafting notes is this row's - but a blank form kept in a firm's precedent folder with no marks at all is genuinely undecidable from the bytes, and folder context is not evidence this phase may rely on."
+}

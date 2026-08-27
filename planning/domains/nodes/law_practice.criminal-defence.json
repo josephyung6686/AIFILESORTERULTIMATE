@@ -1,0 +1,546 @@
+{
+  "id": "law_practice.criminal-defence",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Criminal defence files",
+  "one_line": "The practitioner-side matter file in which the CLIENT IS A NATURAL PERSON ACCUSED BY THE STATE, and in which the practice holds a large body of material ABOUT PEOPLE WHO ARE NOT THE CLIENT - a complainant, a witness, a co-accused, a person never charged - that was SERVED on it by the accusing side and that it is permitted to hold only for these proceedings. It is NOT activated by the practice-area words criminal, defence, prosecution or offence, by a `R v` or `State v` caption, by an offence name, by a police-force or prosecutor name, by a custody or charge reference standing alone, or by a document-type word such as charge sheet, indictment or bail sheet; a practice area is a VALUE of `work_type` and this row concedes that ruling in full, as `law_practice`'s NJ-LP-4 demanded. It survives on LEG THREE ONLY - three privacy rules its schema's default template does not state: (1) a SERVED THIRD-PARTY BUNDLE held under a use restriction, whose subjects are neither the holder nor the client nor the client's counterparty, which may never be copied for convenience, de-duplicated across matters, or synced; (2) SELF-INCRIMINATING CLIENT WORK PRODUCT - a proof of evidence, an advice-on-plea attendance note - whose narrative body may never be excerpted into a preview line, a group label, a snippet or a remote prompt at any confidence, so recognition here runs on labelled slots alone; (3) SENSITIVITY THAT RISES AT CLOSURE rather than decaying, because an acquittal, a discontinuance, a caution or a spent conviction is the most disclosive artefact in the file and it arrives LAST, which inverts every ordinary old-files-are-cold heuristic. Its filing rule differs from the schema default in one further way no sibling states: not only is the client level ineligible, the DOCUMENT-FUNCTION level is constrained too, because a function label naming a plea, a disposal, a conviction history or a psychiatric assessment discloses the accusation even when the client name and the matter reference are opaque.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED WHOLE AND NOT CLAIMED AS A DIFFERENCE. The `law_practice` schema default must hold first: an exact matter, file or engagement reference repeated across two or more artefacts, PLUS at least one artefact whose own labelled slots separate a practitioner or firm role from a client role. The schema's deletion test applies here unchanged and is unusually load-bearing in this world, because this world is dense in struck tokens - delete every entity name (a firm, a court, a police force, a prosecutor, two surnames in a caption) and every document-type word (charge sheet, indictment, bail sheet, custody record), and if nothing structural survives, nothing fires. Nothing below is a licence to write a `law_practice` fact; the schema declares no field rows under PR-6.",
+      "THE SERVED-SCHEDULE PAIR, and it is this row's one genuinely new detection structure because its DIRECTION is inverted from the schema's own disclosure-review signal. The schema's signal is a review or coding log THE HOLDER AUTHORED - one row per document, the holder's reviewer, the holder's coding decision. This structure is a schedule the holder RECEIVED: one row per item, an item description, a per-item disclosability or undermines/assists decision, and an AUTHOR-ROLE SLOT NAMING AN OFFICER OF THE OPPOSING SIDE (a disclosure officer, a prosecutor), together with a service or date-served endorsement. The holder cannot alter a single row of it. It normally arrives as a PAIR - a schedule of material being served and a schedule of material being withheld or listed as unused - and the holder's own file carries the reciprocal artefact, a further-disclosure request or defence statement responding item by item. It is the pair plus the foreign author role plus the service endorsement that is the signal, never the offence words on it. Provenance: inference.",
+      "A DETAINED-PERSON RECORD structure: a timed log of events concerning ONE person's detention - arrival, rights advisement or caution block, review times, an attending legal-adviser slot, an appropriate-adult or interpreter slot, and a release or charge disposition line - carrying a custody or booking reference that is distinct from the matter reference and that recurs on the interview record and the bail sheet. The TIMED-LOG-PLUS-ROLE-SLOTS shape is the signal; a custody reference alone is a struck token. Read through 00's direct-fact path for a labelled form field. Provenance: inference.",
+      "A CHARGE-TO-OUTCOME SPINE: two artefacts bearing the same proceeding reference where one carries a numbered list of allegations with a per-count structure (count, allegation, statutory reference slot) and the other carries a per-count DISPOSITION slot with a date. The spine is what makes the file a matter rather than a heap, and its terminal member is the artefact this row's privacy rule protects hardest. The product records the disposition as a LITERAL OBSERVATION and decides no legal status, no guilt, no innocence, no spent-ness and no expungement eligibility. Provenance: inference."
+    ],
+    "needs_llm": [
+      "WHICH SIDE THE HOLDER IS ON, which is the schema's standing question and is sharpest here because the same served bundle exists in the accused's own hands, in defence counsel's hands, and in the prosecuting authority's hands. The model reads explicit role slots - who is addressed, who signed, who allocated the reference, who is described as instructed - and abstains rather than inferring a side from a firm name or a folder.",
+      "WHETHER A NAMED PERSON IN A DOCUMENT IS THE CLIENT OR A THIRD PARTY, which decides whether this row's use-restriction rule attaches. A previous-convictions schedule and a psychiatric report look identical whether the subject is the accused or a complainant; the discriminating evidence is an addressee, instructing-party or subject slot, and where it is absent the answer is unresolved, not a guess.",
+      "WHETHER AN INTERVIEW RECORD IS A DETAINED-PERSON INTERVIEW OR AN INVESTIGATORY INTERVIEW CONDUCTED FOR A CLIENT, read from the role trio present on the page rather than from the word interview.",
+      "WHETHER AN ARTEFACT IS THE SERVED COPY OR THE HOLDER'S OWN WORKING COPY of the same document, because they are not duplicates and must not be collapsed. Read from a service endorsement, an exhibit stamp, a page-numbering scheme applied by the serving side, or an annotation layer.",
+      "STRUCTURE ONLY, NEVER NARRATIVE. On any artefact this row identifies as client work product, the model may read section headings, role slots and reference lines and must not read, summarise, embed or quote the account itself. This is the operational form of this row's second privacy rule, and it is a recognition constraint, not merely a display one."
+    ],
+    "never_alone": [
+      "an `R v`, `State v`, `People v` or `Rex/Regina` caption, or any two-name adversarial caption",
+      "an offence name, a statutory section reference, or a sentencing term",
+      "a police force, prosecuting authority, court, custody suite or firm name",
+      "a custody, booking, charge, URN, docket or arrest reference standing alone",
+      "a document-type word: charge sheet, indictment, information, bail sheet, custody record, plea, mitigation, unused material",
+      "an accused's, complainant's or witness's personal name, in any position including a filename",
+      "a folder named for a case, a client, a court year or a practice area",
+      "a confidentiality, restriction or not-for-further-disclosure legend, which is a literal observation and never this product's classification",
+      "the practice-area words criminal or defence anywhere, including in an email signature block or a letterhead"
+    ]
+  },
+  "proposed_context_terms": [
+    "charge sheet",
+    "indictment",
+    "information and summons",
+    "initial details of the prosecution case",
+    "served prosecution evidence",
+    "unused material schedule",
+    "disclosure officer",
+    "defence statement",
+    "further disclosure request",
+    "custody record",
+    "detention log",
+    "interview under caution",
+    "prepared statement",
+    "appropriate adult",
+    "proof of evidence",
+    "advice on plea",
+    "advice on evidence",
+    "plea and trial preparation",
+    "case management questionnaire",
+    "bail conditions",
+    "bail application",
+    "remand",
+    "previous convictions schedule",
+    "antecedents",
+    "pre-sentence report",
+    "fitness to plead",
+    "psychiatric report for the court",
+    "mitigation",
+    "basis of plea",
+    "sentencing remarks",
+    "discontinuance",
+    "acquittal",
+    "caution and non-conviction disposal",
+    "spent conviction",
+    "witness anonymity",
+    "special measures",
+    "protected witness address"
+  ],
+  "work_types": [
+    "charge, indictment or information record and initial prosecution case details",
+    "detained-person and interview record, including prepared statements and adviser attendance",
+    "served prosecution evidence bundle and its service endorsement",
+    "unused-material schedule, further-disclosure request and defence statement",
+    "third-party subject material - previous convictions, medical, social-care or school records about a person who is not the client",
+    "client proof of evidence and instructions on plea",
+    "expert and assessment report obtained for the proceedings, including fitness and pre-sentence material",
+    "bail, remand, condition and listing record",
+    "hearing preparation, case management and trial note",
+    "mitigation, basis of plea and sentencing record",
+    "outcome, disposal, discontinuance or acquittal record and the closure file"
+  ],
+  "grouping_reasons": [
+    "ONE PROSECUTION FROM CHARGE TO OUTCOME, joined by an exact repeated matter or proceeding reference - inherited from the schema default and restated only because this group's terminal member changes the group's own risk. \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no party, allegation, disposition, offence or third-party fact onto any member.",
+    "ONE SERVICE EVENT: the schedules, the bundle and the covering endorsement that arrived together on one date from the opposing side, joined by the service date and the serving-party slot. This group is bounded deliberately so the use restriction attaches to a set the user can see, and its members must not be merged into the holder's own working copies of the same documents.",
+    "ONE DETENTION EPISODE: the custody record, the interview record, the adviser attendance note and the bail or charge disposition, joined by an exact custody or booking reference that is NOT the matter reference. Grouping by this second reference is what lets an episode be recognised before a matter reference exists at all.",
+    "ONE THIRD-PARTY SUBJECT, and this is the only group in the family whose purpose is EXCLUSION RATHER THAN RETRIEVAL: the material about one named person who is not the client, gathered so it can be protected and so it never travels with the matter into a preview, a summary, a duplicate scan or a remote prompt. It is grouped in order to be walled off. Its label must not name the person.",
+    "A candidate group is bounded by an exact reference and never by a name, a caption, an offence, a court, a date range or semantic similarity - \"It should not form a supported group when there is no valid anchor\". Two matters concerning the same complainant, the same estate of facts or the same co-accused are NOT one group, and cross-matter similarity is suppressed here rather than merely deprioritised."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, AND THEN CONSTRAINED ONE LEVEL DEEPER THAN ANY SIBLING - which is this row's leg-three difference stated as a filing rule. By contract there is nothing to order: `law_practice` declares no field rows under PR-6, a dimension may only branch on a field the same schema declares, and this template mints nothing. The measurable comparison is therefore against the schema default's PROSE recommendation - the client only where the corpus spans more than one AND the user has explicitly approved a client-named branch, then the matter, then the document function, then the period. THIS ROW DIFFERS AT TWO LEVELS, NOT ONE. (1) THE CLIENT LEVEL IS INELIGIBLE OUTRIGHT AND NOT UNLOCKABLE. In the default the client is typically a company and the disclosure is commercial; here a client-named branch writes into the filesystem that a named natural person stands accused of a crime, which is a statement about their liberty that no folder should make, against \"The default posture must therefore be local-first and data-minimizing.\" `law_practice.family-law` reached the same absolute for its own reason; this row reaches it for a different one and both should survive R1c or neither should. (2) THE FUNCTION LEVEL IS ALSO CONSTRAINED, AND NO OTHER TEMPLATE IN THE FAMILY SAYS THIS. Suppressing the client name and opacifying the matter reference is not sufficient here, because the schema's third level - document function - is itself disclosive in this world: `mitigation`, `basis of plea`, `previous convictions`, `pre-sentence report`, `fitness to plead` each publish the accusation, the client's history or their mental health from the branch label alone, with no name anywhere in the path. Function labels that name a plea, a disposal, a conviction history or a clinical assessment are therefore ineligible as folder levels even when every other level has been redacted. (3) A NAMED THIRD PARTY may never be a level at all, inherited from the schema and reinforced: a complainant, a witness, a co-accused or a person never charged is the strongest case in the whole family, because a path writes their identity into a filesystem that every later process reads. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Charge date, service date, hearing date, document date and filesystem time mean different things here, nothing is capture-based, and a year-first tree would additionally scatter one prosecution across the calendar boundary that its own outcome usually crosses. Whatever lands stays a recommendation the user may reverse, remove, add to or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "calendar",
+      "spreadsheet",
+      "archive",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".m4a",
+      ".mp3",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Unused material schedule - served 2026-05-12 - 41127-0011.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table with one row per item carrying an item number, a description, and a per-item disclosability or undermines/assists decision",
+        "an author-role slot naming a disclosure officer of the opposing side, with a signature and a date",
+        "a service endorsement and a date served, and a companion schedule of material being served rather than withheld",
+        "a restriction endorsement stating the material is provided for the purposes of these proceedings",
+        "the same proceeding reference appears on a defence statement and a further-disclosure request in the holder's own file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and `client`, `our_firm` and `subject_of_record` are proposals on the anchor awaiting R1c",
+        "that the per-item decisions are correct, complete, final, or this product's classification; a disclosability column is a LITERAL OBSERVATION about somebody else's decision",
+        "that the restriction endorsement is a handling class - P7 owns handling classes and this row assigns none",
+        "that this schedule and the holder's own review log are the same kind of artefact; the author role is inverted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Proof of evidence - client - 41127-0011 - DRAFT.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading block with a matter reference, a proceeding reference and an author or fee-earner initial",
+        "numbered narrative paragraphs recording one named person's own account, in the first person",
+        "a signature and date block that is frequently unsigned, and tracked changes or comment anchors",
+        "no tribunal caption, no bound party pair and no execution block - which is why `legal`'s signals do not fire on it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "ANYTHING FROM THE NARRATIVE BODY. This is the fixture that carries this row's second privacy rule: the account may contain an admission, and the product must recognise this artefact from its heading block and section structure alone. No sentence of it is embedded, summarised, previewed, snippet-ed or placed in a remote prompt at any confidence.",
+        "that an unsigned draft is incomplete, superseded, or safe to de-duplicate against a later version - draft and final are both protected and the difference between them may be the admission",
+        "guilt, innocence, credibility, consistency, or any legal position",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Previous convictions and antecedents - COMPLAINANT - do not serve.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a per-entry table carrying a date, a court, an offence description and a disposal, about ONE named person",
+        "a header or covering line identifying the subject by a role that is NOT the client role - complainant, witness, co-accused",
+        "a service or restriction endorsement, and often a redaction layer over addresses and dates of birth",
+        "the proceeding reference of the holder's matter appears in a footer or on the covering letter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the subject is the client. The subject-role slot is the whole fixture and misreading it inverts every downstream protection",
+        "any characterisation of the named person, their history, their credibility or their risk",
+        "that this file may be copied for convenience, de-duplicated against an identical schedule in another matter, or synced - it is held for these proceedings only",
+        "a folder path, and specifically not a folder or group label carrying the subject's name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Custody record - 24-PN-8831 - scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a timed log of events with arrival, review, rights-advisement and disposition rows",
+        "role slots for an attending legal adviser, an appropriate adult or an interpreter",
+        "a custody or booking reference distinct from the matter reference, recurring on the interview record and the bail sheet",
+        "a low-quality scan or photograph of a printed form, with OCR confidence varying line by line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that OCR text is reliable enough to carry a role assignment; where the subject-role slot does not OCR cleanly the answer is unresolved",
+        "that a custody reference alone activates this row - it is a struck token under the schema's deletion test",
+        "arrest, detention, treatment, lawfulness or any legal status",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Attendance note - advice on plea - 41127-0011.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a header with matter reference, attendees, date, and a time-engaged line",
+        "sections for advice given, client instructions, and next steps",
+        "an author initial identifying a fee-earner, and frequently a linked time entry with the same reference",
+        "no caption, no execution block, no served-by slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the content of the advice or the instruction. Same rule as the proof of evidence: heading block and section structure only, never the body",
+        "that a recorded instruction constitutes consent, authority, waiver, or a decision that has been made",
+        "a plea, an intention, or an outcome",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Served bundle - prosecution evidence - 41127-0011.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest or index listing statements, exhibits and schedules with a serving-side numbering scheme",
+        "a covering endorsement with a service date and a restriction line",
+        "mixed member formats including scans, spreadsheets, images and media",
+        "member filenames that are the serving side's, not the holder's"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "anything requiring the archive to be unpacked. The manifest is read without unpacking, and the archive stays intact",
+        "that members may be extracted, re-filed individually, or de-duplicated against the holder's own copies",
+        "that a serving-side numbering scheme is a fact about the matter",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit RP1 - CCTV - Station Rd 2026-02-11.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container and stream metadata with a duration and a device or export signature",
+        "an exhibit reference that matches an index in the served bundle",
+        "no speech, or ambient speech from people who did not consent to being recorded or filed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "identity, presence, conduct, or any content read from the imagery - no face, plate, body or scene inference",
+        "that the exhibit reference in the filename establishes membership; the INDEX establishes it and the filename is a struck token",
+        "that recording timestamps are the event time",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Psychiatric report - fitness to plead - re client - 41127-0011.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an instructing-party slot naming the holder practice and an addressee slot naming a court",
+        "clinical assessment sections - history, examination, opinion - about one named person",
+        "a practitioner qualification block and a declaration addressed to the court",
+        "the matter or proceeding reference in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "MEDICAL FACTS. `medical` is a safety domain and its protection may correctly co-activate on the clinical sections - this row takes nothing away from that - but `provider`, `record_type` and any medical fact must stay UNKNOWN, because medical's records are the HOLDER's and this subject is a third party who did not choose this filesystem",
+        "any clinical, capacity, fitness or risk conclusion",
+        "that a court addressee makes the report public",
+        "a folder path, and specifically not a `fitness to plead` function level"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bail conditions and PTPH listing - 41127-0011.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event records with organiser, attendees, location and an exact proceeding reference in the description",
+        "recurring reporting or curfew entries with a condition description",
+        "a listing entry whose location is a court and whose title carries a hearing type"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any condition is in force, has been complied with, or has been breached - no deadline is computed and no legal state is judged",
+        "that a court location or a hearing-type title activates this row alone; the exact reference plus a separately evidenced representation does",
+        "an address, a residence or a movement pattern as a stored fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case outcome - discontinued - 41127-0011.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a per-count disposition table with dates, matching the count structure of the charging document",
+        "a closure or file-conclusion block with a retention or destruction date and a papers-returned line",
+        "a covering letter to the client recording the result",
+        "the same proceeding reference as the charging document, years apart in creation date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT AGE OR CLOSURE REDUCES SENSITIVITY. This fixture carries this row's third privacy rule: it is the most disclosive artefact in the matter and it arrives last, so archival, cold-storage, summarisation and preview heuristics that treat old closed files as safe are INVERTED here",
+        "that a disposal is a conviction, an acquittal, spent, expunged, disclosable, or eligible for any of those - the disposition line is a literal observation and the product decides no legal status",
+        "that a stated retention or destruction date is an instruction this product may act on",
+        "a folder path, and specifically not a folder level naming the disposal"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Interview transcript - 2026-03-04 - Rowan Pike.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a question-and-answer transcript with a date, a location and named participants",
+        "an opening block identifying those present and the purpose of the meeting",
+        "COLLISION FIXTURE: the same shape occurs as a detained-person interview under caution, as an investigatory interview conducted for a corporate client, and as an employer's disciplinary interview",
+        "the discriminating evidence is the ROLE TRIO on the opening block - a caution or rights-advisement block plus an attending legal-adviser slot plus a custody reference is this row; an investigator-and-subject pair with an engagement or instruction reference is `law_practice.investigation`; an employee, manager and HR-representative trio with a disciplinary-policy reference is `hr.employee-relations`"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the word interview, a transcript layout, or a personal name in the filename selects any of the three",
+        "that an unresolved role trio may be broken by the folder the file sits in, by an adjacent file, or by which profession the holder practises",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "R v Hale - Court of Appeal judgment - 2024.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption, a neutral citation, judges' names, numbered paragraphs and a disposition",
+        "COLLISION FIXTURE: it is dense in every token this row's never-alone list strikes - an adversarial caption, an offence, a court, an accused's name",
+        "no matter reference, no practitioner-and-client role pair, no service endorsement, no instructing slot",
+        "the schema's deletion test removes the caption and the offence words and nothing structural survives"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that criminal vocabulary at any density activates this row",
+        "that a downloaded public judgment is client material; with an exact matter or research reference it may join a group, without one it is reading",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-05-12 at 09.14.31 - court portal.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in dimensions and metadata, activating photos on its own evidence",
+        "OCR may reveal a listing table, a proceeding reference and a party caption",
+        "no practitioner-and-client role pair anywhere on the capture"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an OCR'd reference is sufficient to join a matter without a separately evidenced representation",
+        "that missing metadata proves screen origin, or that browser-like dimensions prove it",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Crown court file 2019 - archive - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "an encrypted or unreadable container whose member list cannot be enumerated",
+        "a filename carrying a court word, a year and the word file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a matter, a client, a subject, a disposal, or membership of any group - the filename cannot manufacture them",
+        "that the archive should be opened, cracked, or inspected to improve classification",
+        "that its age makes it low-risk; this row's third privacy rule applies most strongly to exactly this file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Bail conditions and PTPH listing - 41127-0011.ics` beside the covering letter and charge sheet that arrive with it. THE ACCUSED HOLDS THE SAME DOCUMENTS AS THEIR OWN DEFENCE PRACTICE DOES. Toward that neighbour: the holder IS the accused, keeping their own charge sheet, bail sheet, solicitor's letters and outcome record about their own liberty; every token this row looks for is present except the apparatus. Toward this row: the practice ALLOCATED the reference, produced the attendance notes and the proof of evidence, RECEIVED the served bundle under a use restriction, and recorded time - and the accused is somebody else. THE DECIDING EVIDENCE IS WHERE THE APPARATUS IS, never the caption, never the offence, never the practice-area word, never the folder. The cost asymmetry is stated so R1c can weigh it: a personal file misrouted here is over-classification into a protective home, while a client's file misrouted there mixes a third party's accusation into the holder's own life and strips the use restriction from a served bundle - so where the side is unresolved the answer is Review Later, not a guess in either direction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Unused material schedule - served 2026-05-12 - 41127-0011.pdf` beside a civil disclosure review log - both are a one-row-per-document table with a per-item decision column, an officer name and a date. Toward that neighbour: the log is the HOLDER'S OWN, its reviewer is the holder's fee-earner, its coding decisions are the holder's to make and change, and it is produced in order to disclose outward. Toward this row: the schedule was AUTHORED BY THE OPPOSING SIDE'S OFFICER AND SERVED INWARD, the holder cannot alter a row of it, and the material it lists is held under a use restriction and may not be copied or de-duplicated across matters. Discriminated by the AUTHOR-ROLE SLOT ON THE LOG plus a service endorsement, never by the offence words or the practice area. The reciprocal is owed: that row should say that a review log whose decision column belongs to a foreign officer is not its evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.family-law",
+      "signal": "SAME FIXTURE BOTH SIDES, AND THIS IS THE RECIPROCAL THAT ROW EXPLICITLY ASKED FOR AS NJ-FL-2: `Non-molestation order and statement of complainant - withheld address.pdf`. One order, two matters. Toward that neighbour: the order was obtained IN the family proceedings, the file is the applicant's protection application, the subjects are two members of one household and often a child, and the withheld-address slot protects one named person from the other named person inside the same file. Toward this row: the SAME order becomes served prosecution evidence in a prosecution FOR ITS BREACH, the client is the ACCUSED - the respondent to the order, the person the withheld address is withheld FROM - and the discriminating slots are a charge or count structure plus an accused-role slot plus a custody or bail record. BOTH sides carry a withheld-address slot, which is why this pair answers NJ-FL-2: the two rows do NOT hold the same privacy rule. That row's rule is an internal boundary between two people who are both its subjects; this row's is a use-restricted bundle about people who are not its subject at all, held by the practice acting for the person they are protected from. The rules point in opposite directions and neither collapses into the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.investigation",
+      "signal": "SAME FIXTURE BOTH SIDES: `Interview transcript - 2026-03-04 - Rowan Pike.pdf`. Both rows hold a dated question-and-answer record of one person being questioned inside a practitioner matter, on the practice's template, with the matter reference in the footer. Toward that neighbour: an investigation CONDUCTED FOR a client - the practice is the questioner, the subject is a third party being examined, and the anchor is an investigation instruction or engagement reference. Toward this row: an interview in which the practice's CLIENT IS THE ONE BEING QUESTIONED BY THE STATE, and the practice attends as adviser - the discriminating slots are a caution or rights-advisement block, an attending-legal-adviser role slot, and a custody or booking reference distinct from the matter reference. The seam is the DIRECTION OF QUESTIONING read off the role slots, never the word interview and never the offence vocabulary.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "SAME FIXTURE BOTH SIDES: `Psychiatric report - fitness to plead - re client - 41127-0011.pdf`, and the complainant's medical records obtained by third-party application that sit beside it. Toward medical: a clinical assessment of a named person is medical's own evidence on its own structure, medical is a safety domain and ITS PROTECTION RUNS FIRST - this row takes nothing away from that and co-activation is the correct outcome. Toward this row: the SAME bytes carry an INSTRUCTING-PARTY slot naming the practice and an ADDRESSEE slot naming a court, plus a matter reference, which makes them a member of the prosecution's group. The consequence is asymmetric and must be stated: medical's own facts - `provider`, `record_type` - must stay UNKNOWN here, because medical's records are the HOLDER's and this subject is a third party who did not choose this filesystem, and this row's use restriction must not be lost merely because a medical protection also attached. Discriminated by the instruction letter and the addressee slot, never by the clinical vocabulary.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "SAME FIXTURE BOTH SIDES, AND IT IS THE FAMILY'S ORTHOGONALITY SEAM RATHER THAN A TRUE MUTEX: `Exhibit RP1 - CCTV - Station Rd 2026-02-11.mp4` and the index that binds it. Toward that neighbour: it owns the INDEX-TO-ITEM BINDING as a structure - an exhibit index, an exhibit reference scheme, a bundle pagination - in any matter of any kind, and that is a document-function claim. Toward this row: the same items when they arrive as SERVED material with a service endorsement, a foreign numbering scheme and a use restriction, and whose subjects are complainants and witnesses. The discriminating evidence is the SERVICE ENDORSEMENT AND SERVING-PARTY SLOT, never the media type and never the exhibit numbering. RECOMMENDATION FOR R1c, RECORDED HERE AND NOT ACTED ON: the practice-area rows and the document-function rows on this schema are ORTHOGONAL AXES, and a criminal exhibit bundle plausibly wants both rows rather than a winner. If R1c rules that a file may hold a function row and a practice-area row simultaneously, this entry should become a co-activation note rather than a collision; `also_holds_with` is schema-to-schema only under CONNECTION section 5, so a template cannot record that intent as an edge and this row does not try.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first and it takes nearly everything this row recognises whenever the matter cannot be confidently anchored, because the characteristic isolated file here is a document about a named natural person's accusation or about a third party who is not the client at all. 00 names this residual and licenses exactly this behaviour: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" The last clause is why this residual and not another: a criminal-defence filename frequently carries the accusation, so a residual that suppresses filenames from prompts is the only correct home for an orphan here.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this family's defining failure and this row's sharpest one: a real-looking criminal document whose SIDE or whose SUBJECT ROLE is unresolved - practitioner or accused, client or complainant. The collision fixtures route here by design rather than by accident, because guessing either way has a real cost and abstention has almost none.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Encrypted archives, malformed served bundles, proprietary case-management binaries and unreadable media exports are frequent here and must be represented without forced inspection. A filename carrying a court word and a year manufactures no matter, no subject and no sensitivity result.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Public judgments, sentencing guidelines, practitioner texts and precedent copies are dense in this row's struck tokens and belong here absent an exact accepted matter or research reference. Routing them here is what keeps criminal vocabulary from becoming an activation signal.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a court portal or listing whose OCR does not establish an accepted matter belongs here rather than in a protected matter group, since a capture is the weakest possible anchor for a group whose members carry a use restriction.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and this row does not merely inherit it - THIS IS THE LEG OF THE NODE TEST THE ROW STANDS ON, because its schema ruled that a practice-area row survives only if it changes the privacy rule and never because it changes the topic. Three changes, none of which the `law_practice` default states, and none of which duplicates `law_practice.family-law`. FIRST, A USE-RESTRICTED BUNDLE ABOUT NON-SUBJECTS. The schema's posture protects a third party the practice acts FOR. Here the practice additionally holds a large body of material about people it acts AGAINST or who are merely caught up - a complainant, a witness, a co-accused, a person never charged - served on it by the accusing side and permitted to be held for these proceedings only. 00's corpus sentence describes this pile exactly: a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\", and here every one of those may be about somebody who is not the client and not the holder. The operational rules that follow are new: this material may never be copied for convenience, never de-duplicated or version-merged against an identical schedule in another matter, never synced, and the SERVED copy and the holder's own working copy are not duplicates. SECOND, SELF-INCRIMINATING CLIENT WORK PRODUCT, WHICH CONSTRAINS RECOGNITION AND NOT ONLY DISPLAY. A proof of evidence or an advice-on-plea note may record an admission by a living person whose liberty is at stake. The schema's default permits recognition on a minimum-necessary excerpt; this row does not. On those artefacts the product reads heading blocks, section labels and reference lines and NEVER the narrative body - no embedding, no summary, no preview line, no group label, no snippet, no remote prompt, at any confidence - which is the operational form of \"The default posture must therefore be local-first and data-minimizing.\" THIRD, SENSITIVITY RISES AT CLOSURE. Everywhere else in this family a closed matter cools and becomes archivable; here the outcome record - a discontinuance, an acquittal, a caution, a disposal that may later be spent or expunged - is the single most disclosive artefact and it arrives LAST. Every ordinary old-files-are-cold heuristic is therefore inverted for this row, and an old encrypted crown court archive is high-risk precisely because it is old. Two consequences bind all three: nothing here is legally interpreted - no guilt, innocence, admissibility, disclosability, spent-ness, expungement eligibility, bail compliance or breach is decided by this product, and every disposal, restriction endorsement and disclosability column stays a LITERAL OBSERVATION - and no name, address, allegation, account, exhibit content or disposition is placed in a remote prompt by default. Handling classes are P7's and this row assigns none.",
+  "open_question": "Four. (1) NJ-CD-1, THE PRACTICE-AREA CHARGE, answered as a NARROW YES on leg three exactly as NJ-LP-4 demanded, and recorded so it can be reversed: this row does NOT stand on holding criminal-shaped documents - every one of them is already a `work_type` value on the anchor - it stands on three privacy rules the schema's default does not state (a served use-restricted bundle about non-subjects, a narrative-never-read rule on client work product, and sensitivity that rises at closure) plus one detection structure the default cannot see (a served schedule PAIR whose decision column belongs to a foreign officer, which is the photographic inverse of the schema's own disclosure-review signal). If R1c judges that the use-restriction and non-subject rules belong on the `law_practice` SCHEMA rather than on one template - defensible, since `law_practice.investigation`, `law_practice.discovery` and `law_practice.immigration-casework` can each hold third-party material under a restriction - then the correct outcome is REFUSAL of this row, the rules move up to the schema, and coverage routes to the schema default plus Protected Records. This row would rather be refused than kept for its topic. (2) NJ-CD-2, ANSWERING NJ-FL-2: `law_practice.family-law` asked whether the three allowed practice-area rows carry one privacy rule or three, and asked this row specifically whether a protected-witness-address slot is its rule or the schema's. Answer: the withheld-address slot is THE SCHEMA'S and should move up - it appears in family, criminal and investigation material alike and no row should own it. But the three rows' rules are NOT one: family-law's is an internal boundary between two people who are both its subjects, this row's is a restriction on material about people who are not its subject at all, and the two point in opposite directions on the same protective order. R1c should move the address slot to the anchor and keep the rows distinct, OR merge all three into a protected-natural-persons template with the practice areas as `work_type` values - but it should not do half of each. (3) NJ-CD-3, THE ORTHOGONALITY PROBLEM, and it is bigger than this row: the 36 templates on this schema mix a DOCUMENT-FUNCTION axis (pleadings, discovery, evidence-exhibits, hearing-transcripts, court-filing-record) with a PRACTICE-AREA axis (this row, family-law, immigration-casework). A criminal exhibit bundle sits on both. Alternatives: (a) rule that one file may activate one function row and one practice-area row, in which case this row's `law_practice.evidence-exhibits` and `law_practice.discovery` collisions become co-activation notes; (b) rule the axes mutually exclusive and force a winner per file, which this row believes loses the use restriction; (c) collapse the function rows into `work_type` values, leaving the practice-area rows to carry the privacy differences. `also_holds_with` is schema-to-schema only under CONNECTION section 5, so no template can express (a) as an edge and R1c must settle it. (4) NJ-CD-4, THE FIELD DEPENDENCY: this row's non-subject rule is currently a prohibition with no key behind it. It ENDORSES the anchor's existing `subject_of_record` proposal and mints nothing, and asks that destination-ineligibility live on the KEY rather than being restated by every template. It adds one observation the other proposers cannot: this row needs `subject_of_record` to distinguish a subject who is the CLIENT from a subject who is an ADVERSE THIRD PARTY within a single matter, which is a distinction no other proposer has raised and which decides whether the use restriction attaches."
+}

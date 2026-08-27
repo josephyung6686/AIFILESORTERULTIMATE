@@ -1,0 +1,365 @@
+{
+  "id": "nonprofit.political-campaign",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Political campaigning and party organising",
+  "one_line": "REFUSED. Every artefact this row was created to hold either (a) activates the nonprofit schema on the schema's OWN default structures and is already owned by a landed sibling — a party member roll is nonprofit.member-association, a campaign donation is nonprofit.fundraising-donor, a canvasser rota is nonprofit.volunteer-management, an issue campaign is nonprofit.advocacy-campaign, a party constitution and its executive minutes are nonprofit.governance and business_operations.board-governance — or (b) is genuinely distinctive of an election and CANNOT activate the nonprofit schema at all, because the nonprofit precondition is a NON-EXCHANGE relation between two labelled parties and a nomination paper, an election-agent appointment, a return of election expenses and an imprinted leaflet are respectively a statutory, an officer, a regulator and a marketing relation. What remains after both subtractions is the assertion that the association is a political party rather than a charity — an organisation type, which the schema names as a forbidden sole activator alongside charitable status and mission vocabulary. The one structure that is neither owned nor forbidden, the canvass or voter-contact register, fails the precondition hardest of all: a canvassed elector gives nothing and receives nothing, so no non-exchange relation exists, and that register is routed to Protected Records with an open question rather than used to justify a node it cannot activate.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the CONNECTION section 2 template test against the nonprofit schema's default, and fails a prior condition the other refusals in this family did not have to face. (1) DETECTION SIGNALS do not differ: every campaign artefact that can fire the nonprofit precondition fires one of the schema's own named default structures verbatim — a party selection ballot is the schema's 'members' meeting instrument carrying a notice period, a motion, a proxy or ballot form and a member-vote count'; a party subscription roll is the schema's 'roll or register with one row per named member carrying a membership number or class, a join or lapse date, and a subscription or dues status'; a campaign contribution form is the schema's donation structure with a different declaration type, and a declaration type is a value. (2) RECOMMENDED DIMENSIONS cannot differ: the schema declares no field rows under PR-6, so dimension_order is empty for this row and for the default alike, and an empty order cannot differ from an empty order. (3) PRIVACY RULES do not differ: the nonprofit schema's sensitivity argument already names 'a political donation' explicitly among the records that 'reveal belief, affiliation or need from the fact of the record's existence', so the posture this row would claim is the posture the schema already carries. The prior condition it also fails: the schema's activation precondition is that 'Every accepted signal must evidence a NON-EXCHANGE relation between two labelled parties: money or labour given without a commensurate return, or service given to a named person who is not paying for it.' The five artefacts that make an election campaign distinguishable from a charity appeal — the nomination pack, the election-agent appointment, the return of election expenses, the imprinted election address, and the canvass return — evidence a statutory relation, an officer appointment, a regulator relation, a marketing relation, and no relation at all. A template whose flagship evidence cannot activate its own schema is not a template. Refusing is the cheaper error: 'Correct abstention is a successful outcome because the product's goal is reliable organization, not maximum file movement.' RECOMMENDATION TO R1c, NOT AN EDIT: government.elections-administration has already authored a collision naming this id and asserting that 'A completed nomination pack, agent appointment, spending return, election address, or agent's count tally sheet is campaign material even though the form was issued by the authority.' That assertion is correct about SIDE and wrong about SCHEMA. If the campaign-side custody of a poll deserves a node, its host is business_operations — the regulated-entity-to-regulator relation that business_operations.corporate-regulatory-filings already owns, plus go-to-market for the literature — not nonprofit. R1c should re-point that edge rather than resurrect this row on this schema.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "A political party, campaign, committee or candidate NAME, and a party logo, rosette or colour scheme. This is the row's terminal never-alone and the reason it is refused: after the landed siblings take the member roll, the donations, the volunteer rota and the advocacy work, the party name is the only thing left that is common to the remaining files, and the nonprofit schema forbids exactly this class of sole activator — 'a charitable registration number, a 501(c)(3) or CIC or union or diocese designation, a mission statement, a logo, or a nonprofit-sounding name is NEVER sufficient on its own, and neither is a document-type word beside one. Tax status is a field value, not a structure.' An organisation type is the same kind of thing as a tax status.",
+      "An electoral or campaign VOCABULARY token — ballot, poll, constituency, precinct, ward, riding, hustings, canvass, manifesto, platform, primary, caucus, election, candidate, agent, imprint. Every one of these appears in an election-authority record, a journalist's file, a political-science reading list, an opinion pollster's dataset and a voter's own polling card, none of which is an association's non-exchange record.",
+      "A DATE that coincides with a polling day, and a filename or folder naming an election year. A date is not a side and not a relation.",
+      "A regulator-facing DECLARATION or a signature by a named agent, standing alone. A declaration establishes that a return was made, which is a regulator relation and business_operations.corporate-regulatory-filings' structure; it does not establish a donor, a member, a volunteer or a beneficiary.",
+      "An IMPRINT line of the form promoted-by-X-on-behalf-of-Y-at-an-address. It is a statutory marking applied to a printed or digital artefact, comparable to a copyright notice: it is one line of legally required text on a piece of marketing collateral, and it tells you the item was published, not what relation the holder stands in."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty, and necessarily so on both sides of the comparison. The nonprofit schema declares no field rows under PR-6 and D1 as narrowed, so its default template holds its recommendation as prose and serialises an empty dimension_order; any template on it must do the same. An empty order cannot be shown to differ from an empty order, which is why this row's node test had to be decided on detection signals and privacy rules alone — and it lost on both. For the record of what was considered and rejected: a campaign-first order (election, then function) was tested and abandoned because 'election' is a time-boxed period, and the schema's default already places the non-exchange counterparty or fund before the period; a candidate-first order was abandoned because a candidate's name is a person's name, which the schema bans from folder levels outright — 'a named BENEFICIARY, DONOR, MEMBER or SAFEGUARDED PERSON may NEVER be a folder level'. A canvassed elector is a stronger case for that ban than any party the schema listed, since the elector never opted into the record.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "contacts",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Nomination paper - Ward 4 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority-issued form title and form reference printed in the margin",
+        "a labelled candidate slot with name, home address and description",
+        "a subscriber or assentor block of ten signature rows each carrying an electoral roll number",
+        "a consent-to-nomination declaration signed and dated by the candidate"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any nonprofit fact - the schema declares none, and here it does not even activate",
+        "that assentor signatures are 'labour given without a commensurate return'. A signature attesting to a statutory qualification is not labour and the assentors are not volunteers of the campaign; the relation runs candidate-to-returning-officer, which is statutory, not non-exchange",
+        "which side holds it - the blank form, the completed copy and the authority's stamped copy are near-identical bytes",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Return of election expenses - candidate declaration.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a regulator or returning-officer addressee block",
+        "expense category rows with amounts, supplier names and invoice references",
+        "two separate signed declarations, one by the candidate and one by the election agent",
+        "a stated regulated period with start and end dates"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a spending return is a nonprofit record. The relation is regulated-entity to regulator, which the nonprofit schema explicitly and by name ceded: 'A charity annual return, a Form 990, a union LM filing, a public-benefit statement submitted to a regulator: the relation is regulated-entity to regulator, which is the whole of that landed row's node. This schema takes none of it.'",
+        "that the supplier invoices inside it are donations - they are purchases, an exchange relation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Canvass returns - Ward 4 - 2026-04-18.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named elector with an elector number and a street address",
+        "a voting-intention or support-level column holding a coded value",
+        "a canvasser initials column and a date-of-contact column",
+        "no consent field, no membership number, no amount column anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "THE DECIDING FIXTURE FOR THIS REFUSAL. Do not conclude that this activates the nonprofit schema. It is the single most distinctive artefact of an electoral campaign and it fails the schema's precondition more completely than any file the schema's own author tested: the elector gives nothing, receives nothing, and stands in no relation to the association at all - not donor, not member, not volunteer, not beneficiary. There is no non-exchange relation because there is no relation",
+        "that the coded support value is the elector's opinion. It is an inference recorded by a canvasser about a third party who never declared it and cannot correct it",
+        "that the file may be grouped or pathed by elector name or by street - 'The default posture must therefore be local-first and data-minimizing.'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Members roll - Riverside branch - 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named member with a membership number and a membership class",
+        "join date and lapse date columns",
+        "a subscription status column with paid and unpaid values",
+        "a branch name in the sheet tab"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a party makes this row's evidence rather than the schema's default. This is the nonprofit schema's MEMBERSHIP-REGISTER structure word for word - 'a roll or register with one row per named member carrying a membership number or class, a join or lapse date, and a subscription or dues status' - and nonprofit.member-association owns it. That the association is a party rather than a choir changes the organisation type and nothing about the structure",
+        "a member fact or an organization fact; both keys are proposals awaiting R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contribution form - permissibility declaration.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named contributor slot with address, employer and occupation",
+        "an amount and a date",
+        "a certification block asserting the contributor's eligibility to give and that the funds are their own",
+        "a recipient committee or association name and a registration number"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a permissibility certification makes a new structure. It is the nonprofit schema's DONATION structure - a named donor slot, a recipient association, and a declaration - with the declaration's subject changed from tax relief to donor eligibility. A declaration's subject is a value, and nonprofit.fundraising-donor owns the structure",
+        "which side holds it. The giver's copy is the giver's own record and is finance, exactly as the schema states of a donor-side receipt; the association's copy is the association's. The bytes do not say",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Doorknocking rota - final weekend.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a table of dated shifts with start and end times",
+        "named people assigned to shifts with phone numbers",
+        "a meeting-point address and a team-leader column",
+        "no rate, no hours-worked total, no payroll or tax reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is campaign-specific. It is the nonprofit schema's volunteer structure and nonprofit.volunteer-management owns it; the schema's own open question already marks a volunteer row as weak because its discriminator is the ABSENCE of payroll structure, and that weakness is inherited here rather than cured by adding an election to it",
+        "that the named people are volunteers rather than paid staff on the strength of the missing rate column - an absence is not evidence",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Election address - print ready - imprint checked.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a two-sided leaflet layout at print dimensions with bleed marks",
+        "a candidate photograph and headline pledges",
+        "a promoted-by and printed-by imprint line in small type at the foot",
+        "a printer's job number and a stated print quantity"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an imprint is a nonprofit signal. The artefact is marketing collateral heading to a printer; creative.ad-campaign and business_operations.go-to-market hold that shape, and the imprint is one line of statutorily required text on it, no more structural than a copyright notice",
+        "that the pledges are policy positions the product should extract or summarise",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "NEC minutes - 12 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover naming a national executive committee and a meeting date",
+        "attendance, apologies and quorum",
+        "numbered papers and numbered resolutions",
+        "an embedded management-accounts appendix"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a party's executive minutes are a party record in this row's sense. The nonprofit schema states the general case flatly - a charity, union, church or association 'runs itself with exactly the same artefacts as a company: board or trustee minutes, budgets and forecasts, policies, contracts, procurement, projects, risk registers' and 'this schema does NOT hold them'. business_operations.board-governance and business_operations.meeting-record hold this, with nonprofit.governance for the association-specific residue",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statement of persons nominated - Ward 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority letterhead and a returning officer's signature block",
+        "a table of every candidate with description and assentors",
+        "a validity determination column and a receipt stamp with an office file reference",
+        "the same candidate and party strings that appear in the campaign's own nomination pack"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "THE COLLISION FIXTURE. Do not conclude campaign custody. government.elections-administration owns this and states its own precondition: 'every signal below must show the corpus holder on the ADMINISTERING side of a poll'. The receipt stamp, the office file reference, the validity determination and the officer signature are administering-side evidence; the campaign's copy of the same poll carries none of them",
+        "that identical candidate and party strings on both sides create a group across the seam",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Constituency casework log - housing cases.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named constituent with a case reference and an opened date",
+        "an issue category column and an agency-contacted column",
+        "a caseworker column and an outcome column",
+        "a member-of-parliament or councillor office name in the header"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an elected member's office is the campaign that elected them. government.constituent-casework owns this: the holder is an office exercising a public representative function, which is authority-side. The same person's campaign and the same person's office are two different corpora with two different relations, and the office's constituent is not a non-exchange counterparty of an association",
+        "that a constituent's name or issue may reach a prompt or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Polling card - my address.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed or scanned card addressed to one named person",
+        "a polling station name and address and a polling day date",
+        "an elector number",
+        "an authority logo"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that election vocabulary plus a party-shaped context activates anything here. This is a voter's own record of their own poll - an individual's civic document, not an association's record and not an administering office's record. It is the cleanest demonstration that electoral vocabulary is a never-alone token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Campaign database export - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "an encrypted archive that cannot be listed without a password",
+        "a filename asserting a campaign database",
+        "a modification date shortly after a polling day"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the filename manufactures a canvass register, a donor list, a member roll, a side, or a sensitivity result. Nothing inside is observed",
+        "that it should be forced open to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "SAME FIXTURE BOTH SIDES: `Members roll - Riverside branch - 2026.xlsx` — the sibling owns it and this row owns nothing that would distinguish it, which is one of the four subtractions that empty this row. A party branch roll carries the schema's default membership-register structure exactly: one row per named member, a membership number or class, a join or lapse date, a subscription status. Discriminated by nothing available in the bytes, because there is nothing to discriminate — the only proposed difference is that the association is a party, an organisation type the schema names as a forbidden sole activator. In the reverse direction the sibling loses nothing: a selection ballot or a leadership-election proxy form is the schema's members' meeting instrument whatever the association's politics. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.fundraising-donor",
+      "signal": "SAME FIXTURE BOTH SIDES: `Contribution form - permissibility declaration.pdf` — this row would claim it for the permissibility certification, the sibling owns it for the donor-and-recipient-plus-declaration structure, discriminated by the observation that a certification's SUBJECT (donor eligibility rather than tax relief) is a declaration value and not a structure. In the reverse direction the sibling must not treat a political recipient as outside its scope: an appeal is an appeal, and the schema's own grouping reason 'one APPEAL or campaign: the ask, the donations attributed to it, the thank-you letters and the result report' already forms the campaign group without this row existing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.volunteer-management",
+      "signal": "SAME FIXTURE BOTH SIDES: `Doorknocking rota - final weekend.docx` — this row would claim it as canvassing, the sibling owns it as a volunteer rota, discriminated by the shift-and-assignment table plus the absence of rate and payroll structure, which is the sibling's own discriminator and is not improved by adding an election to it. In the reverse direction, a phone-bank or literature-drop rota is a volunteer rota and does not become a distinct thing because the shifts are electoral; hr co-activates on either side where the named people are also employees. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.advocacy-campaign",
+      "signal": "SAME FIXTURE BOTH SIDES: a campaign plan with target audiences, message grid, channel plan and a dated milestone schedule — indistinguishable between a charity's issue campaign and a party's electoral one, discriminated only by whether the ask is a vote or a policy change, which is content and not structure. The schema's own open question already judged that shape: 'campaigning-advocacy is WEAK because a campaign plan is go-to-market with different nouns'. That judgement applies to this row with equal force, and if R1c refuses the advocacy sibling on that ground it must refuse this one on the same ground. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: `Return of election expenses - candidate declaration.pdf` — this row would claim it as the campaign's regulated spending, the neighbour owns it as the regulated-entity-to-regulator relation that is the whole of its node, discriminated by the regulator addressee plus the signed statutory declaration, which is that row's structure and not a non-exchange relation. In the reverse direction the neighbour also owns a party's or committee's periodic donation report to an electoral regulator and its registration record, for the same reason it owns a charity annual return; the nonprofit schema ceded that relation by name. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.elections-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Statement of persons nominated - Ward 4.pdf` and the nomination pack behind it — the neighbour owns administering-side custody, discriminated by the receipt stamp, office file reference, validity determination and officer signature that its own precondition requires; the campaign-side copy carries the candidate's consent block and assentor rows instead. IMPORTANT AND RECIPROCAL: that landed row has already authored the reverse edge asserting 'A completed nomination pack, agent appointment, spending return, election address, or agent's count tally sheet is campaign material even though the form was issued by the authority.' This row agrees about the SIDE and disagrees about the HOST — campaign-side custody is real, but it is not a nonprofit non-exchange relation, so the edge should be re-pointed at business_operations rather than kept aimed at a refused id. R1c owes that repair; this row must not edit the neighbour. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.constituent-casework",
+      "signal": "SAME FIXTURE BOTH SIDES: `Constituency casework log - housing cases.xlsx` and a named constituent's letter — the neighbour owns it as an elected office exercising a public representative function, discriminated by the office letterhead, case reference and agency-referral columns; the campaign side would have only the candidate's name in common. In the reverse direction a canvass return must never be merged into a casework log even though both are registers of named residents of one district: the constituent asked for help and the elector was approached, which is the difference between a service relation and no relation at all. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.ad-campaign",
+      "signal": "SAME FIXTURE BOTH SIDES: `Election address - print ready - imprint checked.pdf` — this row would claim it for the imprint, the neighbour owns it as print-ready creative collateral with bleed marks, a printer's job number and a stated quantity, discriminated by the production structure rather than by the subject matter. In the reverse direction, a party's brand guidelines, ad buy schedule and social creative are ad-campaign and go-to-market artefacts; nothing about an electorate as an audience makes them a non-exchange record. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first and it is the load-bearing part of this refusal. The canvass or voter-contact register, and any campaign-held list of named electors with recorded support levels, has no owning row after this refusal and must not acquire one by force: it is a register of named third parties carrying an inference about their political opinion that they never declared. 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.' The member roll and constituent log route here too when their owning sibling does not confidently activate.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The correct home for this family's characteristic unresolved file: a real-looking electoral document whose SIDE is undecided, because the blank authority form, the campaign's completed copy and the authority's stamped copy are near-identical bytes. 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone nomination paper, a polling card, a party membership card, a certificate of registration or a single executive minute with no accepted group around it. 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world: a single contribution confirmation, a subscription payment, a fundraiser ticket, a platform notification of a donation received. 'Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Where this row's most abundant tempting files belong: manifestos, other parties' literature, published results tables, statements of persons nominated downloaded as public information, polling analyses, political journalism and sector guidance. 'Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected campaign, voter-file and contact-management exports are ordinary here and are precisely the files that must not be forced open to rescue a classification.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded on a refused row because the refusal must not lower the guard on the material it releases. The nonprofit schema already argues this posture and already names this row's central case inside it: membership and donation records 'reveal belief, affiliation or need from the fact of the record's existence, before any content is read', and its list is 'a union roll, a congregation register, a political donation and a support-group membership'. This row adds one observation the schema did not have to make, and it is the reason Protected Records is named first above: the canvass register exposes a party who is not the user, not an employee, not a customer, not a donor, not a member and not a beneficiary — an elector who never entered any relation, whose recorded political opinion is an inference made about them by a stranger at their door. That is a weaker consent basis than any party the schema enumerated. The handling class is P7's and is not set here; this row asserts only that refusal routes the material to a protective home rather than to no home.",
+  "open_question": "Four. (1) NJ-PC-1, the orphan structure. The canvass or voter-contact register is a coherent, real and highly sensitive artefact family with no owning row after this refusal, because it evidences NO relation and therefore cannot activate the nonprofit schema. Alternatives for R1c: (a) leave it in Protected Records permanently, which is safe and gives it no grouping axis; (b) host it on business_operations as a contact-and-outreach register alongside customer-account-management, which gains a grouping axis and loses the protective default; (c) admit that a register of named non-consenting third parties is a cross-schema privacy PRIMITIVE rather than a domain, and let P7 own it. This row recommends (a) and flags that (b) would be the dangerous choice. (2) NJ-PC-2, the dangling edge. government.elections-administration already collides with this id and asserts campaign-side custody of nomination packs, agent appointments, spending returns, election addresses and count tallies. That assertion survives this refusal but its target does not. R1c must either re-point it at business_operations.corporate-regulatory-filings plus creative.ad-campaign, or reopen this row on business_operations rather than nonprofit. This row did not edit the neighbour. (3) NJ-PC-3, the sibling symmetry. The nonprofit schema's own open question marks nonprofit.advocacy-campaign weak on the ground that a campaign plan is go-to-market with different nouns. If advocacy-campaign is nonetheless kept, the reason it is kept will very likely apply to this row too, and R1c should reconsider both together rather than accept an inconsistent pair. (4) NJ-PC-4, whether a party's own donation reporting to an electoral regulator is really identical to a charity annual return. Both are regulated-entity-to-regulator, but the party's return discloses named individual donors, which a company's filing does not; if that difference matters, business_operations.corporate-regulatory-filings needs a privacy note it does not currently carry, and this row is where the need was noticed."
+}

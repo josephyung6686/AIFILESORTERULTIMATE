@@ -1,0 +1,518 @@
+{
+  "id": "logistics.driver-compliance",
+  "kind": "template",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Driver records and compliance",
+  "one_line": "The organizational situation of ONE NAMED NATURAL PERSON HELD AGAINST A STATE-CONFERRED PERMISSION TO DRIVE: the evidential core is not a job title, not the word driver and not a folder of certificates, but an entitlement artefact keyed on one person — categories and expiry dates conferred by a licensing authority, a medical fitness examination that renews that entitlement, periodic-training hours redeemed for a qualification card, and the activity-interval record (driving, other work, availability, rest) whose limits generate infringements. The subject is a person and the operative date is a FUTURE lapse rather than a past event, which is why this row differs from every sibling in the family. PLACEHOLDER ROW (J-IND): researched to J-DEPTH, writes NO field rows because the logistics schema declares none under PR-6, and proposes no new key.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "schema_default_template": "The `logistics` schema states its default in prose because it declares no fields: the carrier or trading counterparty ONLY where the corpus spans more than one, then the custody subject (the consignment or container; or the vehicle, the depot or the working day), then the document function, then time as a leaf. Its detection fingerprint is the consignment role structure — two named parties in DIFFERENT roles over one described quantity of goods, with a place of taking over, a place of delivery and an acknowledgement slot. Its privacy rule is the family principle THE CONSIGNEE IS A PARTY, NEVER A FOLDER.",
+    "leg_1_detection": "DIFFERS. Every element of the default fingerprint is absent here: no goods, no quantity, no consignor/consignee pair, no place of taking over, no acknowledgement of receipt. What fires instead is a person-and-permission structure — one named natural person, entitlement categories with per-category expiry dates, an issuing or checking authority, and a periodic re-proof cycle — or an activity-interval structure attributing driving, other work, availability and rest to one named person across a stated period against limits. The schema's own file already names both as distinct structures rather than as consignment variants: 'a driving-hours or tachograph structure: repeated activity intervals (driving, other work, availability, rest) attributed to one named driver and one vehicle across a stated period, with statutory limits or infringement flags' and 'a driver-entitlement structure pairing a named person with licence categories, expiry dates, a medical-fitness statement or certificate, and periodic-training or qualification-card evidence'. A consignment-shaped detector cannot produce either.",
+    "leg_2_dimensions": "DIFFERS, and by a deletion no sibling makes. `logistics.fleet-vehicle` already differs from the default by deleting the counterparty level while keeping its subject as a level, because an operated vehicle is the filer's own subject. This row must delete the counterparty level AND the subject level, because the subject is a natural person and the family principle plus `00` forbid a person-shaped branch: 'A folder should not become a collection point for everything produced by the same person or organization'. What remains is function, then the expiry or period as a leaf. The time argument also inverts: elsewhere in the family the operative date records a past custody event, whereas here it records a FUTURE lapse, so a year-first tree keyed on issue date buries the only date the file is kept for. `time_first` is therefore false for a different reason than in the default.",
+    "leg_3_privacy": "DIFFERS, and this is the row's strongest leg. The schema's default sensitivity concerns third-party transactional data — a consignee's name and home address, a signatory's surname, a delivery coordinate. This row adds two categories the rest of the family never touches. First, health information about a person other than the filer: a medical examination report and a drug-and-alcohol test result are clinical findings, not transport records. Second, granular worker surveillance: a driver-card download is a minute-by-minute activity history of one named worker across every vehicle they drove. It also inverts the holder-subject relation — elsewhere the third party is a counterparty to a transaction, here the subject is a person under the filer's authority, and the file is often adverse to them (an infringement report). The rule that follows is specific to this row: never aggregate across drivers into a comparative profile, never let the dossier become a destination even though it is perfectly coherent, and no default remote or model path over any member.",
+    "verdict": "All three legs differ from the schema default. Node accepted as a template."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an entitlement structure: one named natural person paired with a set of vehicle CATEGORIES, each carrying its own valid-from and valid-to date, plus an issuing or checking authority block. The per-category expiry set is the fingerprint — a certificate with one issue date and one expiry is a credential, but a category matrix with independent expiries is a driving entitlement",
+      "a licence-check structure: a person, a check reference or share code, a check timestamp, the categories held, and an endorsement or penalty-point table with offence codes and disposal dates. The endorsement table is discriminating because no other artefact in this family carries adverse findings against a person",
+      "a driver medical structure: a named examinee, a named examining clinician with a registration block, vision, cardiac, neurological, diabetes and substance sections, and a fitness conclusion tied to a licence group rather than to employment. The tie to a licence group is what makes it this row's rather than an employer's health-surveillance record",
+      "a periodic-training structure: hours or module credits accumulated toward a stated cycle total, each module dated and named, redeemed for a qualification card with its own expiry. The ACCUMULATION toward a cycle is the signal; a single attendance certificate with no cycle is not this structure",
+      "a driver-card activity structure: repeated intervals labelled driving, other work, availability and rest, attributed to ONE named cardholder across several vehicle identifiers over a stated period, with daily and weekly aggregates. The cross-vehicle attribution to one person is what separates it from the vehicle-unit download",
+      "an infringement structure: a named person, a period, rows naming a specific limit and the amount by which it was exceeded, and a slot for the driver's acknowledgement or explanation. It is an analysis output about a person, not a record of an event",
+      "a dangerous-goods or specialist vocational structure: a named person, a training class or tank/packages scope, an examination date and an expiry, issued against a transport regime rather than against a workplace equipment class",
+      "a driver-file index or expiry register: rows keyed on people, columns naming licence expiry, medical due, card expiry, next check date, with a due or overdue disposition. A register whose columns are FUTURE dates against people is this row's characteristic aggregate",
+      "an archive or export whose manifest binds licence, medical, training and hours members under one person reference; per `00`, 'Archives should be inspected without being unpacked to disk.'"
+    ],
+    "needs_llm": [
+      "a scanned or photographed card where OCR recovers categories and dates but not which of them is the licence expiry, the photocard expiry and the qualification-card expiry — three different dates that look identical",
+      "a certificate that could be a road entitlement or a workplace equipment ticket: forklift, crane, plant and passenger-lift certificates share layout, an accrediting-body logo and an expiry with a driving qualification card",
+      "an unlabelled spreadsheet of names and dates that may be an expiry register, a rota, a holiday tracker, a probation list or a mailing list",
+      "a medical form that may be a driver fitness examination, an occupational-health screening, a pre-employment questionnaire or the person's own clinical record",
+      "a signed sheet naming a person, a vehicle and a date that may be a walkaround check (the vehicle's defect record and the driver's discharge of a check duty at once), a handover note or a delivery receipt",
+      "an email whose subject names expiry or renewal and whose body may concern a person's entitlement, a vehicle's test, an insurance policy or a software subscription"
+    ],
+    "never_alone": [
+      "the occupation word driver, or a job title, in a filename, a heading or a folder name. It is the single most tempting false positive in this family: it appears on a job advertisement, a rota, a payslip, an agency invoice, a delivery-instruction note and a vehicle insurance schedule, none of which is an entitlement record",
+      "a person's name alone, in any position. Read across from `00`'s rule that 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.' — the reasoning is role ambiguity, and a person's name is worse: the same name appears in one corpus as the record subject, the author, the signatory, the recipient, the examining clinician, the payee and a mention",
+      "the words licence, license, permit, medical, certificate, card, training, CPC or compliance alone. Every one has a common non-driver meaning, and each appears on at least one of this row's collision fixtures",
+      "a licence-number-shaped or card-number-shaped token alone. It collides in shape with membership numbers, policy numbers, employee numbers and national identifiers, and a bare identifier cannot say whether the holder is the filer or a third party",
+      "an expiry date alone, and a renewal reminder alone. Insurance, subscriptions, domain names, warranties, passports and tenancy agreements all expire and all generate reminder mail",
+      "a photograph of a card. A photocard image proves that a card was photographed, not that the filer holds a duty record about that person; the same image is an identity document when the subject is the filer",
+      "an issuing or accrediting authority name alone. A licensing authority, an examining body and a training provider each appear as issuer, supplier, payee and subject across one corpus",
+      "a folder named Drivers, HR, Compliance or Licences, and a shared download session. Neither is evidence about any member; `00` treats a download session as unusable as a topic",
+      "an amount due, a rate, an hours-worked total for pay, or a tax treatment. Their PRESENCE is evidence AGAINST this row: a priced or payable document about a driver is an engagement, a payroll record or an agency invoice, not the permission record that this row exists to hold"
+    ]
+  },
+  "proposed_context_terms": [
+    "categories held",
+    "valid from",
+    "valid to",
+    "endorsements",
+    "penalty points",
+    "share code",
+    "licence check",
+    "fitness to drive",
+    "group 2 entitlement",
+    "periodic training hours",
+    "qualification card",
+    "driver card",
+    "daily rest",
+    "weekly rest",
+    "reduced daily rest",
+    "infringement",
+    "next medical due"
+  ],
+  "work_types": [
+    "driving licence, entitlement summary or photocard evidence for a named person",
+    "licence check or share-code verification with endorsement and penalty-point rows",
+    "medical examination report and fitness-to-drive conclusion",
+    "drug and alcohol testing record",
+    "periodic-training module record and hours accumulation toward a cycle",
+    "driver qualification card or vocational competence card evidence",
+    "dangerous-goods or specialist vocational training certificate",
+    "driver-card activity download and its printed daily or weekly reports",
+    "working-time and availability record for a named person",
+    "infringement report, driver explanation and follow-up record",
+    "driver expiry register or driver-file index",
+    "agency or subcontract driver entitlement evidence held by an operator",
+    "driver induction, assessment and on-road check record where it evidences entitlement rather than employer programme participation"
+  ],
+  "grouping_reasons": [
+    "an exact person reference — a licence number, a driver-card number or a driver-file reference — repeated across an entitlement summary, a medical, a training record and an hours download, where at least one member independently carries an entitlement or activity structure",
+    "a training-cycle relation: several dated module records that sum toward one stated cycle total and one qualification card, which group as a series without any member inheriting another's date or scope",
+    "an infringement relation: an activity download, the infringement report derived from it for the same person and period, and the acknowledgement that closes it",
+    "an expiry-register relation: a register row and the underlying certificate it refers to by exact reference, where the register never copies its due-date computation onto the certificate",
+    "an archive or export manifest that already binds the members, inspected without unpacking",
+    "an operator-authorisation relation: an undertaking that names the checking frequency the licence checks in the group actually follow, which is what makes a group a driver file rather than a pile of a person's certificates"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: a dimension may only branch on a field the same schema declares, and `logistics` declares none under PR-6. The recommendation is held as prose and DIFFERS FROM THE SCHEMA DEFAULT BY A DOUBLE DELETION — no counterparty level and, uniquely in this family, NO SUBJECT LEVEL: document function (entitlement / fitness / training / hours and infringements), then the expiry or the covered period as a leaf. The counterparty deletion follows `logistics.fleet-vehicle`'s reasoning: a licensing authority, an examining clinician, a training provider and an analysis bureau are issuers, not counterparties to a movement. The subject deletion is this row's own argument and the harder one, because the driver dossier is the most coherent grouping in the whole family and is exactly what an operator asks for — and it must still not be built, because `00` holds that 'A folder should not become a collection point for everything produced by the same person or organization' and the schema's family principle already forbids a person-shaped level for the consignee. A person under the filer's authority deserves at least the protection the family gives a counterparty. The dossier therefore lives as a GROUP with a display alias, never as a destination. Function before time because `00`: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' — a person's licence checks, medicals and training modules interleave across every year they drive, and a year-first tree separates an infringement from the acknowledgement that closed it. Time survives as a leaf, but note the inversion peculiar to this row: the leaf that matters is the FUTURE lapse date, not the past issue date, so any time level built from creation dates would bury the only fact the file is retained for.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary",
+      "code_structured",
+      "filesystem"
+    ],
+    "extensions": [
+      "pdf",
+      "xlsx",
+      "csv",
+      "docx",
+      "jpg",
+      "png",
+      "heic",
+      "eml",
+      "ics",
+      "xml",
+      "json",
+      "zip",
+      "ddd"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Licence check summary - J Okafor - 2026-07-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named person with a licence-number-shaped token and a date of issue",
+        "a table of entitlement categories, each with its own valid-from and valid-to date",
+        "an endorsement section with offence-code-shaped tokens, dates and disposals",
+        "a check reference or share code and a timestamp of the check itself",
+        "an issuing or checking authority block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the named person is the filer",
+        "a compliance verdict, an entitlement the file does not list, or a computed next-check date",
+        "that an empty endorsement section proves a clean record at any other time",
+        "a vehicle fact, a consignment fact or any custody fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Medical examination report - group 2 - completed and signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a pre-printed authority form with a named examinee and a named examining clinician carrying a professional registration block",
+        "vision, cardiac, neurological, diabetes, sleep and substance-use sections with tick and free-text slots",
+        "a fitness conclusion expressed against a licence group rather than against a job",
+        "an examination date and a stated re-examination interval"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any clinical interpretation, diagnosis, prognosis or fitness verdict of the product's own",
+        "that the fitness conclusion transfers to any other person, licence group or date",
+        "that the examining clinician is the subject's own doctor"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Periodic training - module 3 - Drivers Hours and Tachograph - 7 hours.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named attendee, a named approved training provider and a course-approval reference",
+        "a module title and an hours credit stated against a cycle total",
+        "a delivery date and a trainer signature",
+        "an upload or registration reference to a central training record"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the cycle is complete, or how many hours remain",
+        "that the module confers an entitlement by itself",
+        "an employer fact from the presence of a provider"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Driver qualification card - expiry 2029-09.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a plastic card; OCR recovers the layout",
+        "a person's name and a portrait region",
+        "a card number, an issuing authority and an expiry date distinct from the licence expiry",
+        "a category or scope strip"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the card expiry is the licence expiry or the medical due date",
+        "that the portrait region may be used for face matching or person linking",
+        "an identity conclusion about the filer"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Driver card download - OKAFOR J - 2026-07-01 to 2026-07-28.ddd",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a binary download with a signed-data structure the filesystem cannot render",
+        "the filename carries a person token and a period, not a vehicle token",
+        "sibling PDF printouts in the same folder show activity intervals attributed to one cardholder across several vehicle identifiers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any activity, location, limit or infringement fact from the filename alone",
+        "that the file may be parsed, transmitted or summarised remotely by default",
+        "a vehicle fact — this download's subject is the person, not any asset it names"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Infringement report - period 2026-07 - J Okafor.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named person and a stated analysis period",
+        "rows naming a specific limit, the recorded value and the amount by which it was exceeded",
+        "a severity or band column produced by an analysis bureau",
+        "a driver explanation slot and a countersignature block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an infringement occurred, was accepted, was disputed or was closed",
+        "any comparison, ranking or trend across drivers",
+        "an employment consequence of any kind"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Driver expiry register - all drivers - 2026-Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows keyed on people, with employee-number-shaped and licence-number-shaped columns",
+        "columns naming licence expiry, medical due, card expiry and next check date — every one a future date",
+        "a due or overdue disposition column, some cells conditionally coloured",
+        "a hidden sheet of notes naming absences and restrictions"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a driver-name level in any tree, and no per-person branch derived from the rows",
+        "that a colour or a disposition is a compliance finding",
+        "that a row's due date may be copied onto the certificate it refers to"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ADR vocational training certificate - tank and packages - expiry 2027-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named person, a certificate number and a photograph region",
+        "a scope strip naming classes and a tank or packages qualification",
+        "an examination date and an expiry distinct from every other card the person holds",
+        "an issuing competent-authority block against a transport regime"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the scope covers any class the certificate does not name",
+        "a dangerous-goods consignment fact — this is the person's permission, not a load"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-12 at 09.11.04 - licence check portal.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: a browser chrome strip, a portal header and a viewport-shaped aspect",
+        "OCR recovers a person, a category table and a check timestamp",
+        "no download or issuance structure of its own"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that missing camera metadata proves screen origin — `00` forbids absence-based screenshot proof",
+        "that the screenshot is an authoritative check record, or that it may substitute for one"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE Licence and medical expiries - action needed.eml",
+      "source_type": "email",
+      "observations": [
+        "a subject naming expiry and renewal",
+        "a body listing several people against dates, some with restrictions named in prose",
+        "attachments: two photocard scans and one medical form",
+        "sender and recipient are internal operator addresses"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the body's prose about a person is a fact about that person",
+        "that every attachment shares the subjects named in the body",
+        "an entitlement or fitness fact stated only by a colleague in free text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Driver licence rechecks - Q3.ics",
+      "source_type": "calendar",
+      "observations": [
+        "recurring events whose titles carry person tokens and the word recheck",
+        "an organizer that is a transport-manager address",
+        "descriptions carrying licence-number-shaped tokens"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a scheduled recheck occurred",
+        "an entitlement fact from a calendar title",
+        "any person-keyed destination from attendee lists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Driver files - licences medicals CPC.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing per-person subfolders",
+        "members of mixed kinds: photocard scans, medical forms, training certificates, one activity download",
+        "at least one member that does not belong: a payslip PDF and an agency invoice",
+        "no single member states the archive's own scope"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that every member concerns the person named by its subfolder",
+        "that the payslip or the invoice inherits an entitlement reading from its neighbours",
+        "an unpack to disk — `00`: 'Archives should be inspected without being unpacked to disk.'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Walkaround defect report - YJ19 KXR - 2026-03-02.jpg",
+      "source_type": "image",
+      "observations": [
+        "a pre-printed daily check sheet with a registration and a date at the head",
+        "one check item marked defective with a handwritten description",
+        "a driver name and signature block, and a separate rectified-by block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the driver signature makes the defect a fact about the person",
+        "that the asset defect is a fact about the driver, or the reverse",
+        "a fitness, entitlement or hours fact from a check sheet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Counterbalance forklift operator certificate - accrediting body.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named person, an accrediting-body logo, a course code and an expiry",
+        "a machine class named as workplace equipment, not as a road vehicle category",
+        "an employer named as the sponsoring organisation",
+        "no licensing-authority block and no per-category expiry matrix"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a workplace equipment ticket is a road entitlement",
+        "that the shared layout with a driving qualification card makes it this row's evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Driving licence photocard - front and back.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photocard scan with a portrait, a name, a date of birth, an address and a category strip",
+        "filed among passports, birth certificates and a national-insurance letter",
+        "no check reference, no operator context, no counterpart medical or training record"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the presence of driving categories makes it an operator's duty record",
+        "an entitlement-dossier membership from a single card image"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle unit download - YJ19 KXR - 2026-07.ddd",
+      "source_type": "opaque_binary",
+      "observations": [
+        "identical extension, period and producing operator as the driver-card download",
+        "the filename token is a registration, not a person",
+        "printed reports show intervals attributed to an asset across several cardholders"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a per-person profile assembled from vehicle-unit records",
+        "that the two downloads are versions of one another"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "SAME FIXTURE BOTH SIDES: `Vehicle unit download - YJ19 KXR - 2026-07.ddd` beside `Driver card download - OKAFOR J - 2026-07-01 to 2026-07-28.ddd` — identical extension, identical period, identical producing operator, and both are carried as file examples on both sides. This row owns the DRIVER-CARD download, whose records are one person's activity across every vehicle they drove, together with entitlement, fitness and periodic-training evidence; that row owns the VEHICLE-UNIT download, whose records are one asset's activity across every driver who used it. Discriminated by the evidence item WHICH SUBJECT THE RECORDS ARE ATTRIBUTED TO — a cardholder identifier that recurs across changing vehicle identifiers, versus an asset identifier that recurs across changing cardholders. That row wrote this seam first and this row confirms it from this side with independent reasoning: the two must never be reconstructed into one another, because aggregating vehicle-unit records into a per-person profile is the precise harm this row's privacy rule exists to prevent. The daily walkaround sheet is deliberately NOT resolved by this collision — it is honestly the asset's defect record and the person's discharge of a check duty in one set of bytes, and both sides carry it as a file example with the other reading noted.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "SAME FIXTURE BOTH SIDES: a completed driver medical examination form, and the drug-and-alcohol test result that often travels with it. This row owns the examination whose fitness conclusion is expressed AGAINST A LICENCE GROUP and whose purpose is to renew a state-conferred entitlement — it exists for an owner-driver with no employer at all; that row owns health surveillance conducted as the employer's administered duty of care, keyed on a workplace hazard and an exposure population. Discriminated by the evidence item THE AUTHORITY THE FITNESS IS STATED AGAINST: a licence group and a re-examination interval set by a licensing regime on one side, a hazard, an exposure and an employer programme reference on the other. Neither may copy the other's facts: a health-surveillance outcome is never an entitlement fact, and an entitlement medical never becomes evidence of an employer's programme.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.training-development",
+      "signal": "SAME FIXTURE BOTH SIDES: `Periodic training - module 3 - Drivers Hours and Tachograph - 7 hours.pdf`. This row owns it when it is redeemed evidence — hours accumulating toward a stated cycle total that issues a qualification card with its own expiry, against a named entitlement; that row owns it as a delivery record inside the employer's learning provision — a course catalogue entry, a provider contract, a completion register row, an evaluation form. Discriminated by the evidence item THE CYCLE-AND-CARD RELATION: if the certificate's hours only make sense as a fraction of a stated statutory cycle that terminates in a card, it is this row's; if it is one attendance among an employer's curriculum with no cycle and no card, it is that row's. The same seven-hour certificate can be a member of both groups without either copying the other's facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "SAME FIXTURE BOTH SIDES: `Driving licence photocard - front and back.jpg` — the same bytes, filed once among a person's passport and birth certificate and once in an operator's driver file. This row owns it only when it sits in an entitlement dossier about a person OTHER than the filer, anchored by a check reference, a per-category expiry matrix or a counterpart medical or training record; that row owns it as the filer's own proof-of-identity document, where the photocard's identity face — portrait, date of birth, address — is the point and the category strip is incidental. Discriminated by the evidence item HOLDER-VERSUS-SUBJECT PLUS AN OPERATOR ANCHOR: absent an anchor tying the card to a duty held by someone else, the identity reading wins, because a card image alone can never establish that a third party holds a record about its subject.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "SAME FIXTURE BOTH SIDES: `ADR vocational training certificate - tank and packages - expiry 2027-02.pdf`, and equally a qualification card. This row owns it when the holder of the FILE is an operator holding it about a worker — third-party personal data with an operator-authorisation purpose; that row owns it when the holder of the file is the credential's own subject keeping the record of their own professional standing, alongside their other certificates and memberships. Discriminated by the evidence item WHOSE DOSSIER IT SITS IN: a per-person subfolder inside a multi-person driver file, an expiry-register reference or an operator undertaking on one side; a single-person corpus of that person's own credentials on the other. This is a genuine role split, but `role_split` cannot be authored because the schema declares no field keys to split on — recorded for R1c.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "SAME FIXTURE BOTH SIDES: an infringement packet for one named person and period. This row owns the analysis artefact — the limit rows, the exceedance values, the driver explanation slot derived from an activity download; that row owns the process artefact — the invitation letter, the hearing note, the outcome and appeal correspondence that may follow it. Discriminated by the evidence item WHETHER THE DOCUMENT IS DERIVED FROM RECORDED ACTIVITY OR FROM A PROCEDURE: a report whose rows are computed from intervals is this row's; a letter whose structure is a stage of a disciplinary procedure is that row's, even when it quotes the same rows verbatim.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: a transport compliance audit report that samples driver files and lists findings per driver. This row owns the sampled EVIDENCE — the licence checks, medicals, cards and downloads the auditor looked at; that row owns the audit INSTRUMENT and its findings — scope, sampling method, finding register, corrective actions, auditor identity. Discriminated by the evidence item WHETHER THE DOCUMENT IS ABOUT A PERSON'S PERMISSION OR ABOUT A SYSTEM'S CONFORMITY: a finding is a statement about the operator's process even when its subject line is a driver's name, and an entitlement record stays this row's even when it appears as an audit appendix.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The principal fallthrough and, for this row, the default rather than the exception. `00`: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' A recognised entitlement summary, medical, card image, expiry register, infringement report or driver-file archive with no accepted group lands here rather than in an open pile, because every one of them is third-party personal data and two of them are health or surveillance data.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone certificate, module record or specialist card with a durable purpose but no person anchor, no cycle relation and no operator context remains an independent record rather than being forced into a dossier it cannot evidence.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Driver-card and vehicle-unit downloads, analysis-bureau binaries and password-protected driver-file archives can be represented without parsing them and without inferring a person, a period or an infringement from a filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Inherits the schema's largest fallthrough with a person-shaped variant: a licence renewal payment confirmation, a training-course booking receipt and a medical examination invoice prove a transaction, not a permission, and must land here rather than manufacture a driver dossier out of somebody's payment history.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a licence-check portal whose OCR does not establish an accepted person anchor is a screenshot; absence of camera metadata is never the proof of screen origin.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A scanned card or form whose structure survives visually but whose labels do not should abstain rather than guess which of three expiry dates is which, or whether a medical is an entitlement examination or an occupational-health screening.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row carries the family's sharpest privacy posture and adds two categories no sibling touches. First, HEALTH DATA ABOUT A THIRD PARTY: a driver medical examination report is a clinical record — vision, cardiac, neurological, diabetes, substance use — about a person who is not the filer, and a drug-and-alcohol result is the same. Second, WORKER SURVEILLANCE: a driver-card download is a minute-by-minute activity history of one named person across every vehicle they drove, and its printed reports state where the working day started and ended. Added to those are endorsement and penalty-point tables, which are adverse findings against a person, and infringement reports, which are quasi-disciplinary. The holder-subject relation is also inverted relative to the rest of the family: the third party here is a person under the filer's authority rather than a counterparty to a transaction, so the reasons for restraint are stronger, not weaker. THE ROW'S OWN RULES, in addition to the family principle: (1) THE DRIVER IS A SUBJECT, NEVER A FOLDER — no destination dimension may be built from a driver's, signatory's, examiner's or trainer's name, an employee number or a licence number, notwithstanding that the dossier is the most coherent group in the family; `00` is direct on this — 'A folder should not become a collection point for everything produced by the same person or organization' — and its address-book rule points the same way, that contact material 'should normally be privacy-protected rather than used to create folder proposals'. (2) NO CROSS-DRIVER AGGREGATION: no comparison, ranking, trend or profile assembled across people, and specifically no reconstruction of a per-person activity profile from vehicle-unit records, which `logistics.fleet-vehicle` forbids from its side. (3) NO DEFAULT REMOTE OR MODEL PATH over any member of this row; recognition should run locally from the minimum necessary excerpt or manifest. (4) NO CLINICAL, ENTITLEMENT OR COMPLIANCE VERDICTS — the product records what a document states and never decides whether a person is fit, entitled, current or in breach. This row assigns no handling class; P7 owns that vocabulary and privacy policy must run before any model or connector path.",
+  "open_question": "NJ-DC-1: is the double deletion right — should the driver dossier be foldered after all? The whole family forbids a person level, but a driver file is the one case where the person IS the record's subject rather than a counterparty, exactly as a patient is in `medical`. Alternatives: (a) never foldered, dossier held as a group with a display alias, which is what this row recommends; (b) a protected-area exception mirroring whatever `medical.personal-health-records` is granted for its own subject; (c) a canonical record-subject key adjudicated globally. This is `logistics`'s own NJ-LOG-4 seen from the row that generates it, and R1c should answer it once for both. NJ-DC-2: the driver medical genuinely holds `medical` and `logistics` facts in the same bytes, and this row cannot say so, because `also_holds_with` is schema-to-schema only under CONNECTION and this row is a template. R1c should record the coactivation at the `logistics`-to-`medical` schema level; `logistics` already lists `government`, `legal`, `manufacturing`, `construction_property.materials-delivery` and `photos` there but not `medical`, which is an omission this row's evidence exposes. NJ-DC-3: the `career.credentials-licenses` boundary is a true role split — same certificate, holder-is-subject versus operator-holds-about-worker — but `role_split` requires different field keys and this schema declares none, so it is recorded as a collision instead. If PR-6 is lifted, R1c should decide whether the split is expressed by a record-subject key or by two rows. NJ-DC-4: entitlement regimes, licence category letters, cycle totals and medical intervals are jurisdiction-specific. This row deliberately recognises the STRUCTURE (per-category expiry matrix, hours toward a cycle, fitness against a licence group) and names no jurisdiction, no category letter and no interval; if R6 later builds a rule family for entitlement tokens, it needs a gazetteer decision this row does not pre-empt."
+}

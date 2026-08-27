@@ -1,0 +1,517 @@
+{
+  "id": "manufacturing.calibration-record",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Calibration and metrology records",
+  "one_line": "Proof that a measuring instrument was, at a stated moment, traceable and within permitted error. It is the one manufacturing situation whose measured object is not a product: the article under test IS the gauge, sensor, balance, wrench or coordinate-measuring machine, marked by an as-found value paired with an as-left value, a traceability statement to a recognised measurement standard, and a next-due date that no article inspection carries. Its anchor is therefore a controlled measuring instrument, never a product or a batch, so the schema default's product-then-lot parent chain cannot make it intelligible. It is not the measurement of a produced article (manufacturing.inspection-record), not the durable roster of instruments (manufacturing.asset-register), not the work performed to restore an asset's function (manufacturing.maintenance-work-order), and not the revision-controlled instruction saying how to calibrate (manufacturing.quality-management-system). Placeholder row written to J-DEPTH; it declares no field rows under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a calibration certificate or result sheet whose measured object is a measuring instrument named in a labelled asset, serial or tag slot, carrying an as-found value set AND an as-left value set against a stated permitted error or acceptance criterion, a named calibration method or reference standard, a traceability statement to a recognised measurement standard, a calibration date and a next-due date or interval; the as-found-with-as-left pair is the signal, and a results column alone is not",
+      "an in-house calibration or verification record naming the instrument checked, the reference master or artefact used to check it, the acceptance criterion, and a pass, adjust or withdraw-from-service outcome with a checker signoff",
+      "a measurement-system-analysis structure — gauge repeatability and reproducibility, bias, linearity or stability — whose variance rows are attributed to operators, gauges and trials rather than to the produced parts, so that the object under study is the measuring system",
+      "a calibration recall or due list whose repeated rows carry an instrument identifier, description, location or custodian, interval, last-calibration date and a per-instrument calibration status or outcome; multiple rows with outcomes prove a controlled instrument population under active recall rather than one purchase",
+      "an out-of-tolerance structure joining an as-found failure on one identified instrument to the calibration interval affected, the measurements, lots or articles accepted inside that interval, and a disposition of them",
+      "an instrument history record: dated rows of calibration, adjustment, repair, interval change and return-to-service for one identified instrument, read as one chain rather than one event",
+      "a loop, sensor or transmitter calibration sheet with a tag number, input and output span points, as-found and as-left readings at each span point, and a technician signoff",
+      "a certificate whose issuer block names a calibration laboratory together with an accreditation schedule reference AND a labelled instrument-identity slot; the accreditation mark or laboratory name alone never fires",
+      "an uncertainty budget worksheet whose contribution rows are attributed to the measuring process — reference standard, resolution, repeatability, environment — and are combined into a stated measurement uncertainty for the instrument",
+      "an email whose subject or body carries an exact instrument asset, tag or calibration-certificate identifier and whose attachments are certificates, due lists or as-found data rather than narrative",
+      "an archive whose manifest binds one instrument identifier or one recall cycle across certificates, raw readings and instrument photographs; the manifest is inspected without unpacking the archive to disk"
+    ],
+    "needs_llm": [
+      "an unlabelled technician worksheet or shift notebook page where instrument identity and the as-found versus as-left roles have to be read out of prose rather than out of labelled slots",
+      "a scanned or photographed certificate where OCR must decide whether the tabulated values describe the instrument itself or an article the instrument measured",
+      "a supplier-issued certificate that may cover an instrument the holder owns and controls, or may be a conformity document travelling with a delivered product",
+      "a service report that mixes repair work, parts and downtime with a post-repair calibration in one document, where the two structures must be separated rather than merged",
+      "a due or schedule list that may be an instrument recall list or a general preventive-maintenance schedule for production assets",
+      "a certificate for a reference master or artefact, which is simultaneously an instrument record and the traceability source cited by other records"
+    ],
+    "never_alone": [
+      "the words calibration, certificate, traceable, traceability, accredited, verification, gauge, metrology, tolerance, conformity, pass or fail alone",
+      "an accreditation body, national metrology institute or calibration laboratory name alone; an organisation name identifies the issuer of a document, never the holder's controlled instrument, and cannot activate this row by itself",
+      "a serial-shaped, tag-shaped or asset-shaped token outside a labelled instrument-identity slot; a bare token, including a bare four-digit number, is never an anchor",
+      "an as-found value alone: it is as-found paired WITH as-left that discriminates this row, and a lone as-found reading is just a measurement",
+      "a due date, recall date or interval alone; every preventive-maintenance schedule, service contract and inspection plan carries them",
+      "a signature, stamp, approval box, accreditation logo or instrument sticker alone; an article inspection report, a customs declaration and a design review sign-off all carry these",
+      "a cited standard or calibration-method designation alone; a standard that NAMES a method carries no measured values and belongs with engineering.standards-library",
+      "a source_type or extension alone; delimited text, spreadsheets, PDFs, scans, email and archives occur in every neighbouring schema",
+      "a parent folder named Calibration, Cal, Metrology, Certs, Gauges or Quality alone",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that a certificate image is a screenshot rather than a photograph of a wall-mounted or instrument-mounted certificate"
+    ]
+  },
+  "proposed_context_terms": [
+    "as-found",
+    "as-left",
+    "calibration due",
+    "recall interval",
+    "reference standard",
+    "measurement uncertainty",
+    "permitted error",
+    "gauge repeatability and reproducibility",
+    "adjusted",
+    "withdrawn from service"
+  ],
+  "work_types": [
+    "external accredited calibration certificate",
+    "in-house calibration or verification record",
+    "as-found and as-left calibration data sheet",
+    "calibration recall or due list with per-instrument outcome",
+    "instrument calibration and adjustment history",
+    "measurement system analysis study — gauge repeatability and reproducibility, bias, linearity, stability",
+    "reference standard or master artefact certificate",
+    "instrument loop, sensor or transmitter span check record",
+    "out-of-tolerance impact assessment",
+    "calibration interval review, extension or reduction record",
+    "instrument receipt, commissioning or withdrawal-from-service record",
+    "uncertainty budget worksheet",
+    "calibration supplier or laboratory approval evidence tied to an instrument population"
+  ],
+  "grouping_reasons": [
+    "an exact instrument asset, serial or tag identifier shared across a certificate, a history record, a due-list row and instrument photographs",
+    "one recall cycle or dispatch identifier binding a batch of instruments sent to and returned from one calibration laboratory",
+    "an out-of-tolerance impact assessment binding one instrument's calibration interval to the inspection records made inside it; this is a reviewable candidate edge only, and it never writes the instrument fact onto those inspection records",
+    "an archive manifest that names one instrument or one recall cycle across its members, inspected without unpacking",
+    "a sparse instrument photograph or sticker capture may join an instrument neighbourhood for review without any instrument fact being minted onto it"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the manufacturing schema declares no canonical fields under PR-6. The recommendation held as prose inverts the schema default: the first branch should be the controlled measuring INSTRUMENT at the identity the file itself carries — an asset, serial or tag identity — with site above it only in a genuinely multi-site corpus, and record function as the leaf. Product and batch or lot never appear in this chain: a torque wrench, a balance and a coordinate-measuring machine serve many products and many lots, and filing their certificates under a product would require inventing a product fact the file does not carry. `00`: \"The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.\" An as-found reading is unintelligible except under the instrument it was found on. Not time-first, despite calibration being interval-driven and despite users often filing certificates by year: `00` warns that \"putting year first scatters related work across calendar folders\", and an instrument's calibration chain — previous certificate, adjustment, current certificate, next due — is exactly the related work that scattering would break. The user may reverse, remove or flatten this after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "xlsx",
+      "csv",
+      "docx",
+      "jpg",
+      "png",
+      "eml",
+      "ics",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer block names a calibration laboratory with an accreditation schedule reference",
+        "labelled instrument slots: description, manufacturer, model, serial LC-1142",
+        "table of applied reference values against as-found readings, then a second set of as-left readings after adjustment",
+        "stated measurement uncertainty and a traceability statement to a recognised measurement standard",
+        "calibration date and a next-due date"
+      ],
+      "facts_legal": [
+        "asset",
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the instrument is currently in tolerance today because the certificate says it was on the calibration date",
+        "that the accrediting body or laboratory name is a fact about the holder",
+        "a product or batch_lot fact — the certificate names no product"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gage R&R Study - CMM-02 - operators A B C.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "trial columns repeated per operator per part",
+        "variance decomposition rows attributed to repeatability, reproducibility and part-to-part",
+        "gauge identifier CMM-02 in a labelled header slot",
+        "study date and analyst signoff"
+      ],
+      "facts_legal": [
+        "asset",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the parts measured in the study are the subject; the variance is attributed to the measurement system",
+        "a pass or fail fact about any produced article named in the trial columns"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration due list 2026-Q4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated rows: instrument identifier, description, location, custodian, interval, last calibration date, next due date",
+        "a per-instrument status column carrying the last calibration outcome and any adjustment",
+        "several dozen rows covering one site's instrument population"
+      ],
+      "facts_legal": [
+        "asset",
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any listed instrument is overdue or compliant as of the moment the file is read",
+        "that a row's instrument identifier may be copied onto an unrelated file bearing a similar token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Torque wrench TW-07 verification record.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "in-house form: instrument TW-07, reference transducer used, three applied settings with observed readings",
+        "acceptance criterion stated as a permitted error band",
+        "outcome recorded as pass with no adjustment required",
+        "checker name and date, no external laboratory letterhead"
+      ],
+      "facts_legal": [
+        "asset",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that absence of an accredited laboratory letterhead disqualifies the record; issuer identity is not the discriminator",
+        "an operator competence fact from the checker name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Thermocouple loop check TI-1042 - commissioning.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "instrument tag TI-1042 with loop description",
+        "five span points with as-found and as-left readings at each",
+        "technician signoff and a witness signature",
+        "header references a turnover dossier number and a system acceptance section"
+      ],
+      "facts_legal": [
+        "asset",
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the instrument is in a recurring recall population merely because a loop check exists",
+        "an engineering acceptance or handover-completion fact"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Out-of-tolerance impact assessment - LC-1142.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "names instrument LC-1142 and the as-found failure at its most recent calibration",
+        "states the interval affected, bounded by the previous certificate date",
+        "lists inspection records and lots accepted using that instrument inside the interval",
+        "records a disposition of the affected measurements and a reviewer signoff"
+      ],
+      "facts_legal": [
+        "asset",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the listed lots are themselves nonconforming; the assessment states suspicion and disposition, not a product verdict",
+        "that a quality_event identifier exists unless the document carries one in a labelled slot",
+        "that the listed inspection records inherit this instrument as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scale-cert-scan-0042.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "photograph of a printed certificate mounted beside a bench balance",
+        "OCR recovers a serial slot, a table of nominal masses against readings, and two date fields",
+        "as-found and as-left column headings partially legible; perspective distortion on the lower rows"
+      ],
+      "facts_legal": [
+        "asset",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a next-due date from a partially legible date field",
+        "that missing EXIF makes this a screenshot rather than a photograph",
+        "an instrument identity when the serial slot did not survive OCR"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2210.jpg",
+      "source_type": "image",
+      "observations": [
+        "close photograph of a calibration sticker on an instrument body",
+        "sticker shows a handwritten date and an initialled box; the instrument identifier is out of frame",
+        "capture metadata present, taken on a shop floor"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an instrument asset fact; the identifier is not in the frame",
+        "a calibration date fact from a handwritten sticker",
+        "that the surrounding folder's instrument identifier may be copied onto this file"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Cal-recall-2026-08.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a calibration laboratory account; subject names an exact dispatch identifier and a recall month",
+        "body lists instruments due for collection by identifier",
+        "attachment is a due list spreadsheet"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an asset fact for any instrument named only in the message body without a labelled slot",
+        "that the laboratory's organisation name is a holder fact",
+        "that the attachment's facts propagate to the message or vice versa"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration recall - LC-1142.ics",
+      "source_type": "calendar",
+      "observations": [
+        "single dated event whose summary carries the exact instrument identifier LC-1142",
+        "organizer is the internal metrology mailbox",
+        "no measurement values of any kind"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the instrument was calibrated, or is due, or is overdue; a scheduled event is an intention, not a result",
+        "an asset fact minted from a calendar summary alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pipette calibration 2026 - Lab 3.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists certificates for several pipette identifiers, raw balance printouts and instrument photographs",
+        "one dispatch identifier repeats across the members",
+        "mixed member types under one recall cycle"
+      ],
+      "facts_legal": [
+        "asset",
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "member facts read from the manifest alone without opening a member",
+        "that one member's instrument identity applies to a sibling member",
+        "that the archive should be unpacked to disk in order to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "CMM_BPA-210-001_SN0004_2026-05-12.csv",
+      "source_type": "text_document",
+      "observations": [
+        "nominal, actual and deviation triples repeated per feature",
+        "machine identifier and program identifier in the header",
+        "part number and serial in the header; no as-left set anywhere in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row activates because the file names a coordinate-measuring machine",
+        "an instrument calibration fact from a machine identifier that is only the provenance of the measuring act"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration procedure CP-014 rev 3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "revision-controlled header with document number, revision, approver and effective date",
+        "numbered steps describing how a class of instruments is to be calibrated",
+        "no instrument serial, no measured values, no dates of any calibration event"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a document titled calibration activates this row",
+        "an asset fact; the procedure names an instrument class, not an instrument"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tachograph calibration certificate - VRN AB12 CDE.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "approved workshop issuer with a workshop card reference",
+        "vehicle registration and vehicle identification number in the header slots",
+        "tyre size, characteristic coefficient and constant recorded before and after adjustment",
+        "next inspection date under a road-transport enforcement regime"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that as-found and as-left style values alone place this file on this row",
+        "a plant instrument-population fact; the anchor here is a vehicle and a driver-compliance regime"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Invoice - Metrology Services Ltd - Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer, invoice number, purchase-order reference, tax lines and payment terms",
+        "line items describe calibration of eleven instruments",
+        "no instrument serial slots, no readings, no due dates"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the instruments were calibrated to a stated result; an invoice proves a transaction",
+        "an asset fact from a billed quantity"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Boiler service certificate - Plant 2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "engineer name and registration, appliance make and model, site address",
+        "checks performed and a safe-to-use declaration",
+        "next service date",
+        "no reference standard, no traceability statement, no permitted-error table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a certificate with a next-due date is a calibration record",
+        "a metrological traceability fact from a safety declaration"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "SAME FIXTURE BOTH SIDES: Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf — this row owns the document whose measured object is the instrument itself, marked by an as-found set paired with an as-left set plus a next-due date; inspection-record owns the document whose measured object is a produced or received article, where the instrument appears only as provenance of the measuring act. Discriminated by the as-found-with-as-left pair, which no article inspection carries. The neighbour has already stated this boundary in the same terms and awarded the same bytes to this row, together with Gage R&R Study - CMM-02 - operators A B C.xlsx, whose variance is attributed to the measurement system rather than to the parts. Reciprocally, CMM_BPA-210-001_SN0004_2026-05-12.csv is inspection-record's on both sides and does not move here merely because it names the machine that produced it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "SAME FIXTURE BOTH SIDES: Calibration due list 2026-Q4.xlsx — this row owns it when its rows carry a per-instrument calibration outcome or as-found status, making it dated evidence of calibration events; asset-register owns it when its rows are durable population attributes only — identifier, description, location, custodian, nominal interval — with no per-instrument result. Discriminated by the presence of a calibration outcome column. Reciprocally, an instrument roster with no outcome column stays on asset-register even when every row carries a next-due date, because a due date is a scheduling attribute of the population, not evidence that a calibration happened.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: Boiler service certificate - Plant 2.pdf — maintenance-work-order owns it on both sides, because work performed, parts, downtime, a safe-to-use declaration and a return-to-service signoff describe restoring or preserving an asset's function; this row owns Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf on both sides, because a reference standard, a traceability statement, a permitted-error table and an as-found/as-left pair establish a metrological state rather than a functional one. Discriminated by the traceability chain: a next-service date and a next-due date look identical, and neither discriminates anything. Where one service report contains both structures, each activates from its own slots and neither writes its facts onto the other's section.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "signal": "SAME FIXTURE BOTH SIDES: Calibration procedure CP-014 rev 3.docx — quality-management-system owns it on both sides, because a document number, a revision, an approver, an effective date and numbered steps describe a controlled instruction addressed to a class of instruments; this row owns Torque wrench TW-07 verification record.pdf on both sides, because it names one instrument, one reference master, one applied set of readings and one dated outcome. Discriminated by instance versus instruction: a revision identifier with no instrument serial and no measured values is never this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "SAME FIXTURE BOTH SIDES: Out-of-tolerance impact assessment - LC-1142.pdf — this row owns it on both sides, because its subject is one instrument's calibration interval and the metrological consequence of an as-found failure; nonconformance-capa owns NCR-2026-058 - suspect lots from OOT load cell.pdf on both sides, because a labelled event identifier plus containment, disposition, approval and closure structure opens a case. Discriminated by whether the document is bounded by an instrument's interval or by an event identifier's workflow. The hazard both ways is propagation: the case's event identifier must not be written onto the calibration certificate, and the certificate's instrument identity must not be restated as a finding of the case.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "SAME FIXTURE BOTH SIDES: Thermocouple loop check TI-1042 - commissioning.pdf — commissioning-handover owns it when it is a numbered member of a turnover or acceptance dossier for a new installation, evidenced by a dossier index reference and a witness acceptance signature; this row owns it when it is a recurring in-service recall calibration of a tagged instrument, evidenced by a recall interval and a reference to the previous certificate. Discriminated by dossier membership versus recall chain, not by the span-point table, which is identical on both sides. Reciprocally, a first-fill handover dossier does not become a metrology population merely because it contains loop checks.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "SAME FIXTURE BOTH SIDES: Tachograph calibration certificate - VRN AB12 CDE.pdf — logistics.fleet-vehicle owns it on both sides, because its anchor is a vehicle registration and identification number under a road-transport enforcement regime and it is filed with the vehicle; this row owns Calibration-Cert_LoadCell-LC-1142_2026-01-09.pdf on both sides, because its anchor is an instrument in a plant's controlled measuring population. Discriminated by whether the identity slot names a vehicle or an instrument asset, since both documents carry before-and-after adjustment values, an approved issuer and a next inspection date.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "SAME FIXTURE BOTH SIDES: Invoice - Metrology Services Ltd - Feb 2026.pdf — procurement-sourcing owns it on both sides, because an invoice number, a purchase-order reference, tax lines and payment terms prove a transaction for calibration services; this row owns the certificates that transaction paid for, because they carry instrument serial slots, readings and permitted error. Discriminated by whether measured values against a stated limit are present at all. Reciprocally, a certificate does not become procurement evidence because a line item names it, and an invoice does not become a calibration record because its line items say calibration.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone certificate, verification sheet, instrument manual or due list with durable purpose but insufficient instrument-identity or as-found/as-left evidence remains an independent record rather than acquiring an instrument anchor it does not carry.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A calibration invoice, service quotation, dispatch note or laboratory booking acknowledgement proves a transaction and not a metrological state, and belongs in the receipt and confirmation residual.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor certificate scan, a mixed repair-and-calibration service report, or an assessment whose instrument role is unresolved should abstain and wait for review rather than invent an instrument or a date.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An unreadable instrument data export, a proprietary calibration-software binary or an encrypted laboratory archive can be represented without inferring its purpose from its filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photograph of an instrument or a calibration sticker with no legible identifier is a positively evidenced capture with no anchor, and no instrument fact may be minted from the folder it sits in.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "An instrument population and its uncertainty budgets disclose the measurement capability of a plant, and therefore the tolerances it can hold and the work it can win. Out-of-tolerance findings and impact assessments are adverse quality evidence with commercial, customer and regulatory consequence, and they name the lots placed in doubt. Technician, operator and analyst names appear on verification signoffs and measurement-system studies; they remain search and privacy observations and never become destination dimensions. The row assigns no handling class, and privacy policy must run before any model or connector sees a certificate or an assessment.",
+  "open_question": "NEEDS-JOSEPH NJ-CAL-1: the manufacturing schema proposes one `asset` key, but this row's asset is a measuring instrument that makes no product, while manufacturing.asset-register and manufacturing.maintenance-work-order anchor on production assets that do; decide whether one key with a role distinction suffices or whether a canonical role split is needed. NJ-CAL-2: an out-of-tolerance assessment creates a backward reference from one instrument's interval to a population of already-filed inspection records; decide how P9 records that candidate edge without copying the instrument fact onto those records. NJ-CAL-3: tachograph, weighbridge and dispensing-meter certificates are legally mandated calibrations anchored to a vehicle or a trading instrument rather than to a plant population; decide whether they stay with logistics.fleet-vehicle or whether a legal-metrology situation is needed later. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}

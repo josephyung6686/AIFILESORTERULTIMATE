@@ -1,0 +1,434 @@
+{
+  "id": "manufacturing.safety-case",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Safety cases and safety justification",
+  "one_line": "The argued justification that a hazardous installation, plant or system is safe enough to operate, and the evidence apparatus beneath it: the claim-and-evidence spine, the evidence index that cites separately-held reports, the safety-critical-element register with its performance standards, the tolerability demonstration, the numbered assumptions and caveats carried forward as obligations, and the independent assessment or regulator acceptance that makes one edition current. Its anchor is not the word safety and not a regulator's name: it is a named installation or system, a defined boundary and operating envelope, and a claim structure whose leaves are references to other documents rather than primary data. Placeholder row written to J-DEPTH; fields: [] under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_detection_signals": true,
+    "distinct_detection_signals_why": "Checkable against the schema row itself. `manufacturing.json`'s default carries twelve deterministic clauses - batch/traveller execution, lot genealogy, inspection table, nonconformance structure, corrective-action structure, calibration certificate, maintenance work order, asset register, line/shift log, HSE inspection-permit-incident, lot-naming email, lot-linking archive - and eleven file examples. Not one clause describes an argument, and not one fixture is a justification. The nearest clause is worded by that row as `an HSE inspection, permit or incident structure tied to a controlled site or asset, with hazard, control, responsible role and closeout evidence` (quoted from the sibling node, not from 00), and it keys on CLOSEOUT OF AN IDENTIFIED FINDING: something was observed, a control was assigned, someone closed it. This row keys on the opposite object - a postulated harm that has not occurred, asserted to be tolerable, with nothing to close. Five structures carry it and none is claimed by the default: (a) the CLAIM-TO-EVIDENCE INDEX, a table pairing a claim or goal identifier with the identifier of a SEPARATELY HELD document plus an adequacy or status slot, so that the body of the file is mostly pointers into the user's other files - a shape no other manufacturing artifact has; (b) the ARGUMENT DECOMPOSITION, goal/strategy/solution/context nodes in a diagram or a strict numbering scheme where every leaf is a solution referencing evidence; (c) the SAFETY-CRITICAL-ELEMENT REGISTER, each element paired with a functional performance requirement, an assurance activity and a verifying party, which is not an asset register because its rows are functions to be assured rather than machines to be maintained; (d) the TOLERABILITY DEMONSTRATION, a residual-risk statement resolved by an explicit reasonableness and proportionality argument ending in a decision, not a score; (e) the CURRENCY APPARATUS, a defined system boundary and operating envelope, a numbered assumptions-and-caveats list carried forward as obligations, a material-change or periodic-review statement, and an external acceptance or independent-assessment reference that makes one edition the one in force. The anchor separating all five from a corporate document is the named installation or system whose OPERATION is being justified, plus a stated criterion for safe enough.",
+    "distinct_dimension_order": true,
+    "distinct_dimension_order_why": "The manufacturing schema's researched default is branch-shaped; the branch this row would otherwise fall into is site, then asset, then record type. This row differs by one insertion and one deletion, both evidential. INSERTION: the CASE EDITION sits directly under the installation, because a safety case is one document that recurs by edition rather than many record kinds under a machine, and the retrieval question this material actually asks is which edition was in force at a given moment. 00 requires that `a parent dimension should provide the context required to understand the child`; an evidence index, an assumptions list or a tolerability argument is unreadable until the edition it belongs to is known, and two editions of an evidence index interleaved in one folder are worse than useless because they disagree. DELETION: `asset` must be dropped rather than made optional. A case argues about a whole installation across many assets, so an asset level either produces what 00 warns against - `create meaningless one-child levels` - or scatters one document across every asset it cites. Not time-first: `For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.` Optional branches: where a corpus holds one installation, the site level flattens; where an edition holds many parts, `record_type` may return as a leaf, and it is the only level on which a work-type value may appear. Under PR-6 the machine-readable order stays empty for this row exactly as it does for the schema, so this leg is argued at the same standing the schema's own default has, not above it. The edition level is itself the subject of NJ-SC-2 and is not asserted as a settled fact key.",
+    "distinct_privacy_rules": "partial",
+    "distinct_privacy_rules_why": "Stated honestly rather than inflated. The sensitivity VALUE does not differ: `manufacturing.json` is already potentially_sensitive and already says person names remain search and privacy observations rather than destination dimensions, so repeating that is not a difference. What differs is a derivation rule the schema does not state. A safety case is the one document in this schema that assembles, in one place, the postulated ways a major accident could be caused, the barriers relied on to stop it, and - decisively - the KNOWN WEAKNESSES: the open caveats, the deferred actions, the elements running under a temporary arrangement. So no scenario phrase, hazard name, barrier deficiency or open-caveat title may become a folder level, a destination or a group label, because a directory or a proposal card carrying it publishes the operator's own worst case and its current gap on the filesystem. The same rule bars a group label built from an accident phrase even when the group is correct. The shape of this rule is read across from 00's Protected Records requirement that such material `must not cause filenames or content to be exposed in model prompts` - marked INFERENCE, by read-across; this row does not claim to BE a protected record. Secondary and also inference: after any incident this material is the archetypal discovery document, which is a reason for conservatism and not a handling class. The row rests on legs one and two; leg three adds a rule but does not by itself carry the node."
+  },
+  "fields": [],
+  "fields_note": "Empty by the placeholder contract (PR-6). The schema anchor owns the fields and currently declares none; this row mints nothing. The facts this row would use if R1c licenses the schema's proposals are `site` for the installation and reuse of `record_type` for the part of the case, plus the universal file facts. It would NOT use `product`, `batch_lot` or `asset`.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. The one key this material wants that nothing supplies is the CASE EDITION, and minting `case_edition` for a single template row is precisely the move that generated thousands of private field names - the failure `engineering.process-plant-design` names in its own memo when it refuses to mint a producer-side role key. The alternatives are real and belong to R1c, not here: the universal `version_family` may be the wrong shape because it groups drafts and duplicates of the same bytes whereas two accepted editions are distinct documents that must both stay retrievable; `revision_or_baseline`, which the landed `engineering.risk-analysis-fmea.json` lists among facts_legal on its DFMEA fixture, may be the right key promoted to canonical. Escalated as NJ-SC-2 rather than answered.",
+  "recognition": {
+    "deterministic": [
+      "a claim-to-evidence index: a table whose rows pair a claim, goal or argument identifier with the identifier of a separately held document and an adequacy, sufficiency or status slot, so the file's body is references rather than measurements; the relation between the claim column and the cited-document column is the signal, not the word evidence",
+      "an argument decomposition in goal, strategy, solution and context nodes, or a strict claim numbering in which every terminal node is a solution naming an external report; present either as a diagram with typed node shapes or as a numbered outline",
+      "a safety-critical-element or barrier register in which each row carries a functional performance requirement, an assurance or verification activity and a verifying party, distinguished from an asset register because the rows are functions to be assured rather than machines to be maintained",
+      "a tolerability or reasonably-practicable demonstration: a residual-risk statement resolved through an explicit proportionality argument and ending in a stated acceptance decision by a named duty-holder role, rather than in a ranking",
+      "a scope block defining the system boundary, the operating envelope and the criterion for safe enough, co-occurring with any of the structures above; the boundary statement alone is a design document",
+      "a numbered assumptions, caveats or deferred-actions list whose entries are written as obligations on future operation, each with an owner role and a closure condition, and whose identifiers recur across editions of the same case",
+      "a currency statement binding one edition to a material-change trigger or a periodic-review cycle, together with an external acceptance, non-objection or independent-assessment reference; an internal approval block alone does not satisfy this",
+      "an independent safety assessment or functional safety assessment report whose findings are stated against the ADEQUACY OF AN ARGUMENT and cite claim identifiers, rather than against clauses of a management standard",
+      "an email whose labelled subject names an identified safety case and its edition and whose attachments name the report, the evidence index or an assumption closeout",
+      "an archive whose manifest links one case edition across a report, an evidence index, a critical-element register and an acceptance instrument; archives are inspected without being unpacked to disk",
+      "a parent-folder context in which several of the above co-occur for one named installation across more than one edition"
+    ],
+    "needs_llm": [
+      "a bowtie or barrier diagram exported as an image, where the threat, top event and consequence structure survives visually but no installation, edition or claim identifier appears in the image's own evidence",
+      "an OCR-poor scanned safety report where section headings survive but the claim-to-evidence table collapses into unaligned text",
+      "a document that argues a system is safe but names no installation, so it may be a case, a vendor's product-safety white paper, a standard's guidance annex, or a blank template",
+      "a hazard-facing register whose rows could be safety-critical elements with performance standards, a maintained asset population, or the carried hazard register that engineering.risk-analysis-fmea owns",
+      "a summary deck presenting a safety case to operations, which may be the case, a board risk paper, or training material",
+      "a multilingual regulator submission whose slot labels are absent from the deterministic context catalogue",
+      "a management-system manual whose body is references to procedures, which resembles the claim-to-evidence index closely and is usually not this row"
+    ],
+    "never_alone": [
+      "the words safety, safety case, hazard, risk, barrier, ALARP, tolerable or major accident alone, in any language",
+      "a filename such as Safety Case.pdf, Safety Report.docx or Hazard Study.pdf with no readable internal structure",
+      "a regulator, competent authority, assessment body or certification body name, and a duty-holder or operator company name; these are collector evidence and 00 bars a template that would `use an author or organization merely as a collector`",
+      "a standard, code or regulation number appearing in a header, footer or reference list",
+      "a person's name in a duty-holder, assessor or approver role",
+      "the presence of a hazard word inside a table cell of an otherwise ordinary operations tracker",
+      "a file extension; extensions are never sufficient alone"
+    ]
+  },
+  "proposed_context_terms": [
+    "safety case",
+    "safety case report",
+    "safety report",
+    "safety justification",
+    "claim",
+    "argument",
+    "evidence index",
+    "assurance claim",
+    "goal structuring notation",
+    "solution node",
+    "safety-critical element",
+    "performance standard",
+    "barrier",
+    "major accident hazard",
+    "major accident prevention policy",
+    "safety management system",
+    "tolerability",
+    "as low as reasonably practicable",
+    "residual risk acceptance",
+    "system boundary",
+    "operating envelope",
+    "assumption",
+    "caveat",
+    "deferred action",
+    "material change",
+    "periodic review",
+    "revalidation",
+    "independent safety assessment",
+    "functional safety assessment",
+    "safety requirements specification",
+    "acceptance",
+    "non-objection"
+  ],
+  "proposed_context_terms_note": "Overlap with engineering.risk-analysis-fmea's proposed list is expected and is not duplication: my terminal nodes CITE that row's artifacts, so barrier and hazard vocabulary appears on both sides. R1c should dedupe the catalogue centrally rather than either row trimming unilaterally. `top event` is deliberately NOT claimed here - it is that row's term and appears in this material only inside a cited diagram.",
+  "work_types": [
+    "safety case report or safety justification report",
+    "preliminary, pre-construction or design-stage safety report",
+    "major-accident-hazard safety report for an establishment",
+    "installation or facility safety case for a hazardous operation",
+    "safety case revalidation, periodic safety review or edition update",
+    "evidence index, assurance claim map or argument decomposition",
+    "safety-critical element or barrier register with performance standards",
+    "tolerability or reasonably-practicable demonstration",
+    "assumptions, caveats and deferred-action register and its closeout evidence",
+    "independent safety assessment or functional safety assessment report",
+    "regulator acceptance, non-objection or acknowledgement correspondence",
+    "operations-facing safety case summary or briefing"
+  ],
+  "work_types_note": "Values inside this row, not nodes. None of them may become a schema, and only the leaf level may carry one as a folder name. `safety case` as a bare word is in never_alone precisely because it is the work-type label most likely to be mistaken for the node.",
+  "grouping_reasons": [
+    "one named installation or system across successive editions of its case and the acceptance instrument for each",
+    "one edition across its report, evidence index, critical-element register, tolerability demonstration and assessment or acceptance",
+    "one numbered assumption or caveat across its raising, its owner correspondence and the evidence that closed it",
+    "cited evidence items are grouped BESIDE the case and never inherit its facts: a calibration certificate or an inspection sheet does not become a safety case because a claim references it, exactly as 00 refuses to copy a course fact onto HW 3.pdf because a group exists",
+    "duplicate and version families remain universal facts and never manufacture an installation or edition fact by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty in machine-readable form because PR-6 leaves the manufacturing schema with no declared destination-eligible fields, exactly as manufacturing.json's own default order is empty. Subject to R1c, the researched order is site or installation, then case edition, then part of the case. It differs from the schema default branch - site, then asset, then record type - by INSERTING the edition and DELETING the asset. The edition is inserted because 00 requires that `a parent dimension should provide the context required to understand the child`: an evidence index, an assumptions list or a tolerability argument is unreadable and actively misleading until the edition it belongs to is known, and two editions interleaved in one folder disagree with each other. The asset is deleted because the case argues about a whole installation across many assets, so the level either creates what 00 bars - `create meaningless one-child levels` - or scatters one document across every machine it cites. Not time-first: `For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.` Optional branches: with one installation the site level flattens; with a large edition, `record_type` may return as the leaf and is the only level that may carry a work-type value. A hazard name, a scenario phrase, a barrier deficiency, an open caveat title or a tolerability verdict is never a level under any branch - see the privacy leg. 00 is explicit that `the user can reverse, remove, add, or flatten dimensions`; this is a recommendation, not a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Safety-Case-Report_Unit-200_Edition-4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scope block naming the installation, its system boundary and its operating envelope",
+        "a numbered claim decomposition in which every terminal claim names an external report identifier",
+        "a reasonably-practicable section ending in a stated acceptance decision by a duty-holder role",
+        "a numbered assumptions-and-caveats list written as obligations on future operation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a hazard, scenario or caveat phrase as a folder level, destination or group label",
+        "that the case is current merely because it is the newest file",
+        "the duty-holder organisation as a destination"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Evidence-index_SCR-Unit-200_Ed4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per claim identifier, each naming a separately held document identifier",
+        "an adequacy or sufficiency slot and an owner role per row",
+        "no measurements of its own anywhere in the sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that the cited documents belong to this row",
+        "an inspection or calibration fact from a cited identifier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SECE-register_and_performance-standards_Plant-2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per safety-critical element with a functional performance requirement",
+        "an assurance or verification activity and a verifying party per row",
+        "element identifiers recur unchanged across editions of the same register"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "asset (proposed) as a destination from an element name",
+        "that a degraded element is a nonconformance record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Major-hazard-safety-report_Plant-2_2026-submission.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a prevention-policy statement and a description of the safety management system",
+        "postulated major-accident scenarios each paired with the measures relied on",
+        "a submission reference to a competent authority"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "the competent authority as an organization fact or destination",
+        "a permit or licence fact from the submission reference",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SSA_MLG-Retraction_Rev-C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a hazard list at the spine, each hazard carrying a claim and a reference to supporting analysis",
+        "a section stating the residual condition is acceptable for the defined operating envelope",
+        "no compliance-checklist rows against named code paragraphs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "engineering.aerospace-airworthiness from the article identifier alone",
+        "a code paragraph closure that the file does not state",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Independent-assessment-report_Unit-200_Edition-4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "findings written against the adequacy of named claims, citing claim identifiers",
+        "an opinion on whether the argument is supported by the evidence offered",
+        "no nonconformity register against clauses of a management standard"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "the assessment body as a destination",
+        "business_operations.compliance-audit from the word finding",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Scan_safety-case-acceptance-letter_2026.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR reads a letterhead, a case and edition reference, and a decision sentence",
+        "the decision sentence may be an acceptance, a non-objection, or only an acknowledgement of receipt",
+        "signature block is a role and a name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "acceptance when the OCR only supports acknowledgement of receipt",
+        "site (proposed) from the letterhead address, which is the sender's",
+        "the signatory as a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Bowtie_loss-of-containment_LPG-vessel.png",
+      "source_type": "image",
+      "observations": [
+        "a threat-to-consequence structure with preventive and recovery barrier boxes",
+        "barrier labels are legible but no installation, edition or claim identifier appears",
+        "no surrounding text in the image's own evidence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "site (proposed) from a vessel label",
+        "this row from barrier vocabulary alone",
+        "a scenario phrase as a group label",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ Unit 200 safety case revalidation - assumption A-14 closeout.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject names the case, the edition activity and a numbered assumption",
+        "attachments named for the evidence offered against that assumption",
+        "recipients include a duty-holder role and an assessor"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (proposed)"
+      ],
+      "must_not_conclude": [
+        "that the assumption is closed because the mail says closeout",
+        "correspondents as destinations",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Safety-Case_Unit-200_Ed4_submission-pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest links a report, an evidence index, a critical-element register and a covering letter under one edition reference",
+        "members are not unpacked to disk to be recognised"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "site (proposed)"
+      ],
+      "must_not_conclude": [
+        "member facts for members not inspected",
+        "acceptance from the presence of a covering letter",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.risk-analysis-fmea",
+      "signal": "SAME FIXTURE BOTH SIDES: HAZOP_Unit-200_Node-12_Worksheet.docx - that row's own named fixture, reciprocated here in its own words. This row owns the argument that assembles and CITES analyses beneath a claim-and-evidence structure; that row owns the analysis itself - the guide-word grid crossed with a process parameter against a named node, with per-row consequences and safeguards. Discriminated by whether the guide-word grid and its per-row consequences are PRESENT as primary data (theirs, including when the worksheet is bound into this row's appendix) or appear only as a reference identifier under a claim (mine). A worksheet does not become a safety case by being cited, and a safety case does not become an analysis by containing one. Second contested shape on the same seam, thinner and flagged as NJ-SC-4: that row's carried hazard register versus this row's safety-critical-element register - discriminated by whether rows carry a residual classification per hazard (theirs) or a functional performance requirement with an assurance activity and a verifying party (mine).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "signal": "SAME FIXTURE BOTH SIDES: SSA_MLG-Retraction_Rev-C.pdf, the system safety assessment that row names. This row owns it when the spine is a hazard list with claims and evidence and an acceptability statement for a defined operating envelope; that row owns it when it is submitted as the substantiation closing a named code paragraph, carrying compliance-checklist rows and an approval instrument. Discriminated by the presence of code-paragraph rows and an approval reference. That row wrote the same seam first and stated that both rows may hold the file for different reasons; this side agrees, and expresses the co-holding on the file example via also_schema rather than in also_holds_with, which the contract reserves for schema rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "signal": "SAME FIXTURE BOTH SIDES: Management-system-manual_Rev-6.pdf. This is the sharpest collision on the roster for this row, because both documents are an apex file whose body is pointers rather than primary data. That row owns a manual whose table maps CLAUSES OF A MANAGEMENT STANDARD to the organisation's procedures - the argument is that a system of work conforms. This row owns a file whose table maps CLAIMS ABOUT A PHYSICAL HAZARD to evidence items and ends in a tolerability decision - the argument is that residual physical risk to people is acceptable. Discriminated by what the left-hand column of the pointer table holds: a standard clause reference versus a claim or goal identifier. A safety management system description embedded inside a major-hazard safety report does not move the file to that row; it is one required section of this one.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.hse-incident",
+      "signal": "SAME FIXTURE BOTH SIDES: Loss-of-containment_Unit-200.docx, a filename that discloses nothing about tense. That row owns a REALISED event: an occurrence date and time, persons involved or exposed, immediate and underlying cause, and notification or reporting slots. This row owns a POSTULATED scenario: no occurrence date, a barrier set with performance expectations, a frequency-and-consequence argument, and a place in a claim structure. Discriminated by the occurrence date and the persons-involved slot; where an incident is cited in a case as evidence that a barrier failed, the incident report stays that row's and only the reference is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: Independent-assessment-report_Unit-200_Edition-4.pdf. Both files are an outside party's opinion with findings. That row owns findings against an ORGANISATION and its procedures, keyed to clauses of an external standard, with a corrective-action register. This row owns findings against the ADEQUACY OF AN ARGUMENT, keyed to claim identifiers, ending in an opinion on whether the evidence offered supports the claims - the report is both a member of this row's evidence set and the instrument that makes an edition current. Discriminated by whether the finding cites a standard clause or a claim identifier. This is the argument-versus-organisation seam; engineering.aerospace-airworthiness already teaches the product-versus-organisation one against the same neighbour, and the two do not overlap.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: also_holds_with is schema-to-schema only (CONNECTION section 5), and this is a template row. Genuine co-activation is expressed on file examples via also_schema, using only schemas the manufacturing schema row already names: engineering on SSA_MLG-Retraction_Rev-C.pdf, where a design-side safety assessment is also this row's argument, and business_operations on Major-hazard-safety-report_Plant-2_2026-submission.pdf, whose safety-management-system section is an organisational control in the same bytes as the hazard argument. logistics is named by the schema but no fixture on this row shows it, so it is left off rather than asserted.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The main landing for this row's near-misses: a standalone safety report, assessment or register with durable purpose but no reachable installation, edition or accepted group. 00 gives this residual as holding standalone documents with a durable purpose and no broader group, which is exactly the state of an orphaned safety report.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest landing for the ambiguous cases this row generates in quantity: the bowtie image with no installation, the OCR-poor scanned report whose claim table collapsed, the summary deck that may be a case or a board paper, and Safety Case.pdf when it turns out to be a blank template. Abstaining is correct here because inventing an installation from a vessel label would be the observation-as-fact error 00 forbids.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "For correspondence that proves only that a submission arrived - an acknowledgement of receipt from an authority with no decision on the argument. Scan_safety-case-acceptance-letter_2026.jpg lands here whenever OCR supports acknowledgement but not acceptance.",
+      "provenance": "design",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected submission pack or a damaged regulator export can be represented without inferring an installation or an edition from its filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is duty-holder or operator, independent assessor, and competent authority - all three appear on the cover of one submission pack and any of them might be what a name in the header denotes. No canonical key exists for any of those roles, 00 bars a template that would `use an author or organization merely as a collector`, and minting a producer-side key for one template row is the move engineering.process-plant-design refused for the same reason. Recorded in never_alone instead, as that row did.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Same value as the manufacturing schema, plus one derivation rule the schema does not state. This is the one document in the schema that assembles the postulated ways a major accident could be caused, the barriers relied on to prevent it, and the operator's own known weaknesses - open caveats, deferred actions, elements running under temporary arrangements. Therefore no scenario phrase, hazard name, barrier deficiency, open-caveat title or tolerability verdict may become a folder level, a destination or a group label, because a directory or a proposal card carrying it publishes the operator's worst case and its current gap. The shape of that rule is read across from 00's Protected Records requirement that such material `must not cause filenames or content to be exposed in model prompts` - inference by read-across, not a claim that a safety case IS a protected record. Duty-holder, assessor and competence-record names remain search and privacy observations rather than destination dimensions, as the schema already requires. No handling class is assigned; that is P7's.",
+  "open_question": "NEEDS-JOSEPH NJ-SC-1 (schema placement): the roster puts this row on `manufacturing`, but the three landed rows that argued a boundary against it - engineering.risk-analysis-fmea, engineering.aerospace-airworthiness, engineering.process-plant-design - are all on `engineering`. Alternatives: (a) keep it on manufacturing, reading the row as the OPERATING installation's justification, which is what engineering.process-plant-design's own memo already assumes when it says a safety case argues that an operating installation is acceptable to a regulator; (b) move it to engineering, on the ground that the argument is authored with the design and inherits design_item and revision; (c) split design-stage from operational cases. This row is written for (a) and does not edit the roster. NJ-SC-2 (the edition level): the researched dimension order inserts a case edition that no fact key supplies. Alternatives: reuse the universal `version_family`, which may be the wrong shape because it groups drafts of the same bytes while two accepted editions are distinct documents both of which must stay retrievable; promote `revision_or_baseline`, named in engineering.risk-analysis-fmea's facts_legal, to a canonical cross-schema key; or mint a new key, which this row declines to do. NJ-SC-3 (the acceptance instrument): a regulator's acceptance letter is simultaneously the outcome of this row's case and a government record. No edge is written because manufacturing.environmental-compliance established that a third claimant on regulator-facing documents makes the seam unresolvable; R1c should decide between this row and a government row rather than letting both claim it. NJ-SC-4 (the register seam): this row's safety-critical-element register and engineering.risk-analysis-fmea's carried hazard register are the thinnest boundary either row states; the discriminator offered here - functional performance requirement plus verifying party versus residual classification per hazard - should be confirmed or replaced by R1c."
+}

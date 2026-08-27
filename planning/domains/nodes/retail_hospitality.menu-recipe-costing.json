@@ -1,0 +1,438 @@
+{
+  "id": "retail_hospitality.menu-recipe-costing",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Menu development and recipe costing",
+  "one_line": "The operator's COST MODEL FOR A THING IT SELLS TO EAT OR DRINK, and the statutory composition disclosure that model produces: one finished dish or drink EXPLODED into the bought components that make it, each with a quantity in a physical unit and a unit cost, rolled up through a yield or portion count into a cost per portion, and set against a menu selling price to derive a margin or gross-profit percentage - plus the item-by-allergen GRID that is a projection of the same component list onto a fixed statutory allergen set. The activating structure is a ONE-TO-MANY DECOMPOSITION WITH A ROLLUP AND A DERIVED MARGIN, which no other row in this family carries: a catalogue line, a price list line and a menu line are all ATOMIC. This is also the family's only OCCASION-FREE row - a dish specification is a STANDING record carrying a version line, not a record of a dated trading occurrence - and its only routinely PUBLIC artefact, the printed menu, sits in the same folder as its most commercially confidential one, the cost build-up behind it. It is NOT the printed menu itself (that is the catalogue's priced selling face), NOT a recipe as a method (a cost-free recipe card is not a trading record at all), NOT the supplier price list the unit costs were read from, and NOT the dated, signed, corrective-action food-safety diary. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it declares NO field rows and recommends NO folder dimensions (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so activation unlocks recognition, this row's own commercial-confidence privacy rule, the universal facts, and grouping by dish life rather than by trading date.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below, inherited unchanged from the schema: each is a DETECTION signal and never an extraction licence. This row declares no field rows and its schema declares none, so nothing here writes a domain fact. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "THE ROW'S ONE DEFINING STRUCTURE - a COMPONENT EXPLOSION WITH A ROLLUP AND A DERIVED MARGIN. A record in which ONE named finished item is followed by MANY component rows, each carrying a quantity in a physical or purchase unit (g, kg, ml, l, ea, portion, case) and a unit or extended cost; a yield, portion count, batch size or wastage/shrink factor applied over the component total; a derived cost per portion; and a SELLING PRICE beside it with a margin, food-cost percentage or gross-profit percentage. The one-to-many shape is what fires, not the presence of money: a catalogue line, a trade price list line and a printed menu line are each ATOMIC and can never produce this structure. Read from labelled cells and column headers: “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.”",
+      "THE GRID VARIANT - an ITEM-BY-ATTRIBUTE ALLERGEN MATRIX. Finished items down the rows, a FIXED and CLOSED attribute set across the columns (the statutory allergen list, and often a free-from or dietary set beside it: vegetarian, vegan, gluten-free), and a contains / may-contain / free marking in each cell. What distinguishes it from every other grid in this family is that the column set is CLOSED AND EXTERNALLY FIXED and the cell values are TERNARY MARKINGS, not quantities, money or ticks against a date. It carries a review or effective date for the WHOLE SHEET; it does NOT carry one date per row.",
+      "A RECIPE SPECIFICATION WITH A COMMERCIAL SIDE - a method or preparation record (mise en place, method steps, hold and service instructions, plate-up photograph reference) that ALSO carries a portion count, a portion cost, a selling price or a GP target. The commercial side is load-bearing: a method with no cost and no price is not this row, and this row must abstain on it - see file_examples.",
+      "A MENU-ENGINEERING or DISH-PROFITABILITY structure: items down, and columns pairing a UNIT COST or GP percentage against a POPULARITY or sales-mix figure, often with a quadrant, rank or category label per item. This one is genuinely shared with `retail_hospitality.pos-reporting` and is recorded as an open question rather than claimed outright - the discriminator this row proposes is whether the COMPONENT BUILD-UP is present in the same workbook (this row) or only a finished cost figure joined to a period's sales volume (pos-reporting).",
+      "A VERSION-AND-EFFECTIVE-DATE apparatus around any of the above: `v3`, `v7 FINAL`, `effective from`, `supersedes`, `spring 2026`, `season`, `re-cost`, `price rise April`. This row's material is RE-ISSUED rather than accumulated, so a version family across near-identical specification files is a positive signal here where in most of this family it would only be an export artefact.",
+      "Co-location of a costing workbook with a priced menu document and an allergen grid covering THE SAME item names, joined by a dish name or product code. This is the row's packet signal and it fires only once one of the structures above is already present.",
+      "Parent-folder context naming a season, a menu launch, a range, a chef or a kitchen, treated as a clue that raises plausibility once a structure above is present. Folder context never fires alone.",
+      "An email whose labelled subject slot names a costing, a GP target, an allergen declaration or a menu sign-off AND whose attachment-name slot names a specification, a costing workbook, an allergen matrix or a priced menu proof. The costing-word-plus-attachment pairing is what fires; a supplier's marketing mail about ingredients does not."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's privacy rule differs from its schema's and a model step runs under the user's policy and after P7 for the COST SIDE, not for a data subject. See `sensitivity_why`.",
+      "Separating a COST MODEL from a PRICED SELLING FACE, which is this row's central determination against `retail_hospitality.product-catalogue`. Both artefacts name the same dishes, carry money, and frequently sit in one folder. The determination is structural - does one item decompose into components with unit costs - and where a document merely lists dishes and prices, this row must not activate.",
+      "Separating a TRADING recipe from a DOMESTIC, EDITORIAL or TRAINING one. A recipe card, a cookbook page, a food blogger's draft, a culinary-school exercise and a kitchen's live specification are the same shape with the commercial side removed. “Topic answers what a file is about, while purpose answers what the file was for.” Cooking is the topic in all five; only one has a menu selling price as its purpose.",
+      "Separating a REAL costing from a TEMPLATE, a wholesaler's specimen or a franchise manual extract. A blank costing workbook has every header, every formula and no values, and a supplier's sample GP calculator is written to look exactly like a live one.",
+      "Reading a PHOTOGRAPHED OR SCANNED specification - a handwritten recipe card, a laminated kitchen sheet, a printed menu proof marked up in pen. Quantities and prices are frequently handwritten and OCR confidence on them is low, and a misread unit turns a cost model into nonsense.",
+      "A document in a language whose culinary, allergen and margin vocabulary the deterministic structure catalogue does not cover; allergen terminology in particular is statutory and locale-specific and this row writes no gazetteer (R4 owns that).",
+      "Deciding whether a menu-engineering workbook is this row's cost model or `pos-reporting`'s trading-period read, where the workbook carries both. Abstention is the required outcome: “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE WORD MENU, RECIPE, DISH, INGREDIENT, PORTION or COSTING, standing alone. This is the row's own defining never-alone and it is the direct answer to the charge that this row is a work-type value: the schema's `work_types` list literally contains “menu and costing record”, and a row resting on that phrase would be the schema's default template wearing a name. `Menu.pdf` may be a restaurant's live menu, a designer's portfolio piece, a caterer's proposal, a diner's souvenir, a training example, or a navigation specification in a software project.",
+      "A DISH OR PRODUCT NAME, standing alone. `Confit duck leg.docx` is a name, not a structure, and the same name appears in a specification, a menu, a purchase order, a review, a photograph filename and a blog post.",
+      "AN INGREDIENT LIST WITH QUANTITIES AND NO COSTS. This is the row's sharpest internal exclusion. A quantified ingredient list is a RECIPE; a recipe is not a trading record. Without a unit cost, a portion cost or a selling price somewhere in the same document, this row must not activate.",
+      "A PRICE, or a list of prices, standing alone. A priced list is a catalogue - see `collides_with` - and money in cells is finance, business_operations or the catalogue before it is a cost model. What fires here is the PAIRING of a bought-in cost against a sold price through a decomposition, never the presence of amounts.",
+      "AN ALLERGEN WORD, standing alone. `Allergens.pdf` may be this row's grid, a food-safety incident note, a supplier's specification sheet, a guest's own dietary card, a poster, or a statutory guidance download. The closed column set and the ternary cell markings are what fire.",
+      "A FOOD OR PLATED-DISH IMAGE, standing alone, inherited from the schema. A photograph of a dish is `photos` or `creative` evidence until a costing, catalogue or menu structure claims it.",
+      "A FILE EXTENSION OR SOURCE TYPE. A spreadsheet is not a costing sheet and a PDF is not a menu; “.xlsx” is a `SOURCE_TYPES` value and can never be a node.",
+      "A PERSON'S NAME - a chef, a supplier contact, or a guest named on a dietary line. Inherited as a HARD rule from the schema: never a group anchor and never a folder level, because “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "recipe specification",
+    "dish specification",
+    "spec sheet",
+    "portion cost",
+    "cost per portion",
+    "unit cost",
+    "yield",
+    "portion count",
+    "batch size",
+    "wastage factor",
+    "shrink",
+    "food cost",
+    "food cost percentage",
+    "gross profit",
+    "GP percentage",
+    "margin",
+    "selling price",
+    "menu price",
+    "menu engineering",
+    "sales mix",
+    "re-cost",
+    "costing sheet",
+    "GP calculator",
+    "allergen matrix",
+    "allergen declaration",
+    "may contain",
+    "free from",
+    "gluten free",
+    "dietary",
+    "course",
+    "starters",
+    "mains",
+    "sides",
+    "wine list",
+    "cocktail spec",
+    "pour cost",
+    "mise en place",
+    "method",
+    "plate-up",
+    "effective from",
+    "supersedes",
+    "season"
+  ],
+  "work_types": [
+    "dish or drink specification - components, quantities, method, yield, plate-up reference",
+    "cost build-up - component unit costs, wastage factor, cost per portion",
+    "margin calculation - selling price against portion cost, food-cost percentage, GP percentage, price-rise modelling",
+    "allergen and dietary declaration - the item-by-allergen grid and its free-from and dietary columns",
+    "menu composition record - the course structure and item selection a season's menu was built from",
+    "menu engineering review - dish cost and margin set against popularity, with a rank or quadrant per item"
+  ],
+  "grouping_reasons": [
+    "ONE DISH OR DRINK OVER ITS LIFE: the specification, each re-costing, the allergen line and the menu it appeared on - joined by a dish name or product code, never by a photograph that happens to show it. This is the schema's own dish-life reason narrowed to the cost side, and it is a LIFETIME, not an occasion.",
+    "ONE MENU OR SEASON: the costing workbook, the allergen grid and the priced menu covering the same item set for one launch. “The documents are content-incoherent but purpose-coherent.” The costing sheet and the printed menu share almost no content and exist for one purpose.",
+    "ONE RE-COSTING EXERCISE: the previous specification, the supplier price movement it responded to, the revised build-up and the new price list - a short chain joined by a version line rather than by a date.",
+    "A VERSION FAMILY of near-identical specification files (`v3`, `v7 FINAL`, `re-cost April`), joined by the universal `version_family` and `duplicate_family` facts. This family is RE-ISSUED rather than accumulated, so a version family is the normal shape of its evidence rather than an export artefact.",
+    "NO GROUP AT ALL is a valid and common outcome. A single printed menu with nothing beside it has no cycle around it and is a residual's business, not this row's - see `falls_through_to`."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT: PR-6 leaves the `retail_hospitality` schema with no field rows, and a dimension may only branch on a field the same schema declares. The recommendation is therefore held as prose, and THIS IS THE PARAGRAPH THAT DIFFERS FROM THE SCHEMA DEFAULT. The schema's default is: the TRADING UNIT where the corpus spans more than one, then the TRADING OCCASION - the session, count, order cycle, booking, function or licensed premises - then the OPERATIONAL RECORD FUNCTION. THIS ROW HAS NO TRADING OCCASION. A dish specification is not dated to a session, a count, a cycle or a booking; it is a STANDING record that persists across every trading day until it is superseded. Placing this material under the default's occasion level would create exactly the defect the validator sentence names - “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” - because every occasion branch would be empty. What this row recommends in its place is a STANDING PRODUCT-LINE level - the menu, range or season the specification belongs to - between the conditional site level and the record function. The site level stays conditional for the schema's reason, and is WEAKER here than elsewhere in the family: a multi-site operator normally runs ONE menu across all sites, so branching a costing corpus by site would produce a one-child level naming the estate. TIME IS NOT FIRST AND IS BARELY PRESENT AT ALL: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A season is a content period and not a capture date, and the photos exception is not available to a spreadsheet. The single most important prohibition is inherited and absolute: a DISH must never become a dimension. A branch per dish is a branch per SKU, which the validator sentence rejects as one-child levels - which is also why this row groups by dish and organises by menu, and why it proposes no field of its own.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "presentation",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".pptx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Dish spec - Confit duck leg v3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one named finished item in a header cell with a portion yield of ten",
+        "eleven component rows, each with a quantity in grams or millilitres, a purchase unit, a unit cost and an extended cost",
+        "a wastage percentage applied over the component total",
+        "a derived cost-per-portion cell and a menu selling price beside it, with a GP percentage formula",
+        "a method block below the table, and a 'supersedes v2' note in the footer",
+        "no date rows, no signature column, no supplier order reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none and this row proposes none",
+        "a dish, menu, cost or margin as a stored fact",
+        "that the GP percentage is correct, current, or an accounting figure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Allergen matrix - Spring 2026 menu.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "forty item names down the rows",
+        "a closed, externally fixed set of allergen columns across the top, plus vegetarian, vegan and gluten-free columns",
+        "ternary cell markings - contains, may contain, free - and no quantities and no money anywhere",
+        "one 'reviewed' date for the whole sheet and a named reviewer in a labelled cell",
+        "no per-row date, no corrective-action column, no initials column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is `retail_hospitality.food-safety` evidence; the absent per-row date, signature and corrective-action slots are the discriminator in both directions",
+        "that a contains marking is a medical or health fact about anyone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Spring menu 2026 - print final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "course sections with dish names, one-line descriptions and prices",
+        "a statutory allergen and calorie footnote",
+        "a trade name and address block",
+        "NO cost column, NO component list, NO margin figure anywhere",
+        "sitting beside the costing workbook and the allergen grid for the same forty items"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates on these bytes - THIS IS THE ROW'S PRIMARY COLLISION FIXTURE and it belongs to `retail_hospitality.product-catalogue`, whose signal is the atomic priced selling line",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Recipe card - Sourdough focaccia.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed handwritten index card",
+        "an ingredient list with quantities in cups and grams and a nine-step method",
+        "an oven temperature and a proving time",
+        "NO unit cost, NO portion cost, NO selling price, NO portion count",
+        "OCR confidence low across the handwriting; no EXIF camera make"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates - THE SECOND COLLISION FIXTURE. A quantified ingredient list with no commercial side is a RECIPE, and a recipe is not a trading record. Cooking is the topic; a menu price would have been the purpose, and there is none",
+        "a capture date as an effective date - the photograph's date is when the card was photographed",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "GP calculator - BLANK template.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "every header of the component-explosion structure present and correctly labelled",
+        "live formulas for extended cost, portion cost and GP percentage",
+        "sample rows reading 'Ingredient 1', 'Ingredient 2' with zero quantities",
+        "a wholesaler's logo in the header and a marketing footer",
+        "no dish name and no selling price"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that structural completeness is trading evidence - a blank costing sheet and a live one are the same workbook with the values removed",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harlow Foods trade price list Mar 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per bought line with a supplier order code, a pack size, a case price and a unit price",
+        "a supplier name, an account number and a validity period in the header",
+        "no finished item anywhere, no decomposition, no selling price, no margin",
+        "the same unit costs appear inside the dish specification workbook beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates because it prices ingredients - it belongs to `retail_hospitality.supplier-order`; the supplier account key and the absent decomposition are the discriminator",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Function allergen sheet - Ashcroft wedding 06.06.26.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled event date and a covers figure",
+        "a per-guest dietary block naming two guests by first name with their allergies",
+        "a course-by-course list of what each will be served",
+        "a lead client contact line",
+        "no component decomposition and no cost anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates - it is keyed to a BOOKED OCCASION and to NAMED GUESTS and belongs to `retail_hospitality.catering-contract`; this row's grid is keyed to a DISH SET and names nobody",
+        "the guests' names or their dietary requirements as any fact, and never as a folder level",
+        "that guest-supplied dietary information is a medical record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Menu costings 2024-2026 - locked.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming three seasons of costing workbooks and menu proofs",
+        "password protection on the archive",
+        "no readable member content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any structure from the manifest names alone - the manifest is read, never extracted",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.product-catalogue",
+      "signal": "SAME FIXTURE BOTH SIDES: `Spring menu 2026 - print final.pdf` - a priced menu with an allergen footnote, sitting in the same folder as the costing workbook that set its prices. THE EXISTENTIAL SEAM, and the charge this row was required to answer, because a menu IS a catalogue of priced selling lines and the schema's own catalogue-and-price signal names menus explicitly. This row owns the COST MODEL - the one-to-many decomposition of a sold item into bought components with unit costs, a yield rollup and a derived margin. The neighbour owns the ATOMIC PRICED SELLING LINE - the customer-visible face, one row per item, a code, a description and a price, with no cost side at all. Discriminated by THE COMPONENT EXPLOSION: does one named item decompose into many costed components in the same document. RECIPROCAL: this row MUST NOT take the printed menu, the price list, the range plan or the listing merely because the items are dishes - it may hold them only as members of a dish-life or season group, never as its activating evidence; `product-catalogue` MUST NOT take a costing workbook merely because it names the same forty dishes and carries prices. Note honestly that being occasion-free does NOT separate these two - both are standing records - so the decomposition is the whole of the discriminator.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.food-safety",
+      "signal": "SAME FIXTURE BOTH SIDES: `Allergen matrix - Spring 2026 menu.xlsx` - items down, the closed statutory allergen set across, ternary cell markings. Allergens are a food-safety subject and a costing output at once. This row owns the STANDING ITEM-BY-ATTRIBUTE GRID: a projection of the component list onto a fixed external attribute set, one review date for the whole sheet, no per-row date and no signature. The neighbour owns the DATED, SELF-SIGNED OPERATIVE DIARY and the incident record: one row per DAY with a reading or a tick, a target, a corrective-action slot and an initials column, plus received batch codes, use-by dates and delivery temperatures. Discriminated by WHETHER THE DATE IS PER ROW AND CARRIES A SIGNATURE. “Topic answers what a file is about, while purpose answers what the file was for.” - allergens are the topic on both sides; declaring a dish's composition and evidencing a day's checks are different purposes. RECIPROCAL: this row MUST NOT take a temperature log, a cleaning schedule, a traceability record or an allergen INCIDENT note, even though all four concern what is in the food; `food-safety` MUST NOT take the allergen grid merely because allergens are a safety matter, nor the dish specification because it lists ingredients.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BOTH SIDES: `Harlow Foods trade price list Mar 2026.xlsx` - the sheet the unit costs in every dish specification were read from, and the sheet against which every replenishment order is placed. This row owns THE SHEET KEYED TO A FINISHED ITEM: a dish exploding into components whose unit costs are CONSUMED from elsewhere. The neighbour owns THE SHEET KEYED TO A SUPPLIER ACCOUNT: order codes, pack sizes, case prices, a validity period, and the purchase-order-confirmation-goods-received-credit-note cycle that recurs against it. Discriminated by WHETHER THE RECORD IS KEYED TO A SOLD ITEM OR TO A BOUGHT-FROM ACCOUNT. RECIPROCAL: this row MUST NOT take a trade price list, a purchase order or a goods-received note because it prices ingredients; `supplier-order` MUST NOT take a recipe costing because it names goods that were bought. This is also the seam through which `logistics` is reached - see the memo's deliberate non-edges - and this row deliberately authors no direct logistics edge, because a costing sheet has no consignment, carrier or movement in it at all.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.pos-reporting",
+      "signal": "SAME FIXTURE BOTH SIDES: `Menu engineering - March 2026.xlsx` - dishes down, with a GP percentage column beside a units-sold column and a stars/dogs quadrant label per item. On these bytes both rows are genuinely plausible and this is the row's least settled edge. This row owns THE COST SIDE and claims the workbook only when the COMPONENT BUILD-UP is present in it. The neighbour owns THE TRADING-PERIOD READ - sales mix, department split and volume for a dated session or period at a site - and owns the workbook when the cost figures arrive as flat inputs joined to a period's sales. Discriminated by PRESENCE OF THE DECOMPOSITION VERSUS PRESENCE OF A DATED TRADING PERIOD AND A SITE. RECIPROCAL: this row MUST NOT take a sales mix, an hourly trade report or a Z-read because it lists dishes; `pos-reporting` MUST NOT take a costing workbook because it carries a margin. Recorded as NJ-MRC-1 because a workbook carrying both is undecidable on the fixture and neither row should activate alone on it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.catering-contract",
+      "signal": "SAME FIXTURE BOTH SIDES: `Function allergen sheet - Ashcroft wedding 06.06.26.docx` - a course-by-course dietary sheet, which is an allergen document and a function document at once. This row owns THE STANDING GRID KEYED TO A DISH SET, which names no person. The neighbour owns THE SHEET KEYED TO A BOOKED OCCASION - an event date, a covers figure, a lead client, and per-guest dietary requirements naming private individuals. Discriminated by WHETHER A GUEST IS NAMED AND A DATED OCCASION IS PRESENT. RECIPROCAL: this row MUST NOT take a function sheet, a proposal or a final account, and must not take a per-guest dietary block into its grid; `catering-contract` MUST NOT take the menu's standing allergen matrix merely because it was attached to a function file. This edge is also where the family's guest-data privacy posture reaches this row at all - see `sensitivity_why`.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Product build - unit cost and yield.xlsx` - a finished item exploding into components with quantities, a yield and unit costs. A recipe and a bill of materials are structurally near-identical and this is the strongest cross-schema challenge to the row. This row owns COSTING A DISH FOR A MENU: the rollup terminates in a cost per PORTION set against a MENU SELLING PRICE, and no lot identity is issued. `manufacturing` owns PRODUCTION FOR ONWARD SALE BY OTHERS: a route or operation sequence, a work centre, process parameters, and above all a BATCH OR LOT IDENTITY THAT LEAVES THE PREMISES with the goods. Discriminated by THE ISSUED LOT: a batch code the operator RECEIVES is an ingredient attribute; a batch code the operator ISSUES is manufacturing's. RECIPROCAL: this row MUST NOT take a bill of materials, a routing, a process specification or a quality event because it is about food; `manufacturing` MUST NOT take a dish costing because it explodes an item into components. The schema anchor authored this seam at schema level and this row restates it at the fixture; the two must not diverge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative",
+      "signal": "SAME FIXTURE BOTH SIDES: a spring menu, existing twice - `Menu_Spring2026_v7.indd` with linked assets and a designer's approval trail, and `Spring menu 2026 - print final.pdf`. This row owns THE COMMERCIAL APPARATUS: the priced, allergen-footnoted document as an output of a cost model, and only as a member of a season group. `creative` owns THE MAKING: the brief, the layered source, the linked image assets, the proof round and the client sign-off. Discriminated by PRODUCTION APPARATUS VERSUS COMMERCIAL APPARATUS in the same folder. RECIPROCAL: this row MUST NOT take a design source file, a font package, a proof-round comment PDF or a food-photography shoot folder; `creative` MUST NOT take a GP costing sheet because the subject is a dish. Note that the print PDF itself is `product-catalogue`'s on the first edge above, so this row is the third party to that fixture and takes it on neither edge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Gross profit March 2026.xlsx`. Gross profit is an accounting line and a dish-level margin at once, and the word is identical on both sides. `finance` owns GP AS A LEDGER OUTCOME: opening stock plus purchases minus closing stock against turnover, posted to nominal codes for a bookkeeping period, with an account identity present - `finance.small-business-bookkeeping` competes hardest. This row owns GP AS A DESIGN PARAMETER: a target percentage set per DISH before it is sold, derived from a component build-up, with no period, no account and no posting anywhere. Discriminated by WHETHER THE FIGURE IS DERIVED FROM A COMPONENT BUILD-UP PER ITEM OR FROM A PERIOD'S STOCK MOVEMENT AND TURNOVER. RECIPROCAL: this row MUST NOT take a stock-based GP calculation, a management account or a VAT return because a restaurant produced it; `finance` MUST NOT reduce a dish costing to a cost line, because the selling price and portion yield it would discard are the reason the record exists. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the landed finance rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Spring 2026 menu launch - plan v4.pptx` - a deck carrying the season's dish list, target GPs, a launch timeline, owners and a marketing schedule. `business_operations` owns THE INITIATIVE: `project-delivery` holds the launch as a plan with milestones, owners and status, and `budget-forecast` holds the margin target as a forecast line against an actual over a fiscal period. This row owns THE ARITHMETIC BEHIND ONE DISH'S PRICE, which no plan and no budget contains. Discriminated by WHETHER THE ARTEFACT IS A DECOMPOSITION OF ONE ITEM OR A SCHEDULE OF WORK AND FORECAST LINES. RECIPROCAL: this row MUST NOT take a launch plan, a project status report, a budget or a supplier contract instrument merely because the subject is a menu; `business_operations` MUST NOT take a costing workbook because a margin target appears in a plan that cites it. The schema's existential answer applies unchanged here: trading in a sector is a field value, and a company having a menu is not a structure.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "THE PRIMARY FALLTHROUGH FOR THIS ROW, and the reason is structural rather than incidental: this row's artefacts are STANDING documents with a durable purpose, so a lone one has no cycle around it to make a group. A single printed menu, a single allergen matrix, or a hygiene-facing composition sheet with nothing beside it lands here. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a costing-shaped file whose REALITY is unresolved - a blank or specimen GP calculator, a photographed recipe card whose handwriting OCR could not read, a workbook that is undecidable between this row and `pos-reporting` under NJ-MRC-1. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "CONSIDERED AS DIRECTED AND ACCEPTED NARROWLY. The transactional documents a costing corpus attracts - the wholesaler invoice a unit cost was read from, an isolated delivery confirmation for an ingredient - are not this row's evidence and belong here: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” Note the boundary carefully: a priced MENU is not a transactional document, because no transaction has occurred; it is a standing offer and it routes to Independent Records instead.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home for the one case in which this row's material carries a data subject - a dietary or allergen sheet that turns out to name private individuals rather than dishes. That artefact is `catering-contract`'s on the edge above, and where neither row activates it must not sit in an ordinary menu folder. This row reaches this residual FAR LESS OFTEN than its schema does, and that asymmetry is itself part of the node argument.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected costing archive or a proprietary recipe-management export in an unreadable format. Consistent with reading an archive manifest without extraction.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "product",
+      "other_field": "product",
+      "other_domain": null,
+      "why": "THE ROW'S OWN ROLE SPLIT, and it is unusual: the SAME canonical concept appears TWICE IN ONE FILE IN TWO ROLES. A dish specification names one PRODUCT AS SOLD (the finished item, carrying a portion count and a menu selling price) and many PRODUCTS AS BOUGHT (the components, carrying a purchase unit and a unit cost). The pattern is 00's own facet pattern - a document may name two parties and the agent should model them as distinct facets rather than one - applied inside a cost model rather than across a counter. NEITHER ROLE GETS A KEY HERE: the schema's `product` proposal is a single key, this row mints nothing, and R1c must decide whether one key can carry both facets or whether the sold facet and the bought facet need separate treatment. The consequence if it is left unsplit is concrete and bad: an extractor reading component rows would write eleven `product` values per dish and the dish's own identity would be one value among twelve, which would break the dish-life grouping reason this row depends on. Provenance: design for the facet pattern; inference for this reading.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THE VALUE MATCHES THE SCHEMA'S AND THE REASON DOES NOT, AND THAT DIFFERENCE IS THE ROW'S THIRD NODE-TEST LEG. The `retail_hospitality` schema is `potentially_sensitive` because its ordinary daily output is personal data about members of the public - names, numbers, stay histories, dietary requirements. THIS ROW'S ORDINARY OUTPUT CONTAINS NO DATA SUBJECT AT ALL. A dish specification, a cost build-up, a GP calculation and an allergen grid name dishes and ingredients; the only person they name is an internal reviewer in a labelled slot. The protection this row needs is COMMERCIAL: supplier unit costs are negotiated terms whose disclosure damages the negotiation, a dish-by-dish margin model is the operator's pricing strategy, and a specification is the recipe itself, which is the one asset in this world a competitor most wants. So the rule differs in BOTH directions. Under-protection: the schema's rule keys on a data subject, and applying it literally would leave a costing workbook unprotected because nobody is named in it. Over-protection: this row also holds THE FAMILY'S ONLY ROUTINELY PUBLIC ARTEFACT - a printed menu is handed to every member of the public who sits down - and treating it as guest data would suppress a document the operator publishes on purpose. The row therefore proposes a SPLIT ON THE COST SIDE, not on the presence of a person: an artefact carrying unit costs, margins or a component decomposition is protected; a priced menu with no cost side is ordinary. Because the two arrive in the same folder and often in the same workbook, the family cannot be separated at recognition time and the cautious value stands. The binding design constraints are unchanged: “Privacy policy must be enforced before content reaches any model or external connector.” Two honesty notes. First, this row invents no handling class - only `none` and `potentially_sensitive` are available here and P7 owns the classes. Second, this row does NOT claim `none` even though its own argument points that way for the printed menu, because the same argument would have to be made file by file at recognition time, which is exactly what a schema-level posture exists to avoid; the tension is recorded as NJ-MRC-3. The one personal-data path into this row is the function dietary sheet naming guests, which the `catering-contract` edge assigns elsewhere and which routes to Protected Records when neither row activates.",
+  "open_question": "Four, recorded rather than smoothed. NJ-MRC-1 (the sharpest): the menu-engineering workbook. `Menu engineering - March 2026.xlsx`, carrying dish-level GP beside period sales volume, is undecidable between this row and `retail_hospitality.pos-reporting` on its own bytes. This row's proposed discriminator is presence of the component build-up in the same workbook; the alternative is that pos-reporting takes every workbook containing a dated sales figure and this row keeps only the specifications feeding it. R1c must pick one and both rows must say the same thing. NJ-MRC-2: the allergen grid's home. The roster hint assigns allergens to this row and this pass accepts that on the grid's structure - a standing item-by-attribute projection with no dated rows - but the statutory duty it discharges is a food-safety duty, and a reasonable alternative is that `retail_hospitality.food-safety` takes the grid and this row keeps only the cost side. If R1c moves it, this row's name should change, because 'plus the allergen information the dish carries' is a third of the hint. NJ-MRC-3: whether a printed menu is `none` rather than `potentially_sensitive`. It is a document published to the public, and it is the only artefact in the whole family of which that is true; the alternatives are to keep the cautious family value (this pass's choice), to give this row `none` and rely on the cost-side files activating a different row, or to let P7 split on the cost side directly. NJ-MRC-4: whether the schema's `product` key can carry the sold facet and the bought facet at once - see `role_split`. If it cannot, this row has no key for a dish, its dish-life grouping reason loses its join, and the schema's own strain note about `product` stretching from a SKU to a dish becomes acute rather than theoretical. Related and unresolved: this row proposes no field for the STANDING PRODUCT-LINE level its template argument recommends (menu, range, season). `record_period` is wrong for it - a season is not a period a record covers - and this row deliberately did not mint `menu` or `season`, so if R1c ratifies the template argument it must also supply the level a key."
+}
