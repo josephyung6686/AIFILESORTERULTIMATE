@@ -205,7 +205,7 @@ logistics.shipment | OTHER-TEAM | active
 logistics.warehouse-ops | OTHER-TEAM | active
 manufacturing.asset-register | OTHER-TEAM | active
 manufacturing.calibration-record | OTHER-TEAM | active
-manufacturing.energy-audit | OTHER-TEAM | active
+manufacturing.energy-audit | OTHER-TEAM | complete
 manufacturing.environmental-compliance | OTHER-TEAM | active
 manufacturing.failure-analysis | OTHER-TEAM | active
 manufacturing.field-service-report | OTHER-TEAM | active
@@ -232,7 +232,7 @@ nonprofit.religious-institution | OTHER-TEAM | active
 nonprofit.standards-body | OTHER-TEAM | active
 nonprofit.trade-union | OTHER-TEAM | active
 nonprofit.volunteer-management | OTHER-TEAM | active
-retail_hospitality.bookings-reservations | OTHER-TEAM | active
+retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active
 retail_hospitality.ecommerce-ops | OTHER-TEAM | active
 retail_hospitality.event-production | OTHER-TEAM | active
@@ -342,11 +342,11 @@ law_practice.investigation | OTHER-TEAM | complete
 law_practice.legal-research | OTHER-TEAM | active
 law_practice.regulatory-submission | OTHER-TEAM | active
 law_practice.settlement | OTHER-TEAM | complete
-manufacturing.energy-audit | OTHER-TEAM | active
+manufacturing.energy-audit | OTHER-TEAM | complete
 nonprofit.advocacy-campaign | OTHER-TEAM | active
 nonprofit.grant-reporting | OTHER-TEAM | active
 nonprofit.trade-union | OTHER-TEAM | active
-retail_hospitality.bookings-reservations | OTHER-TEAM | active
+retail_hospitality.bookings-reservations | OTHER-TEAM | complete
 retail_hospitality.catering-contract | OTHER-TEAM | active
 retail_hospitality.food-safety | OTHER-TEAM | active
 retail_hospitality.premises-licensing | OTHER-TEAM | active

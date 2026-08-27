@@ -1260,3 +1260,11 @@ Accepted narrowly (enquiry apparatus + subject privacy). Pair committed.
 ### Landed — law_practice.due-diligence
 
 Accepted (examination apparatus). Pair committed.
+
+### Landed — manufacturing.energy-audit
+
+Accepted (energy boundary + baseline + ECM). Pair committed.
+
+### Landed — retail_hospitality.bookings-reservations
+
+Accepted (operator capacity/status apparatus; NJ-BR-1 dimensional thinness flagged). Pair committed.
