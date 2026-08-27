@@ -233,7 +233,7 @@ nonprofit.standards-body | OTHER-TEAM | active
 nonprofit.trade-union | OTHER-TEAM | complete
 nonprofit.volunteer-management | OTHER-TEAM | active
 retail_hospitality.bookings-reservations | OTHER-TEAM | complete
-retail_hospitality.catering-contract | OTHER-TEAM | active
+retail_hospitality.catering-contract | OTHER-TEAM | complete
 retail_hospitality.ecommerce-ops | OTHER-TEAM | active
 retail_hospitality.event-production | OTHER-TEAM | active
 retail_hospitality.food-safety | OTHER-TEAM | complete
@@ -347,7 +347,7 @@ nonprofit.advocacy-campaign | OTHER-TEAM | active
 nonprofit.grant-reporting | OTHER-TEAM | complete
 nonprofit.trade-union | OTHER-TEAM | complete
 retail_hospitality.bookings-reservations | OTHER-TEAM | complete
-retail_hospitality.catering-contract | OTHER-TEAM | active
+retail_hospitality.catering-contract | OTHER-TEAM | complete
 retail_hospitality.food-safety | OTHER-TEAM | complete
 retail_hospitality.premises-licensing | OTHER-TEAM | complete
 retail_hospitality.store-operations | OTHER-TEAM | complete

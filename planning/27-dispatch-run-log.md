@@ -1296,3 +1296,7 @@ Accepted (operator permission-to-trade custody). Pair committed.
 ### Landed — law_practice.legal-research
 
 Refused (schema work-product / work_type duplicate). Pair committed.
+
+### Landed — retail_hospitality.catering-contract
+
+Accepted (client-facing commercial engagement chain). Pair committed.
