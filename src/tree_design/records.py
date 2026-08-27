@@ -69,6 +69,19 @@ def derive_accepts_placement(node_type: str, *,
     folder untouched. `protected` is true only under an explicit user policy,
     because §8.4 says protected material "should not be moved automatically
     without a user policy that explicitly permits it".
+
+    THE §7.4 RESIDUAL DISPOSITION IS DELIBERATELY NOT READ HERE, and that is a
+    RULING rather than an omission. `00`:121: "Once the user approves the desired
+    residual branches, those branches become legal nodes in the frozen
+    destination tree. The LLM may choose among them later." All three
+    dispositions produce LEGAL nodes, so `accepts_placement` — "is this a node
+    the model may choose" — is True for all three, and deriving it from the
+    disposition would make a review-only branch illegal.
+
+    The disposition governs what happens WHEN a node is chosen, not WHETHER it
+    can be. "Never moves files AUTOMATICALLY" is a statement about automation,
+    and `00`:120's "represent without moving" is a first-class outcome. That
+    belongs to P11's review policy, which reads `IndexEntry.disposition`.
     """
     check(node_type, NODE_TYPES, name="node_type")
     if node_type == IGNORED:

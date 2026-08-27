@@ -30,9 +30,14 @@ from grouping.vocabulary import (
     ACCEPTED,
     EXCLUDED,
     INCLUDED,
+    DIRECT_ANCHOR,
     MEMBERSHIP_BASES,
     REJECTED,
     TENTATIVE_DISCOVERY,
+)
+from scan_agent.exclusion import (
+    RULE_PROTECTED_CONTAINER,
+    exclusion_verdicts,
 )
 from scan_agent.inventory import CURATION_SIGNAL_VALUES, directory_inventory
 from scan_agent.selection import get_selection, selection_candidate_roots
@@ -250,6 +255,62 @@ def existing_folders(conn: sqlite3.Connection, *,
             curation_signal=signal,
         ))
     return tuple(folders)
+
+
+@dataclass(frozen=True)
+class ProtectedArea:
+    """One area P3 marked, counted and never opened.
+
+    The product owner's standing rule: "reports, apps and system files MUST NOT
+    BE MOVED OR READ OR ANYTHING SYSTEM OR SENSITIVE IN THAT SENSE." P3 enforces
+    the not-reading half — `exclusion_for` tests `is_protected_container` FIRST,
+    before every weaker §1.1 rule, so a `.app` inside `node_modules` is still
+    recorded as protected rather than under the rule that understates it.
+
+    This record is the other half: the area has to REACH the tree design, because
+    a protected container that is pruned and then never mentioned has been
+    silently omitted, and silent omission is the one outcome the rule forbids.
+    """
+
+    path: str
+    display_label: str
+    rule_subject: str
+    applies_to: str
+    label: str | None
+    observed_at: str
+
+
+def protected_areas(conn: sqlite3.Connection, *,
+                    scan_run_id: str) -> tuple[ProtectedArea, ...]:
+    """P3's protected containers, for this scan run.
+
+    Filtered on `rule`, not on `label`. The rule is the DECISION P3 made; the
+    label is §8.6's display category for the progress line. Selecting on the
+    display string would make a presentation change silently alter which areas
+    the tree represents.
+    """
+    areas = []
+    for row in exclusion_verdicts(conn, scan_run_id):
+        if row["rule"] != RULE_PROTECTED_CONTAINER:
+            continue
+        areas.append(ProtectedArea(
+            path=row["path"],
+            display_label=_folder_name(row["path"]),
+            rule_subject=row["rule_subject"],
+            applies_to=row["applies_to"],
+            label=row["label"],
+            observed_at=row["observed_at"],
+        ))
+    return tuple(areas)
+
+
+def _folder_name(path: str) -> str:
+    """The last segment, as a display label. Never the path (resolution B3)."""
+    cleaned = path.rstrip("/\\")
+    for separator in ("/", "\\"):
+        if separator in cleaned:
+            cleaned = cleaned.rsplit(separator, 1)[-1]
+    return cleaned
 
 
 def candidate_roots(conn: sqlite3.Connection, *,

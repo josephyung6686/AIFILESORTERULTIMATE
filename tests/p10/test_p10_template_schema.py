@@ -55,8 +55,8 @@ ROW = TemplateApplicability(
     template_id="photo-event", template_version=1, uses_schema="photos",
     purpose_profile_ref=None, allowed_fields=("event", "capture_year"),
     detection_signal_refs=("signal.exif",),
-    role_bindings=(RoleBinding("event", "event"),
-                   RoleBinding("capture_time", "capture_year")),
+    role_bindings=(RoleBinding("event", "event", "Occasion"),
+                   RoleBinding("capture_time", "capture_year", "Year taken")),
     exclusions=(), provenance=("row:photos-01",),
 )
 CATALOGUE = load_catalogue(lambda: json.dumps({

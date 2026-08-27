@@ -64,3 +64,50 @@ def restore(plan_version: str, *, target: str) -> ReviewActionFixture:
         correction_scope="corpus", presented_state_ref=f"ps_{target}",
         user_id="jy", observed_at="2026-08-27T00:02:00Z", payload={},
     )
+
+
+def add_scoped_general(parent_node_id: str, *, plan_version: str,
+                       new_label: str = "General") -> ReviewActionFixture:
+    """`00`:99's own answer to the commonest ambiguity there is.
+
+    "It should also support a scoped General or Other branch within a meaningful
+    parent. For example, if a file is clearly part of Academics/Columbia/
+    2026-Spring but has no recoverable work type, the future tree can include
+    Academics/Columbia/2026-Spring/General rather than sending it to a global
+    Unsorted folder."
+
+    `subject_ref` is the PARENT the General sits inside. Scoped is the whole
+    point: the same sentence ends "A global catch-all folder should not become
+    the product's default answer to ambiguity."
+    """
+    return ReviewActionFixture(
+        review_action_id=f"ra_general_{parent_node_id}", surface="canvas",
+        subject_ref=parent_node_id, plan_version=plan_version,
+        action="add-scoped-general", correction_scope="node",
+        presented_state_ref=f"ps_{parent_node_id}", user_id="jy",
+        observed_at="2026-08-27T00:03:00Z",
+        payload={"display_label": new_label},
+    )
+
+
+def set_shared_material_policy(parent_node_id: str, *, plan_version: str,
+                               policy: str, reason: str,
+                               new_label: str = "Shared Material",
+                               policy_scope: str | None = None,
+                               ) -> ReviewActionFixture:
+    """§6.9's answer to a file that belongs in two places.
+
+    `subject_ref` is the parent the shared branch sits under — deliberately NOT
+    one of the competing homes. `placement.groups.resolve_multi_home` refuses a
+    `shared_branch_node_id` that is one of the candidates, because placing there
+    IS choosing between them.
+    """
+    return ReviewActionFixture(
+        review_action_id=f"ra_shared_{parent_node_id}", surface="canvas",
+        subject_ref=parent_node_id, plan_version=plan_version,
+        action="set-shared-material-policy", correction_scope="corpus",
+        presented_state_ref=f"ps_{parent_node_id}", user_id="jy",
+        observed_at="2026-08-27T00:04:00Z",
+        payload={"policy": policy, "reason": reason,
+                 "display_label": new_label, "policy_scope": policy_scope},
+    )

@@ -18,12 +18,23 @@ import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
+from tree_design.config import ConfigurationRequired, TreeLimits
+from tree_design.health import (
+    Warning_,
+    branch_counts,
+    parent_concepts_for,
+    warnings_for,
+)
+from tree_design.materialise import BranchEvidence, BranchPreview, child_counts
 from tree_design.provenance import branch_basis_key, suppressed_branch_basis_keys
 from tree_design.routing import CompositionCandidate, RoutingReport
-from tree_design.upstream import AcceptedGroup, ExistingFolder
+from tree_design.records import Node
+from tree_design.upstream import AcceptedGroup, ExistingFolder, ProtectedArea
 from tree_design.validation import ValidationReport
 from tree_design.vocabulary import (
     ACCEPT,
+    ORDINARY,
+    PROTECTED,
     CREATE_MANUALLY,
     DEFER,
     DRAG_GROUP_INTO_BRANCH,
@@ -67,6 +78,21 @@ class BranchCandidate:
 
 
 @dataclass(frozen=True)
+class ChildPreview:
+    """One branch this option would create, and the files that would land in it.
+
+    `label_chain` runs from the branch being split down to this child, so two
+    children with the same label under different parents are distinguishable
+    without exposing a node id that only exists for the duration of the preview.
+    It is a chain of display labels and never a path (resolution B3).
+    """
+
+    label_chain: tuple[str, ...]
+    dimension: str | None
+    file_count: int
+
+
+@dataclass(frozen=True)
 class VerticalOption:
     option_id: str
     kind: str
@@ -76,6 +102,20 @@ class VerticalOption:
     unresolved_file_ids: tuple[str, ...]
     summary: str
     validation: ValidationReport | None
+    #: `00`:99's "number of files under each child", which `resulting_child_counts`
+    #: does not answer: that maps a role to how many BRANCHES it makes.
+    children: tuple[ChildPreview, ...]
+    #: Members of this branch whose handling class is protected. They ARE placed
+    #: and ARE counted — marked, not removed — and P7's `may_move_automatically`
+    #: is what stops them being moved. Named here so the interface can say the
+    #: branch holds them, because a file that is neither placed nor mentioned has
+    #: been silently omitted, which the standing rule forbids.
+    protected_file_ids: tuple[str, ...]
+    #: §5.9's four warnings and its flattening recommendation, computed against
+    #: this option's own preview tree. `validation` is a different thing: those
+    #: are §5.7's ENGINE checks, which decide whether an option may be built at
+    #: all. These are advice to the user about a tree that is perfectly legal.
+    warnings: tuple[Warning_, ...]
 
 
 def _folder_label(directory_path: str) -> str:
@@ -85,6 +125,80 @@ def _folder_label(directory_path: str) -> str:
         if separator in cleaned:
             cleaned = cleaned.rsplit(separator, 1)[-1]
     return cleaned
+
+
+def protected_area_nodes(
+    areas: Sequence[ProtectedArea],
+    *,
+    plan_version_id: str,
+    root_anchor: str,
+    mint_node_id: Callable[[], str],
+    handling_class_for: Callable[[ProtectedArea], str] | None,
+) -> tuple[Node, ...]:
+    """One `protected` node per area P3 marked. Present, counted, never opened.
+
+    The product owner's standing rule, verbatim: "reports, apps and system files
+    MUST NOT BE MOVED OR READ OR ANYTHING SYSTEM OR SENSITIVE IN THAT SENSE." A
+    protected container is MARKED AND COUNTED, NEVER OPENED — present-but-
+    untouched in the UI, with a reachable explanation, never silently omitted,
+    and never described as "understood and found unimportant".
+
+    `node_type=PROTECTED` existed in `NODE_TYPES` and `derive_accepts_placement`
+    already returned `protected_movement_permitted` for it, but nothing in `src/`
+    ever CONSTRUCTED one. The vocabulary, the deriver and the consistency guard
+    were all correct and all unreachable, so a protected area was pruned by the
+    scan and then appeared nowhere — silently omitted.
+
+    **SCOPE BOUND — this builds nodes for P3's protected CONTAINERS and nothing
+    else.** The caller's areas come from `upstream.protected_areas`, which filters
+    on `RULE_PROTECTED_CONTAINER`: P3's apps-and-system-items decision. The
+    hardcoded immovability below rests on THAT rule specifically, ratified
+    2026-08-20 — "applications and system items are never read and never moved,
+    and no policy, approval, or user gesture makes them movable". §8.4 does
+    contemplate a user policy permitting movement for other protected material,
+    and sensitive personal material is not the same thing as `Numbers.app`. A
+    different protected class needs a different producer, not this one widened.
+
+    There is deliberately NO `protected_movement_permitted` parameter. §8.4 lets
+    a user policy permit moving protected material, but P3's rule is stronger and
+    says so in its own docstring: applications and system items are never read and
+    never moved, and "no policy, approval, or user gesture makes them movable". A
+    keyword here would be that override. The flag stays False, which makes
+    `derive_accepts_placement` return False, which the `Node` consistency guard
+    then enforces — three independent mechanisms agreeing, none of them optional.
+    """
+    if handling_class_for is None:
+        raise ConfigurationRequired(
+            "the handling class for a protected area is injected configuration "
+            "with no default: P7 owns HANDLING_CLASSES and has published no "
+            "ordering, and a class chosen here could give a protected area a "
+            "weaker floor than the material inside it requires"
+        )
+    nodes: list[Node] = []
+    for ordinal, area in enumerate(areas):
+        node_id = mint_node_id()
+        nodes.append(Node(
+            node_id=node_id,
+            plan_version_id=plan_version_id,
+            node_type=PROTECTED,
+            display_label=area.display_label,
+            parent_node_id=None,
+            root_anchor=root_anchor,
+            ordinal=ordinal,
+            associated_group_ids=(),
+            explanation=(
+                f"{area.display_label} is a protected area. The scan marked and "
+                "counted it and never opened it, so nothing inside it was read "
+                "and nothing inside it will be moved. It is shown here so that "
+                "it is accounted for rather than missing."
+            ),
+            node_role=ORDINARY,
+            accepts_placement=False,
+            handling_class=handling_class_for(area),
+            origin_node_id=node_id,
+            existing_path=None,
+        ))
+    return tuple(nodes)
 
 
 def horizontal_candidates(
@@ -199,31 +313,134 @@ def _summarise(counts: Mapping[str, int]) -> str:
     return ", ".join(parts[:-1]) + f", and {parts[-1]}"
 
 
+def _child_previews(preview: BranchPreview) -> tuple[ChildPreview, ...]:
+    """Each projected node as a label chain and a file count."""
+    by_id = {node.node_id: node for node in preview.tree}
+    previews: list[ChildPreview] = []
+    for node in preview.nodes:
+        chain: list[str] = [node.display_label]
+        current = by_id.get(node.parent_node_id) if node.parent_node_id else None
+        while current is not None:
+            chain.append(current.display_label)
+            current = (by_id.get(current.parent_node_id)
+                       if current.parent_node_id else None)
+        previews.append(ChildPreview(
+            label_chain=tuple(reversed(chain)),
+            dimension=node.dimension,
+            file_count=len(preview.members_by_node.get(node.node_id, ())),
+        ))
+    return tuple(previews)
+
+
+def _counts_for_preview(preview: BranchPreview,
+                        evidence: BranchEvidence) -> dict[str, object]:
+    """§5.5's counts for every node this option would create.
+
+    Three of `branch_counts`'s inputs used to be hard-wired empty here, which
+    made three of its fields unreachable: no node could ever report an
+    unresolved file, an evidence gap, or sensitive material. `00`:99 requires the
+    picker to show "example members, unresolved files, and any evidence gaps",
+    so two of those three were structurally impossible.
+
+    `evidence_gaps_by_node` STAYS empty and that is reported rather than filled:
+    nothing in `src/` produces an evidence gap. `BranchCounts.evidence_gap_file_ids`
+    is a reserved name with no producer, and inventing one here would be P10
+    deciding what counts as a gap.
+    """
+    tree = preview.tree
+    placed: frozenset[str] = frozenset().union(
+        *(preview.members_by_node.get(node.node_id, frozenset())
+          for node in preview.nodes)) if preview.nodes else frozenset()
+    # A file that reaches no folder belongs to the BRANCH being split, which is
+    # where the user is looking when they read the number.
+    unresolved = tuple(sorted(evidence.member_file_ids - placed))
+    sensitive = frozenset(
+        node_id for node_id, files in preview.members_by_node.items()
+        if files & evidence.protected_file_ids)
+    return {
+        node.node_id: branch_counts(
+            tree, node_id=node.node_id,
+            members_by_node={
+                node.node_id: sorted(
+                    preview.members_by_node.get(node.node_id, ()))},
+            unresolved_by_node={preview.parent.node_id: unresolved},
+            evidence_gaps_by_node={},
+            sensitive_node_ids=sensitive)
+        for node in tree
+    }
+
+
+def _unplaced(preview: BranchPreview, evidence: BranchEvidence) -> frozenset[str]:
+    placed: frozenset[str] = frozenset().union(
+        *(preview.members_by_node.get(node.node_id, frozenset())
+          for node in preview.nodes)) if preview.nodes else frozenset()
+    return evidence.member_file_ids - placed
+
+
+def _preview_warnings(preview: BranchPreview, evidence: BranchEvidence,
+                      limits: TreeLimits) -> tuple[Warning_, ...]:
+    """§5.9, computed on the tree this option WOULD build.
+
+    `00`:99 puts this before the choice — "Before the user chooses a split ... It
+    should warn when a level produces only one child, repeats a concept already
+    expressed in the parent, creates excessive depth, or creates a large number
+    of tiny folders. It should recommend flattening when a dimension does not
+    materially improve retrieval."
+
+    `health.warnings_for` is the one implementation of those five and stays the
+    one implementation: this hands it the preview tree rather than restating the
+    rules against level evidence, because a second copy of §5.9 is a second copy
+    that drifts.
+    """
+    tree = preview.tree
+    return warnings_for(tree, _counts_for_preview(preview, evidence),
+                        limits=limits, parent_concepts=parent_concepts_for(tree))
+
+
 def vertical_options(
     report: RoutingReport,
     *,
     branch_members: Sequence[str],
-    materialise: Callable[[CompositionCandidate], Mapping[str, int] | None],
+    materialise: Callable[[CompositionCandidate], BranchEvidence | None],
     validate: Callable[[object], ValidationReport | None],
+    limits: TreeLimits,
+    preview: Callable[[CompositionCandidate, BranchEvidence], BranchPreview],
 ) -> tuple[VerticalOption, ...]:
     """One option per routed candidate, plus no-split, always last and always there.
 
     Each option states what it WOULD create from the branch's actual facts, which
-    files it leaves unresolved, and whether it passed V1-V6. An option that failed
+    files it leaves unresolved, how many files would sit under each child, every
+    §5.9 warning it triggers, and whether it passed V1-V6. An option that failed
     validation stays visible with its reason: §8.6 requires showing the
     difference between completed work and deferred work, and a silently dropped
     option looks to the user like the product having no idea.
+
+    `limits` and `preview` are MANDATORY, and that is the point. §5.9's warnings
+    were computed by a function no production code called, so the safety net that
+    stops this product proposing a bad tree was not connected to the thing that
+    proposes trees. An optional threshold set is an unwired one by the next
+    caller who omits it.
     """
     members = tuple(branch_members)
     options: list[VerticalOption] = []
 
     for index, candidate in enumerate(report.candidates):
-        counts = materialise(candidate) or {}
+        evidence = materialise(candidate)
+        built = None if evidence is None else preview(candidate, evidence)
+        counts = {} if evidence is None else child_counts(evidence)
+        children = () if built is None else _child_previews(built)
+        protected = (() if evidence is None
+                     else tuple(sorted(evidence.protected_file_ids)))
+        warnings = (() if built is None
+                    else _preview_warnings(built, evidence, limits))
         validation = validate(candidate)
-        unresolved = tuple(
-            file_id for file_id in members
-            if file_id not in candidate.covered_file_ids
-        )
+        # Two ways a file gets no folder from this option: the routing never
+        # covered it (C6), or it covered it and no level settled a value for it.
+        # Both are "unresolved" to the user, and only the first was reported.
+        unplaced = frozenset() if built is None else _unplaced(built, evidence)
+        unresolved = tuple(sorted(
+            {file_id for file_id in members
+             if file_id not in candidate.covered_file_ids} | unplaced))
         kind = (COMPLETE_TEMPLATE if len(candidate.applicability_refs) == 1
                 else FRAGMENT_COMPOSITION)
         summary = f"This option would create {_summarise(counts)}."
@@ -239,11 +456,17 @@ def vertical_options(
             option_id=f"opt_{index}",
             kind=kind,
             resulting_child_counts=dict(counts),
-            total_child_branches=max(counts.values()) if counts else 0,
+            # Every branch this option would create, not the widest single
+            # level's count. `00`:99 puts this number in front of the user
+            # before they choose, so it has to count something they can see.
+            total_child_branches=len(children),
             example_members=members[:len(members)],
             unresolved_file_ids=unresolved,
             summary=summary,
             validation=validation,
+            children=children,
+            protected_file_ids=protected,
+            warnings=warnings,
         ))
 
     no_split_summary = (
@@ -268,5 +491,8 @@ def vertical_options(
         unresolved_file_ids=(),
         summary=no_split_summary,
         validation=None,
+        children=(),
+        protected_file_ids=(),
+        warnings=(),
     ))
     return tuple(options)

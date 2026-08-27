@@ -18,13 +18,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from tree_design.config import ConfigurationRequired
-from tree_design.records import Node
+from tree_design.records import Node, derive_accepts_placement
 from tree_design.vocabulary import (
     DISABLE,
-    ENABLE,
     MERGE_RESIDUAL,
-    RELOCATE,
-    RENAME_RESIDUAL,
     REPLACE_WITH_EXISTING,
     RESIDUAL,
     RESIDUAL_LIBRARY_ACTIONS,
@@ -36,13 +33,6 @@ from tree_design.vocabulary import (
     USER_CREATED,
     check,
 )
-
-#: The five actions that put a node in the tree. `disable` is the sixth and is
-#: the whole enforcement mechanism: no node, so nothing can name it.
-_CREATING_ACTIONS: frozenset[str] = frozenset({
-    ENABLE, RENAME_RESIDUAL, RELOCATE, MERGE_RESIDUAL, REPLACE_WITH_EXISTING,
-})
-
 
 @dataclass(frozen=True)
 class ResidualTemplate:
@@ -169,7 +159,16 @@ def project_residual_nodes(
     by_name: dict[str, Node] = {}
     ordinal = 0
 
+    decided: set[str] = set()
     for choice in choices:
+        if choice.template_name in decided:
+            raise ConfigurationRequired(
+                f"{choice.template_name!r} carries more than one §7.4 decision. "
+                "The user makes ONE decision per residual template; two produced "
+                "two branches with the same display name and nothing said which "
+                "one P11 would place into."
+            )
+        decided.add(choice.template_name)
         template = library.get(choice.template_name)
         if template is None:
             raise ConfigurationRequired(
@@ -178,8 +177,17 @@ def project_residual_nodes(
                 "nobody defined."
             )
         if choice.action == DISABLE:
-            continue
-        if choice.action not in _CREATING_ACTIONS:
+            # §7.4's whole enforcement mechanism, and the only action that makes
+            # no node: "a template the user did not enable has no node", so no
+            # placement decision can name it and no model can return it. The
+            # other five all put a node in the tree.
+            #
+            # There used to be a second skip here testing membership of a
+            # `_CREATING_ACTIONS` set that was exactly the five non-`disable`
+            # actions. `ResidualChoice.__post_init__` already closes the action
+            # against `RESIDUAL_LIBRARY_ACTIONS`, so the two checks were the same
+            # check twice and each made the other unreachable — deleting either
+            # one alone left the suite green.
             continue
         if choice.disposition is None:
             raise ConfigurationRequired(
@@ -203,6 +211,12 @@ def project_residual_nodes(
 
         label = choice.display_label or template.display_name
         handling_class = handling_class_for_template(choice.template_name)
+        if choice.action != REPLACE_WITH_EXISTING and not (choice.root_anchor or ""):
+            raise ConfigurationRequired(
+                f"{choice.template_name!r} is enabled without a root anchor. §7.3 "
+                "leaves five of the nine default parents unstated, so the anchor "
+                "is the user's to choose and P10 has none to fall back on."
+            )
 
         if choice.action == REPLACE_WITH_EXISTING:
             existing = existing_nodes.get(choice.replaces_node_id or "")
@@ -248,7 +262,7 @@ def project_residual_nodes(
                 node_type=USER_CREATED,
                 display_label=label,
                 parent_node_id=choice.parent_node_id,
-                root_anchor=choice.root_anchor or "",
+                root_anchor=choice.root_anchor,
                 ordinal=ordinal,
                 associated_group_ids=(),
                 explanation=(
@@ -258,7 +272,8 @@ def project_residual_nodes(
                        if parent_labels else ".")
                 ),
                 node_role=RESIDUAL,
-                accepts_placement=True,
+                accepts_placement=derive_accepts_placement(
+                    USER_CREATED, protected_movement_permitted=False),
                 handling_class=handling_class,
                 origin_node_id=node_id,
                 disposition=choice.disposition,

@@ -308,3 +308,66 @@ def test_a_file_with_no_settled_value_is_unresolved_at_that_level_not_a_failure(
     from tree_design.upstream import preferred_value_for
 
     assert preferred_value_for(conn, file_id="never-seen", field_ref="subject") is None
+
+
+def test_protected_areas_reach_p10_marked_and_counted_never_opened(conn, tmp_path):
+    """The product owner's standing rule: "reports, apps and system files MUST NOT
+    BE MOVED OR READ OR ANYTHING SYSTEM OR SENSITIVE IN THAT SENSE." A protected
+    container is MARKED AND COUNTED, NEVER OPENED — present-but-untouched, with a
+    reachable explanation, never silently omitted.
+
+    P3 honours it: `exclusion_for` checks `is_protected_container` FIRST, records
+    `RULE_PROTECTED_CONTAINER` and labels the row `untouched_protected`. P10 read
+    none of it — `grep protected src/tree_design/upstream.py` returned nothing —
+    so a protected area was pruned by the scan and then appeared nowhere in the
+    tree design. Silently omitted is the one outcome the rule forbids.
+
+    Written against P3's real writer, so the row shape cannot drift from P3's.
+    """
+    from scan_agent.exclusion import (
+        APPLIES_TO_SCANNED_SOURCE,
+        LABEL_UNTOUCHED_PROTECTED,
+        RULE_PROTECTED_CONTAINER,
+        exclusion_for,
+        record_exclusion,
+    )
+    from scan_agent.run import start_scan_run
+    from tree_design.upstream import protected_areas
+
+    selection_id = record_selection(
+        conn, sources=[tmp_path / "corpus"],
+        candidate_roots=[tmp_path / "corpus"],
+        cross_folder_moves=True, selected_by="jy")
+    scan_run_id = start_scan_run(conn, selection_id)
+
+    bundle = tmp_path / "corpus" / "Numbers.app"
+    verdict = exclusion_for(bundle, is_dir=True,
+                            applies_to=APPLIES_TO_SCANNED_SOURCE)
+    assert verdict.rule == RULE_PROTECTED_CONTAINER
+    assert verdict.label == LABEL_UNTOUCHED_PROTECTED
+    record_exclusion(conn, scan_run_id, verdict)
+
+    # A different §1.1 rule, which is an exclusion but NOT a protected area.
+    noise = exclusion_for(tmp_path / "corpus" / "node_modules", is_dir=True,
+                          applies_to=APPLIES_TO_SCANNED_SOURCE)
+    record_exclusion(conn, scan_run_id, noise)
+
+    areas = protected_areas(conn, scan_run_id=scan_run_id)
+    assert len(areas) == 1, "node_modules is excluded but it is not protected"
+    assert areas[0].path == str(bundle)
+    assert areas[0].label == LABEL_UNTOUCHED_PROTECTED
+    assert areas[0].display_label == "Numbers.app"
+
+
+def test_a_protected_area_is_counted_even_when_the_scan_found_nothing_else(
+        conn, tmp_path):
+    """"Marked and counted" is not "mentioned if convenient". An empty result is
+    only correct when the scan recorded no protected container at all."""
+    from scan_agent.run import start_scan_run
+    from tree_design.upstream import protected_areas
+
+    selection_id = record_selection(
+        conn, sources=[tmp_path / "c"], candidate_roots=[tmp_path / "c"],
+        cross_folder_moves=True, selected_by="jy")
+    assert protected_areas(
+        conn, scan_run_id=start_scan_run(conn, selection_id)) == ()

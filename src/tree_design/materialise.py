@@ -71,6 +71,16 @@ class LevelEvidence:
     display_labels: Mapping[str, str]
     members_by_value: Mapping[str, frozenset[str]]
     handling_classes_by_value: Mapping[str, frozenset[str]]
+    #: What this level is CALLED, in the words of the schema that bound it
+    #: (Amendment A). Authored on `TemplateApplicability.role_bindings` and
+    #: carried here by `ResolvedDimension.display_label`.
+    #:
+    #: It carries a default because `None` is a real value with a real meaning —
+    #: "this level was composed without a binding, so nobody authored a name for
+    #: it" — and `_label_of` answers for it. Every level the ROUTER builds has a
+    #: label, because `RoleBinding.label` is required; a level built directly,
+    #: as the suite's own fixtures do, has none.
+    dimension_label: str | None = None
 
     @property
     def values(self) -> tuple[str, ...]:
@@ -83,6 +93,12 @@ class BranchEvidence:
     levels: tuple[LevelEvidence, ...]
     member_file_ids: frozenset[str]
     unresolved_by_field: Mapping[str, frozenset[str]]
+    #: Members of this branch whose handling class is protected. They are IN
+    #: `member_file_ids` and in every count — marked, not removed. `00`:101 asks
+    #: tree health to show "where sensitive material has been isolated", and
+    #: naming them is how the interface shows it. Removing them would be the
+    #: silent omission the standing rule forbids.
+    protected_file_ids: frozenset[str] = frozenset()
 
 
 def materialise_branch(
@@ -94,6 +110,7 @@ def materialise_branch(
     ancestor_field_refs: Sequence[str],
     ancestor_depth: int,
     handling_class_for_member: Callable[[GroupMember], str],
+    protected_handling_classes: frozenset[str] | None,
     metadata_only_roles: frozenset[str] = frozenset(),
     group_label_for_member: Callable[[GroupMember], tuple[str, str]] | None = None,
 ) -> tuple[MaterialisedCandidate, BranchEvidence]:
@@ -104,6 +121,28 @@ def materialise_branch(
     to name it. The caller passes `upstream.handling_class_for` already bound to
     a `ClassificationStore`.
 
+    `protected_handling_classes` MARKS rather than removes, and the distinction
+    is the whole point. The standing rule is that protected material is MARKED
+    AND COUNTED, never opened, NEVER SILENTLY OMITTED — so a protected member
+    stays a member, stays under its value, and stays in the counts the user
+    reads. It is named in `protected_file_ids` so the interface can say "this
+    branch holds one protected file and it will not be moved".
+
+    Removing it would be the omission the rule forbids: a file dropped out of the
+    evidence is uncounted, and uncounted is worse than present-but-untouched.
+
+    The safety property does not depend on removal.
+    `placement.privacy.automatic_move_permitted_for` delegates to P7's
+    `may_move_automatically`, which refuses a protected file — and an
+    unclassified one — unless an explicit policy permits it. P11 will not move
+    it whether or not P10 counts it.
+
+    What this ISN'T is a reason to refuse the branch. `handling_classes_by_value`
+    is still the union of the members' classes, and V5 no longer reads it: one
+    passport under `Columbia` used to give the STRING "Columbia" a protected
+    class and refuse the whole composition, so the user lost the organisation and
+    kept none of the protection.
+
     `group_label_for_member` returns `(group_id, label)` for one file and is
     required only when the candidate carries a template-local level. Such a
     level has no P6 field, so its children come from the accepted P9 groups
@@ -111,9 +150,21 @@ def materialise_branch(
     as the handling class: the accepted group is P9's record, and inventing a
     label here would be P10 authoring the user's vocabulary.
     """
-    member_ids = frozenset(member.file_id for member in members)
+    if protected_handling_classes is None:
+        raise ConfigurationRequired(
+            "the set of handling classes that count as protected is injected "
+            "configuration with no default: P7 owns HANDLING_CLASSES and has "
+            "published no ordering, and a set chosen here would let P10 decide "
+            "which of a user's material is isolated from the tree"
+        )
     classes = {member.file_id: handling_class_for_member(member)
                for member in members}
+    # Marked, NOT removed. These files stay members and stay counted; the name
+    # is what lets the interface show them as present-but-not-movable.
+    protected = frozenset(
+        file_id for file_id, handling in classes.items()
+        if handling in protected_handling_classes)
+    member_ids = frozenset(member.file_id for member in members)
 
     levels: list[LevelEvidence] = []
     unresolved: dict[str, frozenset[str]] = {}
@@ -171,6 +222,7 @@ def materialise_branch(
             field_ref=dimension.field_ref,
             order_index=dimension.order_index,
             metadata_only=dimension.role_ref in metadata_only_roles,
+            dimension_label=dimension.display_label,
             display_labels=dict(labels),
             members_by_value={value: frozenset(files)
                               for value, files in by_value.items()},
@@ -180,8 +232,25 @@ def materialise_branch(
 
     evidence = BranchEvidence(
         branch_node_id=branch_node_id, levels=tuple(levels),
-        member_file_ids=member_ids, unresolved_by_field=dict(unresolved))
+        member_file_ids=member_ids, unresolved_by_field=dict(unresolved),
+        protected_file_ids=protected)
     return _for_validation(evidence, ancestor_field_refs, ancestor_depth), evidence
+
+
+def _label_of(level: LevelEvidence) -> str:
+    """What to call this level in the sentence a user reads (Amendment A).
+
+    The authored per-schema name when a binding supplied one; otherwise the P6
+    field key, which is what every node said before the amendment and is still
+    the honest answer for a level composed without a binding.
+
+    The last fallback is the ROLE, not the null. A template-local level has no
+    field by construction (Contract W5), so `field_ref or ...` alone would put
+    the four characters `None` into every one of those nodes' explanations —
+    §5.12 asks each node to state what caused it to appear, and "record None =
+    'Physics Homework'" states nothing.
+    """
+    return level.dimension_label or level.field_ref or level.dimension_role
 
 
 def _for_validation(evidence: BranchEvidence,
@@ -260,20 +329,86 @@ def project_branch_nodes(
             "HANDLING_CLASSES and has published none, and a rank chosen here "
             "could give a node a weaker floor than one of its files requires")
 
+    return project_branch_preview(
+        evidence, report, parent=parent, plan_version_id=plan_version_id,
+        mint_node_id=mint_node_id, handling_class_for=handling_class_for,
+        template_context_for=template_context_for,
+        protected_movement_permitted=protected_movement_permitted).nodes
+
+
+@dataclass(frozen=True)
+class BranchPreview:
+    """The tree one option WOULD create, with the files that would sit in it.
+
+    `00`:99 asks the interface to show, BEFORE the user chooses a split, "the
+    resulting number of child branches, THE NUMBER OF FILES UNDER EACH CHILD,
+    example members, unresolved files, and any evidence gaps", and to warn on the
+    §5.9 conditions. `members_by_node` is the files-per-child half: without it
+    `WARN_TINY_FOLDERS` cannot be computed at all, because `child_counts` answers
+    how many BRANCHES a level makes and never how many FILES are under each.
+
+    `parent` is kept apart from `nodes` on purpose. `nodes` is exactly what would
+    be written, which is what `project_branch_nodes` returns and what the store
+    persists; `tree` adds the branch being split, which is what §5.9 has to read
+    — a level that produces one child is a fact about the PARENT, and a preview
+    that omitted it could never fire `WARN_ONE_CHILD` on the first level.
+    """
+
+    parent: Node
+    nodes: tuple[Node, ...]
+    members_by_node: Mapping[str, frozenset[str]]
+
+    @property
+    def tree(self) -> tuple[Node, ...]:
+        return (self.parent, *self.nodes)
+
+
+def project_branch_preview(
+    evidence: BranchEvidence,
+    report: ValidationReport,
+    *,
+    parent: Node,
+    plan_version_id: str,
+    mint_node_id: Callable[[], str],
+    handling_class_for: Callable[[frozenset[str]], str] | None,
+    template_context_for: Callable[[str, int], object | None],
+    protected_movement_permitted: bool = False,
+) -> BranchPreview:
+    """`project_branch_nodes`, plus the member set behind each node.
+
+    One traversal, one nesting rule. The member sets are recorded where they are
+    already computed rather than recovered afterwards, so the preview's counts
+    cannot disagree with the tree the projection would actually build.
+    """
+    if not report.accepted:
+        raise MaterialisationRefused(
+            f"branch {evidence.branch_node_id!r} failed "
+            f"{', '.join(failure.check for failure in report.failures)}; §5.7's "
+            "checks gate the build, not only the preview")
+    if handling_class_for is None:
+        raise ConfigurationRequired(
+            "the handling-class collapse for a branch node is injected "
+            "configuration with no default: P7 owns the ordering of "
+            "HANDLING_CLASSES and has published none, and a rank chosen here "
+            "could give a node a weaker floor than one of its files requires")
+
     nodes: list[Node] = []
+    members: dict[str, frozenset[str]] = {}
     _project(evidence, level_index=0, parent=parent,
              eligible=evidence.member_file_ids, chain=(),
              plan_version_id=plan_version_id, mint_node_id=mint_node_id,
              handling_class_for=handling_class_for,
              template_context_for=template_context_for,
              protected_movement_permitted=protected_movement_permitted,
-             out=nodes)
-    return tuple(nodes)
+             out=nodes, members_out=members)
+    return BranchPreview(
+        parent=parent, nodes=tuple(nodes),
+        members_by_node={parent.node_id: evidence.member_file_ids, **members})
 
 
 def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
              mint_node_id, handling_class_for, template_context_for,
-             protected_movement_permitted, out) -> None:
+             protected_movement_permitted, out, members_out) -> None:
     if level_index >= len(evidence.levels):
         return
     level = evidence.levels[level_index]
@@ -283,7 +418,8 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                  eligible=eligible, chain=chain, plan_version_id=plan_version_id,
                  mint_node_id=mint_node_id, handling_class_for=handling_class_for,
                  template_context_for=template_context_for,
-                 protected_movement_permitted=protected_movement_permitted, out=out)
+                 protected_movement_permitted=protected_movement_permitted,
+                 out=out, members_out=members_out)
         return
 
     ordinal = 0
@@ -311,7 +447,7 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
             associated_group_ids=parent.associated_group_ids,
             explanation=(
                 f"{len(members)} of this branch's files record "
-                f"{level.field_ref} = {label!r}. P6 settled that value; P10 "
+                f"{_label_of(level)} = {label!r}. P6 settled that value; P10 "
                 f"placed it under {parent.display_label!r} and composed nothing."),
             node_role=ORDINARY,
             accepts_placement=derive_accepts_placement(
@@ -326,10 +462,12 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
             protected_movement_permitted=protected_movement_permitted,
         )
         out.append(node)
+        members_out[node_id] = members
         ordinal += 1
         _project(evidence, level_index=level_index + 1, parent=node,
                  eligible=members, chain=expected,
                  plan_version_id=plan_version_id, mint_node_id=mint_node_id,
                  handling_class_for=handling_class_for,
                  template_context_for=template_context_for,
-                 protected_movement_permitted=protected_movement_permitted, out=out)
+                 protected_movement_permitted=protected_movement_permitted,
+                 out=out, members_out=members_out)

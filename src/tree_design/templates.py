@@ -301,6 +301,33 @@ class TemplateDefinition:
     sensitivity_policy_ref: str
     validation_constraints: tuple[str, ...]
     example_label_chains: tuple[tuple[str, ...], ...]
+    #: Ordering the DEFINITION states for its own local dimensions — roles no
+    #: fragment mentions. Without it those roles were absent from the merged
+    #: order and `routing` sorted them LAST, silently inverting a recipe: a
+    #: definition asking for venue first got venue last.
+    #:
+    #: It cannot reorder what a fragment constrains. A pair contradicting a
+    #: fragment edge makes the combined graph cyclic and C5 refuses it, which is
+    #: the difference between a recipe's recommendation and a fragment's rule.
+    relative_order: tuple[tuple[str, str], ...] = ()
+    #: The floor for a definition with NO fragments. Required exactly then:
+    #: `merge_fragment_constraints` takes the strongest floor among the included
+    #: fragments, and with none there is nothing to take a maximum of.
+    privacy_floor: str | None = None
+    #: Prose recording that the corpora behind this recipe attest exactly ONE
+    #: nesting, which is the only way a multi-dimension recipe may offer a
+    #: single candidate order (Amendment D).
+    #:
+    #: The two-order floor below is correct and stays. But enforced with no exit
+    #: it manufactured its own defect: alternative orders authored to satisfy the
+    #: record rather than argued from a corpus, shown to the user beside real
+    #: ones and indistinguishable from them. An invented alternative is worse
+    #: than an absent one, because the user cannot tell it is invented.
+    #:
+    #: It is prose and not a boolean for the same reason `refinement_reason` and
+    #: `DimensionOrder.rationale` are: a flag records that somebody wanted the
+    #: exception, and a sentence records why anyone should believe it.
+    sole_order_attestation: str | None = None
 
     def __post_init__(self) -> None:
         _require(self.template_id, name="TemplateDefinition.template_id")
@@ -317,6 +344,18 @@ class TemplateDefinition:
             tuple(ref if isinstance(ref, FragmentRef) else FragmentRef(**ref)
                   for ref in self.fragment_refs))
         object.__setattr__(self, "candidate_orders", tuple(self.candidate_orders))
+        object.__setattr__(
+            self, "relative_order",
+            tuple((before, after) for before, after in self.relative_order))
+        if not self.fragment_refs and not self.privacy_floor:
+            raise MalformedTemplateRecord(
+                f"{self.template_id!r} composes no fragment and states no "
+                "privacy floor of its own. C7 keeps the STRONGEST floor among "
+                "the included fragments, so with neither there is nothing to "
+                "keep — the composer cannot process this definition, and a "
+                "record that accepts what the composer refuses moves the "
+                "failure far away from its cause."
+            )
         object.__setattr__(
             self, "example_label_chains",
             tuple(tuple(chain) for chain in self.example_label_chains))
@@ -358,14 +397,29 @@ class TemplateDefinition:
                 "ordering choice would let the user silently change what the "
                 "branch organizes by."
             )
-        if len(roles) > 1 and len(self.candidate_orders) <= 1:
+        attested = (self.sole_order_attestation or "").strip()
+        if attested and len(self.candidate_orders) > 1:
+            raise MalformedTemplateRecord(
+                f"{self.template_id!r} attests that only one order is supported "
+                f"and then offers {len(self.candidate_orders)}. One of the two "
+                "statements is false and the record cannot tell which, so it "
+                "refuses rather than carrying an attestation that means nothing "
+                "where it sits."
+            )
+        if len(roles) > 1 and len(self.candidate_orders) <= 1 and not attested:
             raise MalformedTemplateRecord(
                 "a recipe with more than one dimension offers at least two "
-                "candidate orders. Ordering is the end user's decision per branch "
-                "(§5.3, §5.8), and one candidate is a single `dimensions` tuple "
-                "wearing a new field name. No maximum is enforced: a ceiling on "
-                "how many orders a recipe may offer is a number the design does "
-                "not state."
+                "candidate orders, OR records in `sole_order_attestation` that "
+                "its corpora attest only one. Ordering is the end user's decision "
+                "per branch (§5.3, §5.8), and one candidate with nothing said "
+                "about why is a single `dimensions` tuple wearing a new field "
+                "name. The attestation is the exit because it is the one thing "
+                "that separates an order argued from a corpus from an "
+                "alternative invented to satisfy this rule — and an invented "
+                "alternative shown beside real ones is worse than none, because "
+                "the user cannot tell which is which. No maximum is enforced: a "
+                "ceiling on how many orders a recipe may offer is a number the "
+                "design does not state."
             )
 
     @property
@@ -385,12 +439,35 @@ class TemplateDefinition:
 
 @dataclass(frozen=True)
 class RoleBinding:
+    """One role, the live P6 field it resolves to, and what to CALL that level.
+
+    The label lives here rather than on `TemplateDimension` because one role
+    reads differently per schema: `work_type` is "homework, exams, labs" to a
+    student and "figures, drafts, protocols" to a researcher. A label on the
+    definition would be one name for one recipe, and `00` §5.1 asks labels to
+    "reflect the user's vocabulary rather than a universal corporate taxonomy" —
+    which is a statement about the AUDIENCE, and the audience is what a
+    `TemplateApplicability` row selects.
+
+    It is required, not optional. An optional label is a label nobody authors:
+    every row would keep shipping the internal key as its UI string, which is
+    the state this field exists to end.
+    """
+
     role_ref: str
     field_ref: str
+    label: str
 
     def __post_init__(self) -> None:
         _require(self.role_ref, name="RoleBinding.role_ref")
         _require(self.field_ref, name="RoleBinding.field_ref")
+        _require(self.label, name="RoleBinding.label")
+        if any(sep in self.label for sep in _SEPARATORS):
+            raise MalformedTemplateRecord(
+                f"label {self.label!r} holds a path separator. A level's label is "
+                "a display name shown beside the folders it produces; P12 alone "
+                "composes paths (resolution B3)."
+            )
 
 
 @dataclass(frozen=True)
@@ -415,6 +492,19 @@ class TemplateApplicability:
     role_bindings: tuple[RoleBinding, ...]
     exclusions: tuple[str, ...]
     provenance: tuple[str, ...]
+    #: The exposure THIS context requires, if it requires one (Amendment C).
+    #:
+    #: It exists so one recipe can ship at two exposures without shipping two
+    #: definitions — eight of the library's definitions differed in nothing else.
+    #: It enters `merge_fragment_constraints` beside the fragments' and the
+    #: definition's floors and C7 takes the strongest, so it may RAISE the
+    #: composition's floor and can never lower it: a per-context row that could
+    #: weaken a fragment's floor would release material that fragment protects.
+    #:
+    #: `None` is a MARKER meaning "this row adds no floor of its own", which is
+    #: the common case; requiring every row to restate its fragment's floor
+    #: would put a copy in every row for it to drift from.
+    privacy_floor: str | None = None
 
     def __post_init__(self) -> None:
         _require(self.applicability_id, name="TemplateApplicability.applicability_id")
@@ -450,6 +540,9 @@ class TemplateApplicability:
                 "provenance back to the ratified domain rows and research evidence "
                 "is required; a row with none cannot be reviewed or retired"
             )
+        if self.privacy_floor is not None:
+            _require(self.privacy_floor,
+                     name="TemplateApplicability.privacy_floor")
 
 
 @dataclass(frozen=True)
@@ -613,9 +706,25 @@ class MergedConstraints:
     order_was_overridden: bool
 
 
-def _topological(nodes: Sequence[str],
-                 edges: Sequence[tuple[str, str]]) -> list[str] | None:
-    """Kahn's algorithm. Returns None when the graph has a cycle."""
+def _topological(
+    nodes: Sequence[str],
+    edges: Sequence[tuple[str, str]],
+    preferred: Sequence[str] = (),
+) -> tuple[list[str] | None, tuple[str, ...]]:
+    """Kahn's algorithm, and whether its answer was the ONLY answer.
+
+    Returns `(order, unordered)`. `order` is `None` when the graph has a cycle.
+    `unordered` names the roles that were simultaneously ready at the first step
+    where more than one was — the roles the constraints leave unordered relative
+    to each other.
+
+    That second value exists because Kahn's queue discipline silently picks one
+    of several valid orders, and which one it picks depends on the order `nodes`
+    was built in, which is the order the FRAGMENTS were listed in. A composer
+    whose output depends on insertion sequence cannot satisfy §8.5's replay, and
+    the user-visible form of it is that reordering a fragment list rearranges
+    somebody's folders.
+    """
     incoming = {node: 0 for node in nodes}
     outgoing: dict[str, list[str]] = {node: [] for node in nodes}
     for before, after in edges:
@@ -623,16 +732,31 @@ def _topological(nodes: Sequence[str],
             continue
         outgoing[before].append(after)
         incoming[after] += 1
+    # `preferred` is the recipe's own recommended nesting. It breaks a tie the
+    # CONSTRAINTS do not decide, and it is authored data rather than an artefact
+    # of the order fragments were listed in — which is the whole difference
+    # between a replayable answer and a lucky one. A tie among roles the
+    # recommendation does not rank is still unordered, and still refused.
+    rank = {role: index for index, role in enumerate(preferred)}
     ready = [node for node in nodes if incoming[node] == 0]
+    unordered: tuple[str, ...] = ()
     order: list[str] = []
     while ready:
+        if len(ready) > 1:
+            ranked = [node for node in ready if node in rank]
+            if len(ranked) == len(ready):
+                ready.sort(key=lambda node: rank[node])
+            elif not unordered:
+                unordered = tuple(sorted(ready))
         node = ready.pop(0)
         order.append(node)
         for nxt in outgoing[node]:
             incoming[nxt] -= 1
             if incoming[nxt] == 0:
                 ready.append(nxt)
-    return order if len(order) == len(nodes) else None
+    if len(order) != len(nodes):
+        return None, unordered
+    return order, unordered
 
 
 def resolve_fragment_imports(catalogue, ref: FragmentRef) -> tuple[TemplateFragment, ...]:
@@ -671,6 +795,9 @@ def merge_fragment_constraints(
     *,
     privacy_rank: Callable[[str], int],
     role_order: Sequence[str] | None = None,
+    preferred_order: Sequence[str] = (),
+    definition: "TemplateDefinition | None" = None,
+    applicability_floors: Sequence[str] = (),
 ) -> MergedConstraints:
     """Combine semantic constraints. Intersection, union, strongest — never
     last-writer-wins.
@@ -681,6 +808,12 @@ def merge_fragment_constraints(
     takes the strongest included restriction, because a composition that relaxed
     one fragment's floor would release material that fragment protects.
 
+    `preferred_order` is the DEFINITION's recommended nesting. It decides a tie
+    the fragment constraints leave open — §5.3 and §5.8 make the order a runtime
+    choice, and the recipe's recommendation is the authored answer to it. Without
+    it the tie was decided by Kahn's queue discipline, i.e. by the order the
+    fragments happened to be listed in.
+
     `role_order` is the user's answer to a C5 order cycle, and it resolves ONLY
     that. The value intersection is checked before it and refuses regardless: no
     nesting the user picks can make two disjoint allowed-value sets agree, so
@@ -688,6 +821,16 @@ def merge_fragment_constraints(
     """
     roles: list[str] = []
     edges: list[tuple[str, str]] = []
+    if definition is not None:
+        # The definition's OWN dimensions and its own ordering for them. They
+        # join the same graph as the fragments' rather than being appended
+        # afterwards, so a definition that contradicts a fragment produces a
+        # cycle and is refused instead of quietly winning or quietly losing.
+        for order in definition.candidate_orders:
+            for dimension in order.dimensions:
+                if dimension.role_ref not in roles:
+                    roles.append(dimension.role_ref)
+        edges.extend(definition.relative_order)
     optional: set[str] = set()
     metadata_only: set[str] = set()
     allowed: dict[str, tuple[str, ...]] = {}
@@ -718,12 +861,24 @@ def merge_fragment_constraints(
         if definers and all(role in f.optional_roles for f in definers):
             optional.add(role)
 
-    derived = _topological(roles, edges)
+    derived, unordered = _topological(roles, edges, preferred_order)
     if role_order is None:
         if derived is None:
             raise CompositionConflict(
                 C5, [f"{a}->{b}" for a, b in edges],
                 "the combined relative-order constraints contain a cycle")
+        if unordered:
+            # NOT resolved by picking one, and NOT by sorting: an alphabetical
+            # tie-break is the same arbitrary choice wearing a stable disguise,
+            # and it would still be P10 deciding a nesting the recipe never
+            # states. §5.3 and §5.8 make the order the USER's to choose, so the
+            # honest answer when nobody has chosen is to say which roles are
+            # unordered and stop.
+            raise CompositionConflict(
+                C5, sorted(unordered),
+                f"the combined constraints leave {', '.join(sorted(unordered))} "
+                "unordered relative to each other, so more than one nesting "
+                "satisfies them and this composition does not say which")
         ordered_roles = tuple(derived)
         order_was_overridden = False
     else:
@@ -734,8 +889,19 @@ def merge_fragment_constraints(
                 "the chosen order must nest exactly the roles this composition "
                 "defines; one that drops or adds a role is a different recipe")
         ordered_roles = chosen
+        # Only a CYCLE is an override. An under-determined merge that the user
+        # answered is §5.3's runtime choice working as designed, not a gate
+        # being waved through.
         order_was_overridden = derived is None
 
+    if not floors and definition is not None and definition.privacy_floor:
+        floors = [definition.privacy_floor]
+    # Amendment C: the SELECTED applicability rows' floors join the same maximum.
+    # Appended after the fragment/definition resolution rather than folded into
+    # it, so they are purely additive: a row can only ever push the maximum up.
+    # Substituting them would make a per-context row able to lower a floor its
+    # fragment established, which is the one thing C7 forbids.
+    floors.extend(floor for floor in applicability_floors if floor)
     try:
         floor = max(floors, key=privacy_rank)
     except Exception as exc:

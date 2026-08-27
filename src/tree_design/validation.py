@@ -13,7 +13,7 @@ that reported 0.72 would be exactly that.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from tree_design.config import ConfigurationRequired, TreeLimits
@@ -166,34 +166,54 @@ def _v4(candidate: MaterialisedCandidate,
 
 
 def _v5(candidate: MaterialisedCandidate,
-        protected_handling_classes: frozenset[str]) -> CheckFailure | None:
+        value_discloses_protected_material:
+            Callable[[str | None, str], bool] | None) -> CheckFailure | None:
     """Exposes protected information.
 
     A folder name is visible in the filesystem and in every prompt that names a
-    destination, so a level whose values come from protected material publishes
-    that material. A metadata-only role over the same values does not, which is
+    destination, so a level whose VALUES are protected material publishes that
+    material. A metadata-only role over the same values does not, which is
     exactly what §5.4's `metadata_only` is for.
+
+    **This asks about the VALUE STRING, not about the files under it**, and the
+    distinction is the whole check. `00`:97 lists V5 among the STRUCTURAL faults
+    of a proposed template — "does not repeat a parent dimension, create
+    meaningless one-child levels, exceed practical depth limits, use an author or
+    organization merely as a collector, expose protected information, or produce
+    empty branches" — so it is a claim about the DIMENSION.
+
+    It used to read `handling_classes_by_value`, the union of every member file's
+    class, which meant one passport scan under `Columbia` gave the string
+    "Columbia" a protected class and V5 refused the branch. A university's name
+    is not protected material; the passport is. The user lost the organisation
+    and kept none of the protection. Protected files are now ISOLATED in
+    `materialise_branch` instead, and this check answers its own question.
+
+    Nothing upstream classifies a VALUE: P6 classifies FIELDS
+    (`destination_eligible`, already enforced by C2 before this runs) and P7
+    classifies FILES (`handling_class`). So the judgement is injected, like
+    `collector_field_keys` for V4, and absent means refuse rather than guess.
     """
-    if not protected_handling_classes:
+    if value_discloses_protected_material is None:
         raise ConfigurationRequired(
-            "V5 needs the set of handling classes that count as protected. P7 "
-            "supplies `protected` and does not derive it from the class, and "
-            "whether protected is exactly the top two classes is P7's own open "
-            "question."
+            "V5 needs a test for whether a VALUE would disclose protected "
+            "material as a folder name. Nothing upstream answers it: P6 "
+            "classifies fields and P7 classifies files, and neither classifies "
+            "the string a folder is named after. A test invented here would be "
+            "P10 deciding what counts as a disclosure."
         )
     exposed: list[str] = []
     for level in candidate.levels:
         if level.metadata_only:
             continue
         for value in level.values:
-            classes = level.handling_classes_by_value.get(value, frozenset())
-            if classes & protected_handling_classes:
+            if value_discloses_protected_material(level.field_ref, value):
                 exposed.append(value)
     if exposed:
         return CheckFailure(
             "V5",
-            "these values would become folder names while carrying a protected "
-            "handling class; a folder name is visible material",
+            "these values would themselves become folder names that disclose "
+            "protected material; a folder name is visible material",
             tuple(exposed),
         )
     return None
@@ -219,7 +239,8 @@ def _v6(candidate: MaterialisedCandidate) -> CheckFailure | None:
 
 def run_checks(candidate: MaterialisedCandidate, *, report_id: str,
                limits: TreeLimits, collector_field_keys: frozenset[str],
-               protected_handling_classes: frozenset[str]) -> ValidationReport:
+               value_discloses_protected_material:
+                   Callable[[str | None, str], bool] | None) -> ValidationReport:
     """All six, in order, collecting every failure rather than stopping at one.
 
     Stopping at the first failure would make the user fix one problem, re-run,
@@ -231,7 +252,7 @@ def run_checks(candidate: MaterialisedCandidate, *, report_id: str,
         "V2": _v2(candidate),
         "V3": _v3(candidate, limits),
         "V4": _v4(candidate, collector_field_keys),
-        "V5": _v5(candidate, protected_handling_classes),
+        "V5": _v5(candidate, value_discloses_protected_material),
         "V6": _v6(candidate),
     }
     failures = tuple(

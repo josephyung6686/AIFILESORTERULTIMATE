@@ -94,6 +94,10 @@ def _definition(raw: dict) -> TemplateDefinition:
         sensitivity_policy_ref=raw["sensitivity_policy_ref"],
         validation_constraints=tuple(raw["validation_constraints"]),
         example_label_chains=tuple(tuple(c) for c in raw["example_label_chains"]),
+        relative_order=tuple(
+            (before, after) for before, after in raw.get("relative_order", ())),
+        privacy_floor=raw.get("privacy_floor"),
+        sole_order_attestation=raw.get("sole_order_attestation"),
     )
 
 
@@ -111,6 +115,7 @@ def _applicability(raw: dict) -> TemplateApplicability:
         role_bindings=tuple(RoleBinding(**b) for b in raw["role_bindings"]),
         exclusions=tuple(raw["exclusions"]),
         provenance=tuple(raw["provenance"]),
+        privacy_floor=raw.get("privacy_floor"),
     )
 
 

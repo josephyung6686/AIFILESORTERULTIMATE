@@ -52,8 +52,11 @@ def _candidate(levels, *, ancestors=(), depth=0, members=("f1", "f2", "f3")):
 
 CHECK_ARGS = dict(
     collector_field_keys=frozenset({"target_school", "client", "authored_by"}),
-    protected_handling_classes=frozenset({
-        "sensitive_personal", "highly_sensitive_credential_bearing"}),
+    # V5 asks about the VALUE STRING. An account identifier as a folder name
+    # discloses the account; a course code does not. The judgement is the
+    # caller's because nothing upstream classifies a value.
+    value_discloses_protected_material=lambda field_ref, value: (
+        field_ref == "account_identifier"),
 )
 
 
@@ -138,20 +141,22 @@ def test_v4_needs_the_collector_set_and_invents_none(limits):
     with pytest.raises(ConfigurationRequired):
         run_checks(candidate, report_id="vr_1", limits=limits,
                    collector_field_keys=frozenset(),
-                   protected_handling_classes=CHECK_ARGS["protected_handling_classes"])
+                   value_discloses_protected_material=CHECK_ARGS[
+                       "value_discloses_protected_material"])
 
 
 def test_v5_a_folder_level_built_from_protected_values_fails(limits):
+    """The real V5: the VALUES themselves are the disclosure. An account number
+    as a folder name publishes the account to the filesystem and to every prompt
+    that names a destination — and it does so whether or not any file under it
+    was classified sensitive."""
     candidate = _candidate([
         _level("subject", "subject", 0, ("PHYS1401", "CHEM1101")),
-        _level("account", "account_identifier", 1, ("4471", "9920"), classes={
-            "4471": frozenset({"highly_sensitive_credential_bearing"}),
-            "9920": frozenset({"personal_non_sensitive"}),
-        }),
+        _level("account", "account_identifier", 1, ("4471", "9920")),
     ])
     report = run_checks(candidate, report_id="vr_1", limits=limits, **CHECK_ARGS)
     assert [f.check for f in report.failures] == ["V5"]
-    assert "4471" in report.failures[0].affected
+    assert report.failures[0].affected == ("4471", "9920")
 
 
 def test_v5_permits_a_metadata_only_role_over_the_same_values(limits):
@@ -238,3 +243,85 @@ def test_v1_still_catches_two_local_levels_that_repeat_one_role(limits):
     report = run_checks(candidate, report_id="vr_1", limits=limits, **CHECK_ARGS)
     assert [f.check for f in report.failures] == ["V1"]
     assert "matter" in report.failures[0].affected
+
+
+# --- V5 refuses on the wrong thing ------------------------------------------------
+
+PROTECTED = frozenset({"highly_sensitive_credential_bearing"})
+
+
+def test_one_protected_file_under_a_value_does_not_condemn_the_folder_name(limits):
+    """THE DEFECT, and it fails in the most damaging direction: the user loses
+    the ORGANISATION, not the protection.
+
+    `materialise` builds `handling_classes_by_value` as the UNION of every member
+    file's class, so ONE protected file under a value poisons the value STRING,
+    and V5 then refuses the whole composition. A passport scan filed under
+    `Columbia` makes the string "Columbia" carry a protected class and the branch
+    is destroyed — with an explanation that blames the university's name.
+
+    Verified over the real seeded corpus:
+        every file ordinary -> V5 silent
+        ONE protected file  -> V5: affected ('Columbia', 'BUSIB 4300')
+
+    `00`:120 names passport scans and visas as material `Protected Records`
+    represents, and `00`:101 asks tree health to show "where sensitive material
+    has been ISOLATED". Isolate the FILE, build the BRANCH. These are exactly the
+    cases the product owner asked about: a passport for a visa application, a
+    medical letter for exam accommodations, a divorce decree in a mortgage
+    bundle. Every one of them currently destroys the branch that needs it.
+    """
+    candidate = _candidate([
+        _level("subject", "subject", 0, ("Columbia",),
+               counts={"Columbia": 3},
+               classes={"Columbia": frozenset({
+                   "personal_non_sensitive",
+                   "highly_sensitive_credential_bearing"})}),
+    ])
+    report = run_checks(
+        candidate, report_id="vr", limits=limits,
+        collector_field_keys=frozenset({"author"}),
+        value_discloses_protected_material=lambda field_ref, value: False)
+    v5 = [f for f in report.failures if f.check == "V5"]
+    assert v5 == [], (
+        "a protected FILE under the value refused the branch; the protected "
+        "thing is the file, and 'Columbia' is a university's name")
+
+
+def test_a_value_string_that_is_itself_protected_material_is_still_refused(limits):
+    """The discriminator. Without this the fix above is a deletion.
+
+    `00`:97 lists V5 among the STRUCTURAL faults a proposed template may have —
+    "does not repeat a parent dimension, create meaningless one-child levels,
+    exceed practical depth limits, use an author or organization merely as a
+    collector, expose protected information, or produce empty branches". It is a
+    claim about the DIMENSION, not about the files underneath it. A level built
+    from a field whose values are themselves disclosing — a folder named after a
+    medical condition — is the real V5, and it must stay refused.
+    """
+    candidate = _candidate([
+        _level("diagnosis", "medical_condition", 0, ("Type 1 Diabetes",),
+               counts={"Type 1 Diabetes": 2},
+               classes={"Type 1 Diabetes": frozenset({"personal_non_sensitive"})}),
+    ])
+    report = run_checks(
+        candidate, report_id="vr", limits=limits,
+        collector_field_keys=frozenset({"author"}),
+        value_discloses_protected_material=lambda field_ref, value: (
+            field_ref == "medical_condition"))
+    assert [f.check for f in report.failures if f.check == "V5"] == ["V5"]
+    assert "Type 1 Diabetes" in report.failures[0].affected
+
+
+def test_v5_refuses_to_guess_when_nothing_says_which_values_disclose(limits):
+    """No upstream signal classifies a VALUE. P6 classifies FIELDS
+    (`destination_eligible`) and P7 classifies FILES (`handling_class`); nothing
+    classifies the string a folder would be named after. So the judgement is
+    injected, like `collector_field_keys` and `protected_handling_classes`
+    already are, and absent means refuse rather than guess — a wrong guess in
+    this direction is the defect being fixed."""
+    candidate = _candidate([_level("subject", "subject", 0, ("Columbia",))])
+    with pytest.raises(ConfigurationRequired):
+        run_checks(candidate, report_id="vr", limits=limits,
+                   collector_field_keys=frozenset({"author"}),
+                   value_discloses_protected_material=None)

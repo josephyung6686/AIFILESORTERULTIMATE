@@ -343,6 +343,19 @@ SHARED_MATERIAL_POLICIES: tuple[str, ...] = (
     SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS, MANDATORY_REVIEW,
 )
 
+#: The three §6.9 policies that resolve to a DESTINATION, and by omission the one
+#: that does not. `mandatory-review` means ask the user, so a branch created for
+#: it would answer the question the policy exists to keep open.
+#:
+#: Named here because MINOR 6 puts the tree's vocabulary in P10: "P10 owns the
+#: tree, so P10 names its node kinds. P11 carries these verbatim and publishes no
+#: parallel vocabulary." `placement.groups` currently computes the same set
+#: privately as `_BRANCH_BEARING`; that is the parallel vocabulary MINOR 6
+#: forbids, and it is P11's to carry from here.
+BRANCH_BEARING_SHARED_POLICIES: tuple[str, ...] = (
+    SHARED_BRANCH, PRIMARY_HOME, REFERENCE_OR_ALIAS,
+)
+
 # --- user actions ---------------------------------------------------------------
 
 ACCEPT: str = "accept"

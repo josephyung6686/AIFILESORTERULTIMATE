@@ -20,6 +20,7 @@ from collections.abc import Callable, Iterator, Sequence
 from evidence_shape.canonical import canonical_json
 from tree_design.records import (
     ExpectedValue,
+    derive_accepts_placement,
     Node,
     PlanVersion,
     SharedMaterialPolicy,
@@ -30,6 +31,7 @@ from tree_design.vocabulary import (
     ACCEPT,
     ADD_SCOPED_GENERAL,
     ADOPT_EXISTING,
+    BRANCH_BEARING_SHARED_POLICIES,
     CREATE_MANUALLY,
     DELETE,
     DISABLE_RESIDUAL,
@@ -40,8 +42,12 @@ from tree_design.vocabulary import (
     RENAME,
     REORDER,
     REPARENT,
+    SCOPED_GENERAL,
     SET_SHARED_MATERIAL_POLICY,
+    SHARED_MATERIAL,
+    SHARED_MATERIAL_POLICIES,
     SPLIT,
+    USER_CREATED,
     TREE_EDIT_ACTIONS,
     VERSION_ACTIONS,
     check,
@@ -85,8 +91,10 @@ class UnknownPlanVersion(RuntimeError):
     """
 
 
-#: The three tree edits this module writes.
-ACTIONS_WITH_A_WRITER: frozenset[str] = frozenset({ACCEPT, RENAME, IGNORE})
+#: The five tree edits this module writes.
+ACTIONS_WITH_A_WRITER: frozenset[str] = frozenset({
+    ACCEPT, RENAME, IGNORE, ADD_SCOPED_GENERAL, SET_SHARED_MATERIAL_POLICY,
+})
 
 #: The twelve that do not have one yet, SPELLED OUT rather than derived by
 #: subtraction. Deriving them would make the "every action is in one set or the
@@ -100,14 +108,13 @@ ACTIONS_WITH_A_WRITER: frozenset[str] = frozenset({ACCEPT, RENAME, IGNORE})
 #: after the draft is open leaves the user a new version that changed nothing.
 ACTIONS_WITH_NO_WRITER: frozenset[str] = frozenset({
     MERGE, SPLIT, NEST, REPARENT, REORDER, DELETE, CREATE_MANUALLY,
-    ADOPT_EXISTING, ENABLE_RESIDUAL, DISABLE_RESIDUAL, ADD_SCOPED_GENERAL,
-    SET_SHARED_MATERIAL_POLICY,
+    ADOPT_EXISTING, ENABLE_RESIDUAL, DISABLE_RESIDUAL,
 })
 
 
 @contextlib.contextmanager
-def _one_transaction(conn: sqlite3.Connection) -> Iterator[None]:
-    """Every write of one edit, or none of them.
+def one_transaction(conn: sqlite3.Connection) -> Iterator[None]:
+    """Every write of one edit, or none of them. Public: `freeze` uses it too.
 
     `open_database` connects with `isolation_level=None`, so each statement
     commits on its own. Without this boundary a refusal raised after `open_draft`
@@ -291,6 +298,111 @@ def open_draft(conn: sqlite3.Connection, *, from_version: str,
     return draft
 
 
+def _write_overlap_answer(conn: sqlite3.Connection, action, *, draft: PlanVersion,
+                          mint_node_id: Callable[[], str],
+                          component_version: str) -> str:
+    """§6.9's shared branch and `00`:99's scoped General — the design's two named
+    answers to "this file belongs in more than one place, or in none of them".
+
+    Both were deferred as ordinary canvas gestures. They are not: `SCOPED_GENERAL`
+    and `SHARED_MATERIAL` are two of P10's four node roles, both were carried on
+    `Node` and checked by `NODE_ROLES`, and NEITHER HAD A WRITER — so §6.9's
+    `shared-branch`, `primary-home` and `reference-or-alias` all reached P11 with
+    no `shared_branch_node_id` and fell through to the same ask-or-abstain as
+    `mandatory-review`. Three of four policies collapsed into one.
+
+    The parent is `action.subject_ref`, matched by lineage. Both roles are
+    SCOPED: `00`:99 asks for "a scoped General or Other branch WITHIN A
+    MEANINGFUL PARENT" and adds that "a global catch-all folder should not become
+    the product's default answer to ambiguity", and §6.9's shared branch has to
+    sit ABOVE the competing homes — `placement.groups.resolve_multi_home` refuses
+    a `shared_branch_node_id` that is one of the candidates, because placing
+    there IS choosing between them.
+    """
+    parent = next(
+        (node for node in nodes_for_version(conn, draft.plan_version_id)
+         if node.origin_node_id == action.subject_ref), None)
+    if parent is None:
+        raise ReviewActionRefused(
+            f"review action {action.review_action_id!r} puts a "
+            f"{action.action!r} branch under {action.subject_ref!r}, which this "
+            "version does not contain. Both roles are SCOPED to a parent, and a "
+            "global catch-all folder is what the design refuses"
+        )
+
+    if action.action == ADD_SCOPED_GENERAL:
+        role, label = SCOPED_GENERAL, action.payload.get("display_label", "General")
+        explanation = (
+            f"The user added a scoped {label!r} inside "
+            f"{parent.display_label!r} for files that belong to this branch but "
+            "settle no value at the level below it."
+        )
+    else:
+        policy = check(action.payload["policy"], SHARED_MATERIAL_POLICIES,
+                       name="shared material policy")
+        reason = action.payload.get("reason") or ""
+        if not reason.strip():
+            raise ReviewActionRefused(
+                f"§6.9's policy for {action.subject_ref!r} carries no reason. The "
+                "policy decides what happens to a file that belongs in two "
+                "places, and one recorded without a reason cannot be reviewed"
+            )
+        set_shared_material_policy(conn, SharedMaterialPolicy(
+            policy_id=f"smp_{draft.plan_version_id}_{action.review_action_id}",
+            plan_version_id=draft.plan_version_id, policy=policy,
+            policy_scope=action.payload.get("policy_scope"), reason=reason))
+        if policy not in BRANCH_BEARING_SHARED_POLICIES:
+            # `mandatory-review` is the one policy that does NOT resolve to a
+            # destination: it means ask the user. A branch for it would answer
+            # the question the policy exists to keep open.
+            _record_overlap_edit(conn, action, draft=draft, node_id=parent.node_id,
+                                 label=parent.display_label,
+                                 component_version=component_version,
+                                 explanation=(
+                                     f"The user set §6.9's {policy!r} policy, "
+                                     "which sends shared material to review "
+                                     "rather than to a branch."))
+            return draft.plan_version_id
+        role = SHARED_MATERIAL
+        label = action.payload.get("display_label", "Shared Material")
+        explanation = (
+            f"The user set §6.9's {policy!r} policy and this branch is where "
+            f"material belonging to more than one home under "
+            f"{parent.display_label!r} goes, so no single home is chosen for it."
+        )
+
+    node_id = mint_node_id()
+    node = Node(
+        node_id=node_id, plan_version_id=draft.plan_version_id,
+        node_type=USER_CREATED, display_label=label,
+        parent_node_id=parent.node_id, root_anchor=parent.root_anchor,
+        ordinal=parent.ordinal + 1, associated_group_ids=(),
+        explanation=explanation, node_role=role,
+        accepts_placement=derive_accepts_placement(
+            USER_CREATED, protected_movement_permitted=False),
+        handling_class=parent.handling_class, origin_node_id=node_id,
+        refinement_disposition=parent.refinement_disposition,
+        refinement_reason=parent.refinement_reason,
+    )
+    write_node(conn, node)
+    _record_overlap_edit(conn, action, draft=draft, node_id=node_id, label=label,
+                         component_version=component_version,
+                         explanation=explanation)
+    return draft.plan_version_id
+
+
+def _record_overlap_edit(conn, action, *, draft, node_id, label,
+                         component_version, explanation) -> None:
+    record_tree_edit(
+        conn, action=action.action, node_id=node_id,
+        plan_version_id=draft.plan_version_id, before={},
+        after={"display_label": label},
+        explanation=explanation, observed_at=action.observed_at,
+        user_id=action.user_id, component_version=component_version,
+        correction_scope=action.correction_scope,
+        correction_subject=action.subject_ref, polarity="accept")
+
+
 def apply_review_action(conn: sqlite3.Connection, action, *,
                         new_version_id: str, created_at: str,
                         mint_node_id: Callable[[], str],
@@ -315,7 +427,7 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
     needed. Every check that can be made without touching the database is made
     first: the action name against `TREE_EDIT_ACTIONS`, then against
     `ACTIONS_WITH_NO_WRITER`, then `project` for an `accept`. Only then is a
-    draft opened, and it is opened inside `_one_transaction`, so a refusal that
+    draft opened, and it is opened inside `one_transaction`, so a refusal that
     can only be discovered later — an empty projection, a subject this version
     does not hold — rolls the draft back rather than leaving the user a new plan
     version with a full copy of the tree and no edit in it.
@@ -329,7 +441,7 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
     is the wrong description of a name P10 does not define.
     """
     if action.action in VERSION_ACTIONS:
-        with _one_transaction(conn):
+        with one_transaction(conn):
             draft = open_draft(conn, from_version=action.subject_ref,
                                new_version_id=new_version_id,
                                created_at=created_at, mint_node_id=mint_node_id)
@@ -362,7 +474,7 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
             "branch that writes no node is a silent no-op"
         )
 
-    with _one_transaction(conn):
+    with one_transaction(conn):
         draft = open_draft(conn, from_version=action.plan_version,
                            new_version_id=new_version_id, created_at=created_at,
                            mint_node_id=mint_node_id)
@@ -396,6 +508,11 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
                 correction_scope=action.correction_scope,
                 correction_subject=action.subject_ref, polarity="accept")
             return draft.plan_version_id
+
+        if action.action in (ADD_SCOPED_GENERAL, SET_SHARED_MATERIAL_POLICY):
+            return _write_overlap_answer(
+                conn, action, draft=draft, mint_node_id=mint_node_id,
+                component_version=component_version)
 
         # §8.8 IDENTITY: the draft minted new node ids, so the action's subject is
         # matched on `origin_node_id`. Matching on `node_id` would fail to find

@@ -498,3 +498,175 @@ def test_a_real_reparenting_is_still_reported(seeded):
     assert [e.origin_node_id for e in moved] == ["n_a"]
     assert moved[0].before["parent_origin"] == "n_root"
     assert moved[0].after["parent_origin"] == "n_school"
+
+
+# --- the two promoted writers: the design's answer to overlap --------------------
+
+
+def test_a_scoped_general_branch_is_created_inside_its_parent(seeded):
+    """`00`:99: "if a file is clearly part of Academics/Columbia/2026-Spring but
+    has no recoverable work type, the future tree can include
+    Academics/Columbia/2026-Spring/General rather than sending it to a global
+    Unsorted folder. A GLOBAL CATCH-ALL FOLDER SHOULD NOT BECOME THE PRODUCT'S
+    DEFAULT ANSWER TO AMBIGUITY."
+
+    `node_role=SCOPED_GENERAL` was in the vocabulary, carried on `Node`, and had
+    NO WRITER anywhere in `src/`, so the design's named answer to the commonest
+    ambiguity there is could not be produced.
+    """
+    from tree_design.vocabulary import SCOPED_GENERAL
+
+    freeze_version(seeded, "plan_1")
+    action = p13_fixtures.add_scoped_general("n_a", plan_version="plan_1")
+    new_version = apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids("n2"), component_version="p10-1")
+
+    nodes = {n.display_label: n for n in nodes_for_version(seeded, new_version)}
+    general = nodes["General"]
+    assert general.node_role == SCOPED_GENERAL
+    # SCOPED, not global: its parent is the branch the user named.
+    columbia = next(n for n in nodes_for_version(seeded, new_version)
+                    if n.origin_node_id == "n_a")
+    assert general.parent_node_id == columbia.node_id
+    assert general.accepts_placement is True
+    assert general.parent_node_id is not None, "a scoped general is never a root"
+
+
+def test_a_scoped_general_at_the_root_is_refused_as_a_global_catch_all(seeded):
+    """The discriminating half, and it is the sentence's own second clause. A
+    General with no parent IS the global Unsorted folder the design rejects."""
+    freeze_version(seeded, "plan_1")
+    action = dataclasses.replace(
+        p13_fixtures.add_scoped_general("n_a", plan_version="plan_1"),
+        subject_ref="__root__")
+    with pytest.raises(ReviewActionRefused) as excinfo:
+        apply_review_action(
+            seeded, action, new_version_id="plan_2", created_at=T1,
+            mint_node_id=_ids("n2"), component_version="p10-1")
+    assert "global" in str(excinfo.value).lower()
+
+
+def test_a_shared_material_branch_is_created_above_the_competition(seeded):
+    """§6.9, and the reason three of its four policies silently collapsed into
+    one: `node_role=SHARED_MATERIAL` had no writer, so P11's
+    `groups.resolve_multi_home` never received a `shared_branch_node_id` and
+    `shared-branch`, `primary-home` and `reference-or-alias` all fell through to
+    the same ask-or-abstain as `mandatory-review`.
+    """
+    from tree_design.vocabulary import SHARED_BRANCH, SHARED_MATERIAL
+
+    freeze_version(seeded, "plan_1")
+    action = p13_fixtures.set_shared_material_policy(
+        "n_root", plan_version="plan_1", policy=SHARED_BRANCH,
+        reason="A transcript belongs to two application packets.")
+    new_version = apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids("n2"), component_version="p10-1")
+
+    shared = next(n for n in nodes_for_version(seeded, new_version)
+                  if n.node_role == SHARED_MATERIAL)
+    assert shared.display_label == "Shared Material"
+    assert shared.accepts_placement is True
+    # The policy is recorded for the NEW version, so the frozen bundle carries it.
+    row = seeded.execute(
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = ?",
+        (new_version,)).fetchone()
+    assert row["policy"] == SHARED_BRANCH
+    assert row["reason"]
+
+
+def test_the_shared_branch_is_never_one_of_the_competing_homes(seeded):
+    """Bound against P11's live refusal: `resolve_multi_home` raises
+    `InstitutionalDestinationRefused` when `shared_branch_node_id` is one of the
+    candidates, because "placing there IS choosing between them". So the node
+    P10 produces has to sit ABOVE them, and this drives P11's real function."""
+    from placement.groups import resolve_multi_home
+    from tree_design.vocabulary import SHARED_BRANCH, SHARED_MATERIAL
+
+    freeze_version(seeded, "plan_1")
+    action = p13_fixtures.set_shared_material_policy(
+        "n_root", plan_version="plan_1", policy=SHARED_BRANCH,
+        reason="A transcript belongs to two application packets.")
+    new_version = apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids("n2"), component_version="p10-1")
+    nodes = nodes_for_version(seeded, new_version)
+    shared = next(n for n in nodes if n.node_role == SHARED_MATERIAL)
+    competing = [n.node_id for n in nodes
+                 if n.node_role == "ordinary" and n.parent_node_id]
+
+    outcome, payload = resolve_multi_home(
+        candidate_node_ids=competing + ["n_other"],
+        shared_material_policy=SHARED_BRANCH,
+        shared_branch_node_id=shared.node_id, ask_or_abstain=None)
+    assert outcome == "place"
+    assert payload == shared.node_id
+
+
+def test_a_mandatory_review_policy_creates_no_branch(seeded):
+    """The discriminating half. §6.9's fourth policy is the one that does NOT
+    resolve to a destination — `mandatory-review` means ask the user. Producing a
+    branch for it would answer a question the policy exists to keep open."""
+    from tree_design.vocabulary import MANDATORY_REVIEW, SHARED_MATERIAL
+
+    freeze_version(seeded, "plan_1")
+    action = p13_fixtures.set_shared_material_policy(
+        "n_root", plan_version="plan_1", policy=MANDATORY_REVIEW,
+        reason="The user wants to decide these one at a time.")
+    new_version = apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids("n2"), component_version="p10-1")
+    assert not [n for n in nodes_for_version(seeded, new_version)
+                if n.node_role == SHARED_MATERIAL]
+    row = seeded.execute(
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = ?",
+        (new_version,)).fetchone()
+    assert row["policy"] == MANDATORY_REVIEW
+
+
+def test_the_two_promoted_actions_left_the_no_writer_set(seeded):
+    from tree_design.store import ACTIONS_WITH_A_WRITER, ACTIONS_WITH_NO_WRITER
+    from tree_design.vocabulary import ADD_SCOPED_GENERAL, SET_SHARED_MATERIAL_POLICY
+
+    assert {ADD_SCOPED_GENERAL, SET_SHARED_MATERIAL_POLICY} <= ACTIONS_WITH_A_WRITER
+    assert not ({ADD_SCOPED_GENERAL, SET_SHARED_MATERIAL_POLICY}
+                & ACTIONS_WITH_NO_WRITER)
+    assert len(ACTIONS_WITH_NO_WRITER) == 10
+
+
+def test_a_shared_material_policy_with_no_reason_is_refused(seeded):
+    """§6.9's policy decides what happens to a file that belongs in two places.
+    `SharedMaterialPolicy` already requires a reason at construction, and this
+    refuses it one layer earlier, where the action can be named — a policy the
+    user cannot review is one they cannot change their mind about.
+
+    Fourth time today a required input had no test for its absence. A required
+    input with no test for its absence is not required.
+    """
+    from tree_design.vocabulary import SHARED_BRANCH
+
+    freeze_version(seeded, "plan_1")
+    action = p13_fixtures.set_shared_material_policy(
+        "n_root", plan_version="plan_1", policy=SHARED_BRANCH, reason="   ")
+    with pytest.raises(ReviewActionRefused) as excinfo:
+        apply_review_action(
+            seeded, action, new_version_id="plan_2", created_at=T1,
+            mint_node_id=_ids("n2"), component_version="p10-1")
+    assert "reason" in str(excinfo.value)
+    assert [r["plan_version_id"] for r in
+            seeded.execute("SELECT plan_version_id FROM plan_versions")] == ["plan_1"]
+
+
+def test_a_policy_outside_6_9s_four_is_refused_as_out_of_vocabulary(seeded):
+    """The other half: a misspelled policy is a load error, not a fifth rule."""
+    from tree_design.vocabulary import OutOfVocabulary
+
+    freeze_version(seeded, "plan_1")
+    action = p13_fixtures.set_shared_material_policy(
+        "n_root", plan_version="plan_1", policy="pick-whichever",
+        reason="A transcript belongs to two packets.")
+    with pytest.raises(OutOfVocabulary):
+        apply_review_action(
+            seeded, action, new_version_id="plan_2", created_at=T1,
+            mint_node_id=_ids("n2"), component_version="p10-1")

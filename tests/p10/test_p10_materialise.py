@@ -89,6 +89,11 @@ def _candidate(*pairs):
 ALWAYS_ORDINARY = lambda classes: "personal_non_sensitive"
 NO_CONTEXT = lambda field_ref, order_index: None
 ONE_CLASS = lambda member: "personal_non_sensitive"
+#: P7 owns which classes are protected and publishes no ordering, so every
+#: caller states it. Isolation is what keeps a protected file out of the
+#: branch WITHOUT destroying the branch (`00`:101, `00`:120).
+PROTECTED_CLASSES = frozenset({"highly_sensitive_credential_bearing"})
+NO_DISCLOSING_VALUES = lambda field_ref, value: False
 
 
 def test_the_levels_carry_p6s_real_values_and_p10_composes_none(seeded):
@@ -98,7 +103,8 @@ def test_the_levels_carry_p6s_real_values_and_p10_composes_none(seeded):
         branch_node_id="n_academics",
         members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert [lvl.field_ref for lvl in evidence.levels] == ["school", "subject"]
     assert evidence.levels[0].values == ("Columbia",)
     assert evidence.levels[1].values == ("BUSIB 4300", "PHYS1401")
@@ -112,7 +118,8 @@ def test_a_file_with_no_settled_value_is_unresolved_and_gets_no_branch(seeded):
         conn, _candidate(("work_type", "work_type")),
         branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     # `lab` carries no work_type. §5.11: a tree "can be accepted even if some files
     # remain unresolved"; the alternative is inventing a work type for it.
     assert evidence.unresolved_by_field["work_type"] == frozenset({seeded.file_id("lab")})
@@ -130,7 +137,8 @@ def test_two_simultaneous_values_leave_the_file_unresolved_never_assigned(seeded
         conn, _candidate(("work_type", "work_type")),
         branch_node_id="n_academics", members=seeded.members("lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert evidence.levels[0].values == ()
     assert evidence.unresolved_by_field["work_type"] == frozenset({seeded.file_id("lab")})
 
@@ -143,7 +151,8 @@ def test_child_counts_are_intersections_not_a_cartesian_product(seeded):
         conn, _candidate(("school", "school"), ("subject", "subject")),
         branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert child_counts(evidence) == {"school": 1, "subject": 2}
 
 
@@ -154,7 +163,8 @@ def test_the_projection_nests_by_shared_files_and_never_multiplies(seeded):
                          ("work_type", "work_type")),
         branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
@@ -177,7 +187,8 @@ def test_every_node_carries_the_ancestor_chain_as_expected_values(seeded):
                          ("work_type", "work_type")),
         branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
@@ -198,7 +209,8 @@ def test_every_node_explains_itself_from_counted_evidence_and_shows_no_score(see
         conn, _candidate(("subject", "subject")),
         branch_node_id="n_academics", members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
@@ -219,6 +231,7 @@ def test_a_metadata_only_dimension_produces_no_node(seeded):
         members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
         metadata_only_roles=frozenset({"work_type"}))
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
@@ -237,7 +250,8 @@ def test_a_refused_validation_report_produces_no_node(seeded):
     _, evidence = materialise_branch(
         conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
         members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     with pytest.raises(MaterialisationRefused) as excinfo:
         project_branch_nodes(
             evidence, REFUSED, parent=_parent(), plan_version_id="plan_1",
@@ -255,7 +269,8 @@ def test_the_privacy_ordering_is_injected_and_has_no_default(seeded):
     _, evidence = materialise_branch(
         conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
         members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     with pytest.raises(ConfigurationRequired):
         project_branch_nodes(
             evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
@@ -275,7 +290,8 @@ def test_a_role_that_resolves_to_no_live_p6_field_never_reaches_a_node(seeded):
         materialise_branch(
             conn, _candidate(("vibe", "vibe")), branch_node_id="n_academics",
             members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
-            handling_class_for_member=ONE_CLASS)
+            handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert "vibe" in str(excinfo.value)
 
 
@@ -293,7 +309,8 @@ def test_the_class_p7_actually_produces_today_reaches_the_node(seeded):
     _, evidence = materialise_branch(
         conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
         members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=unclassified)
+        handling_class_for_member=unclassified,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert evidence.levels[0].handling_classes_by_value == {
         "BUSIB 4300": frozenset({"unreadable_unclassified"})}
     nodes = project_branch_nodes(
@@ -311,7 +328,8 @@ def test_a_projected_node_is_its_own_lineage_origin(seeded):
     _, evidence = materialise_branch(
         conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
         members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
-        handling_class_for_member=ONE_CLASS)
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
@@ -351,6 +369,7 @@ def test_a_template_local_level_reaches_materialisation_without_calling_c2(seede
         members=seeded.members("syllabus", "hw3"),
         ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
         group_label_for_member=_labels(seeded))
     local = evidence.levels[1]
     assert local.field_ref is None
@@ -371,6 +390,7 @@ def test_a_template_local_level_contributes_no_expected_value(seeded):
         members=seeded.members("syllabus", "hw3"),
         ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
         group_label_for_member=_labels(seeded))
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
@@ -393,7 +413,8 @@ def test_a_template_local_level_without_group_labels_refuses(seeded):
             seeded.conn, _local_candidate(), branch_node_id="n_academics",
             members=seeded.members("syllabus", "hw3"),
             ancestor_field_refs=(), ancestor_depth=0,
-            handling_class_for_member=ONE_CLASS)
+            handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
 
 
 def test_child_counts_keeps_one_entry_per_template_local_level(seeded):
@@ -413,7 +434,72 @@ def test_child_counts_keeps_one_entry_per_template_local_level(seeded):
         branch_node_id="n_academics", members=seeded.members("syllabus", "hw3"),
         ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
         group_label_for_member=_labels(seeded))
     counts = child_counts(evidence)
     assert None not in counts, "a level the user is shown a count for has no name"
     assert set(counts) == {"subject", "matter_number", "phase"}
+
+
+def test_the_protected_class_set_is_injected_and_never_defaulted(seeded):
+    """Same discipline as `handling_class_for` and V5's own test: P7 owns
+    `HANDLING_CLASSES` and publishes no ordering, so a set chosen here would let
+    P10 decide which of a user's material is isolated out of their tree. Absent
+    means refuse."""
+    from tree_design.config import ConfigurationRequired
+
+    with pytest.raises(ConfigurationRequired):
+        materialise_branch(
+            seeded.conn, _candidate(("subject", "subject")),
+            branch_node_id="n_academics",
+            members=seeded.members("syllabus", "hw3"),
+            ancestor_field_refs=(), ancestor_depth=0,
+            handling_class_for_member=ONE_CLASS,
+            protected_handling_classes=None)
+
+
+def test_a_protected_file_stays_a_counted_member_and_is_marked(seeded):
+    """RULING: isolation is MARKING, not removal.
+
+    An earlier version of this kept protected members OUT of the level's values
+    so the branch could still be built. That was wrong in the direction the
+    standing rule forbids: a file dropped from the evidence is UNCOUNTED, and
+    "marked and counted, never opened, never silently omitted" is not satisfied
+    by omitting it. Counted-and-marked is what the rule asks for.
+
+    The safety property does not depend on removal and never did:
+    `placement.privacy.automatic_move_permitted_for` delegates to P7's
+    `may_move_automatically`, which refuses a protected file (and an unclassified
+    one) unless an explicit policy permits it. P11 already will not move it.
+    """
+    conn = seeded.conn
+    passport = seeded.file_id("hw3")
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject")),
+        branch_node_id="n_academics",
+        members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=lambda m: (
+            "highly_sensitive_credential_bearing"
+            if m.file_id == passport else "personal_non_sensitive"),
+        protected_handling_classes=PROTECTED_CLASSES)
+
+    # Counted: still a member, still under its value, still in the counts.
+    assert passport in evidence.member_file_ids
+    assert passport in evidence.levels[0].members_by_value["Columbia"]
+    # Marked: named, so the picker can say the branch holds it and it will not move.
+    assert evidence.protected_file_ids == frozenset({passport})
+
+
+def test_a_branch_with_no_protected_file_marks_none(seeded):
+    """The discriminating half: marking everything would be as useless as
+    marking nothing."""
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("subject", "subject")),
+        branch_node_id="n_academics", members=seeded.members("syllabus", "hw3"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
+    assert evidence.protected_file_ids == frozenset()
+    assert len(evidence.member_file_ids) == 2

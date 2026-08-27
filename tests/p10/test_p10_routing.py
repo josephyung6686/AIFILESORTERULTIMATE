@@ -33,6 +33,7 @@ from tree_design.routing import (
 )
 from tree_design.templates import (
     CompositionConflict,
+    MalformedTemplateRecord,
     DimensionOrder,
     FragmentRef,
     PurposeProfileRef,
@@ -106,13 +107,24 @@ def _definition(template_id, fragment_refs, roles, scope=CROSS_DOMAIN):
 
 
 def _row(applicability_id, template_id, schema, bindings, profile=None):
+    """A join row. Each binding is `(role, field)` or `(role, field, label)`.
+
+    Amendment A made the label required, so a two-tuple gets one derived from
+    the role — legible in a failure message and obviously a fixture. Tests that
+    are ABOUT the label pass the third element explicitly; the rest are about
+    something else and say so by leaving it off.
+    """
+    bindings = tuple(
+        b if len(b) == 3 else (*b, f"{b[0].replace('_', ' ').title()} (fixture)")
+        for b in bindings)
     return TemplateApplicability(
         applicability_id=applicability_id, applicability_version=1,
         template_id=template_id, template_version=1, uses_schema=schema,
         purpose_profile_ref=profile,
-        allowed_fields=tuple(field for _, field in bindings),
+        allowed_fields=tuple(field for _, field, _ in bindings),
         detection_signal_refs=("signal.fixture",),
-        role_bindings=tuple(RoleBinding(role, field) for role, field in bindings),
+        role_bindings=tuple(RoleBinding(role, field, label)
+                            for role, field, label in bindings),
         exclusions=(), provenance=("row:fixture",),
     )
 
@@ -518,3 +530,269 @@ def test_a_missing_binding_produces_a_conflict_not_a_generic_fallback(conn):
     assert report.conflicts
     assert report.conflicts[0].gate == "C3"
     assert report.refusals == report.conflicts
+
+
+# --- Amendment B part 1: the composer must consult the recipe's own order -------
+
+
+def test_the_recipe_recommendation_decides_a_nesting_the_fragments_leave_open(conn):
+    """`routing.py` read NONE of `candidate_orders`, `chosen_order_id`,
+    `default_order` or `.dimensions`. The whole runtime-ordering mechanism §5.3
+    and §5.8 turn on was built, tested, and wired to nothing — there was no code
+    path by which a recipe's recommendation could win.
+
+    `subject` and `artifact_kind` are supplied by two fragments that state no
+    order between them, so the constraints leave the nesting open and the RECIPE
+    is what answers. Two definitions, same fragments, opposite recommendations,
+    opposite trees.
+    """
+    for recommended in (("subject", "artifact_kind"), ("artifact_kind", "subject")):
+        definition = _definition(
+            "coursework", (FragmentRef("subject", 1), FragmentRef("artifact-kind", 1)),
+            recommended)
+        catalogue = _catalogue((SUBJECT, KIND), (definition,), (
+            _row("a1", "coursework", "academic",
+                 (("subject", "subject"), ("artifact_kind", "work_type"))),
+        ))
+        context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+        candidate = evaluate_composition(
+            conn, catalogue, context, catalogue.rows_for_schema("academic"),
+            privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+        nesting = tuple(
+            d.role_ref for d in sorted(candidate.resolved_dimensions,
+                                       key=lambda d: d.order_index))
+        assert nesting == recommended
+
+
+def test_a_fragments_stated_order_still_beats_the_recipes_recommendation(conn):
+    """The bound on part 1. A fragment's `relative_order` is a
+    safety-and-meaning constraint; a recipe's order is a RECOMMENDATION. The
+    recommendation breaks ties the constraints leave open and never overrides
+    one they state, or a definition could quietly undo a fragment's rule.
+    """
+    ordered_pair = _fragment(
+        "subject-then-kind", ("subject", "artifact_kind"),
+        order=(("subject", "artifact_kind"),))
+    definition = _definition(
+        "coursework", (FragmentRef("subject-then-kind", 1),),
+        ("artifact_kind", "subject"))  # recommends the opposite
+    catalogue = _catalogue((ordered_pair,), (definition,), (
+        _row("a1", "coursework", "academic",
+             (("subject", "subject"), ("artifact_kind", "work_type"))),
+    ))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    candidate = evaluate_composition(
+        conn, catalogue, context, catalogue.rows_for_schema("academic"),
+        privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    nesting = tuple(
+        d.role_ref for d in sorted(candidate.resolved_dimensions,
+                                   key=lambda d: d.order_index))
+    assert nesting == ("subject", "artifact_kind")
+
+
+def test_two_recipes_recommending_different_nestings_do_not_get_averaged(conn):
+    """Two definitions in play that disagree is a conflict the user resolves, not
+    one the composer splits the difference on. With no single recommendation the
+    tie is unresolved, and an unresolved tie refuses by name."""
+    catalogue = _catalogue((SUBJECT, KIND), (
+        _definition("one", (FragmentRef("subject", 1), FragmentRef("artifact-kind", 1)),
+                    ("subject", "artifact_kind")),
+        _definition("two", (FragmentRef("subject", 1), FragmentRef("artifact-kind", 1)),
+                    ("artifact_kind", "subject")),
+    ), (
+        _row("a1", "one", "academic",
+             (("subject", "subject"), ("artifact_kind", "work_type"))),
+        _row("a2", "two", "academic",
+             (("subject", "subject"), ("artifact_kind", "work_type"))),
+    ))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    with pytest.raises(CompositionConflict) as excinfo:
+        evaluate_composition(
+            conn, catalogue, context, catalogue.rows_for_schema("academic"),
+            privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    assert excinfo.value.gate == "C5"
+    assert set(excinfo.value.conflicting) >= {"artifact_kind", "subject"}
+
+
+# --- Amendment B part 3: the definition carries its own local ordering -----------
+
+
+def _local_definition(template_id, fragment_refs, roles, *, relative_order=(),
+                      privacy_floor=None):
+    return TemplateDefinition(
+        template_id=template_id, template_version=1, origin_kind=BUILT_IN,
+        scope_kind=CROSS_DOMAIN, publication_state=PUBLISHED,
+        fragment_refs=tuple(fragment_refs), candidate_orders=_orders(roles),
+        optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
+        validation_constraints=(), example_label_chains=(),
+        relative_order=tuple(relative_order), privacy_floor=privacy_floor,
+    )
+
+
+PAIR = _fragment("subject-then-kind", ("subject", "artifact_kind"),
+                 order=(("subject", "artifact_kind"),))
+
+
+def test_a_definition_local_dimension_keeps_its_authored_position(conn):
+    """`routing.py`'s `position.get(role, len(position))` sorted a role NO
+    FRAGMENT CONSTRAINS to last, silently.
+
+    `merged.ordered_roles` is derived from fragment edges alone, so a dimension
+    the DEFINITION contributes is absent from `position` and falls to
+    `len(position)`. Measured before the fix:
+
+        recipe recommends : addressed_org, subject, artifact_kind
+        composer produces : subject, artifact_kind, addressed_org
+
+    That is `research.conference-presentation`'s recipe inverted by the composer:
+    the definition says organize by venue first, the user gets venue last, and
+    nothing raises.
+    """
+    definition = _local_definition(
+        "conference", (FragmentRef("subject-then-kind", 1),),
+        ("addressed_org", "subject", "artifact_kind"),
+        relative_order=(("addressed_org", "subject"),))
+    catalogue = _catalogue((PAIR,), (definition,), (
+        _row("a1", "conference", "academic",
+             (("addressed_org", "school"), ("subject", "subject"),
+              ("artifact_kind", "work_type"))),))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    candidate = evaluate_composition(
+        conn, catalogue, context, catalogue.rows_for_schema("academic"),
+        privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    assert tuple(d.role_ref for d in sorted(
+        candidate.resolved_dimensions, key=lambda d: d.order_index)) == (
+            "addressed_org", "subject", "artifact_kind")
+
+
+def test_a_definition_may_not_reorder_what_a_fragment_constrains(conn):
+    """The bound. A fragment's `relative_order` is a safety-and-meaning
+    constraint; the definition's is for the roles the fragments say nothing
+    about. A definition contradicting a fragment edge is a CYCLE, and C5 refuses
+    it rather than letting the recipe quietly undo the fragment's rule."""
+    definition = _local_definition(
+        "conference", (FragmentRef("subject-then-kind", 1),),
+        ("subject", "artifact_kind"),
+        relative_order=(("artifact_kind", "subject"),))
+    catalogue = _catalogue((PAIR,), (definition,), (
+        _row("a1", "conference", "academic",
+             (("subject", "subject"), ("artifact_kind", "work_type"))),))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    with pytest.raises(CompositionConflict) as excinfo:
+        evaluate_composition(
+            conn, catalogue, context, catalogue.rows_for_schema("academic"),
+            privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    assert excinfo.value.gate == "C5"
+    assert "cycle" in str(excinfo.value)
+
+
+def test_a_fragmentless_definition_composes_on_its_own_privacy_floor(conn):
+    """A recipe whose dimensions are all its own needs no fragment at all.
+
+    Before this, `merge_fragment_constraints([])` reached `max([])` on the
+    privacy-floor list and raised `ConfigurationRequired`, so `fragment_refs` was
+    EFFECTIVELY MANDATORY at composition time while `TemplateDefinition` happily
+    accepted a definition with none. Working around it meant authoring carrier
+    fragments whose only purpose was to hold a constraint — 19 of them, against
+    3 genuinely shared ones.
+    """
+    definition = _local_definition(
+        "finance", (), ("addressed_org", "artifact_kind"),
+        relative_order=(("addressed_org", "artifact_kind"),),
+        privacy_floor="policy.public")
+    catalogue = _catalogue((), (definition,), (
+        _row("a1", "finance", "academic",
+             (("addressed_org", "school"), ("artifact_kind", "work_type"))),))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    candidate = evaluate_composition(
+        conn, catalogue, context, catalogue.rows_for_schema("academic"),
+        privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    assert tuple(d.role_ref for d in sorted(
+        candidate.resolved_dimensions, key=lambda d: d.order_index)) == (
+            "addressed_org", "artifact_kind")
+    assert candidate.privacy_floor == "policy.public"
+
+
+def test_a_fragmentless_definition_with_no_privacy_floor_is_refused_at_construction(
+        conn):
+    """The record must not accept what the composer cannot process.
+
+    That is this project's "signature documenting an exclusion by accepting the
+    value": `fragment_refs` was effectively required by the composer and
+    optional on the record, so the failure arrived far from its cause. A
+    definition that supplies neither a fragment nor its own floor now fails where
+    it is built.
+    """
+    with pytest.raises(MalformedTemplateRecord) as excinfo:
+        _local_definition("finance", (), ("addressed_org", "artifact_kind"),
+                          relative_order=(("addressed_org", "artifact_kind"),))
+    assert "privacy" in str(excinfo.value).lower()
+
+
+def test_a_definition_with_fragments_needs_no_floor_of_its_own(conn):
+    """The discriminating half: the floor is required only where nothing else
+    supplies one. Requiring it everywhere would make every recipe restate what
+    its fragments already say, and C7 keeps the STRONGEST included restriction."""
+    definition = _local_definition(
+        "conference", (FragmentRef("subject-then-kind", 1),),
+        ("subject", "artifact_kind"))
+    assert definition.privacy_floor is None
+
+
+def test_a_definitions_own_floor_never_weakens_a_fragments(conn):
+    """C7 keeps the STRONGEST included restriction, and the definition's floor is
+    a FALLBACK for a recipe with no fragments — never an override.
+
+    Sabotage found this silent: applying `definition.privacy_floor` whenever it
+    was set, rather than only when nothing else supplied one, let a recipe
+    quietly relax a floor its own fragment requires. "A composition that relaxed
+    one fragment's floor would release material that fragment protects" is the
+    rule C7 exists for, and a definition is not exempt from it.
+    """
+    sensitive = _fragment("sensitive-pair", ("subject", "artifact_kind"),
+                          order=(("subject", "artifact_kind"),),
+                          floor="policy.sensitive")
+    definition = _local_definition(
+        "conference", (FragmentRef("sensitive-pair", 1),),
+        ("subject", "artifact_kind"), privacy_floor="policy.public")
+    catalogue = _catalogue((sensitive,), (definition,), (
+        _row("a1", "conference", "academic",
+             (("subject", "subject"), ("artifact_kind", "work_type"))),))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    candidate = evaluate_composition(
+        conn, catalogue, context, catalogue.rows_for_schema("academic"),
+        privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    assert candidate.privacy_floor == "policy.sensitive"
+
+
+def test_two_definitions_in_play_apply_neither_ones_local_ordering(conn):
+    """`_single_definition` returns nothing when the rows name several, and
+    sabotage found the "pick the first" version silent.
+
+    With two recipes in play there is no single local ordering to apply, and
+    choosing one would be exactly the arbitrary pick this amendment removes —
+    the same defect as resolving a tie by fragment listing order, one level up.
+    Without a local ordering the definition-local role is unconstrained, so the
+    merge refuses by name rather than sorting it somewhere.
+    """
+    one = _local_definition(
+        "one", (FragmentRef("subject-then-kind", 1),),
+        ("addressed_org", "subject", "artifact_kind"),
+        relative_order=(("addressed_org", "subject"),))
+    two = _local_definition(
+        "two", (FragmentRef("subject-then-kind", 1),),
+        ("addressed_org", "subject", "artifact_kind"),
+        relative_order=(("subject", "addressed_org"),))
+    catalogue = _catalogue((PAIR,), (one, two), (
+        _row("a1", "one", "academic",
+             (("addressed_org", "school"), ("subject", "subject"),
+              ("artifact_kind", "work_type"))),
+        _row("a2", "two", "academic",
+             (("addressed_org", "school"), ("subject", "subject"),
+              ("artifact_kind", "work_type"))),))
+    context = _context(("academic",), (_group("g1", "academic", ("f1",)),))
+    with pytest.raises(CompositionConflict) as excinfo:
+        evaluate_composition(
+            conn, catalogue, context, catalogue.rows_for_schema("academic"),
+            privacy_rank=RANK, satisfies_purpose_profile=ALWAYS)
+    assert excinfo.value.gate == "C5"

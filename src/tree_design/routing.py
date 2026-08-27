@@ -170,6 +170,59 @@ def _overrides_by_gate(
     return by_gate
 
 
+def _single_definition(catalogue: TemplateCatalogue,
+                       rows: Sequence[TemplateApplicability]):
+    """The one definition in play, or nothing when the rows name several.
+
+    Its own dimensions and `relative_order` join the merge so a DEFINITION-LOCAL
+    role — one no fragment mentions — takes the position the recipe authored
+    rather than falling to `len(position)` and sorting last.
+
+    With several definitions there is no single local ordering to apply, and
+    choosing one would be the arbitrary pick this whole amendment removes.
+    """
+    seen = []
+    for row in rows:
+        definition = catalogue.definitions.get(
+            (row.template_id, row.template_version))
+        if definition is not None and definition not in seen:
+            seen.append(definition)
+    return seen[0] if len(seen) == 1 else None
+
+
+def _recommended_order(catalogue: TemplateCatalogue,
+                       rows: Sequence[TemplateApplicability]) -> tuple[str, ...]:
+    """The nesting the DEFINITIONS in play recommend, or nothing.
+
+    `routing.py` read none of `candidate_orders`, `chosen_order_id`,
+    `default_order` or `.dimensions`: the whole runtime-ordering mechanism §5.3
+    and §5.8 turn on was built, tested, and wired to nothing, so there was no
+    code path by which a recipe's recommendation could win. This is that path.
+
+    It is a RECOMMENDATION and it only breaks ties the fragment constraints leave
+    open — it cannot override an edge a fragment states, because a fragment's
+    relative order is a safety-and-meaning constraint and a recommendation is
+    not. When several definitions are in play they must agree; two recipes
+    recommending different nestings for the same branch is a conflict the user
+    resolves, not one this function averages.
+    """
+    sequences = []
+    for row in rows:
+        definition = catalogue.definitions.get(
+            (row.template_id, row.template_version))
+        if definition is None:
+            continue
+        sequence = tuple(
+            dimension.role_ref
+            for dimension in sorted(definition.default_order.dimensions,
+                                    key=lambda d: d.order_index))
+        if sequence not in sequences:
+            sequences.append(sequence)
+    if len(sequences) != 1:
+        return ()
+    return sequences[0]
+
+
 def evaluate_composition(
     conn: sqlite3.Connection,
     catalogue: TemplateCatalogue,
@@ -224,9 +277,16 @@ def evaluate_composition(
     # C4 — a required role resolves once. Competing mappings are SURFACED, and
     # the user resolves them; the router still picks none by itself.
     offered: dict[str, set[str]] = {}
+    #: How each (role, field) pair is NAMED, per row. Keyed on the pair and not
+    #: on the role alone: when C4 surfaces two fields for one role and the user
+    #: picks one, the label that ships is the one authored beside the field they
+    #: picked, not a name belonging to the mapping they rejected.
+    offered_labels: dict[tuple[str, str], set[str]] = {}
     for row in rows:
         for binding in row.role_bindings:
             offered.setdefault(binding.role_ref, set()).add(binding.field_ref)
+            offered_labels.setdefault(
+                (binding.role_ref, binding.field_ref), set()).add(binding.label)
     ambiguous = sorted(role for role, fields in offered.items() if len(fields) > 1)
     chosen: dict[str, str] = {
         role: next(iter(fields)) for role, fields in offered.items()
@@ -265,10 +325,50 @@ def evaluate_composition(
     order_override = by_gate.get(C5)
     merged = merge_fragment_constraints(
         ordered, privacy_rank=privacy_rank,
-        role_order=order_override.role_order if order_override else None)
+        role_order=order_override.role_order if order_override else None,
+        preferred_order=_recommended_order(catalogue, rows),
+        definition=_single_definition(catalogue, rows),
+        # C7, Amendment C: the exposure each SELECTED context requires. Only the
+        # rows that survived C1-C6 contribute, because a floor from a row this
+        # branch did not use would raise the protection of a context that is not
+        # here.
+        applicability_floors=tuple(
+            row.privacy_floor for row in rows if row.privacy_floor))
     if merged.order_was_overridden:
         overridden.append(C5)
     position = {role: index for index, role in enumerate(merged.ordered_roles)}
+    # THE FALLBACK IS GONE, and its absence is the fix. `position.get(role,
+    # len(position))` sorted any role the merge did not order to LAST, silently
+    # and with ties — so a definition-local dimension, or a role left unordered
+    # because several recipes disagree, quietly became the leaf. A recipe asking
+    # for venue first got venue last and nothing raised.
+    #
+    # A role whose nesting nothing decides is refused by name, the same answer
+    # `merge_fragment_constraints` gives for an under-determined tie.
+    unordered = sorted(set(chosen) - set(position))
+    if unordered:
+        raise CompositionConflict(
+            C5, unordered,
+            f"{', '.join(unordered)} resolved to a live field but nothing orders "
+            "them: no fragment constrains them and no single recipe's own "
+            "ordering applies, so where they nest is undefined")
+    # The shipped name for each level, settled the same way the field was: by
+    # agreement, never by picking. Two rows may both bind `artifact_kind` to
+    # `work_type` and call it "Assignment type" and "Figure or draft" — one
+    # field, two audiences, and nothing in the branch says whose words the
+    # folder wears. That is C4's shape (a role resolving more than one way), so
+    # it gets C4's answer: surface it and choose nothing. Taking the first would
+    # make the user-visible name depend on the order the rows were listed in.
+    labels: dict[str, str] = {}
+    for role, field in chosen.items():
+        names = offered_labels[(role, field)]
+        if len(names) > 1:
+            raise CompositionConflict(
+                C4, [role],
+                f"{role!r} resolves to {field!r} under more than one name "
+                f"({sorted(names)}) and P10 names none silently")
+        labels[role] = next(iter(names))
+
     resolved = tuple(
         ResolvedDimension(
             role_ref=role,
@@ -278,15 +378,20 @@ def evaluate_composition(
             # actions (`reordered`, `renamed`, ...) belong to the binding, after
             # the branch exists.
             action=ACTION_SELECTED,
-            order_index=position.get(role, len(position)),
-            display_label=None,
+            order_index=position[role],
+            # The authored, per-schema name of this level. It was `None` here,
+            # which made the only producer of the field a placeholder and left
+            # the internal role key to reach the interface as the shipped
+            # string. `materialise` reads it into every node's §5.12
+            # explanation.
+            display_label=labels[role],
             # Every dimension the ROUTER resolves came from an applicability
             # row's role binding and passed C2, so it is schema-field by
             # construction. A template-local level has no row and no field; it
             # arrives from an approved Site-E proposal, not from routing.
             scope=SCOPE_SCHEMA_FIELD,
         )
-        for role in sorted(chosen, key=lambda r: position.get(r, len(position)))
+        for role in sorted(chosen, key=lambda r: position[r])
     )
 
     # C6 — coverage. Every member of every accepted group in this branch is

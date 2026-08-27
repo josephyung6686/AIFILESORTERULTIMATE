@@ -50,6 +50,7 @@ from tree_design.templates import (
 )
 from tree_design.vocabulary import (
     ACTION_ADDED,
+    C5,
     ACTION_RENAMED,
     ACTION_SELECTED,
     BUILT_IN,
@@ -158,7 +159,7 @@ def test_a_definition_offers_candidate_orders_and_names_one_default():
     definition = TemplateDefinition(
         template_id="academic-coursework", template_version=1,
         origin_kind=BUILT_IN, scope_kind=DOMAIN_FOCUSED,
-        publication_state=PUBLISHED, fragment_refs=(),
+        publication_state=PUBLISHED, fragment_refs=(), privacy_floor="policy.public",
         candidate_orders=(SUBJECT_FIRST, KIND_FIRST),
         optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
         validation_constraints=(), example_label_chains=(),
@@ -180,7 +181,7 @@ def test_a_multi_dimension_recipe_that_offers_one_order_is_refused():
         TemplateDefinition(
             template_id="t", template_version=1, origin_kind=BUILT_IN,
             scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
-            fragment_refs=(), candidate_orders=(SUBJECT_FIRST,),
+            fragment_refs=(), privacy_floor="policy.public", candidate_orders=(SUBJECT_FIRST,),
             optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
             validation_constraints=(), example_label_chains=(),
         )
@@ -192,12 +193,76 @@ def test_a_one_dimension_recipe_needs_only_one_order():
     author to invent a choice that does not exist."""
     definition = TemplateDefinition(
         template_id="flat", template_version=1, origin_kind=BUILT_IN,
-        scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED, fragment_refs=(),
+        scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED, fragment_refs=(), privacy_floor="policy.public",
         candidate_orders=(ONLY_SUBJECT,), optional_branch_patterns=(),
         sensitivity_policy_ref="policy.public", validation_constraints=(),
         example_label_chains=(),
     )
     assert definition.default_order is ONLY_SUBJECT
+
+
+# --------------------------------------------------------------------------
+# Amendment D — the two-order floor, and the one way through it.
+#
+# The floor above is right and stays: a lone `dimensions` tuple wearing a new
+# field name is exactly what `candidate_orders` replaced. But enforced without
+# an exit it produced its own defect — ten alternative orders in the launch
+# draft were AUTHORED BY AN AGENT purely to satisfy the record, and the canvas
+# would then show ten invented alternatives beside orders argued from real
+# corpora with no way to tell which was which.
+#
+# So the rule now asks for the one thing that distinguishes them: a recipe may
+# offer a single order when it RECORDS that only one is attested. The exit is
+# prose an author has to write and a reviewer can check, not a boolean.
+# --------------------------------------------------------------------------
+
+def test_a_recipe_may_offer_one_order_when_it_records_that_only_one_is_attested():
+    definition = TemplateDefinition(
+        template_id="t.attested", template_version=1, origin_kind=BUILT_IN,
+        scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
+        fragment_refs=(), privacy_floor="policy.public",
+        candidate_orders=(SUBJECT_FIRST,),
+        optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
+        validation_constraints=(), example_label_chains=(),
+        sole_order_attestation=(
+            "Every one of the 31 reviewed academic corpora nests course above "
+            "assignment type; no reviewed corpus nests the reverse."),
+    )
+    assert definition.candidate_orders == (SUBJECT_FIRST,)
+    assert definition.default_order is SUBJECT_FIRST
+
+
+def test_an_attestation_that_says_nothing_does_not_open_the_exit():
+    """Whitespace is not evidence. Without this the exit is a boolean spelled
+    as a string, and " " reopens it for every recipe that finds two orders
+    inconvenient to author."""
+    with pytest.raises(MalformedTemplateRecord):
+        TemplateDefinition(
+            template_id="t.blank", template_version=1, origin_kind=BUILT_IN,
+            scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
+            fragment_refs=(), privacy_floor="policy.public",
+            candidate_orders=(SUBJECT_FIRST,),
+            optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
+            validation_constraints=(), example_label_chains=(),
+            sole_order_attestation="   ",
+        )
+
+
+def test_an_attestation_beside_two_offered_orders_is_a_contradiction():
+    """The recipe says only one order is attested and then offers two. One of
+    the two statements is false and the record cannot tell which, so it refuses
+    rather than keeping a field that means nothing where it sits."""
+    with pytest.raises(MalformedTemplateRecord) as excinfo:
+        TemplateDefinition(
+            template_id="t.both", template_version=1, origin_kind=BUILT_IN,
+            scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
+            fragment_refs=(), privacy_floor="policy.public",
+            candidate_orders=(SUBJECT_FIRST, KIND_FIRST),
+            optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
+            validation_constraints=(), example_label_chains=(),
+            sole_order_attestation="Only kind-first is attested.",
+        )
+    assert "attest" in str(excinfo.value)
 
 
 def test_exactly_one_candidate_order_is_the_default():
@@ -206,7 +271,7 @@ def test_exactly_one_candidate_order_is_the_default():
         TemplateDefinition(
             template_id="t", template_version=1, origin_kind=BUILT_IN,
             scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
-            fragment_refs=(), candidate_orders=(SUBJECT_FIRST, two_defaults),
+            fragment_refs=(), privacy_floor="policy.public", candidate_orders=(SUBJECT_FIRST, two_defaults),
             optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
             validation_constraints=(), example_label_chains=(),
         )
@@ -215,7 +280,7 @@ def test_exactly_one_candidate_order_is_the_default():
         TemplateDefinition(
             template_id="t", template_version=1, origin_kind=BUILT_IN,
             scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
-            fragment_refs=(), candidate_orders=(no_default, KIND_FIRST),
+            fragment_refs=(), privacy_floor="policy.public", candidate_orders=(no_default, KIND_FIRST),
             optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
             validation_constraints=(), example_label_chains=(),
         )
@@ -231,7 +296,7 @@ def test_every_candidate_order_covers_the_same_roles():
         TemplateDefinition(
             template_id="t", template_version=1, origin_kind=BUILT_IN,
             scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
-            fragment_refs=(), candidate_orders=(SUBJECT_FIRST, shorter),
+            fragment_refs=(), privacy_floor="policy.public", candidate_orders=(SUBJECT_FIRST, shorter),
             optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
             validation_constraints=(), example_label_chains=(),
         )
@@ -291,7 +356,7 @@ def test_an_example_label_chain_is_labels_and_never_a_path():
         TemplateDefinition(
             template_id="t", template_version=1, origin_kind=BUILT_IN,
             scope_kind=DOMAIN_FOCUSED, publication_state=PUBLISHED,
-            fragment_refs=(), candidate_orders=(ONLY_SUBJECT,),
+            fragment_refs=(), privacy_floor="policy.public", candidate_orders=(ONLY_SUBJECT,),
             optional_branch_patterns=(), sensitivity_policy_ref="policy.public",
             validation_constraints=(),
             example_label_chains=(("Academics/Columbia",),),
@@ -306,8 +371,9 @@ def test_an_applicability_row_names_exactly_one_schema_and_carries_provenance():
         uses_schema="academic", purpose_profile_ref=None,
         allowed_fields=("subject", "work_type"),
         detection_signal_refs=("signal.syllabus_header",),
-        role_bindings=(RoleBinding("subject", "subject"),
-                       RoleBinding("artifact_kind", "work_type")),
+        role_bindings=(RoleBinding("subject", "subject", "Course"),
+                       RoleBinding("artifact_kind", "work_type",
+                                   "Assignment type")),
         exclusions=(), provenance=("row:academic-01", "memo:academic-reuse"),
     )
     assert row.uses_schema == "academic"
@@ -325,7 +391,8 @@ def test_a_role_binding_must_target_a_field_the_row_allows():
             applicability_id="a", applicability_version=1, template_id="t",
             template_version=1, uses_schema="academic", purpose_profile_ref=None,
             allowed_fields=("subject",), detection_signal_refs=(),
-            role_bindings=(RoleBinding("artifact_kind", "work_type"),),
+            role_bindings=(RoleBinding("artifact_kind", "work_type",
+                                       "Assignment type"),),
             exclusions=(), provenance=("row:x",),
         )
 
@@ -339,7 +406,8 @@ def test_a_purpose_profile_ref_is_authored_and_versioned():
         applicability_id="a", applicability_version=1, template_id="t",
         template_version=1, uses_schema="college_applications",
         purpose_profile_ref=ref, allowed_fields=("target_school",),
-        detection_signal_refs=(), role_bindings=(RoleBinding("counterpart", "target_school"),),
+        detection_signal_refs=(), role_bindings=(RoleBinding("counterpart", "target_school",
+                                                 "Where it is going"),),
         exclusions=(), provenance=("row:apps-01",),
     )
     assert row.purpose_profile_ref.purpose_profile_version == 1
@@ -523,8 +591,9 @@ def test_the_catalogue_round_trips_all_four_records():
         uses_schema="academic",
         purpose_profile_ref=PurposeProfileRef("pp.coursework", 1),
         allowed_fields=("subject", "work_type"), detection_signal_refs=("signal.x",),
-        role_bindings=(RoleBinding("subject", "subject"),
-                       RoleBinding("artifact_kind", "work_type")),
+        role_bindings=(RoleBinding("subject", "subject", "Course"),
+                       RoleBinding("artifact_kind", "work_type",
+                                   "Assignment type")),
         exclusions=(), provenance=("row:academic-01",),
     )
     manifest = {
@@ -576,7 +645,7 @@ def _definition(*orders):
     return TemplateDefinition(
         template_id="academic-coursework", template_version=1,
         origin_kind=BUILT_IN, scope_kind=DOMAIN_FOCUSED,
-        publication_state=PUBLISHED, fragment_refs=(),
+        publication_state=PUBLISHED, fragment_refs=(), privacy_floor="policy.public",
         candidate_orders=orders, optional_branch_patterns=(),
         sensitivity_policy_ref="policy.public", validation_constraints=(),
         example_label_chains=(),
@@ -648,3 +717,136 @@ def test_a_hand_composed_binding_with_no_resolved_dimensions_is_refused():
     with pytest.raises(MalformedTemplateRecord):
         branch_dimension_roles(_binding(chosen_order_id=None),
                                _definition(SUBJECT_FIRST, KIND_FIRST))
+
+
+# --- Amendment B part 2: an under-determined merge must not resolve by luck ------
+
+
+def _ordering_fragment(fragment_id, roles, order):
+    return TemplateFragment(
+        fragment_id=fragment_id, fragment_version=1, roles=roles,
+        relative_order=order, imports=(), optional_roles=(),
+        metadata_only_roles=(), allowed_values={},
+        privacy_floor="policy.public", provenance=("row:academic-01",))
+
+
+HOLDER_PREFIX = _ordering_fragment(
+    "frag.holder-affiliation-prefix", ("holder_institution", "subject_anchor"),
+    (("holder_institution", "subject_anchor"),))
+SUBJECT_THEN_ARTIFACT = _ordering_fragment(
+    "frag.subject-then-artifact", ("subject_anchor", "artifact_kind"),
+    (("subject_anchor", "artifact_kind"),))
+CYCLE_THEN_ARTIFACT = _ordering_fragment(
+    "frag.cycle-then-artifact", ("cycle_period", "artifact_kind"),
+    (("cycle_period", "artifact_kind"),))
+
+
+def _merge_outcome(fragments):
+    """The merge's answer, whichever kind it is, in a comparable shape."""
+    try:
+        merged = merge_fragment_constraints(
+            list(fragments), privacy_rank=lambda floor: 0)
+    except CompositionConflict as conflict:
+        return ("refused", conflict.gate, tuple(sorted(conflict.conflicting)))
+    return ("ordered", merged.ordered_roles)
+
+
+def test_the_merged_order_does_not_depend_on_the_order_fragments_were_listed():
+    """§8.5 requires eval and replay, and a composer whose output depends on
+    insertion sequence cannot be replayed.
+
+    `_topological` seeds Kahn's queue from `nodes`, which
+    `merge_fragment_constraints` builds by iterating `fragments` in order, and
+    pops FIFO. Where the constraints under-determine the nesting, the tree a user
+    gets is decided by the order someone happened to list the fragments in.
+    Reordering a fragment list is a refactor nobody would think twice about, and
+    it silently rearranges somebody's folders.
+
+    Verified before the fix:
+        A,B,C -> holder_institution, cycle_period, subject_anchor, artifact_kind
+        C,B,A -> cycle_period, holder_institution, subject_anchor, artifact_kind
+    i.e. school > term became term > school.
+
+    This asserts the OUTCOME is stable, whichever outcome it is. A refusal that
+    refuses identically both ways is replayable; an order that flips is not.
+    """
+    fragments = [HOLDER_PREFIX, SUBJECT_THEN_ARTIFACT, CYCLE_THEN_ARTIFACT]
+    forward = _merge_outcome(fragments)
+    reverse = _merge_outcome(list(reversed(fragments)))
+    middle = _merge_outcome([SUBJECT_THEN_ARTIFACT, HOLDER_PREFIX,
+                             CYCLE_THEN_ARTIFACT])
+    assert forward == reverse == middle
+
+
+def test_an_under_determined_merge_refuses_and_names_the_unordered_roles():
+    """Not an arbitrary pick, and NOT an alphabetical one either — sorting is the
+    same arbitrary pick wearing a stable disguise. The composition says nothing
+    about whether the term or the course comes first, so it says so."""
+    with pytest.raises(CompositionConflict) as excinfo:
+        merge_fragment_constraints(
+            [HOLDER_PREFIX, SUBJECT_THEN_ARTIFACT, CYCLE_THEN_ARTIFACT],
+            privacy_rank=lambda floor: 0)
+    conflicting = set(excinfo.value.conflicting)
+    assert {"cycle_period", "holder_institution"} <= conflicting
+    assert excinfo.value.gate == C5
+
+
+def test_a_fully_determined_merge_still_produces_its_one_order():
+    """The discriminating half. "Refuse whenever there is more than one role"
+    would pass the test above and destroy the feature; this is the case that
+    separates a real determinacy check from a blanket refusal.
+
+    Adding the one missing edge — cycle_period before subject_anchor — collapses
+    the merge to a single order, and it is `00`'s: "An Academic template may
+    define school -> term -> course -> work type."
+    """
+    affiliation_to_cycle = _ordering_fragment(
+        "frag.affiliation-prefix-to-cycle",
+        ("holder_institution", "cycle_period", "subject_anchor"),
+        (("holder_institution", "cycle_period"),
+         ("cycle_period", "subject_anchor")))
+    fragments = [affiliation_to_cycle, SUBJECT_THEN_ARTIFACT,
+                 CYCLE_THEN_ARTIFACT]
+    merged = merge_fragment_constraints(fragments, privacy_rank=lambda f: 0)
+    assert merged.ordered_roles == (
+        "holder_institution", "cycle_period", "subject_anchor", "artifact_kind")
+    assert _merge_outcome(fragments) == _merge_outcome(list(reversed(fragments)))
+
+
+def test_the_users_chosen_order_resolves_an_under_determined_merge():
+    """§5.3 and §5.8 make the nesting a runtime choice, so the user answering it
+    is the resolution — the refusal is for when NOBODY has answered."""
+    merged = merge_fragment_constraints(
+        [HOLDER_PREFIX, SUBJECT_THEN_ARTIFACT, CYCLE_THEN_ARTIFACT],
+        privacy_rank=lambda floor: 0,
+        role_order=("holder_institution", "cycle_period", "subject_anchor",
+                    "artifact_kind"))
+    assert merged.ordered_roles == (
+        "holder_institution", "cycle_period", "subject_anchor", "artifact_kind")
+
+
+def test_the_release_loader_drops_no_field_of_a_definition():
+    """A packaged release round-trips every field, and this is the guard that
+    says so.
+
+    `catalogue._definition` builds a `TemplateDefinition` field by field from
+    JSON, so a field ADDED to the record and not to the loader is silently
+    dropped on the way through — the definition the composer sees is not the one
+    the release shipped. That happened to `relative_order` and `privacy_floor`
+    the moment they existed, and the symptom was a cycle that failed to fire and
+    a floor that failed to arrive.
+
+    Comparing field NAMES rather than a hand-written list is what makes this
+    survive the next field: add one to the record and this fails until the loader
+    carries it.
+    """
+    import dataclasses
+    import inspect
+
+    from tree_design import catalogue
+
+    source = inspect.getsource(catalogue._definition)
+    for field in dataclasses.fields(TemplateDefinition):
+        assert f"{field.name}=" in source, (
+            f"catalogue._definition drops {field.name!r}; a release would ship a "
+            "definition the composer never sees")
