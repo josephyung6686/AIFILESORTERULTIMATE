@@ -464,16 +464,13 @@ def test_the_spend_gate_is_actually_called_before_a_residual_model_call():
     passes through is a gate in name only. The owed consumer is the per-file
     residual loop, which is not built.
 
-    `xfail(strict=True)`: this reports the gap today and turns the suite RED the
-    moment a caller appears, which is what forces the marker off rather than
-    letting a satisfied guard sit unnoticed.
+    The gap is CLOSED: `pipeline.review_residual_sets` calls it immediately
+    before the spend, and only for a set whose own decision asked for a model.
+    The `xfail(strict=True)` marker that reported the gap is gone, removed by the
+    XPASS it was written to produce.
     """
     assert _placement_sources_calling("require_model_call_permitted") - {
         "residual.py"}
 
 
-test_the_spend_gate_is_actually_called_before_a_residual_model_call = pytest.mark.xfail(
-    strict=True,
-    reason="the per-file residual model loop is unbuilt; nothing calls §7.6's "
-           "gate yet. XPASSes and fails the suite the moment a caller appears.",
-)(test_the_spend_gate_is_actually_called_before_a_residual_model_call)
+

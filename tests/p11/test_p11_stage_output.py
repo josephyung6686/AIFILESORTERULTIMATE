@@ -173,8 +173,10 @@ def test_the_two_stages_are_emitted_from_somewhere_in_placement():
     mapping is tested here and against P2's live writer in
     `tests/integration/test_p11_p2_replay.py`; what is missing is the call.
 
-    `xfail(strict=True)`: it reports the gap today and turns the suite RED the day
-    a caller appears, which forces the marker off.
+    The gap is CLOSED: `placement/pipeline.py` emits the retrieval stage from
+    `place_file` and the scoring stage from every decision writer, whenever the
+    caller supplied a `P2Run`. The `xfail(strict=True)` marker that reported the
+    gap is gone, removed by the XPASS it was written to produce.
     """
     from p11.test_p11_groups import _placement_sources_calling
 
@@ -183,9 +185,4 @@ def test_the_two_stages_are_emitted_from_somewhere_in_placement():
             entry_point)
 
 
-test_the_two_stages_are_emitted_from_somewhere_in_placement = pytest.mark.xfail(
-    strict=True,
-    reason="the §6.12 pipeline is unbuilt; nothing calls emit_retrieval_stage or "
-           "emit_scoring_stage. XPASSes and fails the suite the moment a caller "
-           "appears.",
-)(test_the_two_stages_are_emitted_from_somewhere_in_placement)
+

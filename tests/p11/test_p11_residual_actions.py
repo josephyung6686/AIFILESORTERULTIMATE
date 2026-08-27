@@ -350,8 +350,11 @@ def test_the_residual_action_path_is_reachable_from_somewhere_in_placement():
     outcomes that nothing constructs -- the exact shape of the four concepts this
     codebase shipped fully-tested and connected to nothing.
 
-    `xfail(strict=True)`: it reports the gap today and turns the suite RED on the
-    day a caller appears, which forces the marker off.
+    The gap is CLOSED: `placement/pipeline.py` calls all three --
+    `outcome_for_action` from `run_residual_file`, and `check_return_cycle` and
+    `link_return` from §7.9's loop back into §6. The `xfail(strict=True)` marker
+    that reported the gap is gone, removed by the XPASS it was written to
+    produce.
     """
     from p11.test_p11_residual_sets import _placement_sources_calling
 
@@ -359,9 +362,4 @@ def test_the_residual_action_path_is_reachable_from_somewhere_in_placement():
         assert _placement_sources_calling(entry_point) - {"residual.py"}, entry_point
 
 
-test_the_residual_action_path_is_reachable_from_somewhere_in_placement = pytest.mark.xfail(
-    strict=True,
-    reason="the residual pass is unbuilt; nothing calls outcome_for_action, "
-           "link_return or check_return_cycle. XPASSes and fails the suite the "
-           "moment a caller appears.",
-)(test_the_residual_action_path_is_reachable_from_somewhere_in_placement)
+

@@ -475,11 +475,11 @@ def test_the_group_plan_event_has_a_producer_somewhere_in_placement():
     event. The owed consumer is the phase pipeline's `place_group`, which is not
     built.
 
-    This is marked `xfail(strict=True)` deliberately. It reports the gap on every
-    run today, and the day `place_group` lands it XPASSes -- which under `strict`
-    turns the suite RED and forces the marker off. A gap that announces its own
-    closure is the opposite of the four concepts that passed a green suite for
-    weeks while connected to nothing.
+    It was marked `xfail(strict=True)` deliberately: it reported the gap on every
+    run, and the day `place_group` landed it XPASSed -- which under `strict`
+    turned the suite RED and forced the marker off. That is what happened. A gap
+    that announces its own closure is the opposite of the four concepts that
+    passed a green suite for weeks while connected to nothing.
     """
     assert _placement_sources_calling("group_plan_emitted"), (
         "nothing in src/placement/ emits group_plan_emitted")
@@ -487,8 +487,6 @@ def test_the_group_plan_event_has_a_producer_somewhere_in_placement():
         "nothing outside groups.py constructs a GroupPlan")
 
 
-test_the_group_plan_event_has_a_producer_somewhere_in_placement = pytest.mark.xfail(
-    strict=True,
-    reason="P11 Task 18's `place_group` is unbuilt; GroupPlan has no producer. "
-           "This XPASSes and fails the suite the moment one appears.",
-)(test_the_group_plan_event_has_a_producer_somewhere_in_placement)
+# The marker is gone because `pipeline.place_group` is the producer. It also
+# WRITES `placement_group_plans`, which had no writer at all until it landed.
+assert "pipeline.py" in _placement_sources_calling("group_plan_emitted")
