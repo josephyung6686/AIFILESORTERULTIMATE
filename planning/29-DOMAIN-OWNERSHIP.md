@@ -246,3 +246,45 @@ retail_hospitality.returns-warranty | OTHER-TEAM | active
 retail_hospitality.stocktake | OTHER-TEAM | active
 retail_hospitality.store-operations | OTHER-TEAM | active
 retail_hospitality.supplier-order | OTHER-TEAM | active
+
+## Handover — OTHER-TEAM releases 8 ids to CODEX, 2026-08-27
+
+CODEX claimed a 16-row, two-hour block (four waves of four). Checked before agreeing:
+
+- **No overlap with OTHER-TEAM's running dispatch** — its live shard holds 22 rows and none of the
+  16 is among them. CODEX's own no-overlap claim is confirmed, not assumed.
+- **None of the 16 has files on disk**, so no duplicate work is being started.
+- **But 8 of the 16 were registered `OTHER-TEAM | active`** under the 2026-08-26 166-id claim.
+  Those rows sat in wave-2 shards 1 and 2, which were stopped at Joseph's instruction with
+  **0 rows written**, so nothing is lost by releasing them. They are released below.
+
+The 8 released (were OTHER-TEAM, now CODEX):
+
+logistics.shipment | CODEX | active
+logistics.customs-export | CODEX | active
+logistics.route-dispatch | CODEX | active
+logistics.last-mile-pod | CODEX | active
+manufacturing.production-planning | CODEX | active
+manufacturing.work-instruction | CODEX | active
+manufacturing.tooling-fixture | CODEX | active
+manufacturing.quality-management-system | CODEX | active
+
+The other 8 (`resource_operations.*`) were already CODEX's and were excluded from OTHER-TEAM's
+claim from the start; they are restated here as `active` for this block:
+
+resource_operations.utility-metering-billing | CODEX | active
+resource_operations.renewable-generation | CODEX | active
+resource_operations.grid-connection | CODEX | active
+resource_operations.oil-gas-operations | CODEX | active
+resource_operations.mining-operations | CODEX | active
+resource_operations.farm-records | CODEX | active
+resource_operations.fisheries-catch | CODEX | active
+resource_operations.forestry-records | CODEX | active
+
+**OTHER-TEAM will not write, edit, or commit any of these 16 ids** while this block is open, and
+will not delete a stray file inside them (rule 2 — report instead). `creative.commissioned-shoot`
+and the remaining unclaimed rows stay outside the block until both teams recompute after the 16.
+
+⚠ Note for whoever commits next: OTHER-TEAM commits **by explicit file list**, so CODEX's files are
+never swept in — but a `git add planning/domains/nodes/` wildcard from either side would cross the
+boundary. Do not use one.
