@@ -30,6 +30,17 @@ modes that may ship as the install default) makes every file local_only. Reading
 local_only as "review everything" would leave §6.6's deterministic path dead on
 every default install while protecting nothing extra.
 
+**§7.4's residual disposition is read here too**, and it is a different question
+from §8.4's. `IndexEntry.disposition` was written and validated by
+`placement/index.py` and read by nothing; P10 escalated that as an open cross-part
+question rather than settling it alone, because the field holds the only thing that
+stops an automatic file move. 00:121 decides the shape: all three dispositions
+"become legal nodes in the frozen destination tree" and "the LLM may choose among
+them later", so the disposition does not govern WHETHER a node may be chosen --
+`accepts_placement` remains the one legality authority, and a second gate here
+would be exactly the two-callables-one-question defect `index.py` warns about. It
+governs WHAT HAPPENS when a node IS chosen, which is this module's business.
+
 The move permission itself is not re-derived here either: P7 publishes
 `privacy.moves.may_move_automatically`, which already checks absence before the
 flag and reads the policy at the asked-for plan version. `automatic_move_permitted_for`
@@ -48,8 +59,9 @@ from privacy.release import LOCALITIES
 
 from placement.records import PrivacyState, USER_ATTACHED
 from placement.vocabulary import (
-    AUTO_ELIGIBLE, BLOCKED_PENDING_USER, DOSSIER_PERMITTED, LOCAL_ONLY,
-    REVIEW_REQUIRED,
+    AUTO_ELIGIBLE, BLOCKED_PENDING_USER, DISPOSITIONS, DOSSIER_PERMITTED,
+    LEAVE_IN_PLACE_DISPOSITION, LOCAL_ONLY, PHYSICAL_DESTINATION, REVIEW_ONLY,
+    REVIEW_REQUIRED, check,
 )
 
 #: The locality every §8.4 question in this module is asked about. `local` is the
@@ -108,22 +120,66 @@ def automatic_move_permitted_for(conn: sqlite3.Connection, *, file_id: str,
     return may_move_automatically(conn, file_id, plan_version).allowed
 
 
+#: Whether a destination with this §7.4 disposition moves a file at all. A
+#: residual node the user made a real physical destination does; a review-only
+#: category and a leave-in-place policy do not. `None` is the ordinary case --
+#: §7.4 makes the disposition required on a residual node and meaningless on every
+#: other role, which `placement/index.py` enforces at build time.
+_MOVES_FILES: dict[str | None, bool] = {
+    None: True,
+    PHYSICAL_DESTINATION: True,
+    REVIEW_ONLY: False,
+    LEAVE_IN_PLACE_DISPOSITION: False,
+}
+
+
+def moves_files(disposition: str | None) -> bool:
+    """Does a destination carrying this §7.4 disposition move the file?
+
+    00:120 makes the negative answer a first-class outcome rather than a failure:
+    `Unsupported or Encrypted` may "hold -- or, more safely, represent without
+    moving -- password-protected archives, unreadable documents, damaged files,
+    and unknown formats". A file represented at a node it was never moved to is
+    present-but-untouched, which is what the standing rule about protected
+    material requires and what a silent omission would destroy.
+
+    A value outside the closed set raises. Answering it through a permissive
+    default would make a misspelling mean "yes, move it", which is the one answer
+    this predicate must never give by accident.
+    """
+    if disposition is not None:
+        check(disposition, DISPOSITIONS, name="disposition")
+    return _MOVES_FILES[disposition]
+
+
 def review_policy_for(*, privacy_state: PrivacyState, two_condition,
                       group_support, unique_direct_match: bool,
+                      destination_disposition: str | None,
                       automatic_move_permitted: bool = False) -> str:
     """§6.11's review policy. Every path to `auto_eligible` is a narrow one.
 
-    Four things each forbid it on their own, and every one traces to a design
-    sentence: material the user marked protected without a policy permitting the
-    move (Design:185, §8.4), a verdict that requires review (§6.10), a manual
-    attachment with nothing read from the file (M12), and a decision that is not a
-    unique direct match (§6.6's deterministic path is the only one the design lets
-    through unreviewed).
+    Five things each forbid it on their own, and every one traces to a design
+    sentence: a destination whose §7.4 disposition does not move files (00:121 --
+    a review-only category "never moves files automatically"), material the user
+    marked protected without a policy permitting the move (Design:185, §8.4), a
+    verdict that requires review (§6.10), a manual attachment with nothing read
+    from the file (M12), and a decision that is not a unique direct match (§6.6's
+    deterministic path is the only one the design lets through unreviewed).
+
+    The disposition is checked FIRST and no confidence clears it. That ordering is
+    the point: 00:121's word is "never", and a gate placed after the scoring
+    checks would be one a high enough score could reason its way past.
+
+    `destination_disposition` has no default. A caller that forgot it would get
+    the ordinary-node answer and silently lose the gate, which is precisely the
+    state this field was already in -- written, validated, and read by nothing.
 
     `automatic_move_permitted` is a parameter rather than a read because the
     permission is a fact about the file and this function takes no connection;
     `automatic_move_permitted_for` above is where it comes from.
     """
+    if not moves_files(destination_disposition):
+        return REVIEW_REQUIRED
     if privacy_state.protected and not automatic_move_permitted:
         return REVIEW_REQUIRED
     if two_condition.requires_review:

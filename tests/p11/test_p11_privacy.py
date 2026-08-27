@@ -24,6 +24,7 @@ from placement.privacy import (
     blocked_policy, may_assemble_dossier, privacy_state_for, review_policy_for,
 )
 from placement.records import GroupSupport, TwoCondition
+from p11.p10_fixtures import FROZEN_TREE as FROZEN_TREE_FOR_LEGALITY
 
 T0 = "2026-08-27T00:00:00Z"
 
@@ -208,7 +209,8 @@ def test_a_protected_file_is_never_auto_eligible_without_an_explicit_permission(
     _policy(p11_conn)
     assert review_policy_for(privacy_state=_state(p11_conn),
                              two_condition=_two_condition(), group_support=None,
-                             unique_direct_match=True) == v.REVIEW_REQUIRED
+                             unique_direct_match=True,
+                             destination_disposition=None) == v.REVIEW_REQUIRED
 
 
 def test_an_explicit_permission_restores_automatic_eligibility(p11_conn):
@@ -217,7 +219,8 @@ def test_an_explicit_permission_restores_automatic_eligibility(p11_conn):
     assert review_policy_for(privacy_state=_state(p11_conn),
                              two_condition=_two_condition(), group_support=None,
                              unique_direct_match=True,
-                             automatic_move_permitted=True) == v.AUTO_ELIGIBLE
+                             automatic_move_permitted=True,
+                             destination_disposition=None) == v.AUTO_ELIGIBLE
 
 
 def test_local_only_alone_does_not_force_review(p11_conn):
@@ -229,8 +232,8 @@ def test_local_only_alone_does_not_force_review(p11_conn):
     state = _state(p11_conn)
     assert state.model_eligibility == v.LOCAL_ONLY
     assert review_policy_for(privacy_state=state, two_condition=_two_condition(),
-                             group_support=None,
-                             unique_direct_match=True) == v.AUTO_ELIGIBLE
+                             group_support=None, unique_direct_match=True,
+                             destination_disposition=None) == v.AUTO_ELIGIBLE
 
 
 def test_a_context_supported_verdict_always_requires_review(p11_conn):
@@ -240,7 +243,8 @@ def test_a_context_supported_verdict_always_requires_review(p11_conn):
         privacy_state=_state(p11_conn),
         two_condition=_two_condition(verdict="accept_context_supported",
                                      requires_review=True),
-        group_support=None, unique_direct_match=False) == v.REVIEW_REQUIRED
+        group_support=None, unique_direct_match=False,
+        destination_disposition=None) == v.REVIEW_REQUIRED
 
 
 def test_a_verdict_requiring_review_is_the_only_thing_that_need_forbid_auto(p11_conn):
@@ -252,7 +256,8 @@ def test_a_verdict_requiring_review_is_the_only_thing_that_need_forbid_auto(p11_
     assert review_policy_for(
         privacy_state=_state(p11_conn),
         two_condition=_two_condition(requires_review=True),
-        group_support=None, unique_direct_match=True) == v.REVIEW_REQUIRED
+        group_support=None, unique_direct_match=True,
+        destination_disposition=None) == v.REVIEW_REQUIRED
 
 
 def test_a_user_attached_membership_never_reaches_auto_eligible(p11_conn):
@@ -261,7 +266,8 @@ def test_a_user_attached_membership_never_reaches_auto_eligible(p11_conn):
     assert review_policy_for(
         privacy_state=_state(p11_conn), two_condition=_two_condition(),
         group_support=GroupSupport(group_id="g1", membership="user-attached"),
-        unique_direct_match=True) == v.REVIEW_REQUIRED
+        unique_direct_match=True,
+        destination_disposition=None) == v.REVIEW_REQUIRED
 
 
 def test_a_decision_that_is_not_a_unique_direct_match_requires_review(p11_conn):
@@ -269,7 +275,8 @@ def test_a_decision_that_is_not_a_unique_direct_match_requires_review(p11_conn):
     _policy(p11_conn)
     assert review_policy_for(
         privacy_state=_state(p11_conn), two_condition=_two_condition(),
-        group_support=None, unique_direct_match=False) == v.REVIEW_REQUIRED
+        group_support=None, unique_direct_match=False,
+        destination_disposition=None) == v.REVIEW_REQUIRED
 
 
 def test_a_null_protected_flag_is_refused_rather_than_read_as_false(p11_conn):
@@ -285,3 +292,141 @@ def test_a_null_protected_flag_is_refused_rather_than_read_as_false(p11_conn):
 
 def test_the_unclassified_answer_is_blocked_and_not_a_quiet_review(p11_conn):
     assert blocked_policy() == v.BLOCKED_PENDING_USER
+
+
+# --- §7.4's residual disposition: what happens when a node IS chosen -------------
+#
+# `IndexEntry.disposition` was written and validated by `placement/index.py` and
+# read by nothing -- P10 escalated that as an open cross-part question and left two
+# xfail tests standing on it. It holds the only thing that stops an automatic file
+# move, so a field with no reader is the whole defect.
+#
+# 00:121 settles the shape: the three dispositions all become "legal nodes in the
+# frozen destination tree" and "the LLM may choose among them later". So the
+# disposition does not govern WHETHER a node may be chosen -- `accepts_placement`
+# stays the one legality authority -- it governs WHAT HAPPENS when it is.
+
+def test_a_review_only_destination_never_auto_applies_however_strong_the_match(p11_conn):
+    # 00:121's adverb is the whole rule: a review-only category "never moves files
+    # automatically". Every other input here is as permissive as it can be -- a
+    # top score, a huge margin, a unique direct match, an unprotected file -- so
+    # if this returns auto_eligible the policy is reading confidence where it
+    # should be reading disposition.
+    _classify(p11_conn)
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn),
+        two_condition=_two_condition(support_score=1.0, margin_over_next=0.99,
+                                     meets_threshold=True, requires_review=False),
+        group_support=None, unique_direct_match=True,
+        automatic_move_permitted=True,
+        destination_disposition=v.REVIEW_ONLY) == v.REVIEW_REQUIRED
+
+
+def test_a_leave_in_place_destination_never_auto_applies_either(p11_conn):
+    # 00:120's "represent without moving" is a first-class outcome, and a policy
+    # that tells the system to leave files in place cannot be acted on unattended.
+    _classify(p11_conn)
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn),
+        two_condition=_two_condition(support_score=1.0, margin_over_next=0.99),
+        group_support=None, unique_direct_match=True,
+        automatic_move_permitted=True,
+        destination_disposition=v.LEAVE_IN_PLACE_DISPOSITION) == v.REVIEW_REQUIRED
+
+
+def test_a_physical_destination_is_still_reachable_automatically(p11_conn):
+    # The gate is not a blanket refusal. A residual node the user made a real
+    # physical destination behaves like any other node, or enabling the residual
+    # library would quietly turn every one of its branches into review work.
+    _classify(p11_conn)
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn), two_condition=_two_condition(),
+        group_support=None, unique_direct_match=True,
+        destination_disposition=v.PHYSICAL_DESTINATION) == v.AUTO_ELIGIBLE
+
+
+def test_an_ordinary_node_carries_no_disposition_and_is_unaffected(p11_conn):
+    # §7.4 makes the disposition required on a residual node and meaningless on
+    # every other role, which `placement/index.py` already enforces.
+    _classify(p11_conn)
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn), two_condition=_two_condition(),
+        group_support=None, unique_direct_match=True,
+        destination_disposition=None) == v.AUTO_ELIGIBLE
+
+
+def test_an_unknown_disposition_refuses_rather_than_permitting_a_move(p11_conn):
+    # The defect shape this whole gate exists to avoid: a value outside the closed
+    # set falling through to the permissive branch. A typo must be a load error.
+    _classify(p11_conn)
+    _policy(p11_conn)
+    with pytest.raises(v.OutOfVocabulary):
+        review_policy_for(
+            privacy_state=_state(p11_conn), two_condition=_two_condition(),
+            group_support=None, unique_direct_match=True,
+            destination_disposition="physical_destination")
+
+
+def test_the_disposition_the_index_carries_is_the_one_the_policy_reads(p11_conn):
+    # The binding that closes P10's escalation: the value travels from the frozen
+    # tree, through `build_destination_index`, out of `entry_for`, and into the
+    # policy. Asserting the two agree by inspection would leave the field exactly
+    # as unread as it was.
+    from placement.index import build_destination_index, entry_for
+    from p11.p10_fixtures import FROZEN_TREE
+
+    _classify(p11_conn)
+    _policy(p11_conn)
+    build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
+                            observed_at=T0)
+    entry = entry_for(p11_conn, plan_version="plan-1", node_id="n-review-later")
+    assert entry.disposition == v.REVIEW_ONLY
+    assert review_policy_for(
+        privacy_state=_state(p11_conn), two_condition=_two_condition(),
+        group_support=None, unique_direct_match=True,
+        destination_disposition=entry.disposition) == v.REVIEW_REQUIRED
+
+
+def test_a_review_only_node_is_still_a_legal_destination(p11_conn):
+    # 00:121: all three dispositions "become legal nodes in the frozen destination
+    # tree" and "the LLM may choose among them later". A second legality gate here
+    # would contradict `index.py`'s own warning that two callables answering one
+    # question differently is the defect.
+    from placement.index import build_destination_index, legal_node_ids
+
+    build_destination_index(p11_conn, FROZEN_TREE_FOR_LEGALITY,
+                            component_version="P11-test", observed_at=T0)
+    assert "n-review-later" in legal_node_ids(p11_conn, plan_version="plan-1")
+
+
+def test_the_disposition_has_no_default_so_it_cannot_be_silently_skipped():
+    # A default would let a caller omit the argument and get the ordinary-node
+    # answer -- which is the exact state this field was already in: written,
+    # validated, and read by nothing. The absence of the default IS the guard, so
+    # something has to hold it.
+    parameter = inspect.signature(review_policy_for).parameters[
+        "destination_disposition"]
+    assert parameter.default is inspect.Parameter.empty
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+
+
+def test_which_dispositions_move_files_at_all(p11_conn):
+    from placement.privacy import moves_files
+
+    assert moves_files(v.PHYSICAL_DESTINATION) is True
+    assert moves_files(None) is True
+    assert moves_files(v.REVIEW_ONLY) is False
+    assert moves_files(v.LEAVE_IN_PLACE_DISPOSITION) is False
+
+
+def test_moves_files_refuses_a_value_outside_the_closed_set(p11_conn):
+    # `.get(value, True)` would answer "yes, move it" for a misspelling. That is
+    # the one answer this predicate must never give by accident.
+    from placement.privacy import moves_files
+
+    with pytest.raises(v.OutOfVocabulary):
+        moves_files("review_only")
