@@ -1,0 +1,187 @@
+{
+  "id": "logistics.route-dispatch",
+  "kind": "template",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Route planning and dispatch",
+  "one_line": "The time-primary operating record that allocates one working day's ordered stops to vehicles and drivers, then reconciles plan against actual performance through run sheets, manifests, exception notes and a debrief. Its anchor is the ordered vehicle-and-driver execution sequence, not an address list, calendar, shipment document or generic daily log.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a dated dispatch board or run sheet assigning one or more named vehicles and drivers to numbered routes, with an ORDERED drop or collection sequence and planned times; ordering plus resource allocation is the fingerprint",
+      "a route manifest binding a route or run reference to a vehicle, driver, ordered stop numbers, consignment references and planned quantities, without requiring any one consignment to dominate the document",
+      "a planned-versus-actual debrief keyed to the same route or run: stop sequence, planned and actual arrival/departure, completion status, reason codes, mileage or hours, and a dispatcher or driver signoff",
+      "a live dispatch export whose rows carry route/run, sequence, vehicle, driver, stop, time window and status fields; structured labels establish the roles, while CSV or JSON alone never does",
+      "a route pack archive whose manifest joins a master run sheet, stop-level delivery papers and a completed debrief under the same working date and run reference; per `00`, 'Archives should be inspected without being unpacked to disk.'"
+    ],
+    "needs_llm": [
+      "an unlabelled spreadsheet of addresses, names and times that may be a delivery run, a sales-call list, a field-service schedule, an event transport plan or a contact export",
+      "a photographed whiteboard whose OCR recovers vehicle registrations and stop numbers but loses the arrows or ordering that make it a dispatch plan",
+      "a driver message thread that changes stop order during the day but omits the master route identifier",
+      "a generic daily log containing vehicles, labour, weather and delays that may be a construction site diary rather than mobile-route control",
+      "a route optimisation report that proposes scenarios but may be analysis material rather than the operational instruction actually issued"
+    ],
+    "never_alone": [
+      "the words route, dispatch, run, manifest, delivery, collection, driver, vehicle, stop or schedule alone",
+      "an address list, map, geospatial line, calendar date or time window alone; none establishes ordered operational allocation",
+      "a vehicle registration, driver's name, consignment reference or route-shaped identifier alone",
+      "a spreadsheet, PDF, image, email, calendar item, archive, JSON or extension alone; source type routes extraction and never establishes meaning",
+      "a parent folder named Dispatch, Routes, Transport or Daily Runs alone",
+      "a download session alone; `00` says, 'A session should never be treated as proof of topic'",
+      "a list of stops with no evidence of order, vehicle/driver allocation or execution status",
+      "one proof of delivery or one shipment manifest; those are stop- or consignment-level records, not a day-level route plan"
+    ]
+  },
+  "proposed_context_terms": [
+    "run sheet", "route number", "drop sequence", "stop number", "planned arrival", "actual arrival", "time window", "vehicle allocation", "driver allocation", "dispatch board", "route debrief", "failed delivery", "route deviation", "return to depot", "undelivered", "resequence"
+  ],
+  "work_types": [
+    "daily dispatch board", "route plan", "run sheet", "route manifest", "load allocation", "driver and vehicle allocation", "stop sequence", "route change instruction", "live dispatch export", "route progress report", "failed-stop and exception log", "route debrief", "mileage and hours reconciliation"
+  ],
+  "grouping_reasons": [
+    "one working day across the issued plan, changes, stop-level execution records and completed debrief",
+    "one route or run across its vehicle and driver allocation, ordered stops, exceptions and reconciliation",
+    "one plan revision family across draft, issued and resequenced versions",
+    "stop-level delivery records may join the accepted run group without copying a route fact onto sparse files",
+    "duplicate and version families remain universal facts and do not manufacture a route, vehicle, driver or date fact"
+  ],
+  "node_test": {
+    "schema_default_template": "The `logistics` schema default recommends counterparty where useful, then custody subject, then document function, with time as a leaf; its dominant activation structure is a custody handover or asset/driver permission record.",
+    "leg_1_detection": "DIFFERS. This row activates on ordered many-stop allocation and planned-versus-actual execution for one run. It can fire without a consignor/consignee pair, goods quantity or acknowledgement, and it refuses unordered address lists. Sequence is evidence, not merely a work-type label.",
+    "leg_2_dimensions": "DIFFERS. The schema anchor explicitly identifies this row as the family exception whose subject is a working day. Here time supplies the context needed to understand a reused route number and the resources available that day, so working date precedes route/run and function in the held prose recommendation.",
+    "leg_3_privacy": "DIFFERS. A dispatch record combines named workers' assignments, whereabouts and performance exceptions across a day. The template must not turn driver names or delivery addresses into destination levels and must avoid comparative worker profiling; the ordinary consignment branch does not require this dispatch-specific restraint.",
+    "verdict": "All three legs differ from the schema default. Node accepted as a template."
+  },
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because `logistics` declares no fields under PR-6. Held recommendation: WORKING DATE first, then route/run, then document function. This is the narrow exception already reserved by the schema anchor: the resources, route identifiers and stop sequence are reset for each working day, so the date is the subject rather than a filing afterthought. The user may reverse, flatten or remove it because `00` says, 'Templates use validated facts to create folder proposals, and the user edits and freezes those proposals into an approved destination tree.' Driver names, consignee names and delivery addresses are excluded from every destination level.",
+    "time_first": true
+  },
+  "file_kinds": {
+    "source_types": ["spreadsheet", "text_document", "image", "ocr", "email", "calendar", "code_structured", "archive", "filesystem"],
+    "extensions": ["xlsx", "csv", "ods", "pdf", "docx", "jpg", "png", "eml", "ics", "json", "xml", "zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Dispatch board - 2026-08-27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["sheet title carries one working date", "rows pair route numbers with vehicles and drivers", "stop columns contain ordered sequence values and planned departure times"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that every named person drove the route", "a route fact for blank or cancelled rows", "a consignment fact from an order-shaped token"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Run 14 manifest - YK71 ABC - issued.pdf",
+      "source_type": "text_document",
+      "observations": ["header labels route/run, vehicle and driver", "body numbers stops in an explicit order", "rows include consignment references, quantities and time windows"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that the vehicle completed the run", "that all listed consignments were delivered", "a driver's identity beyond the labelled assignment"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Route 14 debrief - 2026-08-27.pdf",
+      "source_type": "text_document",
+      "observations": ["same run reference as an issued plan", "columns compare planned and actual times", "failed stops carry reason text and dispatcher signoff"],
+      "facts_legal": [],
+      "must_not_conclude": ["fault by a named worker", "a performance score", "that exception prose is a validated reason", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Dispatch whiteboard 2026-08-27.jpg",
+      "source_type": "image",
+      "observations": ["photograph shows route rows and vehicle-registration-shaped tokens", "OCR recovers stop numbers but not all arrows", "capture metadata records when photographed, not necessarily the operating date"],
+      "facts_legal": [],
+      "must_not_conclude": ["screen capture from missing EXIF", "working date from capture date alone", "stop order where arrows are illegible", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "RE Route 14 resequence after road closure.eml",
+      "source_type": "email",
+      "observations": ["subject names a route reference", "body gives an explicit old and new stop order", "message metadata identifies sender, recipients and sent time"],
+      "facts_legal": [],
+      "must_not_conclude": ["that recipients accepted the change", "that an address in the thread is a destination fact", "a driver's identity from an email address alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "dispatch_export_2026-08-27.json",
+      "source_type": "code_structured",
+      "observations": ["objects contain labelled route_id, sequence, vehicle_id, driver_id, planned_time and status keys", "several stops share one route identifier", "actual status fields are distinct from planned fields"],
+      "facts_legal": [],
+      "must_not_conclude": ["semantics for undocumented codes", "completion from presence of a status key", "a route fact from JSON format alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Route pack - 2026-08-27 - Run 14.zip",
+      "source_type": "archive",
+      "observations": ["manifest contains a run sheet, stop papers and a debrief", "member paths repeat one run reference", "archive is inspected by manifest without extraction"],
+      "facts_legal": [],
+      "must_not_conclude": ["member contents not inspected", "that all members belong from proximity alone", "a route fact from outer filename alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Daily site diary - Block C - 2026-08-27.pdf",
+      "source_type": "text_document",
+      "observations": ["daily serial form lists vehicles, labour, hours, weather and delays", "fixed project site appears in the header", "trade-by-trade labour return has no ordered stop sequence"],
+      "facts_legal": [],
+      "must_not_conclude": ["a route from vehicles plus a date", "dispatch from the word delay", "a logistics fact from one delivery mentioned in prose", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Event transport schedule - Harbour Gala - 2026-08-27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows allocate vehicles and drivers to timed guest movements", "programme functions and venue zones dominate the columns", "there are no consignment references or delivery completion statuses"],
+      "facts_legal": [],
+      "must_not_conclude": ["a freight route from vehicles and times", "a route-dispatch fact when the ordering serves an event programme", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "SAME FIXTURE BOTH SIDES: `Daily site diary - Block C - 2026-08-27.pdf`, a daily serial operational log containing vehicles, labour, hours and delays. This row owns it only when the evidence item ORDERED MOBILE EXECUTION appears — vehicle/driver allocations tied to numbered routes or stops with a planned-versus-actual sequence. That row owns it when the evidence item FIXED-SITE CONTROL appears — a project/site reference, trade-by-trade labour return, weather slot and activity/progress narrative. A vehicle mention or one recorded delivery cannot move the bytes to this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.event-production",
+      "signal": "SAME FIXTURE BOTH SIDES: `Event transport schedule - Harbour Gala - 2026-08-27.xlsx`, allocating vehicles, drivers, times and locations. This row owns it when the evidence item ROUTE EXECUTION dominates — ordered stops, route/run identifiers, delivery or collection statuses and a dispatch debrief. That row owns it when the evidence item EVENT PROGRAMME dominates — functions, guests or crew, venue zones, call times and programme dependencies. The discriminant is what the ordering is FOR, not whether a vehicle appears.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone route plan or debrief with durable operational meaning but no accepted working-day or route group remains an independent record.", "provenance": "inference"},
+    {"residual_template": "Review Later", "why": "An unlabelled address-and-time sheet or illegible whiteboard must abstain when order and allocation cannot be established.", "provenance": "inference"},
+    {"residual_template": "One-Off Images", "why": "A photographed board with no recoverable route structure remains an image rather than receiving route facts from its filename or neighbourhood.", "provenance": "inference"},
+    {"residual_template": "Unsupported or Encrypted", "why": "Opaque dispatch exports and protected route-pack archives retain safe metadata without guessed routes, workers or stops.", "provenance": "inference"},
+    {"residual_template": "Receipts and Confirmations", "why": "A single proof of delivery or carrier booking confirmation proves a stop or transaction, not a working-day dispatch structure.", "provenance": "inference"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Dispatch files can expose named workers' shifts, vehicle movements, recurring routes, customer names, home delivery addresses, access notes, signatures and explanations for failed work. Protect those observations before any model path; never use driver, consignee or address as a destination dimension; never infer fault or compare workers from planned-versus-actual variance. This is a catalogue sensitivity statement, not a P7 handling class.",
+  "open_question": "NJ-RD-1: PR-6 leaves `logistics` fieldless, yet this accepted template's defining recommendation is working date → route/run → function. Alternatives for R1c: (a) keep all three as accepted-group labels until the schema fields are adjudicated; (b) reuse a global date plus proposed consignment/record_type and treat route/run as a consignment value; (c) add a separate route/run proposal because one run covers many consignments. This row chooses (a) and proposes no field. NJ-RD-2: should a completed run sheet be retained in an open operations branch or protected with worker-location records? Alternatives: ordinary operational sensitivity with redacted addresses, versus a protected group whenever named-driver actual movements are present. NJ-RD-3: template rows cannot author `also_holds_with`; a run manifest can carry both logistics and retail/event facts in the same bytes. R1c should decide any schema-to-schema coactivation, not encode template intent here."
+}

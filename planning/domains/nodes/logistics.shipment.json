@@ -1,0 +1,347 @@
+{
+  "id": "logistics.shipment",
+  "kind": "template",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Freight consignments and shipping documentation",
+  "one_line": "The custody record for one consignment moving from a consignor through a carrier to a consignee: booking and waybill identity, packages and goods, origin and destination, customs or transport controls, handover, delivery and loss/damage exceptions. A purchase order, address, tracking number, invoice, packing image or carrier brand is not enough without the custody and handover relation. Placeholder template: the logistics schema remains field-less pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a consignment note, waybill or CMR structure joining consignor/shipper, consignee and carrier roles to one goods description, package count or weight, place of taking over, place of delivery and carrier or receiver acknowledgement",
+      "a bill of lading or sea/air waybill structure joining shipper, consignee or notify party, vessel/voyage or flight, container and seal identifiers, cargo description, origin/destination and condition or endorsement sections",
+      "a packing-list structure whose rows are packages, cartons or pallets with marks and numbers, contents, quantity, net/gross weight and dimensions, with no unit price, tax treatment or amount due as its central structure",
+      "a proof-of-delivery structure pairing a consignment or shipment reference with delivered-at time/place, receiving signature or scan event, delivery status and shortage, damage, refusal or carded exception",
+      "a customs or export declaration joining movement/declaration reference, declarant or representative, commodity classification, origin, procedure, value or incoterm, package/goods lines and customs submission or release state",
+      "a transport exception or carrier-claim packet joining consignment identity to loss, damage, delay or shortage narrative, inspection evidence, seal/condition observations, claimant, correspondence and settlement or recovery status",
+      "a carrier integration or EDI payload whose segments join shipment/consignment, party-role qualifiers, package or unit counts and status events such as booked, collected, in transit, held, delivered or refused",
+      "an email whose native sender/recipient/subject fields cite a consignment, booking, container or waybill and whose body or attachment structure includes custody parties, goods, handover, delivery or exception evidence",
+      "an archive manifest linking one consignment/container across booking, commercial invoice, packing list, waybill, customs declaration, origin certificate and proof of delivery; manifest evidence does not donate facts to members",
+      "a multimodal handover record joining one shipment to rail, road, sea or air legs, each carrier or custody event, package/container identity and receipt or exception state",
+      "a delivery-point photograph or scan only when its own submission record joins visible goods/seal/receipt evidence to a consignment and delivery event; an image alone remains Photos or Review Later"
+    ],
+    "needs_llm": [
+      "whether an unlabelled table of addresses, times and names is a delivery run sheet, a customer list, an event guest list, a sales plan or a calendar export",
+      "whether a document's parties are consignor, consignee, carrier, broker, notify party, seller or buyer when role labels are incomplete or translated",
+      "whether a packing list describes packages in transit or priced goods for a purchase/order, and whether an invoice attachment supplies custody evidence or only commercial evidence",
+      "whether a customs/export packet is a carrier/shipper movement record, a government declaration case, a trade-compliance review or a reference copy",
+      "whether a delivered-at timestamp and signature evidence refer to actual receipt, an attempted delivery, a warehouse scan or a planned appointment",
+      "whether a shortage/damage narrative is a carrier exception, a warehouse receiving discrepancy, a manufacturing incoming-quality event or a retail return",
+      "whether a shipping manifest is one consignment with several legs or a population report with many unrelated consignments; facts must not be copied across rows",
+      "whether an OCR-poor waybill preserves enough party-role, goods, package, origin/destination and acknowledgement structure to activate",
+      "whether a doorstep or pallet image is a delivery proof, a product photograph, a damage claim exhibit or a generic image; camera metadata cannot settle custody",
+      "whether a calendar entry is a planned collection/delivery or evidence of a completed handover",
+      "multilingual or mode-specific transport documents outside the local role and carrier vocabulary"
+    ],
+    "never_alone": [
+      "the words logistics, shipping, freight, delivery, dispatch, consignment, manifest, POD, waybill, carrier, courier, container or warehouse alone",
+      "a carrier, courier, airline, shipping-line, broker, seller, buyer or warehouse name alone",
+      "an address alone; it may be a consignor, consignee, depot, delivery point, carrier office, project site or photo capture location",
+      "a tracking, container, waybill, booking, invoice, purchase-order, declaration or vehicle identifier-shaped token outside a labelled role slot",
+      "a signature, stamp, seal, barcode, QR code, scan event or delivery timestamp alone",
+      "a weight, package count, quantity, commodity name, price, incoterm or customs word alone",
+      "a source_type or extension alone, including PDF, spreadsheet, image, OCR, email, EDI, archive or opaque binary",
+      "a parent folder named Shipping, Freight, Delivery, Logistics, Transport, Fleet, Warehouse or Customs alone",
+      "membership in one download, upload, email thread, portal session or archive alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that a doorstep or pallet image is a screenshot, or present GPS as proof that capture location is the delivery address",
+      "a purchase order, freight invoice, delivery appointment or shipping-confirmation email alone; those remain business, finance or residual evidence until a custody structure independently appears"
+    ]
+  },
+  "work_types": [
+    "consignment note, CMR, waybill or air waybill",
+    "bill of lading, sea waybill or delivery order",
+    "booking confirmation and carrier instruction",
+    "packing list, cargo manifest or load list",
+    "proof of delivery, delivery receipt or delivery exception",
+    "damage, loss, delay or carrier-claim packet",
+    "customs import/export declaration",
+    "certificate of origin, preference declaration or export licence",
+    "dangerous-goods declaration and transport certificate",
+    "multimodal handover and custody record",
+    "shipment tracking or EDI status export",
+    "warehouse goods-in, cross-dock or book-out record",
+    "container, trailer, seal and load record",
+    "delivery-point photograph or signature capture"
+  ],
+  "grouping_reasons": [
+    "one consignment across booking, waybill, packing list, customs/origin documents, carrier updates, proof of delivery and claims",
+    "one container, trailer or seal across load plan, handover, transit events, arrival and damage/shortage evidence",
+    "one multimodal movement across road, rail, sea or air legs and each custody acknowledgement",
+    "one delivery exception across receiver note, photographs, inspection, carrier correspondence and claim/settlement records",
+    "one warehouse custody chain across goods-in, put-away, pick, pack, book-out and dispatch evidence",
+    "a sparse doorstep image, scan, email or calendar entry may join an accepted consignment group without receiving consignment, party, quantity or delivery facts; grouping does not copy labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The logistics schema declares no legal fields under PR-6, so this template does not write consignment, carrier, asset, site or record_type dimensions. Conditional on R1c promoting the schema proposals, the useful projection is custody context or carrier only where it genuinely separates the corpus -> consignment/container -> record_type, with site/depot or asset/vehicle branches only in their respective warehouse/fleet situations. Consignee names and delivery addresses are role-bearing evidence, not default folder dimensions; carrier is a counterparty and should not become a collector folder by default. The schema's default is distinct from this row because this template is one movement's custody dossier across heterogeneous documents, not a general logistics branch. It is not time-first: 00 says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" No executable dimension is claimed until R1c licenses a canonical key.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".edi",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".ddd",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "CMR_2026-04-11_DE-HK.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered boxes label consignor, consignee and carrier as different roles",
+        "goods description, package count and gross weight are present",
+        "place of taking over and place of delivery are separate",
+        "receipt/condition clause and signature block appear without price lines"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the consignee owns the goods", "that a declared value is an amount due", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BL_MAEU5512884.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bill-of-lading number, shipper/consignee/notify roles, vessel/voyage and container/seal identifiers",
+        "cargo, package, origin/destination and condition/endorsement sections",
+        "no purchase price or production record is central"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["ownership or title merely from a bill-of-lading reference", "a customs release without customs evidence", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Packing-List_PO-7714.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows list cartons/pallets, marks, contents, package quantity and net/gross weights",
+        "shipper, consignee and shipment reference headers are present",
+        "no unit price, tax or amount-due columns appear in the package table"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that every listed item was dispatched", "that PO-7714 is a consignment identity", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "POD_Consignment-CN-4021.jpg",
+      "source_type": "image",
+      "observations": [
+        "image shows signed delivery receipt and pallet labels with a partly readable consignment reference",
+        "camera EXIF is present but capture point is not necessarily the delivery point",
+        "damage/shortage box is marked but details are partly obscured"
+      ],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type", "sensitivity_status"],
+      "must_not_conclude": ["delivery acceptance from signature alone", "a delivery address from GPS", "that a damaged pallet was short without legible exception evidence", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Delivery-Exception_CN-4021.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier/receiver roles, consignment reference and delivered-at event are labelled",
+        "shortage and damaged-package observations are listed with inspection notes",
+        "claim or recovery status is separate from the receiving acknowledgement"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a claim was paid", "that damage occurred before carrier custody", "that the receiver is the goods owner", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Export-Declaration_MRN-7781.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "structured declaration contains movement reference, declarant, commodity lines, origin, procedure and declared value",
+        "package, transport and submission/release statuses are separate fields",
+        "the payload does not establish carrier delivery or receipt"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["customs release from a submitted state alone", "that declared value is sale price", "that goods reached destination", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Carrier-Status-Feed_CN-4021.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows join consignment reference to booked, collected, in-transit, held and delivered status events",
+        "carrier system fields include timestamps and event locations",
+        "there is no package-level goods description or independent receiving signature"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a carrier status is independently verified delivery", "goods quantity from status rows", "that event location is consignee address", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scanned-Waybill_CN-4021.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF lacks a usable text layer; OCR recovers partial shipper/consignee, package and destination labels",
+        "carrier acknowledgement and handwritten damage note are visible but not fully legible",
+        "scanner metadata names a device rather than a transport party"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["party roles where OCR is incomplete", "delivery or damage facts from unreadable marks", "authorship from scanner metadata", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Shipment-Packet_CN-4021.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists booking, CMR, packing list, export declaration, carrier events, POD and claim correspondence",
+        "archive has not been unpacked and two member names refer to different package references",
+        "manifest exposes one candidate consignment but cannot establish member custody"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one consignment or party for every member", "delivery from the archive name", "that all members are shipping records", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Driver-Run-Sheet_2026-04-11.ics",
+      "source_type": "calendar",
+      "observations": [
+        "calendar event names a planned collection and delivery sequence with addresses and a vehicle/driver",
+        "start/end times and attendees are present",
+        "no completed handover, package count or receiver acknowledgement is attached"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that collection or delivery occurred", "consignment identity from an event title", "driver custody from attendee fields", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Goods-Received_NCR-118.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "factory receiving form records supplier delivery, received quantity, lot/part condition and a quarantine decision",
+        "a carrier/consignment reference appears in supporting fields",
+        "main disposition concerns incoming product quality, not carrier handover"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a receiving defect is carrier damage", "that the carrier accepted custody from the form alone", "a manufacturing lot fact on the shipment", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fish-Transport-Document_Lot-L-771.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "transport document joins product lot, species/weight, vehicle, origin, destination and seal",
+        "it cites an originating fishing vessel and landing declaration",
+        "sections concern movement after landing and first-sale custody"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that transported product weight is catch weight", "that a vehicle journey is a fishing voyage", "that cited vessel facts belong to the transporter", "a folder path"],
+      "also_schema": "resource_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "SAME FIXTURE BYTES: Packing-List_PO-7714.xlsx. Logistics wins when the same bytes establish package-level custody, carrier handover, origin/destination and movement; business_operations.procurement-sourcing wins when they are sourcing or purchase support for a supplier award, and neither side may treat a purchase-order reference as a consignment or completed delivery.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BYTES: Packing-List_PO-7714.xlsx. Logistics wins for the carrier's package and custody chain; retail_hospitality.supplier-order wins for a retailer/hospitality buyer's supplier order, expected goods and replenishment workflow, and a packing list alone does not decide whether it is a shipment document or an order member.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "SAME FIXTURE BYTES: Goods-Received_NCR-118.pdf. Logistics wins when the same bytes prove carrier handover, packages, condition in transit or delivery exception; manufacturing.production-record wins when they record received product/lot disposition in a production-control workflow, and a consignment reference does not convert an incoming-quality decision into a delivery event.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.fisheries-catch",
+      "signal": "SAME FIXTURE BYTES: Fish-Transport-Document_Lot-L-771.pdf. Logistics wins for post-landing vehicle, seal, destination and consignment custody; resource_operations.fisheries-catch wins when the same bytes are retained in the originating vessel/trip/landing/catch reconciliation, and transported product weight is not silently rewritten as catch.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.route-dispatch",
+      "signal": "SAME FIXTURE BYTES: Driver-Run-Sheet_2026-04-11.ics. Logistics.shipment wins when the same bytes are tied to a consignment's actual collection/delivery and custody events; logistics.route-dispatch wins when they are a working-day plan of vehicle, driver, ordered stops and planned-versus-actual run performance, and a calendar booking alone proves neither completed shipment nor route execution.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.last-mile-pod",
+      "signal": "SAME FIXTURE BYTES: POD_Consignment-CN-4021.jpg. Logistics.shipment wins when the image is evidence in the whole consignment across origin, carrier and destination; logistics.last-mile-pod wins when its decisive role is doorstep delivery proof, recipient/attempt status and final-mile exception, and camera location or signature alone cannot establish either custody scope.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.customs-export",
+      "signal": "SAME FIXTURE BYTES: Export-Declaration_MRN-7781.xml. Logistics.shipment wins when the declaration is one member of a goods movement and carrier handover dossier; logistics.customs-export wins when its central function is customs/export filing, classification, declarant and release/compliance status, and a movement reference alone does not establish physical delivery.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "SAME FIXTURE BYTES: Driver-Run-Sheet_2026-04-11.ics. Logistics.shipment wins for the consignment/drop sequence and goods custody; logistics.fleet-vehicle wins for the vehicle's identity, licensing, inspection, maintenance or operator records, and a vehicle or driver name in a route plan does not establish a fleet lifecycle record.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Receipts and Confirmations",
+    "Independent Records",
+    "Review Later",
+    "One-Off Images",
+    "Temporary Screenshots",
+    "Unsupported or Encrypted",
+    "Protected Records"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Consignment contents, addresses, delivery schedules, recipient names, driver or vehicle identifiers, customs values, seal numbers, route history, claims and commercial terms can expose personal delivery patterns, business operations or security-sensitive movement. This row assigns no handling class; P7's file-level classification and local/cloud policy remain authoritative.",
+  "open_question": "NJ-LOG-SHIP-1: R1c must decide whether this template reuses logistics proposals `consignment`, `carrier`, `asset`, `site` and `record_type`, and whether carrier is destination-eligible or only a role/search facet. NJ-LOG-SHIP-2: Should one package/consignment dossier remain distinct from last-mile POD, customs-export and route-dispatch siblings when the same submitted bytes occur in all workflows, or should custody role select one mutex template? NJ-LOG-SHIP-3: Goods-received and packing-list files can support Manufacturing, Retail/Hospitality and Business Operations as well as Logistics; should P9 represent that coactivation, or does custody ownership require an explicit user decision? This template deliberately authors no also_holds_with edge. NJ-LOG-SHIP-4: R2/R4 must settle deployment-specific consignment, container, vehicle, customs and carrier identifiers; no regex, jurisdiction, tariff rule or legal threshold is asserted here."
+}

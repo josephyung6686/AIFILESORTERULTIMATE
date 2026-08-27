@@ -1,0 +1,318 @@
+{
+  "id": "manufacturing.production-planning",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Production planning and scheduling",
+  "one_line": "Planning records for what will be made, in what quantity, on which plant or line, and by which dates: demand plans, master production schedules, MRP and planned-order runs, finite-capacity schedules, sequencing boards, material-availability reviews and release decisions. Placeholder template (J-IND, full J-DEPTH): manufacturing keeps fields empty pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "product",
+      "type": "string",
+      "example": "AX-410 valve body",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The manufacturing schema already proposes `product` for the physical article, formulation or SKU being planned. Planning records contain many products; a product is legal only from a labelled item/part/material role, never from a customer name or commodity word.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Useful below site or planning period when demand and capacity branches are maintained by product family; a multi-product schedule must not copy one row's value to every member.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Product, Material, Part, SKU or Finished Good slot is direct evidence; an item-like token in a filename or description remains possible until item-master context validates its role.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "site",
+      "type": "string",
+      "example": "Plant 2 - Kowloon",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Manufacturing proposes `site` for a facility that performs production or controls an asset. Planning demonstrates plant and production-location roles; Photos `location` is the capture role and cannot replace the facility-about role.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Useful when a planning corpus spans several plants; flatten for a single-site corpus. A customer, supplier or delivery address is not a manufacturing site fact.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Plant, Production Site, Planning Plant or Manufacturing Location slot joined to capacity/order rows can be direct evidence; addresses and organization names in prose remain possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "master production schedule / MRP run / capacity plan",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Reuse manufacturing's proposed `record_type` for planning-artifact function: demand plan, master schedule, planned-order run, finite-capacity plan, shortage review and release board. Do not mint `planning_record_type`.",
+      "destination_eligible": true,
+      "destination_eligible_why": "A function level can separate schedule, MRP, capacity and release artifacts beneath the planning subject when the corpus has several functions; a filename word does not establish it.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled title and matching planning tables or review agenda support the function. Extension, branding and isolated words do not.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "planning_period",
+      "type": "string",
+      "example": "FY2026 Q3 / Week 35 horizon",
+      "why_no_existing_key": "No canonical field expresses the planning horizon or bucket the schedule is ABOUT. `creation_date` is byte metadata, `version_family` identifies versions, and `batch_lot` is produced quantity rather than a horizon. This proposal covers weekly, monthly, quarterly or rolling horizons; R1c may replace it with one neutral period key.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Useful below site for multiple frozen or rolling horizons; not time-first, because the planning subject or site should contextualize it and snapshot date is not the demand horizon.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a labelled Planning Horizon, Schedule Period, Requirement Period, MRP Run Horizon or Bucket field with planning-table context. Filename dates and filesystem timestamps remain possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "production_line",
+      "type": "string",
+      "example": "Line 4 / CNC Cell B",
+      "why_no_existing_key": "No existing proposal names the recurring production resource at line/work-centre level. `asset` names an enduring maintained or calibrated equipment item, while a line or cell is a capacity/sequencing resource containing many assets. R1c should widen `asset` with a resource role or admit this exact key; no machine-specific synonym is minted.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Useful only where capacity plans genuinely branch by stable line or cell; it remains search evidence for site-wide S&OP or aggregate plans.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a labelled Line, Work Centre, Cell, Resource or Production Unit column joined to operation sequence and capacity/availability data. A machine name or asset tag alone is never enough.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a master production schedule with labelled products/materials, demand or order requirements, planned quantities, due or availability dates, plant/site or line and schedule status across multiple planned items",
+      "an MRP run joining independent demand, projected supply, BOM/component requirements, shortage or exception status and planned-order proposals under a run date or horizon",
+      "a finite-capacity scheduling board joining operations to labelled lines/work centres/resources, planned start and finish, setup/changeover time, available capacity, overload or constraint status and order/product references",
+      "a planned-order register distinguishing material output, required components, source of supply, capacity/resource demand, planned dates and conversion or release status",
+      "a demand-and-supply or S&OP reconciliation joining forecast/customer requirement, inventory/projected supply, production proposal, capacity constraint and decision status",
+      "a short-term sequencing or dispatch board with multiple planned orders, operation sequence, line/resource assignment, setup family, due date and release/hold status but no actual operator signoffs or completed quantities",
+      "a material-availability review joining planned orders to component stock, purchase/transfer receipts, lead-time or shortage flags and a planner decision",
+      "a campaign or changeover plan arranging multiple products on one line by planned sequence, setup family, dates and capacity rationale without claiming execution",
+      "a schedule freeze/release review with labelled planning horizon, product/site or line roll-up, planned orders, capacity or material exceptions and approval/freeze decision",
+      "an archive manifest exposing one planning horizon or site and several demand, MRP, capacity, sequencing and release members; inspect without unpacking"
+    ],
+    "needs_llm": [
+      "whether an unlabelled spreadsheet of products, quantities and dates is a master schedule, demand forecast, executed production extract, sales report or project plan",
+      "whether a planned-order export describes manufacturing supply proposals or purchase, warehouse replenishment, logistics dispatch or finance commitments",
+      "whether a capacity table is manufacturing finite-capacity scheduling, a workforce roster, a project-resource plan or an engineering test schedule",
+      "whether a mixed planned/actual schedule snapshot is a plan version, live execution board or retrospective performance report",
+      "whether an S&OP deck carries a manufacturing supply/capacity decision or merely sales targets and corporate strategy",
+      "whether a photographed whiteboard or screenshot has enough product/site/line and horizon structure to activate rather than merely showing a calendar/task list",
+      "whether a shortage email or calendar meeting is a planning record or only context for an independently anchored schedule",
+      "a multilingual or OCR-poor planning form where headings, order status and capacity relationships require interpretation"
+    ],
+    "never_alone": [
+      "the words production, planning, schedule, forecast, MRP, capacity, demand, supply, line, work centre, material, order, release, shortage or sequence alone",
+      "a product, SKU, part, BOM, customer, plant, line, machine, supplier or organization name alone",
+      "an order number, planned-order number, purchase-order number, sales-order number, item code or asset tag outside a labelled planning role and supporting structure",
+      "a quantity, due date, lead time, capacity value, utilization percentage, shortage flag, priority or schedule date alone",
+      "a BOM, routing, operation list, process time, setup time or resource name alone; engineering and executed production records can carry the same structures",
+      "MPS, MRP, APS, S&OP, finite scheduling or dispatch in a filename or heading without planning-table context",
+      "a source_type or extension alone, including spreadsheet, PDF, presentation, image, OCR, email, calendar, JSON, XML, archive or opaque ERP export",
+      "a parent folder named Production, Planning, Schedules, MRP, Operations, Capacity or Supply Chain alone",
+      "membership in an ERP export, project folder, email thread, meeting invite, download session or scan batch alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "missing EXIF, dense OCR, scanner metadata or a phone filename as proof that an image is a planning-board screenshot rather than an ordinary photograph"
+    ]
+  },
+  "proposed_context_terms": ["master production schedule", "MPS", "material requirements planning", "MRP run", "planned order", "production planning order", "demand plan", "supply plan", "finite capacity", "detailed scheduling", "planning board", "work centre", "capacity bucket", "available capacity", "load profile", "shortage review", "material availability", "projected stock", "firm planned order", "schedule freeze", "dispatch list", "campaign sequence", "changeover matrix", "S&OP", "sales and operations planning", "release to production", "exception message", "requirements date", "availability date", "source of supply"],
+  "work_types": ["demand forecast or demand plan", "master production schedule", "material requirements planning run and exception list", "planned-order or production-planning-order register", "finite-capacity or detailed scheduling plan", "short-term sequencing or dispatch board", "material-availability and shortage review", "capacity load, bottleneck or constraint analysis", "campaign, changeover or setup sequence plan", "S&OP demand-and-supply reconciliation", "schedule freeze, release or approval review", "planning snapshot, scenario or baseline comparison"],
+  "grouping_reasons": ["one planning horizon across demand plan, master schedule, MRP run, capacity plan, shortage list and release review", "one product or product family across forecast, planned orders, capacity assignments, material exceptions and schedule snapshots", "one plant, line or work centre across load profile, bottleneck analysis, sequence board, changeover plan and approved release", "one planned order across its planning proposal, component requirements, resource assignment, exception message and later conversion reference without copying execution facts", "one schedule version or freeze decision across workbook, review deck, approval email and archive manifest; version-family facts remain universal and do not prove a planning horizon", "a sparse screenshot, email or calendar item may join an accepted planning group without receiving product, site, line or horizon facts; grouping does not copy labels"],
+  "template": {"dimension_order": [], "why": "Empty by placeholder contract: manufacturing declares no legal field rows, and `planning_period` and `production_line` are proposals pending R1c. Subject to that decision, planning recommends site → planning_period → product → production_line (when line-primary) → record_type, with a product-family or site aggregate branch for S&OP. This differs from manufacturing's production branch product → batch_lot → record_type because planning is many-order and horizon-led: a planned order is a proposal, not a produced lot, and capacity assignments are not execution facts. It is not time-first: 00 says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The user may reverse, remove or flatten dimensions after facts are validated.", "time_first": false},
+  "file_kinds": {"source_types": ["filesystem", "text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "archive", "opaque_binary"], "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".pptx", ".jpg", ".png", ".tif", ".eml", ".ics", ".json", ".xml", ".zip"], "never_alone": true},
+  "file_examples": [
+    {
+      "filename": "Plant-2_MPS_FY2026-Q3_RevB.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labelled planning plant, product/SKU, demand bucket, planned quantity, due/availability date and status columns", "many planned items share line or work-centre and capacity buckets", "revision and approval block identifies a frozen snapshot; no operator signoffs or actual output"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["product or planning_period from filename alone", "planned quantities were produced", "an executed work order or batch lot", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MRP-Run_2026-08-26.json",
+      "source_type": "code_structured",
+      "observations": ["structured run metadata names a planning horizon and plant", "records join independent demand, projected supply, component requirements, exception codes and planned-order proposals", "no actual operator, completion or release-to-stock fields"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["manufacturing activation from JSON alone without planning structure", "a planned order became a production order", "a component supplier from a material code alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Line-4_Finite-Capacity-Plan_Week-35.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows join planned orders and operations to line/work-centre, setup family, planned start/end and available capacity", "overload, bottleneck and rescheduling flags are labelled", "actual start, operator and completed-quantity columns are absent"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["planned dates are execution dates", "production_line from a token without a labelled resource role", "a work order from an order-shaped number alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Plant-2_Schedule-Freeze-and-Release-Review.pptx",
+      "source_type": "presentation",
+      "observations": ["slides show product-family demand, planned supply, line capacity and shortage exceptions for a labelled horizon", "decision slides record freeze/release recommendation and unresolved constraints", "management decisions are present but no completed production evidence"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["recommendation was executed", "a customer order from forecast values alone", "business approval is a quality or production release", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AX410_Demand-and-Supply-Plan_2026-09.csv",
+      "source_type": "spreadsheet",
+      "observations": ["columns distinguish product family, demand bucket, forecast quantity, confirmed orders, projected supply and shortage status", "manufacturing site and planned supply source are labelled", "customer demand and planned supply reconcile without operation-level actuals"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["forecast quantity is a customer order or produced output", "product from a description without item role", "a production record from supply numbers alone", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Material-Availability-and-Shortage-Review_2026-08-27.eml",
+      "source_type": "email",
+      "observations": ["native sender/recipient roles include planner, procurement and plant scheduler", "body references planned orders, component shortages and a proposed reschedule; attachment names an MRP exception list", "message itself does not establish final plan or material receipt"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a proposed reschedule was approved", "attachment facts copied onto the email", "supplier or site from email domains alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MPS Board Screenshot - Plant 2.png",
+      "source_type": "image",
+      "observations": ["screen-shaped image shows products, planned dates, line names and capacity colors", "OCR recovers Plant 2 and hold labels but no reliable item identifier for each row", "screen origin does not prove plan approval or currency"],
+      "facts_legal": ["file_type", "creation_date", "language", "media_type", "sensitivity_status"],
+      "must_not_conclude": ["product, site or planning_period from partial OCR alone", "the screenshot is a live production record", "screenshot destination from missing EXIF alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Plant-2_Planning-Packet_Week-35.zip",
+      "source_type": "archive",
+      "observations": ["manifest names demand forecast, MPS, MRP exception list, capacity board, shortage review and release deck", "horizon and site repeat across members while record functions differ", "members are inspected through manifest without unpacking to disk"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["one record_type or approval status for all members", "planned orders were executed", "facts copied from archive name onto every member", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Production-Schedule-and-Work-Order-Release_2026-08.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["same workbook contains planned-order rows with due dates and line capacity plus a released-order sheet", "planned rows have blank actual start/completion columns while released rows reference execution packets", "same product/order data can be planning or execution depending on sheet structure"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["every sheet is a production record", "actual quantity from planned quantity", "release decision equals completed production", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AX410_Routing-and-Setup-Instruction_RevC.pdf",
+      "source_type": "text_document",
+      "observations": ["controlled revision, operation sequence, standard times and setup parameters are labelled", "document defines a reusable method but has no demand horizon, planned quantities, order list or capacity exception", "operation/resource vocabulary also appears in schedules"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["planning activation from routing and process times alone", "standard time is a scheduled start or actual duration", "work order from revision code", "a folder path"],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Inbound-Component-Availability-and-Delivery-Board.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows list component, purchase order, supplier, promised receipt, warehouse location and delivery status", "some rows reference planned production demand but no capacity, sequence or horizon table exists", "custody and delivery fields dominate"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["production schedule from component demand references alone", "supplier promise is a manufacturing plan", "site from warehouse location without production-site role", "a folder path"],
+      "also_schema": "logistics",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Plant-2_Line-4_Shift-Output-and-Downtime_2026-08-27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows report actual output, scrap, downtime and changeover by shift and line", "planned-order references appear as passing values but no multi-order horizon or capacity proposal exists", "operator signoffs and actual quantities make it an execution/line log"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["planning activation from line and production date", "planned quantity exists because output is tabulated", "planning_period from a shift date", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Production-Planning-Decision-Log.docx",
+      "source_type": "text_document",
+      "observations": ["meeting notes identify a planning horizon, products, capacity constraint, shortage alternatives and decision owner", "tables capture approved and deferred planned-order changes", "document also records management decision governance rather than executed manufacturing"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["approval in notes released an order in execution system", "decision owner is an author or destination dimension", "product from a passing mention without labelled planning row", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "SAME FIXTURE BYTES: `Production-Schedule-and-Work-Order-Release_2026-08.xlsx` contains planned multi-order rows and a released-order sheet. THIS ROW claims planned rows expressing demand, quantities, dates, capacity and release proposals without actual operator/completion evidence; production-record claims the same bytes only where a single order/batch has routed steps populated with actuals, signoffs, yield or scrap. Conversely, this row must not treat an executed traveller as a schedule because it contains planned columns, and production-record must not treat planned dates and capacities as completed work. Many planned orders versus populated actual execution is the discriminator.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "signal": "SAME FIXTURE BYTES: `AX410_Routing-and-Setup-Instruction_RevC.pdf` carries operation sequence, standard times and setup parameters shared with a schedule's routing inputs. THIS ROW claims the bytes only when those values are assigned to multiple planned orders, dates, capacity buckets or sequencing decisions; work-instruction claims them when they define a reusable controlled method under revision/effective-date furniture without a planning horizon or order list. Conversely, a revision-controlled method is not a capacity plan merely because it contains times, and a schedule's operation assignment is not a reusable instruction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "signal": "SAME FIXTURE BYTES: `AX410_Routing-and-Setup-Instruction_RevC.pdf` can be read as a planning input or engineering definition. THIS ROW claims it only when the engineering values are consumed in a multi-order demand/capacity/schedule structure; engineering claims it when controlled routing, process definition or design revision is the subject and planned dates/quantities are absent. Conversely, this row must not infer a design change from a scheduled operation, and engineering must not claim a planning board from a drawing or standard-time table alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "SAME FIXTURE BYTES: `Inbound-Component-Availability-and-Delivery-Board.xlsx` has component, due-date, supplier, receipt and status columns that resemble a material plan. THIS ROW claims the bytes only when the workbook joins shortages to planned orders, manufacturing horizon, capacity or release decisions; logistics claims them when inbound custody, purchase-order delivery, warehouse receipt or carrier status is the subject. Conversely, a component shortage mention does not make a delivery board a production plan, and a manufacturing schedule must not absorb supplier/warehouse facts merely because supply is an input.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BYTES: `Plant-2_Schedule-Freeze-and-Release-Review.pptx` contains demand, supply, capacity and decisions. THIS ROW claims the slides when manufacturing horizon, product/site/line loads and planned-order exceptions are the subject; business_operations claims them when S&OP governance, management objectives, resource commitments or corporate decision controls are the subject. Conversely, a management deck is not a manufacturing schedule from a plant name alone, and manufacturing planning must not claim every executive forecast or decision presentation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BYTES: `AX410_Demand-and-Supply-Plan_2026-09.csv` can be included in a statutory or investor reporting packet. THIS ROW claims the operational planning table joining products, demand, planned supply, site and manufacturing constraints; corporate-regulatory-filings claims it when a filing wrapper, reporting period, sign-off and external disclosure obligation make the corporate submission the subject. Conversely, a corporate wrapper cannot donate planning facts to an unlabelled attachment, and an internal manufacturing plan is not a regulatory filing just because its values appear in one.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.route-dispatch",
+      "signal": "SAME FIXTURE BYTES: `Plant-2_MPS_FY2026-Q3_RevB.xlsx` may be exported into a dispatch/fulfilment board with dates, quantities and routes. THIS ROW claims the bytes when they are planned manufacturing orders assigned to site/line/capacity before execution; logistics.route-dispatch claims them when shipment, vehicle, route, custody and delivery sequence govern. Conversely, planned production dates do not become transport dispatch dates, and a route board must not be called a manufacturing schedule because products and quantities recur.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "SAME FIXTURE BYTES: `Production-Planning-Decision-Log.docx` shares dated rows, resources, constraints and decisions with a construction site diary. THIS ROW claims it when the recurring object is planned manufacture across products, orders, lines and material/capacity constraints; construction_property.site-diary claims the same bytes when the object is a property/site, trade sequence, weather, subcontractor activity or built-work progress. Conversely, dates and resource names alone do not activate either side, and a factory address does not make a production planning record.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone schedule snapshot, planning decision note, release memo or routing extract with durable purpose but no complete product/site/horizon/capacity relation remains an independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A delivery promise, material receipt, order acknowledgement or confirmation that lacks a manufacturing horizon and capacity/supply decision belongs in the transactional residual.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An unlabelled quantity/date table, mixed planned-versus-actual export, weak OCR board or ambiguous S&OP deck should be reviewed rather than assigned a plan or execution fact.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A planning-board screenshot whose OCR cannot establish its own product/site/horizon structure may be useful context but should remain temporary until accepted grouping or clearer evidence exists.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An unreadable ERP/MRP/APS export or encrypted planning packet must be represented safely without inferring a schedule from its filename or archive name.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Production plans can expose demand forecasts, customer requirements, product mix, plant capacity, bottlenecks, supplier dependencies, shortages, launch timing and commercially sensitive sequencing. A management or public schedule may be less sensitive, but publication cannot be inferred from file type or title. The catalogue assigns only potentially_sensitive; P7 owns handling and model-access policy, and worker, customer, supplier and organization names remain role observations rather than destination dimensions.",
+  "open_question": "NJ-PLAN-1: should `planning_period` be admitted as a shared neutral period key, or should planning horizons remain search-only while the user organizes by product/site? `creation_date` and `version_family` do not express the horizon. NJ-PLAN-2: should `production_line` be a distinct canonical resource key, or should manufacturing's proposed `asset` carry line/work-centre roles with a canonical role split? A line is a capacity resource, not necessarily one maintained machine. NJ-PLAN-3: should a planned-order identifier receive a separate key, reuse the existing `work_order` proposal from execution/maintenance, or remain evidence only? Reusing it risks making planned and executed states indistinguishable. NJ-PLAN-4: when an S&OP deck carries both management governance and manufacturing supply/capacity tables, should R1c author schema-level coactivation while this template keeps `also_holds_with` empty? NJ-PLAN-5: where the same workbook contains planned rows and actual execution sheets, should sheet-level evidence permit both planning and production-record activation, or require a primary user decision? NJ-PLAN-6: which ERP/MRP/APS export formats receive approved local extractors; until then opaque exports remain indexed-but-unreadable."
+}

@@ -1,0 +1,503 @@
+{
+  "id": "manufacturing.tooling-fixture",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Tooling, moulds and fixtures",
+  "one_line": "The controlled life-cycle record for a mould, die, jig, fixture, gauge or other reusable manufacturing aid: its design or build identity, intended product interface, acceptance or tryout evidence, storage and maintenance, repair history, calibration where it measures, and retirement or transfer. It is anchored by the enduring tool asset and its manufacturing use, not by a design file, purchase transaction, shipped parcel, one inspected product or a generic equipment list. Placeholder template: the manufacturing schema remains field-less pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a tooling asset record whose labelled tool, mould, die, jig, fixture or gauge identifier joins a tool description, intended part or product interface, owner or custodian, installed or storage location, lifecycle state and service or inspection obligation",
+      "a mould or die design/build dossier whose controlled tool identifier joins cavity or station configuration, material or insert details, product/part interface, revision, build status, tryout requirement and release disposition; a CAD shape without lifecycle or manufacturing-use context is Engineering",
+      "a fixture or jig acceptance/tryout report whose labelled tool identity joins the operation or product interface, setup or datum scheme, trial result, measured repeatability or fit, nonconformance/action and release-to-use decision",
+      "a tool preventive-maintenance or repair work order whose asset identifier joins condition or failure, work performed, replaced components, wear observations, service result and return-to-production or storage status",
+      "a tool inspection or dimensional verification record whose tool identifier joins critical interface features, datum or gauge points, nominal/tolerance, measured result, acceptance disposition and inspector/date; an article inspection report naming a fixture only as equipment is not this row",
+      "a tool calibration or verification certificate whose measured object is a gauge, checking fixture or measuring aid and whose labelled identity joins reference standard, as-found/as-left or verification results, traceability and next-due status; calibration vocabulary alone is insufficient",
+      "a tooling change or engineering-change implementation record whose tool identity joins a controlled revision, reason for change, affected product/part interface, modification work, tryout evidence and release approval; a drawing revision without implementation evidence remains engineering",
+      "a tool storage, preservation or life-limit record whose tool identity joins location, preservation condition, usage cycles or shots, wear/remaining-life observation, inspection due status and release/retirement decision",
+      "a tooling handover or transfer record whose tool identifier joins originating and receiving custody, condition at handover, product or programme use, acceptance checks, storage or installation location and signoff; a carrier tracking page alone is logistics",
+      "an archive manifest exposing one tool asset's drawing, build, tryout, inspection, maintenance, calibration and release members; the manifest is read without unpacking and does not copy one tool's facts to every member",
+      "an email or calendar record that carries an exact tool identifier and a bounded tryout, maintenance, inspection, repair or handover workflow, with attached or linked evidence that supplies the tool-use relation"
+    ],
+    "needs_llm": [
+      "whether an unlabelled CAD or PDF package describes a reusable production tool, a one-off product part, a machine component, a construction temporary work or a supplier's catalogue item",
+      "whether a fixture is a manufacturing aid that locates or checks a product, a test apparatus, an engineering prototype, a shipping support or a general workplace item",
+      "whether a mould or die record is a controlled enduring tool asset, a production batch record, an engineering design package or a purchase/procurement dossier when the tool identifier is absent",
+      "whether a tryout report proves tool acceptance for production, is only a design simulation or records a product inspection performed with the tool; the object and disposition roles must be cited",
+      "whether a maintenance report concerns the tool itself or the production machine that houses, clamps, heats or uses it",
+      "whether a gauge/fixture certificate measures the tool, validates a product, or merely accompanies an incoming delivery; calibration and inspection structures must not be conflated",
+      "whether a tool shipment, customs form or supplier handover is the holder's manufacturing custody record or post-acceptance logistics evidence",
+      "whether a tool archive contains one asset's life history or a mixed submission packet for several tools and products; member facts must not be propagated",
+      "whether OCR-poor tags, handwritten tool-room cards or photographs preserve a tool identity and manufacturing-use relationship rather than only a serial-like string",
+      "whether a calendar booking for a mould trial or fixture inspection is a completed record or only a planned event",
+      "multilingual tool-room, die-maintenance or supplier-tooling forms outside the local context catalogue"
+    ],
+    "never_alone": [
+      "the words tooling, tool, mould, mold, die, jig, fixture, gauge, template, insert, cavity, tryout, toolroom or maintenance alone",
+      "a tool number, serial number, part number, drawing number, cavity number, revision or other identifier-shaped token outside a labelled tool-asset role",
+      "a product, part, customer, supplier, manufacturer, plant, line, machine or storage-location name alone",
+      "a CAD model, drawing, dimension, datum, tolerance, measurement, pass/fail result or inspection signature alone",
+      "a purchase order, quotation, invoice, packing list, shipping label, carrier tracking record or delivery confirmation alone",
+      "a maintenance date, service interval, shots/cycles count, wear word, repair note or return-to-service phrase alone",
+      "a calibration certificate, gauge label, accreditation mark or reference standard alone; the measured object and tool-use relation are required",
+      "a source_type or extension alone, including CAD, PDF, spreadsheet, image, OCR, email, calendar, archive or opaque binary",
+      "a parent folder named Tooling, Moulds, Dies, Fixtures, Gauges, Tool Room, Maintenance, Engineering or Production alone",
+      "membership in one supplier download, email thread, calendar booking, portal session or archive alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that a tool-room image is a screenshot rather than a photograph, or camera EXIF as proof that an image documents an accepted tool",
+      "a machine asset identifier alone; the production machine may be the user of the tool, not the tool asset itself"
+    ]
+  },
+  "work_types": [
+    "tooling asset card or tool-room register",
+    "mould or die design and build record",
+    "jig, fixture or checking-gauge design record",
+    "tool build progress, supplier handover or acceptance record",
+    "mould or die trial and process-approval report",
+    "fixture fit, datum or repeatability verification",
+    "tool dimensional inspection record",
+    "tool preventive-maintenance or repair work order",
+    "tool wear, shot-count or life-limit record",
+    "gauge or checking-fixture calibration and verification",
+    "tool modification or engineering-change implementation",
+    "tool storage, preservation, transfer or retirement record",
+    "tooling spare-insert, component or refurbishment record"
+  ],
+  "grouping_reasons": [
+    "one enduring mould, die, jig, fixture or gauge across design/build, tryout, release, production use, maintenance, inspection, calibration, transfer and retirement",
+    "one tool revision across an engineering change, modification work order, trial result and release disposition",
+    "one tool-to-product interface across the product or part record, setup/tryout, dimensional verification and production release evidence without copying product facts onto every maintenance member",
+    "one tool-room or custody transfer across handover, condition, storage, installation and return records",
+    "one wear or life-limit decision across usage/cycle logs, inspection, repair, extension or retirement evidence",
+    "a sparse tool photograph, email, calendar booking or archive member may join an accepted tool group without receiving tool, product, site or lifecycle facts; grouping does not copy labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The row is field-less because the manufacturing schema declares no legal fields under PR-6; no local tooling key is minted. Conditional on R1c promoting the schema proposals, the useful projection is site -> asset/tool -> product interface where it materially separates tools -> record_type. For maintenance, calibration and tool-room history, site -> asset -> record_type is preferable; for a multi-tool mould family, product may remain a searchable association rather than a required branch. The schema default's product -> batch/lot -> record_type branch is wrong for an enduring tool: one mould or fixture serves many lots and its own maintenance/tryout history must remain together. Engineering design revisions, procurement orders and logistics handovers are record types or competing templates, not automatic child levels. It is not time-first: 00 says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" No executable dimension is claimed until R1c licenses a canonical key.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".dwg",
+      ".dxf",
+      ".step",
+      ".stp",
+      ".igs",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Tool-Register_Press-07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated rows pair tool identifiers with mould/die/fixture type, product interface, storage location, custodian and lifecycle state",
+        "columns include last inspection, maintenance due, usage/cycle count and retirement or transfer status",
+        "workbook header identifies a tool-room population rather than one performed job"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "one tool asset from the multi-row register without a selected row",
+        "that an inspection or maintenance event happened from a due-date column",
+        "tooling facts on unrelated files in the same workbook session",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Mold-M06_Build-and-Tryout-Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled mould identifier, product/part interface and cavity configuration",
+        "build checklist, first-trial conditions, sample disposition and release-to-production decision are present",
+        "tool-maker and plant signoffs are distinct roles"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the mould design is the same as the accepted physical tool without the build/tryout relation",
+        "that a sample pass proves every future production lot conforms",
+        "supplier custody from a signature or logo alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fixture-F12_Datum-Verification.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header joins fixture identifier and product interface to datum points, nominal/tolerance, measured values, instrument and disposition",
+        "verification date and inspector fields are labelled",
+        "the measured object is the fixture's locating/interface geometry, not an unrelated production part"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the fixture is calibrated merely because an instrument is named",
+        "that the inspected product passed production release",
+        "a product or lot fact on all files sharing F12",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tooling-Maintenance-Work-Order_T-2048.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "work order identifies a tool asset, condition/failure, wear location and maintenance task",
+        "replaced insert/consumables, work performed, post-work inspection and return-to-use state are labelled",
+        "the production machine appears as the using equipment, not the maintained tool"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that machine maintenance is tool maintenance from a shared asset name",
+        "that the repair was successful without the post-work disposition",
+        "that a replacement part shipment is the same as the tool work order",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Checking-Gauge-G07_Calibration-Certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "certificate identifies a checking gauge and serial/tag, reference standards, as-found and as-left values and traceability statement",
+        "acceptance criterion, calibration date, due date and technician/laboratory roles are labelled",
+        "the gauge is used to verify a product interface but the measured object in the certificate is the gauge"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the product passed inspection from gauge calibration alone",
+        "that accreditation mark proves current validity or ownership",
+        "that every use of G07 inherits the certificate's values",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tool-Change-Notice_T-2048_Rev-C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "controlled tool identifier and revision change are paired with affected product interface and reason for modification",
+        "modification steps, post-change measurements, tryout result and release approval are included",
+        "change authority and production disposition are distinct from the original CAD author"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a revised drawing was physically implemented without change/tryout evidence",
+        "that product revision equals tool revision",
+        "that a change approval means the tool is in production without release state",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Toolroom-Photo_T-2048.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and capture time are present",
+        "image shows a labelled tool cart and a partially readable T-2048 tag",
+        "no tryout, condition, product-interface or acceptance evidence is visible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the pictured tool is accepted, serviceable or assigned to a product",
+        "tool identity from a partial tag without corroborating labelled context",
+        "a photo event or storage location from EXIF as a manufacturing fact",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Tool-Tag-Scan_T-2048.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG contains OCR of a metal tool tag with an identifier and a mould/fixture word",
+        "no product, site, lifecycle or maintenance relation survives the crop",
+        "image has no reliable camera metadata and may be a scan or screenshot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a controlled tooling asset from a serial-like token alone",
+        "that this is a screenshot because EXIF is absent",
+        "facts from the nearby tool register",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Tooling-Handover_T-2048.eml",
+      "source_type": "email",
+      "observations": [
+        "native sender/recipient/subject fields cite a tool identifier and handover workflow",
+        "body and attachment manifest describe condition at transfer, receiving custodian, product use and acceptance checks",
+        "the message does not itself prove that the recipient accepted the tool or that a carrier delivered it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "tool custody from sender identity alone",
+        "that attachment facts exist when the attachment was not extracted",
+        "delivery or acceptance from a planned handover email",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tooling-Life-History_T-2048.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists tool card, CAD revision, build record, tryout report, maintenance orders, inspection and retirement decision",
+        "member names share T-2048 but archive contents have not been unpacked",
+        "one listed member is a supplier invoice and another is a carrier delivery proof"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every member is a manufacturing tool record",
+        "a product, site, lifecycle or acceptance fact from the archive name",
+        "that supplier or carrier members share manufacturing custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Tooling-Shipping-Manifest_T-2048.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form joins a tool crate, carrier, origin/destination, package dimensions, seal and tracking reference",
+        "it cites a mould/fixture identifier but contains no tool acceptance, condition, maintenance or product-interface decision",
+        "delivery acknowledgement concerns movement after dispatch"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the tool was received or accepted from a shipping manifest alone",
+        "tool condition or product use from a crate identifier",
+        "that a logistics event is a tool life-cycle event",
+        "a folder path"
+      ],
+      "also_schema": "logistics",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Tooling-Purchase-Order_PO-7714.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "purchase order names a supplier, tool description, quoted price, delivery terms and requested completion date",
+        "line items include a mould/fixture reference but no physical tool acceptance or tryout result",
+        "approval and payment terms concern procurement workflow"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the ordered tool exists or passed acceptance",
+        "tool asset lifecycle state from a purchase reference",
+        "supplier approval from a purchase order alone",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Press-07_Mold-Mounting-Drawing_Rev-B.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "controlled CAD drawing shows mounting interface, datum scheme, dimensions and revision block",
+        "drawing title identifies a mould/tool reference but does not show an acceptance, maintenance or production-use record",
+        "approval block identifies design release, not physical tool custody"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a tooling asset from the drawing alone",
+        "that the physical mould was built, tried out or accepted",
+        "a manufacturing production record from a controlled revision",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.cad-model",
+      "signal": "SAME FIXTURE BYTES: Press-07_Mold-Mounting-Drawing_Rev-B.dwg. Manufacturing wins only when the same bytes are part of an accepted physical tool's build, tryout, maintenance or production-use record; engineering.cad-model wins when they are the controlled geometric definition of a mould, fixture or component under design revision, and neither side may infer that a physical tool exists from CAD alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "SAME FIXTURE BYTES: Tool-Change-Notice_T-2048_Rev-C.pdf. Manufacturing wins when the same bytes document implemented modification, tryout and release of the enduring tool asset; engineering.drawing-package wins when they are a design-change package whose controlled drawings and requirements define intended geometry without execution or tool custody, and a tool identifier alone cannot choose the manufacturing side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "SAME FIXTURE BYTES: Tooling-Shipping-Manifest_T-2048.pdf. Manufacturing wins when the same bytes are joined to tool condition, receiving acceptance and the tool's life history; logistics.shipment wins when they govern crate, carrier, seal, destination and post-dispatch movement, and a tracking or delivery reference is not a tool acceptance event.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "SAME FIXTURE BYTES: Tooling-Purchase-Order_PO-7714.pdf. Manufacturing wins when the same bytes are retained as evidence for an accepted tool's build or supplier-tooling lifecycle; business_operations.procurement-sourcing wins when they are the sourcing, quotation, award or purchase transaction, and a line-item tool description does not prove that the physical tool exists or passed tryout.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "SAME FIXTURE BYTES: Tool-Register_Press-07.xlsx. Manufacturing.tooling-fixture wins when the same bytes are a single-tool life-history or tool-specific register with tool-use, acceptance, maintenance and retirement semantics; manufacturing.asset-register wins when they are a multi-asset population register whose rows are assets and no one tool value can be selected as the document's subject. A shared asset tag alone does not decide the template.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BYTES: Tooling-Maintenance-Work-Order_T-2048.pdf. Manufacturing.tooling-fixture wins when the same bytes are retained as the tool's enduring lifecycle history, including mould/fixture-specific wear, inserts, tryout or life-limit context; manufacturing.maintenance-work-order wins when they are the performed maintenance transaction for any production asset, and a maintenance action alone does not establish a tooling-specific filing situation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "signal": "SAME FIXTURE BYTES: Checking-Gauge-G07_Calibration-Certificate.pdf. Manufacturing.tooling-fixture wins when the same bytes are an enduring checking-fixture asset record linked to product interface, use and retirement; manufacturing.calibration-record wins when the measured object and traceability chain are the instrument's calibration result, and a product-checking purpose does not convert a calibration certificate into a generic tool life record.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Independent Records",
+    "Receipts and Confirmations",
+    "Review Later",
+    "One-Off Images",
+    "Temporary Screenshots",
+    "Unsupported or Encrypted",
+    "Protected Records"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Tool identifiers, controlled geometry, product interfaces, production constraints, supplier terms, plant locations, tool-life data and maintenance or acceptance history can expose proprietary manufacturing capability, operational readiness or commercial relationships. This row assigns no handling class; P7's file-level classification and local/cloud policy remain authoritative.",
+  "open_question": "NJ-MFG-TOOL-1: R1c must decide whether tooling can reuse manufacturing's proposed `asset`, `product`, `site` and `record_type` keys, with tool identity as an asset value, or whether a neutral tool/product-interface role is needed globally. NJ-MFG-TOOL-2: Should a multi-asset tool register be owned by manufacturing.asset-register while single-tool lifecycle files use this row, and what evidence selects one row without copying a register row's facts? NJ-MFG-TOOL-3: When a supplier-built mould packet contains CAD, purchase, handover and tryout bytes, should P9 represent coactivation across Engineering, Business Operations, Logistics and Manufacturing, or should one custody owner be chosen? This template deliberately authors no also_holds_with edge. NJ-MFG-TOOL-4: R2/R4 must settle deployment-specific asset-tag, part-number, tool-type and revision validation families; no regex, supplier catalogue or jurisdictional rule is asserted here."
+}
