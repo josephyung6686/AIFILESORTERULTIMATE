@@ -148,12 +148,21 @@ def _group(group_id, domain, files):
 
 
 def _context(domains, groups, classes=frozenset({"personal_non_sensitive"}),
-             profiles=()):
+             profiles=(), signals=frozenset({"signal.fixture"})):
+    """One branch. `signals` is what this branch's EVIDENCE recognises.
+
+    It defaults to the one signal `_row` authors, because these fixtures are
+    about the gates rather than about selection: a branch that recognised
+    nothing would be filtered out before C1 ever ran, and every gate below would
+    then be tested against an empty row set. The tests that are ABOUT selection
+    pass their own set.
+    """
     files = frozenset(m.file_id for g in groups for m in g.members)
     return BranchContext(
         branch_node_id="n_branch", domains=tuple(domains),
         accepted_groups=tuple(groups), member_file_ids=files,
         handling_classes=classes, purpose_profile_refs=tuple(profiles),
+        detection_signals=frozenset(signals),
     )
 
 

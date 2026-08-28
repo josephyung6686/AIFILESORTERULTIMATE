@@ -4,8 +4,9 @@
 The route is deterministic and evidence-bound:
 
     accepted scaffold branch
-      -> branch context (groups, domains, facts, purpose, privacy)
-      -> eligible applicability rows
+      -> branch context (groups, domains, facts, purpose, privacy, the
+         situations the evidence recognises)
+      -> eligible applicability rows (schema AND detection signal)
       -> candidate compositions
       -> C1-C8 against the branch's actual evidence
       -> a bounded, ranked, INERT candidate set
@@ -70,6 +71,24 @@ class BranchContext:
     member_file_ids: frozenset[str]
     handling_classes: frozenset[str]
     purpose_profile_refs: tuple[PurposeProfileRef, ...] = ()
+    #: Which SITUATIONS this branch's evidence recognises, as the detection
+    #: signals an applicability row cites. Carried in, never derived here — the
+    #: same treatment `domains` gets from P9's `group_category` and
+    #: `handling_classes` gets from P7.
+    #:
+    #: A signal is spelled `recognition:{row_id}` and names one compiled row in
+    #: `src/recognition/library/recognition.json` — one of the 358 researched
+    #: situations, `academic.coursework` beside `academic.study-abroad`.
+    #: `51-LAUNCH-TEMPLATE-DRAFT.md` §5 fixes that binding: the refs "point at
+    #: the node's own `recognition` block — R2 owns the actual patterns and this
+    #: draft writes none". P10 writes none either: it reads the reference and
+    #: asks whether the branch's evidence carried it.
+    #:
+    #: EMPTY IS A REAL ANSWER, and it is fail-closed: a branch whose evidence
+    #: recognises no situation selects no row that claims one. It is not a
+    #: licence to fall back to every row sharing a schema, which is the state
+    #: this field exists to end.
+    detection_signals: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -147,14 +166,50 @@ class RoutingReport:
 
 def eligible_rows(catalogue: TemplateCatalogue,
                   context: BranchContext) -> tuple[TemplateApplicability, ...]:
-    """Every row whose schema is one of this branch's domains.
+    """Every row whose schema is one of this branch's domains AND whose
+    detection signal this branch's evidence supports.
 
-    Eligibility is not selection. A row here has done nothing but earn the right
-    to be checked against the branch's actual evidence by C3.
+    THE SCHEMA IS THE WRONG GRAIN ON ITS OWN, and reading it alone was the
+    defect. `uses_schema` says which SUBJECT a row speaks about; it does not say
+    which SITUATION the row recognises, and one schema holds many. `academic`
+    holds coursework, continuing education, an online course, a term abroad and
+    a standardized test; eleven of the launch library's rows are `academic` and
+    five of those share one definition. Collecting on the schema handed all five
+    to one composition, and the five then named `school` "My school", "Course
+    provider", "Course platform" and "Host university" — four correct names for
+    four different audiences, merged into one recipe that necessarily refused at
+    C4. Twenty-nine of the shipped library's fifty-four rows sat inside such a
+    refusal. Nothing was wrong with the labels; the branch was simply never
+    asked which situation it was in.
+
+    `detection_signal_refs` is the field that answers that, and until now it had
+    no reader anywhere in `src/`. This is the reader.
+
+    THE TWO CASES ARE NOT SYMMETRIC, deliberately:
+
+    * A row that CITES detection signals is selected only when the branch's
+      evidence supports at least one of them. Several may match, and several is
+      legitimate — a branch really can hold coursework beside a term abroad —
+      so this narrows the merge without forbidding one.
+    * A row that cites NONE states no situation at all, and stays eligible on
+      its schema. An empty list is the row saying "wherever this schema is, I
+      apply"; reading it as "nothing recognises me" would silently retire every
+      such row, which is a library change made by a router.
+
+    Eligibility is still not selection. A row here has earned only the right to
+    be checked against the branch's actual evidence by C1-C8, and C4 still
+    refuses when two rows a branch GENUINELY recognises name one field two ways
+    — which is an authoring conflict in the library, and is the thing C4 was for
+    before the framework's own over-collection drowned it.
     """
     rows: list[TemplateApplicability] = []
     for domain in context.domains:
-        rows.extend(catalogue.rows_for_schema(domain))
+        for row in catalogue.rows_for_schema(domain):
+            if row.detection_signal_refs and not any(
+                    signal in context.detection_signals
+                    for signal in row.detection_signal_refs):
+                continue
+            rows.append(row)
     return tuple(rows)
 
 
@@ -477,10 +532,30 @@ def route_branch(
         by_template.setdefault((row.template_id, row.template_version), []).append(row)
 
     if not by_template:
-        conflicts.append(CompositionConflict(
-            C3, [*context.domains],
-            "no applicability row makes any recipe eligible for this branch's "
-            "domains, and there is no generic fallback to invent"))
+        # TWO DIFFERENT ABSENCES, told apart by name. "This library holds
+        # nothing for finance" and "this library holds eighteen finance recipes
+        # and this branch's evidence recognises none of their situations" send
+        # the reader to different places — the first to the catalogue, the
+        # second to the recognition rules and the branch's own files — and one
+        # message for both would send them to the wrong one half the time.
+        unselected = sorted(
+            row.applicability_id
+            for domain in context.domains
+            for row in catalogue.rows_for_schema(domain))
+        if unselected:
+            conflicts.append(CompositionConflict(
+                C3, unselected,
+                f"{len(unselected)} applicability row(s) are authored for this "
+                f"branch's domains {sorted(context.domains)} and this branch's "
+                "evidence supports none of their detection signals, so no "
+                "recipe recognises the situation these files are in. Widening "
+                "to every row sharing a schema is what this gate exists to "
+                "prevent"))
+        else:
+            conflicts.append(CompositionConflict(
+                C3, [*context.domains],
+                "no applicability row makes any recipe eligible for this "
+                "branch's domains, and there is no generic fallback to invent"))
 
     # ONE COMPOSITION PER COVERAGE, not one per template over the whole branch.
     #

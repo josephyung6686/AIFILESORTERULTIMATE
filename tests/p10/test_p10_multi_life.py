@@ -38,6 +38,10 @@ from p10.seam_corpus import ORDINARY_CLASS, PLAN_0, PROTECTED_CLASS, ROOT_ANCHOR
 T0 = "2026-08-27T00:00:00Z"
 ALL_GROUPS = (ACADEMIC_GROUP, LAW_GROUP, MEDICAL_GROUP)
 ALL_DOMAINS = ("academic", "law_practice", "medical")
+#: What this corpus's three lives RECOGNISE. `three_life_catalogue`'s rows all
+#: cite it, so a branch carrying it selects on schema exactly as the fixture
+#: intends; these tests are about coverage across lives, not about selection.
+MULTI_LIFE_SIGNALS = frozenset({"signal.multi-life"})
 
 
 @pytest.fixture()
@@ -73,6 +77,7 @@ def authorities(corpus, **over):
         sensitive_group_ids=frozenset({MEDICAL_GROUP}),
         privacy_rank=lambda floor: 0,
         satisfies_purpose_profile=lambda ref, groups: True,
+        detection_signals_for=lambda group: MULTI_LIFE_SIGNALS,
         rank_candidates=lambda candidates: list(candidates),
         handling_class_for_member=lambda member: (
             PROTECTED_CLASS if member.file_id in protected else ORDINARY_CLASS),
@@ -306,7 +311,8 @@ def branch_over_every_life(corpus):
         branch_node_id="n_one_branch", domains=ALL_DOMAINS,
         accepted_groups=groups,
         member_file_ids=frozenset(m.file_id for g in groups for m in g.members),
-        handling_classes=frozenset({ORDINARY_CLASS, PROTECTED_CLASS}))
+        handling_classes=frozenset({ORDINARY_CLASS, PROTECTED_CLASS}),
+        detection_signals=MULTI_LIFE_SIGNALS)
 
 
 def route(corpus, context):
@@ -428,7 +434,8 @@ def test_a_recipe_that_covers_none_of_this_branch_is_not_a_refusal(corpus):
         branch_node_id="n_law_only", domains=ALL_DOMAINS,
         accepted_groups=(law,),
         member_file_ids=frozenset(m.file_id for m in law.members),
-        handling_classes=frozenset({ORDINARY_CLASS}))
+        handling_classes=frozenset({ORDINARY_CLASS}),
+        detection_signals=MULTI_LIFE_SIGNALS)
     report = route(corpus, context)
 
     assert len(report.candidates) == 1

@@ -145,6 +145,16 @@ class TreeDesignAuthorities:
     sensitive_group_ids: frozenset[str]
     privacy_rank: Callable[[str], int]
     satisfies_purpose_profile: Callable[[object, Sequence[AcceptedGroup]], bool]
+    #: Which of the 358 researched SITUATIONS one accepted group's evidence
+    #: recognises, as `recognition:{row_id}` refs. Injected for the reason
+    #: `facts.domains` gives about its own signals — *"P6 authors no activation
+    #: signal … the signals arrive as an injected `ActivationSignals` with no
+    #: default"* — and for the same reason one part over: `src/recognition/`
+    #: owns the patterns, and its detector answers at SCHEMA grain, naming a
+    #: `schema_id` and never a row, because `compile_rules` unions every row's
+    #: terms per schema. So the vocabulary exists upstream and the row-level
+    #: producer does not; P10 reads the answer and writes no rule of its own.
+    detection_signals_for: Callable[[AcceptedGroup], frozenset[str]]
     rank_candidates: Callable[[Sequence[CompositionCandidate]],
                               Sequence[CompositionCandidate]]
     handling_class_for_member: Callable[[object], str]
@@ -168,6 +178,7 @@ class TreeDesignAuthorities:
                 raise ConfigurationRequired(
                     f"{name} names the user's §1.1 choice and P10 supplies none")
         for name in ("privacy_rank", "satisfies_purpose_profile",
+                     "detection_signals_for",
                      "rank_candidates", "handling_class_for_member",
                      "collapse_handling_classes", "handling_class_for_area",
                      "template_context_for", "mint_node_id", "mint_version_id"):
@@ -307,6 +318,12 @@ def _route(conn, authorities, *, branch_node_id: str,
         handling_classes=frozenset(
             authorities.handling_class_for_member(member)
             for member in members),
+        # The UNION over the branch's groups, for the same reason `domains` is
+        # a union: a branch holding two lives recognises both their situations,
+        # and `route_branch` composes per coverage afterwards so neither life's
+        # recipe is refused on account of the other's.
+        detection_signals=frozenset().union(
+            *(authorities.detection_signals_for(group) for group in groups)),
     )
     return route_branch(
         conn, authorities.catalogue, context, limits=authorities.limits,

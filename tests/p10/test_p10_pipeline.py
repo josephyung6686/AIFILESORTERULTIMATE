@@ -19,6 +19,8 @@ answering a question the design assigns to somebody else.
 """
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from evidence_shape.schema import create_evidence_schema
@@ -69,6 +71,12 @@ def authorities(corpus, **over):
         sensitive_group_ids=frozenset(),
         privacy_rank=lambda floor: 0,
         satisfies_purpose_profile=lambda ref, groups: True,
+        # What this corpus's one life RECOGNISES. `two_dimension_catalogue`'s
+        # row cites `signal.seam`; the launch-library tests below override this
+        # with the real `recognition:` refs, which is the point of the seam —
+        # the chain reads whatever the branch's evidence supported and writes
+        # no rule of its own.
+        detection_signals_for=lambda group: frozenset({"signal.seam"}),
         rank_candidates=lambda candidates: list(candidates),
         handling_class_for_member=lambda member: ORDINARY_CLASS,
         collapse_handling_classes=lambda classes: ORDINARY_CLASS,
@@ -340,27 +348,25 @@ def launch_catalogue():
 def test_the_launch_library_either_designs_a_tree_or_refuses_by_name(corpus):
     """P11 never receives an empty tree because nothing routed.
 
-    Run over the shipped library today, this corpus REFUSES, and the refusal is
-    worth recording because it is not the chain's:
+    The refusal this used to record was the router's own: eleven `academic` rows
+    were grouped by template, the five sharing `def.subject-work-record` were
+    handed to one composition whatever the branch's evidence said, and they bind
+    `holder_institution` to `school` under four names — "My school", "Course
+    provider", "Course platform", "Host university". C4 refused, correctly, an
+    input no branch ever asked for, and no `CompositionOverride` could rescue it
+    because `role_choices` answers role-to-FIELD and the raise was about the
+    LABEL. The recipe a student's coursework wants was unreachable rather than
+    contested.
 
-    * eleven `academic` applicability rows are grouped by template, and the four
-      that share `def.subject-work-record` — coursework, continuing education,
-      online course, study abroad — bind `holder_institution` to `school` under
-      four different names ("My school", "Course provider", "Course platform",
-      "Host university"). `evaluate_composition` raises C4 on that, so the ONE
-      recipe a student's coursework wants is refused outright;
-    * a `CompositionOverride(gate=C4, ...)` cannot rescue it. The override
-      carries `role_choices` — role to FIELD — and the raise here is about the
-      LABEL, and happens after the override has been applied. So the definition
-      is unreachable rather than merely contested;
-    * the five candidates that do survive are teaching, homeschooling,
-      transcripts, K-12 and recommendation letters, and the first of them wants a
-      `term` this corpus never settles, so accepting it writes no node.
+    With the branch stating which situation it recognises, that is gone: the
+    chain routes `ap.academic.coursework`, resolves four live P6 fields and
+    reaches MATERIALISATION, where this three-file corpus refuses at V2 —
+    §5.7's "meaningless one-child levels", one school and one term and one
+    subject. That is a judgement about a tiny corpus rather than a hole in the
+    library, and it is the template layer's to answer, not the seam's.
 
-    That is the template layer's to answer, not the seam's, so this test asserts
-    only the property the seam owes: the outcome is a designed tree or a NAMED
-    refusal, never a silent empty one. It keeps passing when the library is
-    fixed.
+    So this test asserts only the property the seam owes: the outcome is a
+    designed tree or a NAMED refusal, never a silent empty one.
     """
     from tree_design.store import ReviewActionRefused
     from tree_design.materialise import MaterialisationRefused
@@ -369,8 +375,9 @@ def test_the_launch_library_either_designs_a_tree_or_refuses_by_name(corpus):
     from tree_design.templates import CompositionConflict
 
     try:
-        result = design(corpus, auth=authorities(corpus,
-                                                 catalogue=launch_catalogue()))
+        result = design(corpus, auth=authorities(
+            corpus, catalogue=launch_catalogue(),
+            detection_signals_for=lambda group: COURSEWORK_SIGNALS))
     except (ReviewActionRefused, MaterialisationRefused, FreezeRefused,
             NothingToDesign, CompositionConflict) as refusal:
         assert str(refusal).strip(), "a refusal with no reason is a silent one"
@@ -380,14 +387,25 @@ def test_the_launch_library_either_designs_a_tree_or_refuses_by_name(corpus):
         "nothing and every file would abstain with no reason the user can see")
 
 
+#: What this corpus's one life recognises, in the shipped library's own
+#: vocabulary. `seam_corpus` is a Columbia coursework group — three files, a
+#: `school` anchor, a `term` and a `subject` — so the situation it is in is the
+#: one `planning/domains/nodes/academic.coursework.json` describes, and
+#: `ap.academic.coursework` is the row authored for it. Spelled `recognition:`
+#: because a detection signal names a compiled recognition row; the manifest at
+#: `src/recognition/library/recognition.json` holds `academic.coursework` and
+#: this reference is checked against it below.
+COURSEWORK_SIGNALS = frozenset({"recognition:academic.coursework"})
+
+
 def test_the_launch_librarys_academic_rows_reach_the_router_at_all(corpus):
     """The discriminating half of the test above.
 
     "Refuses by name" is satisfied trivially by a catalogue nothing matches, so
     this asserts the corpus does reach real applicability rows: the group's
-    `academic` category selects rows, they resolve dimensions against P6's live
-    fields, and C1-C8 are judged on real evidence. The refusal above is a
-    judgement, not an absence.
+    `academic` category and the situation its evidence recognises select rows,
+    they resolve dimensions against P6's live fields, and C1-C8 are judged on
+    real evidence. The refusal above is a judgement, not an absence.
     """
     from tree_design.routing import BranchContext, route_branch
     from tree_design.upstream import accepted_groups
@@ -399,7 +417,8 @@ def test_the_launch_librarys_academic_rows_reach_the_router_at_all(corpus):
                       accepted_groups=groups,
                       member_file_ids=frozenset(
                           m.file_id for m in groups[0].members),
-                      handling_classes=frozenset({ORDINARY_CLASS})),
+                      handling_classes=frozenset({ORDINARY_CLASS}),
+                      detection_signals=COURSEWORK_SIGNALS),
         limits=limits(), privacy_rank=lambda floor: 0,
         satisfies_purpose_profile=lambda ref, gs: True,
         rank_candidates=lambda cs: list(cs))
@@ -411,17 +430,111 @@ def test_the_launch_librarys_academic_rows_reach_the_router_at_all(corpus):
     assert resolved, "no shipped academic row resolved a single P6 field"
 
 
-#: The (definition, schema) pairs the shipped library cannot compose, and the
-#: roles whose per-row labels disagree inside each. PINNED, not derived: the test
-#: below fails when this set changes in EITHER direction, which is the point —
-#: a fix has to register as a change rather than as the same green.
+
+
+# --- the detection signal, and the rows a branch's evidence actually selects -------
+#
+# WHAT A DETECTION SIGNAL IS, settled from `00` §5.7 and the launch draft rather
+# than from the router. §5.7 fixes the field on the library template — a template
+# defines "the domain's allowed fact fields, DETECTION SIGNALS, recommended folder
+# dimensions, preferred dimension order..." — and
+# `planning/51-LAUNCH-TEMPLATE-DRAFT.md` §5 fixes what the reference points AT:
+# *"`detection_signal_refs` point at the node's own `recognition` block — R2 owns
+# the actual patterns and this draft writes none."*
+#
+# So a signal names one of the 358 researched SITUATIONS, and the vocabulary was
+# already compiled and shipped: `src/recognition/library/recognition.json` lists
+# every non-refused row id per schema. P10 writes no pattern; it reads the
+# reference and asks whether the branch's evidence carried it.
+
+
+def compiled_recognition_rows() -> frozenset[str]:
+    """Every row id `src/recognition/` compiled, refused ones included.
+
+    Read through the file rather than restated here, because the point of the
+    assertion below is that the two vocabularies are ONE and cannot drift.
+    """
+    import json
+    from pathlib import Path
+
+    manifest = json.loads(
+        (Path(__file__).resolve().parents[2] / "src" / "recognition" /
+         "library" / "recognition.json").read_text())
+    rows: set[str] = set()
+    for schema in manifest["schemas"].values():
+        rows.update(schema["rows"])
+        rows.update(schema["refused_rows"])
+    return frozenset(rows)
+
+
+def test_every_shipped_detection_signal_names_a_compiled_recognition_row():
+    """The vocabulary is BOUND, not parallel.
+
+    `detection_signal_refs` had no reader in `src/` at all, which is the state
+    in which a second, private vocabulary gets invented by whoever writes the
+    first one — and this project has paid for a field with two homes before. So
+    the reader binds to the one that already exists: `recognition.compile` emits
+    a row id per researched situation, and every signal the library cites is one
+    of those ids under the `recognition:` prefix.
+
+    What `src/recognition/` does NOT publish is which row fired. `Detector.
+    explain` returns a `Recognition` naming a `schema_id`, because `compile_rules`
+    unions every row's `proposed_context_terms` into one per-schema set and a
+    term match can no longer be attributed to a row. The vocabulary is upstream;
+    the row-level producer is not, which is why the branch CARRIES the signals
+    rather than deriving them here.
+    """
+    compiled = compiled_recognition_rows()
+    catalogue = launch_catalogue()
+    signals = {signal
+               for row in catalogue.applicabilities.values()
+               for signal in row.detection_signal_refs}
+    assert signals, "the launch library cites no detection signal at all"
+    unprefixed = sorted(s for s in signals if not s.startswith("recognition:"))
+    assert not unprefixed, (
+        f"{unprefixed} name no namespace. A bare signal id is the beginning of a "
+        "second detection vocabulary that nothing keeps in step with the "
+        "compiled one")
+    unknown = sorted(s for s in signals
+                     if s.split(":", 1)[1] not in compiled)
+    assert not unknown, (
+        f"{unknown} name no compiled recognition row. A signal nothing produces "
+        "can never be supported, so every row citing it is unreachable — the "
+        "defect this reader exists to end, one level down")
+
+
+#: The (definition, schema) pairs the shipped library cannot compose. PINNED, not
+#: derived: the test below fails when this set changes in EITHER direction, which
+#: is the point — a fix has to register as a change rather than as the same green.
 #:
-#: `planning/56-TEMPLATE-CONNECTION-AUDIT.md` §6 has the analysis. In short: a
-#: `RoleBinding.label` is per-AUDIENCE and the audience is what an applicability
-#: row selects, but `evaluate_composition` unions every row of a definition in
-#: the branch and then demands the per-row labels agree. Every collision is
-#: WITHIN one schema; not one is the cross-schema case the field exists for.
-UNCOMPOSABLE_LAUNCH_PAIRS: dict[tuple[str, str], tuple[str, ...]] = {
+#: **It was seven, and it is now empty.** Every one of the launch library's 32
+#: pairs composes; all 54 applicability rows are reachable, up from 25.
+#:
+#: What moved is not the library and not the labels — `LABEL_COLLIDING_PAIRS`
+#: below is unchanged, and every one of those 60 per-audience names still ships.
+#: What moved is WHICH ROWS A BRANCH IS HANDED. `eligible_rows` filtered on
+#: `uses_schema` alone, so a branch was handed every row sharing a schema —
+#: coursework AND continuing education AND an online course AND a term abroad AND
+#: a standardized test — and those five, correctly, call `school` four different
+#: things. C4 then refused, correctly, given an input no branch's evidence ever
+#: asked for. `detection_signal_refs` is the field that says which situation a
+#: row recognises; it now has a reader, and a branch is handed the rows its own
+#: evidence selected.
+#:
+#: `planning/56-TEMPLATE-CONNECTION-AUDIT.md` §6.2 named this fix before it was
+#: made: *"stop unioning rows the branch's evidence does not select."*
+UNCOMPOSABLE_LAUNCH_PAIRS: dict[tuple[str, str], tuple[str, ...]] = {}
+
+#: The seven pairs whose per-row labels disagree, and the roles they disagree on.
+#: A FACT ABOUT THE LIBRARY, unchanged by the fix and pinned so it stays that
+#: way: these are the 60 authored per-audience names §5.1 asks for — "reflect the
+#: user's vocabulary rather than a universal corporate taxonomy" — and a fix that
+#: had worked by flattening them would show up here as a shrinking set.
+#:
+#: They are also the material for the negative twin: a branch that GENUINELY
+#: recognises two of these situations at once is handed two rows that name one
+#: field two ways, and C4 must still refuse it.
+LABEL_COLLIDING_PAIRS: dict[tuple[str, str], tuple[str, ...]] = {
     ("def.addressee-packet", "college_applications"):
         ("addressed_org", "cycle_period"),
     ("def.capture-time-events", "photos"): ("capture_time", "occasion_anchor"),
@@ -436,95 +549,323 @@ UNCOMPOSABLE_LAUNCH_PAIRS: dict[tuple[str, str], tuple[str, ...]] = {
 }
 
 
-def test_the_shipped_librarys_unroutable_recipes_are_exactly_the_known_set():
-    """The half `..._either_designs_a_tree_or_refuses_by_name` cannot see.
-
-    That test asserts the seam property — a designed tree or a NAMED refusal,
-    never a silent empty one — and it holds today for the wrong reason: the
-    refusal is C4-labelled, which reads as one contested mapping rather than as
-    54% of the launch library being unroutable. A monotone "it refuses cleanly"
-    check stays green whether the number is 1 row or 29.
-
-    So this pins the actual state. Measured over the shipped files: 54
-    applicability rows across 32 (definition, schema) pairs, of which 7 hold more
-    than one row — and ALL SEVEN clash, putting 29 rows (54%) inside a recipe
-    that cannot compose. `def.issuer-record` is the launch set's biggest
-    definition at 11 rows and is among them.
-
-    Not a count, a SET: a new non-clashing row does not move it, and a fix to any
-    one pair does. The message says which way it moved.
-    """
+def _launch_pairs() -> dict[tuple[str, str], list]:
     catalogue = launch_catalogue()
     by_pair: dict[tuple[str, str], list] = {}
     for row in catalogue.applicabilities.values():
         by_pair.setdefault((row.template_id, row.uses_schema), []).append(row)
+    return by_pair
 
-    clashing: dict[tuple[str, str], tuple[str, ...]] = {}
+
+def _colliding_roles(rows) -> tuple[str, ...]:
+    """The roles these rows name more than one way. C4's label branch, exactly."""
+    names: dict[tuple[str, str], set[str]] = {}
+    for row in rows:
+        for binding in row.role_bindings:
+            names.setdefault((binding.role_ref, binding.field_ref),
+                             set()).add(binding.label)
+    return tuple(sorted(role for (role, _field), labels in names.items()
+                        if len(labels) > 1))
+
+
+def _branch_recognising(schema: str, signals, groups=()):
+    """One branch over `schema` whose evidence recognises exactly `signals`."""
+    from tree_design.routing import BranchContext
+
+    return BranchContext(
+        branch_node_id="n_probe", domains=(schema,),
+        accepted_groups=tuple(groups),
+        member_file_ids=frozenset(m.file_id for g in groups for m in g.members),
+        handling_classes=frozenset({ORDINARY_CLASS}),
+        detection_signals=frozenset(signals))
+
+
+def test_the_shipped_librarys_unroutable_recipes_are_exactly_the_known_set():
+    """The half `..._either_designs_a_tree_or_refuses_by_name` cannot see.
+
+    That test asserts the seam property — a designed tree or a NAMED refusal,
+    never a silent empty one — and it once held for the wrong reason: the
+    refusal was C4-labelled, which reads as one contested mapping rather than as
+    54% of the launch library being unroutable. A monotone "it refuses cleanly"
+    check stays green whether the number is 1 row or 29.
+
+    So this pins the actual state, and it pins it THROUGH THE ROUTER. The
+    version of this test that shipped with the diagnosis measured a proxy — a
+    label collision anywhere inside a multi-row pair — because at the time every
+    such collision was reached, `eligible_rows` having handed the whole pair to
+    one composition. That proxy cannot see this fix at all: the labels are
+    library data and the fix does not touch them. So the measurement is now the
+    real question, asked of the real function. For every row: a branch whose
+    evidence recognises exactly that row's situation is handed that row, and the
+    rows it is handed do not name one field two ways.
+
+    Measured over the shipped files: 54 applicability rows across 32
+    (definition, schema) pairs, of which 7 hold more than one row. All seven were
+    unroutable, putting 29 rows (54%) inside a recipe that could not compose.
+    `def.issuer-record` is the launch set's biggest definition at 11 rows and was
+    among them. It is now empty.
+
+    Not a count, a SET: a new non-clashing row does not move it, and a fix to any
+    one pair does. The message says which way it moved.
+    """
+    from tree_design.routing import eligible_rows
+
+    catalogue = launch_catalogue()
+    by_pair = _launch_pairs()
+    # The sweep's own size, asserted so an empty result cannot come from an
+    # empty sweep. A fix that stopped selecting rows at all would pass "no pair
+    # clashes" trivially, and ship a library that composes nothing.
+    assert len(by_pair) == 32
+    assert sum(len(rows) for rows in by_pair.values()) == 54
+    assert sum(1 for rows in by_pair.values() if len(rows) > 1) == 7
+
+    unroutable: dict[tuple[str, str], tuple[str, ...]] = {}
     for pair, rows in by_pair.items():
-        if len(rows) < 2:
-            # One row is one audience, so its labels cannot disagree with
-            # themselves. Every collision below is a UNION the branch did not ask
-            # for, which is why the row count is part of the finding.
-            continue
-        names: dict[tuple[str, str], set[str]] = {}
+        template_id, schema = pair
+        failing: list[str] = []
         for row in rows:
-            for binding in row.role_bindings:
-                names.setdefault((binding.role_ref, binding.field_ref),
-                                 set()).add(binding.label)
-        roles = tuple(sorted(role for (role, _field), labels in names.items()
-                             if len(labels) > 1))
-        if roles:
-            clashing[pair] = roles
+            context = _branch_recognising(schema, row.detection_signal_refs)
+            selected = [candidate for candidate in eligible_rows(catalogue, context)
+                        if candidate.template_id == template_id]
+            if row not in selected:
+                failing.append(f"{row.applicability_id} selects itself: no")
+            elif _colliding_roles(selected):
+                failing.append(
+                    f"{row.applicability_id} -> {_colliding_roles(selected)}")
+        if failing:
+            unroutable[pair] = tuple(sorted(failing))
 
-    fixed = sorted(set(UNCOMPOSABLE_LAUNCH_PAIRS) - set(clashing))
-    broken = sorted(set(clashing) - set(UNCOMPOSABLE_LAUNCH_PAIRS))
-    assert clashing == UNCOMPOSABLE_LAUNCH_PAIRS, (
+    fixed = sorted(set(UNCOMPOSABLE_LAUNCH_PAIRS) - set(unroutable))
+    broken = sorted(set(unroutable) - set(UNCOMPOSABLE_LAUNCH_PAIRS))
+    assert unroutable == UNCOMPOSABLE_LAUNCH_PAIRS, (
         f"the launch library's unroutable set moved. Now composable: {fixed}. "
         f"Newly unroutable: {broken}. Update UNCOMPOSABLE_LAUNCH_PAIRS and say "
         "which it was in the commit — this set shrinking is the fix landing.")
 
 
-def test_a_single_row_recipe_composes_where_a_multi_row_one_cannot(corpus):
-    """The discriminating twin: C4 is about the UNION, not about the labels.
+def test_every_shipped_row_is_reachable_by_the_situation_it_recognises():
+    """The other half of an empty set: 54 of 54, not 0 of 0.
 
-    If per-audience labels were themselves the problem, a one-row pair would
-    refuse too. They compose — so what breaks the seven is that
-    `evaluate_composition` merges rows the branch's evidence never selected, and
-    `eligible_rows` filters on `uses_schema` alone
-    (`detection_signal_refs`, the field that says which situation a row
-    recognises, has no reader in `src/`). Recorded here because it is the
-    difference between "the label field is wrong" and "the grouping is wrong".
+    "No pair is unroutable" is satisfied by a selector that returns nothing, so
+    this asserts the positive: every applicability row in the launch library is
+    selected — and selected ALONE — by the situation it was authored for. That
+    is the product claim `56` §6.2 made: *"A student's coursework branch should
+    route `ap.academic.coursework`, not coursework + continuing-education +
+    online-course + study-abroad + standardized-testing merged into one recipe
+    with four names for `school`."*
     """
-    from tree_design.routing import evaluate_composition
-    from tree_design.templates import CompositionConflict
-    from tree_design.upstream import accepted_groups
-    from tree_design.routing import BranchContext
+    from tree_design.routing import eligible_rows
 
     catalogue = launch_catalogue()
-    by_pair: dict[tuple[str, str], list] = {}
+    unreachable: list[str] = []
+    widened: dict[str, tuple[str, ...]] = {}
     for row in catalogue.applicabilities.values():
-        by_pair.setdefault((row.template_id, row.uses_schema), []).append(row)
-    academic = by_pair[("def.subject-work-record", "academic")]
-    assert len(academic) == 5
+        context = _branch_recognising(row.uses_schema, row.detection_signal_refs)
+        selected = eligible_rows(catalogue, context)
+        if row not in selected:
+            unreachable.append(row.applicability_id)
+            continue
+        others = tuple(sorted(other.applicability_id for other in selected
+                              if other is not row))
+        if others:
+            widened[row.applicability_id] = others
+    assert not unreachable, (
+        f"{len(unreachable)} shipped rows recognise a situation that selects "
+        f"them for nothing: {unreachable}")
+    assert not widened, (
+        "a branch recognising one situation was handed rows authored for "
+        f"others: {widened}. Every launch signal is cited by exactly one row, so "
+        "this is over-collection returning by another door")
 
+
+def test_a_branch_that_recognises_two_situations_still_refuses_at_c4(corpus):
+    """THE NEGATIVE TWIN. C4 is not weakened; it is finally aimed at something.
+
+    A branch really can hold two situations at once, and when it does it is
+    handed both rows — selection narrows the merge, it does not forbid one. If
+    those two rows name one field two ways, that is an authoring conflict inside
+    the library and C4 must still refuse it, unchanged and non-silently.
+
+    Before the reader, this refusal fired on EVERY multi-row pair, because the
+    framework handed every branch every row sharing a schema; it said nothing
+    about the library and everything about the router. Here it says what it was
+    written to say: this user's evidence supports two situations that disagree
+    about what to call `school`, and P10 names neither for them.
+    """
+    from tree_design.routing import eligible_rows, evaluate_composition
+    from tree_design.templates import CompositionConflict
+    from tree_design.upstream import accepted_groups
+
+    catalogue = launch_catalogue()
     groups = accepted_groups(corpus.reader(), plan_version_id=PLAN_0)
-    context = BranchContext(
-        branch_node_id="n_probe", domains=("academic",), accepted_groups=groups,
-        member_file_ids=frozenset(m.file_id for m in groups[0].members),
-        handling_classes=frozenset({ORDINARY_CLASS}))
-    common = dict(privacy_rank=lambda floor: 0,
-                  satisfies_purpose_profile=lambda ref, gs: True)
+    both = COURSEWORK_SIGNALS | {"recognition:academic.study-abroad"}
+    context = _branch_recognising("academic", both, groups)
+
+    selected = [row for row in eligible_rows(catalogue, context)
+                if row.template_id == "def.subject-work-record"]
+    assert sorted(row.applicability_id for row in selected) == [
+        "ap.academic.coursework", "ap.academic.study-abroad"]
 
     with pytest.raises(CompositionConflict) as excinfo:
-        evaluate_composition(corpus.conn, catalogue, context, academic, **common)
-    assert excinfo.value.args[0].startswith("C4")
+        evaluate_composition(corpus.conn, catalogue, context, selected,
+                             privacy_rank=lambda floor: 0,
+                             satisfies_purpose_profile=lambda ref, gs: True)
+    message = str(excinfo.value)
+    assert message.startswith("C4")
+    assert "holder_institution" in message
+    # The two names, both shipped, both correct for their audience. The refusal
+    # quotes them rather than picking one, which is the whole reason it refuses.
+    assert "My school" in message and "Host university" in message
 
-    # The SAME definition, the SAME schema, the SAME corpus — one row at a time.
-    # `ap.academic.coursework` is the one a student's coursework wants.
-    one_row = [row for row in academic
-               if row.applicability_id == "ap.academic.coursework"]
-    composed = evaluate_composition(corpus.conn, catalogue, context, one_row,
-                                    **common)
+
+def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
+    """A guard against the tempting wrong fix, pinned in both directions.
+
+    Deduplicating the labels, or taking the first, would have emptied
+    `UNCOMPOSABLE_LAUNCH_PAIRS` too — and destroyed the feature. `RoleBinding`'s
+    docstring is explicit that the label is per-row because "one role reads
+    differently per schema", and `00` §5.1 asks labels to "reflect the user's
+    vocabulary rather than a universal corporate taxonomy". A library where every
+    row of a definition must share one name has no audience-specific naming left.
+
+    So: the seven pairs still disagree about their labels, on exactly the roles
+    they disagreed about before, and not one of the 503 bindings has decayed into
+    its own field key.
+    """
+    colliding = {pair: _colliding_roles(rows)
+                 for pair, rows in _launch_pairs().items()
+                 if len(rows) > 1 and _colliding_roles(rows)}
+    assert colliding == LABEL_COLLIDING_PAIRS, (
+        "the library's per-audience labels moved. This fix must not touch them: "
+        "it works by handing a branch fewer rows, not by making more rows agree")
+
+    launch = [binding
+              for row in launch_catalogue().applicabilities.values()
+              for binding in row.role_bindings]
+    assert len(launch) == 123, "the 54 launch rows' authored names"
+
+    # Every row the library holds, waves 2 included, because the claim is about
+    # the authored vocabulary and not about which wave shipped it.
+    import json
+    from pathlib import Path
+
+    library = Path(__file__).resolve().parents[2] / "src" / "tree_design" / "library"
+    bindings = [binding
+                for path in sorted(library.glob("*.json"))
+                for rows in json.loads(path.read_text()).values()
+                if isinstance(rows, list)
+                for row in rows
+                for binding in row.get("role_bindings", ())]
+    assert len(bindings) == 503
+    echoes = sorted({binding["label"] for binding in bindings
+                     if binding["label"] == binding["field_ref"]})
+    assert not echoes, (
+        f"{echoes} ship the internal field key as the user-visible name; "
+        "`RoleBinding.label` exists to end exactly that")
+
+
+def test_a_row_the_branchs_evidence_does_not_recognise_is_refused_by_name(corpus):
+    """The empty case, and it is a NAMED refusal rather than a silent widening.
+
+    A branch whose evidence supports no row for its schema is a real state — an
+    `academic` group in a situation the research never wrote a recipe for — and
+    the honest answer is C3 naming the rows it declined. Falling back to "every
+    row sharing a schema" is what produced the defect; falling back to silence is
+    the seam property `..._either_designs_a_tree_or_refuses_by_name` forbids.
+    """
+    from tree_design.routing import eligible_rows, route_branch
+
+    catalogue = launch_catalogue()
+    groups = accepted_groups_for(corpus)
+    context = _branch_recognising("academic", (), groups)
+    assert eligible_rows(catalogue, context) == ()
+
+    report = route_branch(
+        corpus.conn, catalogue, context, limits=limits(),
+        privacy_rank=lambda floor: 0,
+        satisfies_purpose_profile=lambda ref, gs: True,
+        rank_candidates=lambda cs: list(cs))
+    assert report.candidates == ()
+    assert len(report.conflicts) == 1
+    refusal = str(report.conflicts[0])
+    assert refusal.startswith("C3")
+    # It names the rows it declined, so the reader knows the library HAS
+    # academic recipes and this branch recognised none of their situations —
+    # which sends them to the recognition rules, not to the catalogue.
+    assert "ap.academic.coursework" in refusal
+    assert "detection signal" in refusal
+
+
+def test_a_row_that_names_no_situation_stays_eligible_on_its_schema():
+    """The asymmetry, stated as a test because it is a judgement call.
+
+    An empty `detection_signal_refs` is the row saying "wherever this schema is,
+    I apply" — not "nothing recognises me". Reading it the second way would
+    silently retire every such row, which is a library change made by a router.
+    The shipped library has none today; the record permits one, so the reader
+    has to answer for it.
+    """
+    from tree_design.routing import eligible_rows
+    from p10.test_p10_routing import _catalogue, _definition, _fragment, _row
+    from tree_design.templates import FragmentRef
+
+    subject = _fragment("subject", ("subject",))
+    definition = _definition("d", (FragmentRef("subject", 1),), ("subject",))
+    silent = dataclasses.replace(
+        _row("a-silent", "d", "academic", (("subject", "subject"),)),
+        detection_signal_refs=())
+    catalogue = _catalogue(
+        (subject,), (definition,),
+        (_row("a-situated", "d", "academic", (("subject", "subject"),)), silent))
+
+    recognises_nothing = _branch_recognising("academic", ())
+    assert [row.applicability_id
+            for row in eligible_rows(catalogue, recognises_nothing)] == ["a-silent"]
+
+    recognises_the_situation = _branch_recognising("academic", ("signal.fixture",))
+    assert sorted(row.applicability_id
+                  for row in eligible_rows(catalogue, recognises_the_situation)) == [
+        "a-silent", "a-situated"]
+
+
+def accepted_groups_for(corpus):
+    from tree_design.upstream import accepted_groups
+
+    return accepted_groups(corpus.reader(), plan_version_id=PLAN_0)
+
+
+def test_the_five_row_academic_recipe_composes_once_the_signal_is_read(corpus):
+    """The test that diagnosed this, kept and re-pointed at the fix.
+
+    Its earlier form fed `def.subject-work-record` / `academic` the same
+    definition, the same schema and the same corpus ONE ROW AT A TIME — by
+    hand, because nothing in `src/` could do it — and recorded that it composed
+    cleanly where all five together refused. In its own words: *"what breaks the
+    seven is that `evaluate_composition` merges rows the branch's evidence never
+    selected, and `eligible_rows` filters on `uses_schema` alone
+    (`detection_signal_refs`, the field that says which situation a row
+    recognises, has no reader in `src/`)."*
+
+    It has one now, so the hand-picking is gone. The branch states what it
+    recognises, `eligible_rows` picks the row, and the five-row recipe — the
+    one a student's coursework actually wants — composes.
+    """
+    from tree_design.routing import eligible_rows, evaluate_composition
+
+    catalogue = launch_catalogue()
+    academic = _launch_pairs()[("def.subject-work-record", "academic")]
+    assert len(academic) == 5
+
+    groups = accepted_groups_for(corpus)
+    context = _branch_recognising("academic", COURSEWORK_SIGNALS, groups)
+    selected = [row for row in eligible_rows(catalogue, context)
+                if row.template_id == "def.subject-work-record"]
+    assert [row.applicability_id for row in selected] == ["ap.academic.coursework"]
+
+    composed = evaluate_composition(
+        corpus.conn, catalogue, context, selected,
+        privacy_rank=lambda floor: 0,
+        satisfies_purpose_profile=lambda ref, gs: True)
     assert [d.field_ref for d in composed.resolved_dimensions] == [
         "school", "term", "subject", "work_type"]
     assert [d.display_label for d in composed.resolved_dimensions] == [
