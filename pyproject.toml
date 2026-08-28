@@ -5,7 +5,19 @@ requires-python = "==3.12.*"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+# `pytest-randomly` is not optional tooling: every guard in this suite is a
+# claim about behaviour, and a guard that only holds in one collection order
+# is a guard that holds by accident. Order independence is checked, not hoped.
+#
+# RUN IT AS: python3 -m pytest tests/ -p randomly --randomly-dont-reset-seed
+#
+# The flag is required and the reason is not this project's fault. pytest-randomly
+# reseeds every RNG advertised through the `pytest_randomly.random_seeder` entry
+# point, and any `thinc` (spaCy) in the same interpreter advertises one that hands
+# `numpy.random.seed` an out-of-range value. Every test then errors in setup AND
+# teardown, which reads as thousands of failures and is none of them. Order
+# randomisation is what this suite wants; seed resetting is what it does not.
+dev = ["pytest>=8", "pytest-randomly>=3.15"]
 # The deployment layer (`src/readers/`) and ONLY it. `dependencies` above stays
 # empty on purpose: P5's SPEC says it "adds no third-party runtime dependency" and
 # every format reader is a caller-supplied callable, so the libraries are installed
