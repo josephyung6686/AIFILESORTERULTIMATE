@@ -1,5 +1,9 @@
 # 62 — Extension to the product design: what the user is asked, what they can find, and what moves by itself
 
+> **SUPERSEDED IN PART, 2026-08-29.** `66-FIND-FILE-AND-ONBOARDING.md` replaces §A (the
+> corpus role declaration), §B (retrieval), and §C (automatic filing). §D (the matcher is not a
+> lookup) is CONFIRMED and expanded by `66` §16, and stands. Read `66` first.
+
 This document extends `00-database-agent-product-design.md`. It is written to be read in
 `00`'s voice and to sit inside its argument rather than beside it. `00` remains canonical:
 where this document and `00` conflict on anything not explicitly amended here, `00` wins.

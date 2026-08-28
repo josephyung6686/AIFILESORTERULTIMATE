@@ -1,5 +1,12 @@
 # 61 — §4.5 Corpus role declaration (onboarding), and the search surface
 
+> **SUPERSEDED IN PART, 2026-08-29.** `66-FIND-FILE-AND-ONBOARDING.md` replaces Part A
+> (the onboarding questionnaire) and Part B (the search surface) of this document. Two of this
+> document's rulings were REVERSED by `66` and must not be built from here: the first-run
+> profile questions (§A.0, §A.4) and the "does anyone else appear in your files" question
+> (§A.4 q2, §A.6). What SURVIVES and is carried forward into `66` §13: the structural /
+> contextual split of §A.3, and the bounds of §A.5. Read `66` first.
+
 Date: 2026-08-28. **Approved by Joseph, this session.** Two additions to `00`, both argued
 in `planning/59-FINAL-UX-EVALUATION.md` §6.1 and §6.2, both ratified here with his framing.
 

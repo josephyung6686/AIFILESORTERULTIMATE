@@ -3,7 +3,10 @@
 Date: 2026-08-28. Owner instruction: *"add building this into the task plan but only
 implementation plan, and only when you are confident that P1–P11 is perfect."*
 
-Design for items 2–4 is `62-DESIGN-EXTENSION.md`; contract is `61-ONBOARDING-AND-SEARCH.md`.
+**Design is `66-FIND-FILE-AND-ONBOARDING.md`, 2026-08-29.** It replaces `62`'s §A/§B/§C and
+`61`'s Parts A and B, and it RESEQUENCES this plan — see §2. `61` and `62` are marked
+superseded in place; read `66` first.
+
 This document is sequencing and a gate. **Nothing below starts until §0 passes in full.**
 
 ---
@@ -45,69 +48,78 @@ Listed for completeness because the gate depends on it, not because it is part o
 
 ---
 
-## 2. The corpus role declaration — FIRST after the gate
+## 2. RESEQUENCED, 2026-08-29 — `66` reorders everything below
 
-It is first because it is an **engine input**, not a feature: it changes what the engine can
-resolve, so building it after P12 would mean re-validating P12 against a changed input.
+`66-FIND-FILE-AND-ONBOARDING.md` §22 sets the release order, and it INVERTS what this
+document originally had. The old sequence (role declaration → retrieval → P12 → filing →
+canvas) is in this file's git history at commit `1078ecd`. It was wrong in one specific way:
+it put the onboarding questionnaire FIRST, ahead of the capability that makes the product
+useful to someone who never grants it any authority at all.
 
-- **2a** Store and record shape. Facts carry `basis="user"` (already a live
-  `CLASSIFICATION_BASES` member) and outrank an inferred fact of any reliability.
-- **2b** The structural/contextual split, enforced by types rather than convention. The test
-  that matters: a contextual answer cannot reach a gating decision, and a deliberate attempt to
-  route one there fails.
-- **2c** The four questions, all skippable, product correct with all four skipped.
-- **2d** The profession matcher — free text onto the closed schema vocabulary, recording an
-  unmatched answer **as unmatched**. This is the interesting problem; budget for it separately.
-- **2e** Wire to schema activation and dimension eligibility. Discriminating pair: a dependant's
-  name may become a folder level, a third party's name may not.
+`66`'s order, and the reason for each position:
 
-**Done means:** the four role inversions `62` §A names — take-or-teach, own-lease-or-client's,
-own-résumé-or-candidate's, which-child — each resolve on a corpus where they previously abstained,
-and each still abstain when the question is skipped.
+| # | work | why here |
+|---|---|---|
+| 1 | **Find** — local, read-only retrieval | Ships before any mutation. A user who never builds a tree or grants a filing policy must still be able to search their own index. This is the product's front door. |
+| 2 | **Connect Find** to the evidence inspector, accepted groups, destination canvas, review surfaces | Moves the user from "I found this" to "I understand why this is related" with no hidden state change. Absorbs what was P13. |
+| 3 | **Onboarding redesign** — the structural-question registry FIRST, then the flows | Cannot be designed independently of templates and policy. `66` §21: define the registry and what consumes each answer before any interaction is built. |
+| 4 | **P12 — apply and undo** | The movement engine. Everything in `66` §11 (conditional undo, stale-plan detection, 90-day default) is P12's contract, not automatic filing's. |
+| 5 | **Automatic filing** — "Keep this folder organized" | Last. `66` §22: not scheduled until P1–P11 are verified AND the product can be shown to decline unsafe cases reliably. |
 
-## 3. Retrieval — SECOND
+### 3. Find — FIRST
 
-Second because it is the cheapest thing that makes the product usable by a person, and it needs
-no P12 and no P13.
+Design: `66` §§1–6, contract §18. New constraints this plan did not previously carry:
 
-- **3a** Query over the existing index; **no second ranking**.
-- **3b** Every home, not the best one.
-- **3c** Abstention as a result, in its own words — a passport is not a low-confidence extraction.
-- **3d** Protected areas present, counted, unopened, with a reachable explanation.
-- **3e** Read-only, asserted: a search leaves database and filesystem byte-identical.
+- **§1 is an egress constraint, not a preference.** Query text, filenames, paths, extracted
+  content, OCR, embeddings, file facts, the destination tree, and the result set may not reach
+  a cloud model for ordinary search. This must bind to the existing egress guard, not be a
+  comment. A test that sends a query through Find with the guard armed is the only proof.
+- **§2 forbids a second ranking.** Find reads P11's retrieval, not a new scorer. If Find's
+  order and the destination-node retrieval order can disagree, that is the defect.
+- **§3 is a six-state model**, and the six are not interchangeable: current location, filed
+  home, also-related-to, shared-material relationship, historical location, possible placement.
+  `horizontal_candidates` currently produces something closer to one flat list; this is the
+  design that tells it what to produce.
+- **§4 extends the protected-container rule to search.** Marked and counted, never opened —
+  now with two explicit states (standard, unlocked) and a re-authentication gate between them.
+- **§5**: no-result must name WHICH state applies. Five distinct messages, never one
+  "could not find."
 
-**Done means:** a person can find a file they have not organised, and a protected area appears in
-the result set rather than being absent from it.
+### 4. Connect Find to the surfaces — SECOND
 
-## 4. P12 — apply and undo — THIRD
+Design: `66` §22 ¶2. This is what was P13 (the review canvas), reframed: the canvas is not a
+separate destination, it is where a search result explains itself. No state changes.
 
-Third because automatic filing (§5) is undo plus a policy, and building §5 first would mean
-shipping irreversible movement.
+### 5. Onboarding — THIRD, and it is a registry before it is a screen
 
-- **4a** Apply a frozen plan; **4b** undo, per action, durable across restart; **4c** conflict
-  handling when the disk moved under the plan; **4d** never touches protected, applications, or
-  system files.
+Design: `66` §§12–17, contract §20. **`66` reverses two rulings from `61`.** The first-run
+profile interview (age, kids, profession) is out; §14 replaces it with evidence-linked
+questions asked only when a specific decision is blocked. "Does anyone else appear in your
+files" is out as a general question; §15 admits it only inside a deliberate protected-family
+workflow with a user-selected relationship category.
 
-**Done means:** every move is individually reversible, and reversal is tested by reversing.
+What survives from `61` §A.3 is the structural / contextual split, now `66` §13 — and `66`
+sharpens it: age range, availability, and broad profession description are CONTEXTUAL, so they
+may order suggestions and may not create, rename, place, expose, or move anything.
 
-## 5. Automatic filing — FOURTH
+`66` §16 confirms the ruling already recorded at `62` §D: the matcher is judged, not looked up,
+and an unmatched answer stays unmatched. Four outcomes, raw wording stored, never converted
+directly into a folder name or a filing permission.
 
-- **5a** Per-branch policy the user sets, scoped to the branch reviewed, never generalised.
-- **5b** Declines on small margin, genuine tie, thin evidence, or protected material — and
-  declines in the words that describe what happened.
-- **5c** Dry run, default on first enable.
-- **5d** Reviewable list afterwards, each action individually reversible.
-- **5e** Never creates a destination; a file with no approved home stays and is surfaced.
+`66` §17 is the one that touches work ALREADY IN FLIGHT — see §10 below.
 
-**Done means:** the dangerous capability is only ever reachable by a deliberate, scoped act, and
-every automatic action can be undone by someone who noticed it a week later.
+### 6. P12 — apply and undo — FOURTH
 
-## 6. P13 — the review canvas — LAST
+Design: `66` §11. Conditional undo with five pre-checks (content still expected, hash unchanged,
+no overwrite, source available, no later external change). 90-day default retention, user
+selectable 30 / 90 / 365 / until-cleared. Stale-plan detection on source, destination,
+permission state, cloud-sync state, and content hash.
 
-Last because it is the surface for everything above, and building it earlier means building it
-twice. It carries §5.10's six existing-folder gestures and the five unimplemented canvas actions.
+### 6a. Automatic filing — LAST
 
----
+Design: `66` §§7–11, contract §19. The nine-dimension policy schema of §8 is the deliverable,
+not a threshold. Dry run always first. The system may never widen its own policy. Applications
+are suggest-and-review only in the first release (§10).
 
 ## 7. What this plan does not do
 
@@ -202,3 +214,70 @@ Measured, before → after:
 | schemas that can file | 6 of 23 | **19 of 23 + 4 named exemptions** |
 | applicability rows reachable | 25 of 54 | **208 of 208** |
 | human labels | 2 fixtures | **503, none equal to its field key** |
+
+
+---
+
+## 10. What `66` changes about work already in flight, 2026-08-29
+
+**`66` §17 adds a requirement `64` deliberately scoped out.** `64` (user edits and catalogue
+upgrade, currently being built by the `build-edit-durability` agent) establishes that a user's
+rename is a fact that outranks re-derivation, keyed on `(schema, role_ref, field_ref)` so it
+survives §8.8's per-version `node_id` mint. That is correct and unchanged.
+
+But `64` §7 treats the version-diff surface as somebody else's problem — *"the pipeline's
+adopt-a-new-version path and P13's version-diff surface, neither of which..."*. `66` §17 makes
+that surface a REQUIREMENT of the same interaction:
+
+> When a user edits or re-runs a structural answer, the product creates a draft plan version. It
+> shows a meaningful diff: which schemas become active or inactive, which templates are affected,
+> which branches may need review, which placement proposals become invalid or newly possible,
+> whether any protected area changes, and whether any filing policy is paused. It must not
+> silently rename folders, reclassify files, reveal protected records, or move anything as a
+> consequence of a changed answer.
+>
+> Existing approved structure remains stable unless the user explicitly adopts the new plan.
+
+**This is not a contradiction and the in-flight build should not be stopped.** `64`'s overlay is
+the storage half; `66` §17 is the presentation-and-consent half, and it lands in item 2 of the
+new sequence (connecting Find to the review surfaces). The gap to carry forward is one sentence:
+*an edited structural answer must open a DRAFT the user adopts, never a silently-applied change.*
+`64`'s overlay must therefore be readable as "what the user has asserted" independently of
+whether the plan version carrying it has been adopted. Verify this when the agent reports.
+
+**`66` §16 confirms `62` §D** rather than replacing it. No action; `62` §D stands.
+
+**`66` §4 gives `sensitivity_policy_ref` its first reader.** All 30 definitions carry the field
+and nothing in `src/` reads it — recorded as an open confusion in `65`. `66` §4's
+"protected-display policy" and "protected-search policy" are what it is for: how much a
+protected result may say about itself on a shared screen. It stays inert until Find is built,
+but it is no longer unexplained.
+
+**`66` §14 and §6 settle what `--situation` is.** The first-run screen is folder selection, not
+an interview; the front door asks nothing. `--situation` is not wrong — it is a flag on the
+TREE-DESIGN command, which is not the front door and never was. The correction is to stop
+treating the current CLI as the product's entry point. Find is the entry point and does not
+exist yet.
+
+**`66` does NOT settle** why four files sharing `PHYS1401` became four groups rather than one
+(`65`'s open question). §3 describes how multiple relationships are PRESENTED; it says nothing
+about how the grouping engine decides cardinality. Still open.
+
+### The sizing question, answered
+
+`65` asked whether the single `_STRUCTURED` pattern in `cli.py` — `\b[A-Z][A-Z0-9]*[0-9]{3,}\b`,
+which matches `PHYS1401` and misses `PHYS 1401` — should be answered by widening what is read or
+by asking the user. `62` §D already noted these are not one axis. `66` §14 settles it:
+
+> When the engine encounters a repeated ambiguity that prevents a useful template, group
+> interpretation, or destination proposal, it asks a narrow, evidence-linked question.
+
+A question is for what evidence **cannot safely determine** — the user's role, their relationship
+to a named person or institution, their purpose. `PHYS 1401` with a space is not any of those. It
+is a **reading** failure, and `66` §4 requires Find to say "unreadable" and "unsupported format"
+as distinct states precisely so that reading failures stay visible as reading failures instead of
+being laundered into questions for the user.
+
+**Ruling: widen the extractor. Do not add a question.** No onboarding answer could have recovered
+that course code, and asking would have taught the product to cover a reading gap by interrogating
+the person — the exact inversion `66` §12 exists to prevent.
