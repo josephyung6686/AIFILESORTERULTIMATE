@@ -100,10 +100,10 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
     conflicts: list[ConflictConsidered] = []
     suppressed_by_value: dict[tuple[str, str], list[str]] = {}
 
-    # §6.3's suppression, recorded before anything is a candidate. The keying is
-    # the subject's HELD value for the field, not the value the node carried: the
-    # conflict is one fact disagreeing with a branch, and the branch's value is
-    # already implied by the node ids listed under it.
+    # §6.3's suppression, recorded before anything is a candidate. The key is the
+    # subject's OWN value for the field, not the value the node carried, because
+    # `ConflictConsidered.conflicting_value` is "what this file says" -- one
+    # record per stated value, listing every branch it ruled out.
     for field, node_ids in reachable.contradicted.items():
         held = next(fact for fact in usable if fact.field == field)
         suppressed_by_value.setdefault((field, held.value), []).extend(node_ids)
@@ -124,11 +124,14 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
             channels.append(CURATED_FOLDER)
         if node_id in reachable.semantic_matches:
             channels.append(SEMANTIC_NEIGHBOUR)
-        if channels:
-            matched[node_id] = {
-                "channels": tuple(dict.fromkeys(channels)),
-                "facts": tuple(entry_facts), "groups": tuple(entry_groups),
-            }
+        # No `if channels:` guard. Every node in `candidate_node_ids` got there
+        # from one of the four collections above, so at least one branch fired --
+        # a guard here could never be false, and a guard that cannot fail reads
+        # as a rule this loop enforces when it enforces nothing.
+        matched[node_id] = {
+            "channels": tuple(dict.fromkeys(channels)),
+            "facts": tuple(entry_facts), "groups": tuple(entry_groups),
+        }
 
     for (field, value), node_ids in sorted(suppressed_by_value.items()):
         held = next(f for f in usable if f.field == field and f.value == value)
