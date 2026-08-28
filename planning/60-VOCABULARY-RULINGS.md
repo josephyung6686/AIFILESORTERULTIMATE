@@ -439,3 +439,85 @@ failure is legible. `51`'s own JC 7 resolution reaches the same answer; this rec
 **Career's default is `recommendation-pending`, not ratified.** The right long-run fix is doc `59`
 §4.5 — ask the user who they are before designing the tree, at which point this default is never
 consulted. Recorded so the tie-break is not mistaken for evidence it does not have.
+
+---
+
+## 9. Five corrections from the adoption pass — all against this document
+
+The agent adopting `60` into `src/facts/` raised five divergences. **All five are correct and
+this section ratifies them.** Two are internal contradictions in `60`; one is a conceptual
+error in how §5 was written; two are omissions.
+
+### 9.1 The conceptual error — `†` in §5 was misusing eligibility
+
+**Destination eligibility is a property of the KEY, not of the schema that references it.**
+§4 states this for `subject_of_record` in so many words — *"`destination_eligible: false`
+**on the key, never per-template**"* — and then §5 used `†` as though a schema could make an
+eligible key ineligible for itself. It cannot.
+
+Two §5 rows were wrong as a result, and the adoption correctly refused both:
+
+- **`logistics · supplier†`** — §4 mints `supplier` `true`. Logistics reads **5** destination
+  candidates, not 4. `business_operations` also needs it `true` to reach §5's own count of 6,
+  so the `†` was self-contradictory within §5.
+- **`hr · event†`** — marking `event` ineligible would have broken `photos`' `year → event`
+  template, since the same key serves both. `hr`'s protection posture is carried by
+  `subject_of_record` and `workforce_member`, which are globally ineligible; it was never
+  carried by `event`.
+
+A `†` in §5 is therefore only meaningful where the key is **globally** non-destination. Where
+§5 and §4 disagree about a key's eligibility, **§4 wins**, and both divergences are pinned by
+a test with a negative twin so that reconciling §5 turns it red rather than absorbing it.
+
+### 9.2 `code` keeps `00` §3.11's four
+
+§5 gave `code` one destination candidate on the note *"code is live today at 1 and has always
+been."* That counted only keys **declared at scope `code`**, which is the same
+declaration-versus-reference confusion. `00` §3.11 names **four** for Code, and `fields.py`'s
+own docstring already recorded the mechanism: *"§3.11 names `project` and `artifact type`
+under both Research and Code, and one concept gets one stored key, so those two are declared
+at `research` and referenced by `code`."*
+
+`code` = `project · repository · programming_language† · artifact_type`, **3 destination
+candidates**. `60` dropped nothing by name — contrast B1, which strips explicitly — so a
+silent drop was never the ruling.
+
+### 9.3 `authorisation` ships as an ALIAS — H8 kills the column, not the string
+
+H8 renames the key. It does **not** ban the British string. `canonical_fields.json`'s own rule
+is that aliases are *"strings that must NOT become new keys"*, which makes an alias precisely
+where a rejected spelling belongs: a document or an extractor emitting `authorisation`
+resolves to the `authorization` key instead of failing or minting a second column.
+
+**Shipping the alias is what makes the rename lossless**, and it is a better reading of H8
+than the one H8 itself states. `permit` ships alongside it. The invariant that matters is one
+concept → one column, and the alias enforces it rather than violating it.
+
+### 9.4 A seventh `role_split` pair — `authored_by` ↔ `target_school`
+
+§4 enumerated six. `00` §3.8 names this one verbatim — *"distinct facets, such as
+`authored_by` and `target_school`"* — and `canonical_fields.json` already carries it. §4's list
+was an omission, not a narrowing; dropping a live `00`-named pair to match it would have been
+a silent loss. **Seven pairs**, reciprocity enforced by a test with three broken-pair twins
+(one-way, dangling, self-paired).
+
+### 9.5 `job_title`'s discriminator — my draft had a slip
+
+I drafted `target_employer` as *"the post applied FOR"*. **`target_employer` is an
+organization, not a post** — it mirrors `school` ↔ `target_university`. The shipped wording is
+right: *"the POSITION held, never the person (`subject_of_record`) and never the organization
+(`employer`, `target_employer`)."*
+
+### 9.6 A bug the widening exposed, and the tripwire that caught it
+
+`active_field_allowlist` walked **declaration** scopes. Under §5, five schemas reference keys
+they do not declare — `creative` references 5 and declares 0 — so an active `creative` could
+have proposed **no field at all**: §3.5's closed catalogue enforcing a schema nobody wrote.
+Rebuilt on `DOMAIN_FIELDS`, with `read_surface.facts_for(domain=)` following the same rule so
+those five cannot return `[]` where `[]` reads as *"no facts"*.
+
+`tests/p6/test_p6_domains.py` carried a tripwire written for exactly this case — *"If the
+allowlist is later rebuilt on `DOMAIN_FIELDS`, this is the test that says so"* — and it fired.
+Worth recording: the widening from 10 to 23 schemas was the event that made a
+previously-unreachable branch reachable, which is the failure mode a closed vocabulary invites
+and the reason that tripwire was written.
