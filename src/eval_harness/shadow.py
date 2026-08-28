@@ -73,10 +73,8 @@ def run_shadow(conn: sqlite3.Connection, bundle_id: str, *, version_tuple: dict,
     The same `budget_ceilings` a replay takes: §8.6's list has no shadow entry and
     P2 adds no key (Open question 8).
     """
-    from eval_harness.assertions import assert_run
-    from eval_harness.attribution import attribute_run
     from eval_harness.comparison import compare_runs, get_comparison
-    from eval_harness.replay import replay_bundle
+    from eval_harness.driver import evaluate_bundle
 
     # Taken BEFORE any adapter runs: this is the baseline `assert_shadow_wrote_nothing`
     # diffs against, and a snapshot taken afterwards would prove nothing.
@@ -89,13 +87,15 @@ def run_shadow(conn: sqlite3.Connection, bundle_id: str, *, version_tuple: dict,
             "the consent-aware audit record. P2 does not write that record; it "
             "requires the reference and links to it."
         )
-    shadow_run_id = replay_bundle(
+    # Replay, assert, attribute — the same three steps in the same order a plain
+    # replay takes, so a shadow run and the live run it is compared against are
+    # scored by one piece of code. They were spelled out separately here, which
+    # is how the two came to be able to drift.
+    shadow_run_id = evaluate_bundle(
         conn, bundle_id, version_tuple=version_tuple,
         budget_ceilings=budget_ceilings, run_settings=run_settings,
         adapters=adapters, run_kind="shadow",
-    )
-    assert_run(conn, shadow_run_id)
-    attribute_run(conn, shadow_run_id)
+    ).run_id
     comparison_id = compare_runs(conn, live_run_id, shadow_run_id)
     disagreements = get_comparison(conn, comparison_id)["disagreements"]
     surfaced = list(select(disagreements))
