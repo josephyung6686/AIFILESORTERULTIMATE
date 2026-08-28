@@ -143,3 +143,35 @@ It is engine work, not post-engine work: it belongs with P10, before `63` §0's 
 product that loses the user's renames is not a product whose engine is finished. **5a** (record
 the catalogue release on the frozen tree) should land immediately — it is small, and every
 other part of this document is blocked on it.
+
+---
+
+## 8. The same question, asked about decisions instead of labels
+
+`64` §1 is about what happens to the user's **renames** when the tree is re-derived. There is
+a second half, tracked by the repository's one remaining strict xfail
+(`tests/p11/test_p11_versions.py:311`), and it is the same design question about **placement
+decisions**:
+
+> *"`reproject` and `learned_preferences_still_applicable` have no caller. Their owed consumer
+> is the pipeline's adopt-a-new-version path and P13's version-diff surface, neither of which
+> is built. Until one lands, §8.8's re-projection is a fully-tested component connected to
+> nothing — the shape this codebase shipped seven times."*
+
+Both functions are correct — one of them was repaired this session, having silently dropped
+every learned preference from plan-2 onward by matching `node_id` where §8.8 mints a new one
+per version. Neither is called.
+
+**What a person hits:** they review and place five hundred files, then rename one folder. That
+rename opens a new plan version. Nothing carries the five hundred decisions across.
+
+This belongs with §5 rather than after it. An upgrade contract that reconciles **labels** and
+strands **decisions** has solved the smaller half of the problem: a user who loses their folder
+names is annoyed, and a user who loses their filing is back where they started. The stable key
+is already settled and already implemented — `reproject` matches on lineage, exactly as §3
+requires — so what is missing is the caller, not the mechanism.
+
+**The xfail is `strict=True` and should stay that way until the caller lands**: it turns the
+suite red the moment one appears, which forces the marker off rather than letting a half-wired
+consumer sit behind a green run. That is the right handling and it should be copied for §5a
+rather than replaced.
