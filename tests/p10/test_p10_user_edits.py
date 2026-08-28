@@ -504,3 +504,38 @@ def test_a_second_route_over_the_same_library_re_derives_nothing_the_user_said(
                   .resolved_dimensions}
         assert levels["subject"] == "Class", run
         assert levels["work_type"] == "Assignment type", run
+
+
+def test_an_edit_is_readable_as_the_users_own_assertion_before_any_plan_adopts_it(
+        corpus):
+    """`66` §17, verified against what `64` built, as `63` §10 asked.
+
+    `64` is the STORAGE half of the interaction and `66` §17 is the consent half:
+
+        Existing approved structure remains stable unless the user explicitly
+        adopts the new plan. ... It must not silently rename folders, reclassify
+        files, reveal protected records, or move anything as a consequence of a
+        changed answer.
+
+    `63` §10 turned that into one property to check when `64` landed: the overlay
+    must be readable as "what the user has asserted" INDEPENDENTLY of whether the
+    plan version carrying it has been adopted. Two halves, both here.
+
+    The presentation half -- a draft the user adopts, with a diff -- is P13's and
+    is not built. This test is the part `64` owes and can keep.
+    """
+    first = _design(corpus)
+    before = frozen_tree(corpus.conn, plan_version=first.tree.plan_version_id)
+
+    record_user_level_edit(corpus.conn, _rename("Class"))
+
+    # 1. Readable as the user's assertion, keyed on nothing a plan version owns.
+    stored = user_level_edits(corpus.conn)
+    assert [edit.display_label for edit in stored] == ["Class"]
+    assert stored[0].key() == (SCHEMA, "subject", "subject")
+
+    # 2. And the approved structure did not move because the answer changed. The
+    #    edit is stored; the frozen tree is untouched until something designs
+    #    again and the user adopts what comes back.
+    assert frozen_tree(corpus.conn,
+                       plan_version=first.tree.plan_version_id) == before
