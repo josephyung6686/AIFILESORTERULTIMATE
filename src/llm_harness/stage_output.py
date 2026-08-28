@@ -4,7 +4,8 @@
 P2 owns the envelope vocabulary. This module translates P8 outcomes onto
 `produced` / `abstained` / `deferred` / `error` and never writes P8's own
 `abstain` into the envelope. `NeedsConsent` is not a P8 measurement and
-creates no row.
+creates no row. `ValidationUnavailable` IS one -- P8 ran and reached no
+judgement -- and is written as `error`, whose verdict is no verdict at all.
 
 The version tuple is live P2 `VERSION_TUPLE_FIELDS`. P8 supplies fingerprint
 and model identifier; every other axis is caller-authored. `validator_version`
@@ -15,14 +16,18 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Mapping
-from dataclasses import fields, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
+from typing import Any, Callable, Sequence
 
+from eval_harness.replay import ReplayContext, StageResult
 from eval_harness.run import VERSION_TUPLE_FIELDS, record_version_tuple
 from eval_harness.stage_output import DimensionValue, record_stage_output
 from eval_harness.vocabulary import check_dimension
 from evidence_shape.canonical import canonical_json
 
-from llm_harness.records import CallFailed, Dossier, P8Verdict, Refusal
+from llm_harness.records import (
+    CallFailed, Dossier, P8Verdict, Refusal, ValidationUnavailable,
+)
 from llm_harness.sites import dispatch
 from llm_harness.vocabulary import (
     ABSTAIN,
@@ -79,7 +84,34 @@ def record_p8_version_tuple(conn: sqlite3.Connection, **axes) -> str:
 def _envelope(result: object) -> tuple[str, str]:
     if isinstance(result, NeedsConsent):
         raise TypeError("NeedsConsent writes no P2 row")
-    if isinstance(result, CallFailed):
+    if isinstance(result, (CallFailed, ValidationUnavailable)):
+        # `ValidationUnavailable` is a real stage outcome and gets a row. P8 was
+        # called, walked into a missing injected capability, and reached no
+        # judgement -- `dispatch` returns it from eight places (a null `conn`,
+        # each site's absent dependencies, an unknown call site), so a replay
+        # driver meets it on ordinary paths. Unmapped it fell through the
+        # catch-all `TypeError` below, and inside `replay_bundle` an adapter's
+        # exception collapses the WHOLE stage into one `error` row keyed on the
+        # bundle: every other subject's row absent, and `verdict_for` scores an
+        # absent row `not_run`, §8.5's word for the stage that did not run.
+        #
+        # `error` and not one of the other four. `abstained` is refused by the
+        # record itself ("Never an abstain outcome") and would score
+        # `abstained_correctly` -- a PASSING verdict -- against any label that
+        # expected an abstention, which is §8.6's "false impression that an
+        # unprocessed file was understood and found unimportant". `deferred`
+        # pairs only with `ceiling_reached` and a missing capability is not a
+        # budget event. `not_implemented` is the harness's word for a stage with
+        # no adapter and scores `not_run`, the absent row this exists to stop
+        # writing. `produced` claims a measurement nothing reached.
+        #
+        # `error` is the one outcome `verdict_for` refuses to score at all: NULL
+        # verdict, `no_verdict_reason = 'stage_error'`. A degraded measurement
+        # reported as degraded. P9 records the same result as a `_failure` with
+        # cause `validation_unavailable` (grouping/p8_seam.py) and P11 groups it
+        # with `CallFailed` as "not judgements about evidence"
+        # (placement/pipeline.py `ModelJudgementUnavailable`); neither treats it
+        # as an abstention either.
         return "error", "within_ceiling"
     if isinstance(result, Refusal):
         return "abstained", "within_ceiling"
@@ -92,8 +124,8 @@ def _envelope(result: object) -> tuple[str, str]:
             return "abstained", "within_ceiling"
         raise ValueError(f"unmapped P8 outcome {result.outcome!r}")
     raise TypeError(
-        "emit_stage_output accepts P8Verdict, Refusal, or CallFailed; "
-        f"got {type(result).__name__}"
+        "emit_stage_output accepts P8Verdict, Refusal, CallFailed, or "
+        f"ValidationUnavailable; got {type(result).__name__}"
     )
 
 
@@ -131,13 +163,49 @@ def _grounding_value(result: object, outcome: str) -> dict | None:
     }
 
 
+def stage_result_fields(
+    result: P8Verdict | Refusal | CallFailed | ValidationUnavailable, *,
+    subject_ref: str, inputs: Sequence[str],
+) -> dict:
+    """The envelope fields for one P8 result, without writing them.
+
+    P5's `extraction_stage_output` and P6's `fact_stage_output` publish the same
+    shape: the fields `eval_harness.replay.StageResult` carries and P2 fills
+    `run_id`, `stage_id` and `version_tuple_ref` around. P8 has two writers --
+    `emit_stage_output`, which inserts directly, and `replay_stage_adapter`,
+    whose rows P2's runner inserts -- and both read the mapping from here, so a
+    live row and a replayed row cannot come to disagree about one result.
+    """
+    outcome, budget_state = _envelope(result)
+    return {
+        "subject_ref": subject_ref,
+        "outcome": outcome,
+        "payload": canonical_json(_jsonable(result)),
+        "inputs": tuple(inputs),
+        "budget_state": budget_state,
+        # §8.5 is decomposed BY STAGE, and that decomposition is only real if the
+        # stage hands over the row `assertions.assert_run` reads. Omitting this
+        # left `stage_dimension_value` empty, and `verdict_for` scores an absent
+        # row `not_run` -- §8.5's word for the stage that did not run at all.
+        # One row always, including for an abstention, a deferral, a failure and
+        # an unavailable validator: an absent row would report each of those as a
+        # stage that never ran.
+        "values": (DimensionValue(
+            dimension=DIMENSION,
+            subject_ref=subject_ref,
+            outcome=outcome,
+            value=_grounding_value(result, outcome),
+        ),),
+    }
+
+
 def emit_stage_output(
     conn: sqlite3.Connection, *, run_id: str, subject_ref: str,
-    result: P8Verdict | Refusal | CallFailed,
+    result: P8Verdict | Refusal | CallFailed | ValidationUnavailable,
     inputs: tuple[str, ...], version_tuple_ref: str,
 ) -> int:
     """Write one `llm_interpretation` envelope. `produced_at` is stamped by P2."""
-    outcome, budget_state = _envelope(result)
+    envelope = stage_result_fields(result, subject_ref=subject_ref, inputs=inputs)
     manifest = conn.execute(
         "SELECT rm.version_tuple_ref AS manifest_version_tuple_ref, "
         "vt.version_tuple_ref AS existing_version_tuple_ref "
@@ -163,24 +231,13 @@ def emit_stage_output(
         conn,
         run_id=run_id,
         stage_id="llm_interpretation",
-        subject_ref=subject_ref,
-        outcome=outcome,
-        payload=canonical_json(_jsonable(result)),
+        subject_ref=envelope["subject_ref"],
+        outcome=envelope["outcome"],
+        payload=envelope["payload"],
         version_tuple_ref=version_tuple_ref,
-        inputs=inputs,
-        budget_state=budget_state,
-        # §8.5 is decomposed BY STAGE, and that decomposition is only real if the
-        # stage hands over the row `assertions.assert_run` reads. Omitting this
-        # left `stage_dimension_value` empty, and `verdict_for` scores an absent
-        # row `not_run` -- §8.5's word for the stage that did not run at all.
-        # One row always, including for an abstention, a deferral and a failure:
-        # an absent row would report each of those as a stage that never ran.
-        dimension_values=(DimensionValue(
-            dimension=DIMENSION,
-            subject_ref=subject_ref,
-            outcome=outcome,
-            value=_grounding_value(result, outcome),
-        ),),
+        inputs=envelope["inputs"],
+        budget_state=envelope["budget_state"],
+        dimension_values=envelope["values"],
     )
 
 
@@ -226,3 +283,75 @@ def replay_recorded_response(
         policy_version=policy_version,
         apply_consequence=False,
     )
+
+
+@dataclass(frozen=True)
+class RecordedCall:
+    """One recorded model call to re-validate, with the authorities it needs.
+
+    Every field is the caller's. P8 chooses none of them here, exactly as
+    `emit_stage_output` takes `subject_ref` and `inputs` from its caller rather
+    than deriving them: which subject a measurement is ABOUT is what the
+    bundle's expectation is keyed on, and the site authorities are per-file (Site
+    A's `FactRequest` is built over one file's own P4 observations), so they
+    cannot be shared across a corpus by this module's choice.
+    """
+
+    dossier: Dossier
+    #: The `bundle_expectation.subject_ref` this call is measured against. It is
+    #: also `stage_dimension_value`'s primary key with the run and the dimension,
+    #: so two calls measured as one subject are a labelling error, not a merge.
+    subject_ref: str
+    #: §8.5's "where the error BEGAN" is computable only over these edges.
+    inputs: tuple[str, ...]
+    evidence_resolver: Callable[[str], Any]
+    site_dependencies: Any
+    contradicts: Callable[..., bool]
+
+
+def replay_stage_adapter(
+    calls: Sequence[RecordedCall], *, dossier_builder: str, policy_version: str,
+) -> Callable[[ReplayContext], list[StageResult]]:
+    """P2's `llm_interpretation` stage adapter over recorded responses.
+
+    This is what makes §8.5's LLM-grounding dimension measurable from a live
+    composition: `eval_harness.driver.evaluate_bundle` walks the ten stages,
+    hands this adapter the run it opened, and every result P8 reaches becomes
+    one row `assert_run` can score.
+
+    No model client is constructed and none is reachable from here --
+    `replay_recorded_response` reads `llm_response.response_bytes` and
+    re-validates them against the CURRENT evidence snapshot, which is the whole
+    point of a replay: a stored verdict would reproduce itself.
+
+    `apply_consequence` is false throughout, so a replay writes no second P6
+    fact and no second `unresolved` row.
+
+    A dossier with no stored response is a missing recording, not an outcome:
+    `replay_recorded_response` raises `KeyError` and P2's runner records the
+    stage as `error` rather than inventing a measurement for it.
+    """
+    def adapter(ctx: ReplayContext) -> list[StageResult]:
+        results: list[StageResult] = []
+        for call in calls:
+            outcome = replay_recorded_response(
+                ctx.conn, call.dossier,
+                evidence_resolver=call.evidence_resolver,
+                site_dependencies=call.site_dependencies,
+                contradicts=call.contradicts,
+                dossier_builder=dossier_builder,
+                policy_version=policy_version,
+            )
+            # `dispatch` returns either `ValidationUnavailable` or a
+            # (verdicts, report) pair. The report is P8's own record and is not
+            # P2's envelope; the verdicts are what §8.5 measures.
+            if isinstance(outcome, ValidationUnavailable):
+                verdicts = (outcome,)
+            else:
+                verdicts, _report = outcome
+            for verdict in verdicts:
+                results.append(StageResult(**stage_result_fields(
+                    verdict, subject_ref=call.subject_ref, inputs=call.inputs)))
+        return results
+
+    return adapter

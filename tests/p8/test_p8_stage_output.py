@@ -532,3 +532,87 @@ def test_an_abstention_the_label_expected_is_a_pass_not_a_miss(stage_conn):
     assert assert_run(stage_conn, run_id) == 1
     assert assertions(stage_conn, run_id, dimension=DIMENSION)[0]["verdict"] == (
         "abstained_correctly")
+
+
+def test_validation_unavailable_is_an_error_row_not_an_absent_one(stage_conn):
+    """P8 was called, reached a missing capability, and reached no judgement.
+
+    `ValidationUnavailable` is one of `dispatch`'s eight returns -- missing
+    `conn`, missing per-site dependencies, an unknown call site -- so a replay
+    driver meets it on ordinary paths, not only in a fixture. Left unmapped it
+    fell through `_envelope`'s catch-all `TypeError`, which inside
+    `eval_harness.replay.replay_bundle` collapses the whole
+    `llm_interpretation` stage into ONE `error` row keyed on the bundle id, and
+    every other subject's row in that stage is then absent -- `verdict_for`'s
+    `not_run`, which is §8.5's word for the stage that did not run at all.
+
+    `error` and not one of the other four: `abstained` is refused by the record
+    itself ("Never an abstain outcome") and would score `abstained_correctly`,
+    a PASSING verdict, whenever the label expected an abstention -- §8.6's
+    "false impression that an unprocessed file was understood". `deferred`
+    requires `budget_state = ceiling_reached` and a missing capability is not a
+    budget event. `not_implemented` is the harness's word for a stage with no
+    adapter and scores `not_run`, which is the absent row this fix exists to
+    stop writing. `produced` asserts a measurement that does not exist.
+    """
+    from llm_harness.records import ValidationUnavailable
+
+    unavailable = ValidationUnavailable(missing=("fact_dependencies",))
+    _, row, _, run_id, _ = _emit(stage_conn, unavailable)
+    assert row["outcome"] == "error"
+    assert row["budget_state"] == "within_ceiling"
+    assert json.loads(row["payload"])["missing"] == ["fact_dependencies"]
+
+    values = dimension_values(stage_conn, run_id, dimension=DIMENSION)
+    assert len(values) == 1, "the stage ran; an absent row would read as not_run"
+    assert values[0]["outcome"] == "error"
+    assert values[0]["value"] is None, (
+        "§8.6 forbids reporting a degraded or absent measurement as a good one")
+
+
+def test_a_run_without_the_unavailable_row_scores_differently(stage_conn):
+    """The negative twin. Writing the row only means something if its absence
+    scores differently -- otherwise the row is decoration."""
+    from llm_harness.records import ValidationUnavailable
+
+    bundle_id = _sealed_bundle(stage_conn, expected_value={
+        "outcome": ACCEPT_DIRECT, "citations_checked": 1,
+        "citations_resolved": 1, "citations_span_matched": 1})
+
+    with_row = _run_against(stage_conn, bundle_id,
+                            ValidationUnavailable(missing=("site_validator",)))
+    assert assert_run(stage_conn, with_row) == 1
+    scored = assertions(stage_conn, with_row, dimension=DIMENSION)[0]
+
+    # The same bundle, the same expectation, and no row from the stage at all.
+    ref = record_p8_version_tuple(stage_conn, **_axes())
+    without_row = start_run(
+        stage_conn, bundle_id=bundle_id, run_kind="replay", version_tuple_ref=ref,
+        budget_ceilings={},
+        run_settings={"model_enabled": True, "embeddings_enabled": False},
+        pinned_plan_id="plan-fixture", pinned_plan_version="1")
+    assert assert_run(stage_conn, without_row) == 1
+    absent = assertions(stage_conn, without_row, dimension=DIMENSION)[0]
+
+    assert absent["verdict"] == "not_run"
+    assert scored["verdict"] != absent["verdict"]
+    assert scored["verdict"] is None
+    assert scored["no_verdict_reason"] == "stage_error"
+    assert absent["no_verdict_reason"] is None
+
+
+def test_the_unavailable_row_is_not_scored_as_a_pass(stage_conn):
+    """The other substitution the positive half cannot see: had the mapping been
+    `abstained`, a label expecting an abstention would score
+    `abstained_correctly` -- a PASS for a call that reached no judgement."""
+    from eval_harness.assertions import PASSING_VERDICTS
+    from llm_harness.records import ValidationUnavailable
+
+    bundle_id = _sealed_bundle(stage_conn, expected_value=None,
+                               expected_outcome_kind="abstained")
+    run_id = _run_against(stage_conn, bundle_id,
+                          ValidationUnavailable(missing=("conn",)))
+    assert assert_run(stage_conn, run_id) == 1
+    row = assertions(stage_conn, run_id, dimension=DIMENSION)[0]
+    assert row["verdict"] not in PASSING_VERDICTS
+    assert row["verdict"] is None
