@@ -35,6 +35,7 @@ depend on when it was last run rather than on the two versions themselves.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 
@@ -173,10 +174,43 @@ def learned_preferences_still_applicable(conn: sqlite3.Connection, *,
     applying at the first tree edit -- the opposite of "preferences carry across
     versions". So the filter matches either identity: a suppression whose id is a
     current node id, or one whose id is an earlier node with a surviving origin.
+
+    **The earlier node's id is RESOLVED, not compared.** Testing
+    `item.node_id in surviving_origins` reads correctly and is only true when the
+    earlier node's id happens to equal its own origin -- which holds for the FIRST
+    plan version and for no other, because every later version mints. So a
+    preference recorded against plan-2 and filtered against plan-3 was matched
+    against neither identity and was dropped in silence. `_origins_by_node_id`
+    does the resolution the sentence describes: earlier `node_id` -> that
+    version's `origin_node_id` -> does the new version still carry it.
+
+    A node id that appears in two versions with different lineage is ambiguous
+    rather than wrong, so every origin it ever had is considered and the
+    preference applies if ANY of them survives. Keeping the preference is the
+    safe side of that ambiguity: §8.7 exists so a rejected destination is not
+    resurfaced, and dropping one silently is the failure it names.
     """
     entries = entries_for_plan(conn, plan_version=plan_version)
     surviving_ids = {entry.node_id for entry in entries}
     surviving_origins = {entry.origin_node_id for entry in entries}
+    origins = _origins_by_node_id(conn)
     return tuple(item for item in suppressions
                  if item.node_id in surviving_ids
-                 or item.node_id in surviving_origins)
+                 or item.node_id in surviving_origins
+                 or origins.get(item.node_id, frozenset()) & surviving_origins)
+
+
+def _origins_by_node_id(conn: sqlite3.Connection) -> dict[str, frozenset[str]]:
+    """Every indexed node id, and the lineage it carried in each version.
+
+    Read from the index rather than from P10's `tree_nodes`, for the reason
+    `legal_node_ids` gives: P11 answers identity questions from its own
+    projection of the frozen tree, and a second source could disagree with the
+    one P8's `node_exists` is closed over.
+    """
+    found: dict[str, set[str]] = {}
+    for row in conn.execute(
+            "SELECT node_id, payload FROM placement_index_entries"):
+        origin = json.loads(row["payload"])["origin_node_id"]
+        found.setdefault(row["node_id"], set()).add(origin)
+    return {node_id: frozenset(items) for node_id, items in found.items()}

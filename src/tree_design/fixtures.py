@@ -64,6 +64,8 @@ from tree_design.vocabulary import (
     REQUIRED,
     RESIDUAL,
     RESIDUAL_DEFAULT_PARENTS,
+    REFINE_LATER,
+    REFINED,
     RESIDUAL_TEMPLATE_NAMES,
     REVIEW_LATER,
     REVIEW_ONLY,
@@ -120,8 +122,16 @@ def walking_skeleton_tree() -> tuple[Node, ...]:
     """
     return (
         _node("skel_1", "Academics", ordinal=0,
+              refinement_disposition=SHALLOW_BY_CHOICE,
+              refinement_reason="The skeleton is one level on purpose; no "
+                                "template produced it and nothing under it has "
+                                "been split.",
               explanation="Hand-authored skeleton node; no template produced it."),
         _node("skel_2", "Finance", ordinal=1,
+              refinement_disposition=SHALLOW_BY_CHOICE,
+              refinement_reason="The skeleton is one level on purpose; no "
+                                "template produced it and nothing under it has "
+                                "been split.",
               explanation="The second skeleton node exists so §6.10's margin "
                           "has a runner-up to be measured against."),
     )
@@ -140,12 +150,19 @@ def realistic_tree() -> tuple[Node, ...]:
     return (
         _node("n_academics", "Academics", ordinal=0,
               associated_group_ids=("g_phys1401",),
+              refinement_disposition=REFINED,
+              refinement_reason="The school and course levels beneath this area "
+                                "are populated, so it is split as far as the "
+                                "evidence supports.",
               explanation="The accepted PHYS 1401 course-material group "
                           "produced this area."),
         _node("n_columbia", "Columbia", parent="n_academics", ordinal=0,
               associated_group_ids=("g_phys1401",),
               dimension_role="school", dimension="school",
               expected_values=(school,),
+              refinement_disposition=REFINED,
+              refinement_reason="The course level beneath this school is "
+                                "populated from settled facts.",
               explanation="3 of this branch's files record their School as "
                           "'Columbia'. P6 settled that value."),
         _node("n_phys", "PHYS1401", parent="n_columbia", ordinal=0,
@@ -159,6 +176,9 @@ def realistic_tree() -> tuple[Node, ...]:
                           "'PHYS1401'. P6 settled that value."),
         _node("n_review", REVIEW_LATER, parent="n_academics", ordinal=1,
               role=RESIDUAL, disposition=REVIEW_ONLY,
+              refinement_disposition=SHALLOW_BY_CHOICE,
+              refinement_reason="§7.2 caps a residual template's depth; a review "
+                                "queue that grew levels would stop being one.",
               explanation="Files that reached no course branch are queued here "
                           "for review rather than moved."),
         _node("n_protected", "Passports and IDs", parent="n_academics",
@@ -177,6 +197,9 @@ def realistic_tree() -> tuple[Node, ...]:
         # own first mistake.
         _node("n_existing", "Coursework", parent="n_academics", ordinal=4,
               node_type=EXISTING, existing_path="Documents/Coursework",
+              refinement_disposition=REFINE_LATER,
+              refinement_reason="The user kept their existing folder and has not "
+                                "yet decided how, or whether, to split it.",
               explanation="A folder the corpus already contains; P10 observed "
                           "it rather than proposing it."),
     )

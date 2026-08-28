@@ -265,6 +265,39 @@ def set_shared_material_policy(conn: sqlite3.Connection,
     )
 
 
+def _carry_shared_material(conn: sqlite3.Connection, *, from_version: str,
+                           new_version_id: str) -> None:
+    """§6.9's policy travels with the version it was chosen for.
+
+    `open_draft` copied the NODES and left this behind, and the consequence was
+    not local. `freeze._shared_material` reads
+    `shared_material_policies WHERE plan_version_id = ?`; a draft with no row
+    made `validate_for_freeze` refuse with "this plan version carries no §6.9
+    shared-material policy" — about a version whose predecessor carries one and
+    whose shared-material NODE had just been copied across intact. A user who
+    chose `primary-home` and then renamed one folder was told they had chosen
+    nothing.
+
+    A COPY, with a new `policy_id`, not a shared row: `policy_id` is the primary
+    key, and §8.8 makes the predecessor immutable, so the two versions each keep
+    their own record and a later change to one cannot rewrite the other.
+
+    `policy_scope` is carried verbatim. P10's OQ9 — tree-global or per-branch —
+    is open, and flattening every row to global here would settle it.
+    """
+    rows = conn.execute(
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = ? "
+        "ORDER BY policy_id", (from_version,)).fetchall()
+    for index, row in enumerate(rows):
+        conn.execute(
+            "INSERT INTO shared_material_policies "
+            "(policy_id, plan_version_id, policy, policy_scope, reason) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (f"{new_version_id}:smp{index}", new_version_id, row["policy"],
+             row["policy_scope"], row["reason"]),
+        )
+
+
 def open_draft(conn: sqlite3.Connection, *, from_version: str,
                new_version_id: str, created_at: str,
                mint_node_id: Callable[[], str]) -> PlanVersion:
@@ -295,6 +328,8 @@ def open_draft(conn: sqlite3.Connection, *, from_version: str,
                             else remap[node.parent_node_id]),
         )
         write_node(conn, copied)
+    _carry_shared_material(conn, from_version=from_version,
+                           new_version_id=new_version_id)
     return draft
 
 
@@ -347,10 +382,24 @@ def _write_overlap_answer(conn: sqlite3.Connection, action, *, draft: PlanVersio
                 "policy decides what happens to a file that belongs in two "
                 "places, and one recorded without a reason cannot be reviewed"
             )
+        scope = action.payload.get("policy_scope")
+        # The draft already carries the predecessor's answer, because
+        # `_carry_shared_material` copied it. This action IS the user changing
+        # that answer, so the carried row for the same scope is replaced rather
+        # than joined: `one_global_shared_material_policy` is a partial unique
+        # index and a second global row raises `IntegrityError`, which would
+        # leave the user unable to revise a policy they had already given.
+        #
+        # The DELETE is scoped to this draft. Every earlier version keeps its
+        # own row, which is §8.8's immutability: what the user chose then is
+        # still what that frozen version was adopted under.
+        conn.execute(
+            "DELETE FROM shared_material_policies WHERE plan_version_id = ? "
+            "AND policy_scope IS ?", (draft.plan_version_id, scope))
         set_shared_material_policy(conn, SharedMaterialPolicy(
             policy_id=f"smp_{draft.plan_version_id}_{action.review_action_id}",
             plan_version_id=draft.plan_version_id, policy=policy,
-            policy_scope=action.payload.get("policy_scope"), reason=reason))
+            policy_scope=scope, reason=reason))
         if policy not in BRANCH_BEARING_SHARED_POLICIES:
             # `mandatory-review` is the one policy that does NOT resolve to a
             # destination: it means ask the user. A branch for it would answer

@@ -258,6 +258,42 @@ def test_a_preference_named_in_the_new_versions_own_ids_also_applies(p11_conn):
     assert [item.node_id for item in kept] == ["n-course@2"]
 
 
+def test_a_preference_recorded_against_a_minted_id_carries_to_the_next_version(
+        p11_conn):
+    """The general case the docstring already claimed and the code did not do.
+
+    The two tests above both pass by coincidence: `n-course` is plan-1's id AND
+    its own origin, so `item.node_id in surviving_origins` happens to match. From
+    plan-2 onward that stops being true — every id is minted and no id equals its
+    origin — so a preference recorded against plan-2 and filtered against plan-3
+    was matched against neither identity and was silently dropped.
+
+    §8.8's sentence is "preferences carry across versions", and a filter that
+    works only for the FIRST version is one that fails on every real tree, since
+    a user reaches plan-2 the moment they rename a folder. Found by driving
+    P10's own chain, which mints exactly this way.
+    """
+    v2 = _v2()
+    _indexed(p11_conn, v2)
+    _indexed(p11_conn, next_version(v2, plan_version_id="plan-3", suffix="@3"))
+    kept = learned_preferences_still_applicable(
+        p11_conn, plan_version="plan-3",
+        suppressions=(_suppression("n-course@2"),))
+    assert [item.node_id for item in kept] == ["n-course@2"]
+
+
+def test_a_preference_about_a_node_no_version_ever_held_is_not_applied(p11_conn):
+    """The negative twin. Resolving through the index must not become a way for
+    an unknown id to pass: a suppression naming a node no plan version contains
+    has nothing to suppress and is filtered out, not carried."""
+    v2 = _v2()
+    _indexed(p11_conn, v2)
+    _indexed(p11_conn, next_version(v2, plan_version_id="plan-3", suffix="@3"))
+    assert learned_preferences_still_applicable(
+        p11_conn, plan_version="plan-3",
+        suppressions=(_suppression("n-invented"),)) == ()
+
+
 def test_a_preference_about_a_removed_node_is_kept_but_not_applied(p11_conn):
     # It is still a true fact about what the user decided, so it is preserved --
     # it is simply not applied, because there is nothing left for it to suppress.

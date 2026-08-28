@@ -670,3 +670,101 @@ def test_a_policy_outside_6_9s_four_is_refused_as_out_of_vocabulary(seeded):
         apply_review_action(
             seeded, action, new_version_id="plan_2", created_at=T1,
             mint_node_id=_ids("n2"), component_version="p10-1")
+
+
+# --- §6.9's policy is version state, and a draft is a copy of a version ------------
+
+
+def _global_policies(conn, plan_version_id):
+    return conn.execute(
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = ? "
+        "AND policy_scope IS NULL", (plan_version_id,)).fetchall()
+
+
+def test_a_draft_carries_the_69_policy_the_user_already_chose(seeded):
+    """`open_draft` copied the NODES and left §6.9's policy behind.
+
+    The consequence is not cosmetic and it is not local to this function. A user
+    who chose `primary-home` and then renamed one folder had their answer
+    silently revoked: `freeze._shared_material` reads
+    `shared_material_policies WHERE plan_version_id = ?`, the draft holds no row,
+    and `validate_for_freeze` then refuses the freeze with "this plan version
+    carries no §6.9 shared-material policy" — about a version whose predecessor
+    carries one and whose shared-material NODE was copied across intact. The
+    refusal names the one thing the user did do.
+
+    One step further and it is worse: had the freeze gone through, `FrozenTree.
+    shared_material_policy` would be `None` and `build_destination_index` would
+    refuse the whole tree at P11's end, where nobody can act on it.
+    """
+    set_shared_material_policy(seeded, SharedMaterialPolicy(
+        policy_id="smp_1", plan_version_id="plan_1", policy=PRIMARY_HOME,
+        policy_scope=None,
+        reason="A transcript lives in one packet and is referenced from the other."))
+    freeze_version(seeded, "plan_1")
+
+    open_draft(seeded, from_version="plan_1", new_version_id="plan_2",
+               created_at=T1, mint_node_id=_ids("n2"))
+
+    carried = _global_policies(seeded, "plan_2")
+    assert len(carried) == 1, "the draft lost the policy the user chose"
+    assert carried[0]["policy"] == PRIMARY_HOME
+    assert carried[0]["reason"].startswith("A transcript lives")
+    # A new row, not the same one: `policy_id` is the primary key and the
+    # predecessor keeps its own record, because a frozen version is immutable.
+    assert carried[0]["policy_id"] != "smp_1"
+    assert len(_global_policies(seeded, "plan_1")) == 1
+
+
+def test_a_per_branch_69_policy_is_carried_with_its_scope(seeded):
+    """OQ9 is open — the policy may be tree-global or per-branch — so the copy
+    carries `policy_scope` verbatim rather than flattening every row to global."""
+    set_shared_material_policy(seeded, SharedMaterialPolicy(
+        policy_id="smp_scoped", plan_version_id="plan_1", policy=PRIMARY_HOME,
+        policy_scope="n_root", reason="Only the Academics branch competes."))
+    open_draft(seeded, from_version="plan_1", new_version_id="plan_2",
+               created_at=T1, mint_node_id=_ids("n2"))
+    rows = seeded.execute(
+        "SELECT * FROM shared_material_policies WHERE plan_version_id = 'plan_2'"
+    ).fetchall()
+    assert [(r["policy"], r["policy_scope"]) for r in rows] == [
+        (PRIMARY_HOME, "n_root")]
+
+
+def test_a_draft_of_a_version_with_no_policy_still_has_none(seeded):
+    """The negative twin. The copy carries what is there and invents nothing —
+    a draft that acquired a policy nobody chose would answer §6.9 for the user,
+    which is the failure `validate_for_freeze` refuses the freeze to prevent."""
+    open_draft(seeded, from_version="plan_1", new_version_id="plan_2",
+               created_at=T1, mint_node_id=_ids("n2"))
+    assert _global_policies(seeded, "plan_2") == []
+
+
+def test_setting_a_new_69_policy_on_a_draft_replaces_the_carried_one(seeded):
+    """The user changing their mind is one policy, not two.
+
+    `one_global_shared_material_policy` is a partial unique index, so once the
+    draft carries the predecessor's row, `set-shared-material-policy` on that
+    draft would raise `IntegrityError` — the user would be unable to change an
+    answer they had already given. The writer replaces its own version's row and
+    leaves every other version's alone.
+    """
+    from tree_design.vocabulary import SHARED_BRANCH
+
+    set_shared_material_policy(seeded, SharedMaterialPolicy(
+        policy_id="smp_1", plan_version_id="plan_1", policy=PRIMARY_HOME,
+        policy_scope=None, reason="The first answer."))
+    freeze_version(seeded, "plan_1")
+
+    new_version = apply_review_action(
+        seeded, p13_fixtures.set_shared_material_policy(
+            "n_root", plan_version="plan_1", policy=SHARED_BRANCH,
+            reason="On reflection a shared branch above the packets is better."),
+        new_version_id="plan_2", created_at=T1, mint_node_id=_ids("n2"),
+        component_version="p10-test")
+
+    rows = _global_policies(seeded, new_version)
+    assert len(rows) == 1
+    assert rows[0]["policy"] == SHARED_BRANCH
+    # The frozen predecessor is untouched: §8.8 makes it immutable.
+    assert _global_policies(seeded, "plan_1")[0]["policy"] == PRIMARY_HOME

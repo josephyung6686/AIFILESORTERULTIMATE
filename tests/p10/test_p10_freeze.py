@@ -190,16 +190,28 @@ def test_an_approved_branch_with_no_refinement_disposition_refuses_the_freeze(se
     assert excinfo.value.reasons
 
 
-def test_a_draft_node_that_was_never_approved_does_not_block_the_freeze(seeded):
-    """The discriminating half: the requirement is on APPROVED branches. A node
-    the user has not approved may still carry `None`, and refusing on it would
-    make the state the user is actually in while editing unfreezable."""
+def test_an_unanswered_node_blocks_the_freeze_when_it_would_be_a_destination(seeded):
+    """This test used to assert the opposite, and the opposite was the defect.
+
+    Its premise was that a node the user "has not approved" may carry `None`,
+    because "refusing on it would make the state the user is actually in while
+    editing unfreezable". That confuses two states. While editing, nothing calls
+    `validate_for_freeze` at all; freezing IS the approval of the version, and a
+    node in the frozen legal set is one P11 may put files into. `n_draft` below
+    is `proposed`, so `derive_accepts_placement` makes it legal — it would have
+    been frozen as a destination with §5.8 unanswered, and
+    `build_destination_index` refuses such a tree WHOLE, one stage later, where
+    the user cannot act on it.
+
+    The requirement is still not blanket; the twin below is what says so.
+    """
     write_node(seeded, _node("n_draft", "Still deciding", parent="n_root",
                              refinement=None, reason=None))
-    assert validate_for_freeze(
+    reasons = validate_for_freeze(
         seeded, plan_version_id="plan_1",
         residual_configuration={"Review Later": "enabled"},
-        approved_branch_ids=("n_root", "n_course")) == ()
+        approved_branch_ids=("n_root", "n_course"))
+    assert [r for r in reasons if "n_draft" in r], reasons
 
 
 def test_a_disabled_residual_template_is_unreachable_after_freeze(seeded):
@@ -364,3 +376,52 @@ def test_the_freeze_gate_is_not_a_blanket_refusal(seeded):
     `tests/integration/test_p11_p10_tree.py`, where importing P11 is legitimate.
     Here: the gate refuses an ABSENCE, not every version."""
     assert _freeze(seeded).shared_material_policy == PRIMARY_HOME
+
+
+# --- §5.8's answer on every node P11 may place into --------------------------------
+
+
+def test_a_node_that_is_not_a_destination_needs_no_refinement_answer(seeded):
+    """The discriminating half: the requirement is not blanket.
+
+    An `ignored` folder and a protected area are both in the frozen tree and
+    neither is a place files go, so neither is a branch the user has to answer
+    §5.8 about. `seeded` already holds both with `refinement="refined"`; this
+    strips the answer off them and the freeze still passes, which is what says
+    the check tracks `accepts_placement` and not merely "every node".
+
+    `approved_branch_ids=()` here is deliberate and is the other half of why the
+    condition is `accepts_placement`: the approved set is what the CALLER names,
+    so a caller that names nothing would get no check at all, while the LEGAL SET
+    is what the freeze record publishes and what P11 indexes.
+    """
+    write_node(seeded, _node("n_ignored", "Old Downloads", node_type="ignored",
+                             refinement=None, reason=None))
+    write_node(seeded, _node("n_app", "Numbers.app", node_type="protected",
+                             refinement=None, reason=None))
+    assert validate_for_freeze(
+        seeded, plan_version_id="plan_1",
+        residual_configuration={"Review Later": "enabled"},
+        approved_branch_ids=()) == ()
+
+
+def test_the_freeze_gate_and_p11s_index_state_one_precondition_between_them(seeded):
+    """The negative twin, and the reason this check is worth its line.
+
+    A tree that passes `validate_for_freeze` must be one `build_destination_index`
+    accepts. Asserting the refusal alone would leave the two free to drift the
+    other way — a freeze stricter than the index would be harmless and a freeze
+    looser than it is exactly the defect. So this drives the real consumer over
+    the real bundle.
+    """
+    from database_agent.db import create_schema
+    from placement.index import build_destination_index
+    from placement.schema import create_placement_schema
+
+    tree = _freeze(seeded, approved_branch_ids=())
+    create_schema(seeded)
+    create_placement_schema(seeded)
+    entries = build_destination_index(seeded, tree, component_version="p10-freeze",
+                                      observed_at=T1)
+    assert {e.node_id for e in entries} == set(tree.freeze_record.legal_destination_ids)
+    assert all(e.refinement_disposition for e in entries)

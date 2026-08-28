@@ -125,10 +125,14 @@ def validate_for_freeze(
 ) -> tuple[str, ...]:
     """Every reason this version cannot be frozen. Empty means it can.
 
-    The `refinement_disposition` rule is stated on APPROVED branches only, and
-    that limit is deliberate. `P10 SPEC:230` requires it on an approved branch;
-    a draft node has not been approved yet, and requiring it everywhere would
-    make the state the user is actually in while editing unfreezable.
+    The `refinement_disposition` rule reaches every node the freeze will publish
+    as a LEGAL DESTINATION, plus whatever the caller names as approved.
+    `P10 SPEC:230` requires it on an approved branch, and freezing IS the
+    approval of the version: a node in the legal set is one P11 may place files
+    into, and §6.7 cannot tell a branch that is shallow on purpose from one
+    nobody finished without the user's own answer. It is still NOT blanket — an
+    `ignored` folder and a protected area are in the tree, are not destinations,
+    and are asked nothing.
     """
     reasons: list[str] = []
     nodes = nodes_for_version(conn, plan_version_id)
@@ -145,7 +149,15 @@ def validate_for_freeze(
             "not contain it")
 
     for node in nodes:
-        if node.node_id in approved and node.refinement_disposition is None:
+        # `accepts_placement` and not only `approved`: `approved_branch_ids` is
+        # what the CALLER names, so a caller that names nothing gets no check,
+        # while the LEGAL SET is what the freeze record publishes and what P11
+        # indexes. `placement/index.py`'s `_entry` raises `FrozenTreeRequired` on
+        # any legal node with a falsy `refinement_disposition`, so a version that
+        # froze without one broke at the consumer — where the user cannot act on
+        # it — instead of here. Same repair, same wording, as the §6.9 gate below.
+        if ((node.node_id in approved or node.accepts_placement)
+                and not node.refinement_disposition):
             reasons.append(
                 f"approved branch {node.node_id!r} ({node.display_label!r}) "
                 "carries no refinement disposition. §5.8 needs it to tell a "
