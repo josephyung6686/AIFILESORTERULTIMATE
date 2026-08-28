@@ -864,11 +864,14 @@ def test_the_cross_domain_escape_exists_and_needs_a_catalogue_that_does_not(
     `TemplateDefinition` with two `TemplateApplicability` rows covers both
     schemas, `schemas` becomes both, and no member is dropped.
 
-    The catch is upstream. `load_catalogue` (`src/tree_design/catalogue.py:117`)
-    reads a compiled manifest, and no such manifest exists in this repository —
-    `load_catalogue` has no caller in `src/` at all. Every cross-domain recipe the
-    corpus's 277 cross-schema `also_holds_with` edges would justify is a recipe
-    nobody has compiled, so on a real run C6 refuses and there is no escape.
+    The catch used to be upstream. `load_catalogue` reads a compiled manifest and
+    had no caller in `src/` at all, so every cross-domain recipe the corpus's 277
+    cross-schema `also_holds_with` edges would justify was a recipe nobody had
+    compiled. `production.load_shipped_catalogue` now compiles one out of the
+    seven shipped library files, and three of its definitions carry rows in more
+    than one schema — so the escape exists on a real run. The two assertions at
+    the end of this test are what record that, and both were inverted the day the
+    caller appeared.
     """
     _catalogue, _definition, _fragment, _row, FragmentRef = _fixture_recipe()
     from p10.test_p10_routing import ALWAYS, RANK, _context, _group
@@ -895,16 +898,37 @@ def test_the_cross_domain_escape_exists_and_needs_a_catalogue_that_does_not(
     text = _src_text()
     callers = {name for name, body in text.items()
                if "load_catalogue(" in body and not name.endswith("catalogue.py")}
-    # `fixtures.py` is excluded, and the gap this test characterises is NOT
-    # closed by it. The gap is that no PRODUCTION path loads a catalogue,
-    # because the authored 200-300 template library does not exist yet.
-    # `tree_design.fixtures.template_library_fixture` builds a one-release
-    # fixture through the real loader precisely so a fixture release the loader
-    # would reject cannot be published — it is deterministic sample data P11
-    # imports, not the library. Narrowing the exclusion rather than deleting the
-    # assertion keeps the real gap characterised: if a pipeline module ever
-    # calls `load_catalogue`, this still fires.
-    assert callers == {"src/tree_design/fixtures.py"}
+    # INVERTED. This assertion used to read `== {"src/tree_design/fixtures.py"}`
+    # and the paragraph above it used to end "so on a real run C6 refuses and
+    # there is no escape". Both were true: `load_catalogue` had no caller in
+    # `src/` at all, so the 22 fragments, 63 definitions and 208 applicability
+    # rows under `src/tree_design/library/` were loaded by nothing and a
+    # production run had no recipes to refuse with.
+    #
+    # `production.load_shipped_catalogue` is the caller. It joins the seven
+    # shipped files into one manifest and hands the bytes to `load_catalogue`,
+    # which still touches no filesystem. `fixtures.py` stays in the set for the
+    # reason it always did — it builds a one-release fixture through the real
+    # loader so a release the loader would reject cannot be published.
+    assert callers == {"src/production.py", "src/tree_design/fixtures.py"}
+
+    # And the escape is no longer hypothetical: the shipped library carries three
+    # definitions with applicability rows in more than one schema, which is
+    # exactly the shape the composable branch above needs. PINNED as a set rather
+    # than counted, so a fourth registers as a change and a lost one does too.
+    from production import load_shipped_catalogue, read_packaged_library_file
+
+    shipped = load_shipped_catalogue(read_packaged_library_file)
+    schemas_by_definition: dict[str, set[str]] = {}
+    for row in shipped.applicabilities.values():
+        schemas_by_definition.setdefault(row.template_id, set()).add(row.uses_schema)
+    assert {name: sorted(schemas)
+            for name, schemas in schemas_by_definition.items()
+            if len(schemas) > 1} == {
+        "def.site-kept-record": ["logistics", "retail_hospitality"],
+        "def.subject-work-record": ["academic", "code", "research"],
+        "def.subject-work-record.third-party": ["academic", "research"],
+    }
 
 
 def test_a_group_the_engine_could_not_categorise_is_refused_by_c6(p10_conn):
