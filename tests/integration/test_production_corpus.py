@@ -55,7 +55,7 @@ from grouping.retrieval import RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import memberships_for_group, record_group, record_membership
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, PENDING_REVIEW, USER, USER_EDITED,
+    ACCEPTED, COHERENT, ENGINE, PENDING_REVIEW, USER, USER_EDITED,
 )
 from llm_harness.records import EvidenceItem
 from placement import vocabulary as pv
@@ -795,7 +795,14 @@ def test_p9_writes_a_category_and_a_label_a_live_run_can_route(conn, tmp_path):
         group.group_id for group in groups if group.group_category is None]
     assert all(group.display_label is not None for group in groups), [
         group.group_id for group in groups if group.display_label is None]
-    assert all(group.coherence_verdict is not None for group in groups)
+    assert all(group.coherence_verdict == COHERENT for group in groups)
+
+    # The assertion that proves P9 MADE the label rather than inheriting one. A
+    # user-typed name supersedes P9's proposal and always could; without this,
+    # every assertion above would pass on a corpus where the engine still wrote
+    # nothing and `--label` supplied the only name there was.
+    assert all(group.label_source == ENGINE for group in groups), [
+        group.label_source for group in groups]
 
     # The half that makes the other three worth asserting: a category outside the
     # closed vocabulary routes exactly as badly as `None` did, so a bare
