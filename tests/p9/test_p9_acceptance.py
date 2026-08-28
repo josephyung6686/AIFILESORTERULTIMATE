@@ -268,7 +268,7 @@ def test_the_user_edited_label_never_overwrites_the_proposed_one(acceptance_conn
 
     record_group(acceptance_conn, _group(
         coherence_verdict="coherent", display_label="PHYS1401 materials",
-        label_source=LLM_PROPOSED, group_category="course"))
+        label_source=LLM_PROPOSED, group_category="academic"))
     record_acceptance(acceptance_conn, _acceptance(
         plan_version_id="plan-2", acceptance=ACCEPTED, review_state=USER_ACCEPTED,
         user_edited_label="Physics I"))

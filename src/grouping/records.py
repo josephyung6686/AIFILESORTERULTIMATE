@@ -23,6 +23,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from facts.domains import SCHEMA_IDS
+
 from grouping.vocabulary import (
     COHERENCE_VERDICTS,
     COHERENT,
@@ -196,6 +198,22 @@ class Group:
             check(self.coherence_verdict, COHERENCE_VERDICTS, name="coherence_verdict")
         if self.label_source is not None:
             check(self.label_source, LABEL_SOURCES, name="label_source")
+        if self.group_category is not None and self.group_category not in SCHEMA_IDS:
+            # M12 settled that `group_category` IS the domain vocabulary and not a
+            # parallel one, so the closed set is P6's and is checked here rather
+            # than restated in P9's own `vocabulary.py` -- a second copy is a
+            # second thing to drift. Refused rather than carried, because P10
+            # selects an applicability row BY this value: an unrecognised one
+            # reaches no row, answers C3, and looks exactly like a group the
+            # library has no template for. A wrong-but-plausible one is worse
+            # still -- it files the material under a schema whose recipes speak
+            # for somebody else's life.
+            raise MalformedGroupRecord(
+                f"group_category={self.group_category!r} is not one of the "
+                f"{len(SCHEMA_IDS)} domains `facts.domains.SCHEMA_IDS` recognises. "
+                "P9 proposes no category of its own and invents none; a domain "
+                "the product does not recognise is a load error, not a label"
+            )
         if not isinstance(self.anchor_count, int) or self.anchor_count < 0:
             raise MalformedGroupRecord("anchor_count is a non-negative count")
 

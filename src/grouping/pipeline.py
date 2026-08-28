@@ -19,6 +19,15 @@ duplicates are removed and a stable order is applied.
 judgement: a candidate that needs one stays `candidate` with a stated reason,
 because a group P9 called coherent without asking would be P9 synthesising a
 verdict.
+
+That sentence is about a candidate that NEEDS a judgement -- one BELOW §4.9's
+independent-anchor bar. A group at or above it has been decided by a rule, not by
+an interpretation: several files independently state the same fact P6 already
+validated. `naming.engine_proposal` is where that is written down, between the
+stop rules and `record_group`, and `label_source = engine` records who said it.
+Every group below the bar still comes out of here with `coherence_verdict`,
+`group_category` and `display_label` all absent, and so does every group whose
+anchor facts state no value.
 """
 from __future__ import annotations
 
@@ -42,6 +51,7 @@ from grouping.graph import (
     meets_support_bar,
 )
 from grouping.learning import group_basis_key
+from grouping.naming import engine_proposal
 from grouping.records import (
     AnchorFact,
     CandidateGroupDossier,
@@ -225,6 +235,12 @@ def _group_for(seed: Seed, *, group_id: str, state: str,
         anchor_facts=facts,
         pre_model_signals={"anchor_count": len(facts)},
         anchor_count=len(facts),
+        # Blank on purpose, and blank ONLY here. This builder runs before the stop
+        # rules, so it cannot know whether the group is going to form at all, and a
+        # verdict written on a group SR4 is about to destroy would be a claim about
+        # material that never became a group. `naming.engine_proposal` fills these
+        # in after `evaluate_stop_rules` returns nothing, which is the first moment
+        # anything true can be said about them.
         coherence_verdict=None,
         coherence_citations=(),
         group_category=None,
@@ -357,6 +373,15 @@ def group_subject(
             seeds=seeds, neighborhood=neighborhood, graph=graph,
             stop_rule_outcome=outcome, group=group)
 
+    # No stop rule fired, so the group forms -- and this is the one place P9 knows
+    # that AND has the anchor facts in hand. `engine_proposal` writes §4.9's own
+    # answer: a group at the independent-anchor bar is `coherent`, named by the
+    # values its files actually state, and categorised by the single domain those
+    # fields belong to -- or by none, when they belong to several. A group below
+    # the bar comes back untouched and is recorded with all four fields still
+    # blank, which is the SPEC's `deferred` row and an honest thing for a
+    # deployment with no model to show.
+    group = engine_proposal(group)
     record_group(conn, group)
     membership = _self_membership(
         group, seed, conflicts=conflicts, created_at=created_at)

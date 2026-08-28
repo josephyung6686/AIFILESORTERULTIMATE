@@ -178,13 +178,26 @@ def test_one_directly_identified_file_becomes_a_group_of_one(pipeline_conn, subj
 
 
 def test_the_deterministic_run_reaches_no_model(pipeline_conn, subject):
-    """`p8_run_call=None` is a legal run, not a failure. What it cannot do is
-    finish a judgement, so the group stays a candidate with a stated reason."""
+    """`p8_run_call=None` is a legal run, not a failure -- and not a mute one.
+
+    It cannot finish the model's judgement, and it says so: `model_result` is
+    None and `not_implemented_reason` names the route nobody took. What it CAN
+    finish is the engine's own, because §4.9's independent-anchor bar is a count
+    over facts P6 validated rather than an interpretation. This subject clears it,
+    so the verdict is written and `label_source` says `engine` -- never
+    `llm-proposed`, which would be this run claiming an answer it never asked for.
+
+    `test_a_group_below_the_support_bar_is_left_unjudged` is the other half: the
+    same run over a subject BELOW the bar writes none of it.
+    """
+    from grouping.vocabulary import COHERENT, ENGINE
+
     result = _run(pipeline_conn, subject)
     assert result.model_result is None
-    assert result.group.coherence_verdict is None
-    assert result.group.display_label is None
     assert result.not_implemented_reason
+    assert result.group.coherence_verdict == COHERENT
+    assert result.group.label_source == ENGINE
+    assert result.group.display_label == "PHYS1401"
 
 
 def test_a_file_with_no_legal_seed_forms_no_group(pipeline_conn, tmp_path):

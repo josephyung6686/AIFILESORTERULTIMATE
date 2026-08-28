@@ -304,6 +304,28 @@ def apply_p8_verdict(
 
     `NeedsConsent` is returned unchanged and writes nothing: it is a question for
     the user, not an outcome, and a P9 row about it would be P9 answering it.
+
+    **This function writes no `group_category` and no `display_label`, and that is
+    a decision rather than an omission.** §4.5 task 4 IS the model's -- it proposes
+    both, and P8's validator has a reason code for proposing them without
+    coherence (`LABEL_WITHOUT_COHERENCE`). But `P8Verdict`
+    (`llm_harness/records.py:388`) has no field for either, so the answer the model
+    gave never arrives here. Deriving one from `result.outcome` would be P9
+    authoring the model's proposal on its behalf, which is the one thing this file
+    exists not to do.
+
+    It writes no `coherence_verdict` either, and that one is a REPORTED GAP rather
+    than a settled rule: `result.outcome` genuinely carries P8's coherence answer,
+    but the group is already on disk by the time this runs (`pipeline.py` records
+    it before the dossier, so the engine's reason exists before the model sees
+    anything, per §4.1). §8.2 permits a record to be superseded and never
+    overwritten, and a superseding group row needs a new `group_id` -- which every
+    membership written below, every `group_acceptance` row, and
+    `GroupingResult.group` still name by the old one. That is a record-lifecycle
+    change across the acceptance seam, not a field fix, and it is not taken here
+    quietly. What P8 said is still on disk and still attributable: the memberships
+    carry `validation_verdict_ref`, an SR5 refusal becomes a `StopRuleOutcome`, and
+    a failed or refused call becomes a `FailurePoint`.
     """
     if isinstance(result, NeedsConsent):
         return result
