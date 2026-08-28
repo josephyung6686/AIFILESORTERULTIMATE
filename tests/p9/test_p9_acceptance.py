@@ -293,3 +293,214 @@ def test_plan_version_id_is_on_exactly_one_p9_table(acceptance_conn):
         }
     ]
     assert carrying == ["group_acceptance"]
+
+
+# --- "as of" is a question about lineage, not about one id -----------------------
+#
+# §8.8 mints a NEW plan version for every recorded edit -- a rename, a reorder, a
+# moved branch -- and §5.12 says the user may "change the visual organization
+# without destroying the underlying evidence". Resolved on the exact
+# `plan_version_id` alone, the acceptance the user gave named an ancestor of every
+# later version, so §6.8's group pass could not run against any tree the user had
+# ever touched. `tests/integration/test_p10_p11_live_seam.py` proves that end to
+# end over P10's real chain; these pin the rule itself, and each negative below
+# exists because the positive alone cannot tell a correct fix from one that makes
+# every acceptance survive unconditionally.
+#
+# The lineage is written through P10's OWN writer against P10's OWN table. A
+# hand-rolled `CREATE TABLE plan_versions` here would be a copy that can drift
+# from the schema P9 actually reads, and a test against a copy would prove only
+# that this file and itself agree. It also enforces `predecessor_id`'s foreign
+# key, which is why each chain below is written from its root down.
+
+
+@pytest.fixture()
+def versioned_conn(acceptance_conn):
+    from tree_design.schema import create_tree_schema
+
+    create_tree_schema(acceptance_conn)
+    return acceptance_conn
+
+
+def _chain(conn, *versions: str) -> None:
+    """Record `versions` as one line of descent, root first."""
+    from tree_design.records import PlanVersion
+    from tree_design.store import write_plan_version
+
+    predecessor = None
+    for version in versions:
+        write_plan_version(conn, PlanVersion(
+            plan_version_id=version, predecessor_id=predecessor, state="draft",
+            created_at=T0, cross_folder_moves=False, selection_id="sel-1"))
+        predecessor = version
+
+
+def test_an_acceptance_survives_the_versions_the_users_edits_mint(versioned_conn):
+    """The user accepts a packet, then renames two folders. It is still accepted.
+
+    This is the defect in one sentence: two edits, and the group the user approved
+    stops being approved with nothing to tell them. `plan-1` holds the acceptance;
+    `plan-3` is two edits later and inherits it.
+    """
+    from grouping.store import record_group
+
+    record_group(versioned_conn, _group(state=SUPPORTED))
+    _chain(versioned_conn, "plan-1", "plan-2", "plan-3")
+    record_acceptance(versioned_conn, _acceptance(plan_version_id="plan-1"))
+
+    assert group_state_as_of(
+        versioned_conn, group_id=GROUP, plan_version_id="plan-3") == ACCEPTED
+
+
+def test_an_acceptance_does_not_reach_a_version_that_did_not_descend_from_it(
+    versioned_conn,
+):
+    """The negative twin. Inheritance that ignores the ancestry is not inheritance.
+
+    `plan-9` is a real recorded version in a real line of descent, and `plan-1` is
+    not in it. It gets the SHARED state, because an opinion the user gave in one
+    line of plan versions is not an opinion they gave in another -- and a fix that
+    simply let any acceptance anywhere count would pass the test above and fail
+    this one.
+    """
+    from grouping.store import record_group
+
+    record_group(versioned_conn, _group(state=SUPPORTED))
+    _chain(versioned_conn, "plan-1", "plan-2")
+    _chain(versioned_conn, "plan-8", "plan-9")
+    record_acceptance(versioned_conn, _acceptance(plan_version_id="plan-1"))
+
+    assert group_state_as_of(
+        versioned_conn, group_id=GROUP, plan_version_id="plan-9") == SUPPORTED
+
+
+def test_the_nearest_decision_wins_and_an_older_acceptance_does_not_resurrect_it(
+    versioned_conn,
+):
+    """The second negative twin, and the one a monotone "everything survives" fix
+    gets wrong in the most damaging direction.
+
+    The user accepted the group, then rejected it, then renamed a folder.
+    `plan-3` inherits the REJECTION, because that is the decision closest to it.
+    Reaching past `plan-2` to `plan-1` would resurface a proposal the user had
+    already turned down, which is the §8.7 failure the negative-feedback store
+    exists to prevent.
+    """
+    from grouping.store import record_group
+
+    record_group(versioned_conn, _group(state=SUPPORTED))
+    _chain(versioned_conn, "plan-1", "plan-2", "plan-3")
+    record_acceptance(versioned_conn, _acceptance(
+        acceptance_id="acc-yes", plan_version_id="plan-1", acceptance=ACCEPTED))
+    record_acceptance(versioned_conn, _acceptance(
+        acceptance_id="acc-no", plan_version_id="plan-2", acceptance=REJECTED,
+        review_state=USER_REJECTED))
+
+    assert group_state_as_of(
+        versioned_conn, group_id=GROUP, plan_version_id="plan-3") == REJECTED
+
+
+def test_a_version_that_is_still_deciding_is_not_overruled_by_its_predecessor(
+    versioned_conn,
+):
+    """`deferred` is an opinion. It ends the walk even though it is not returned.
+
+    A version holding `deferred` is a version the user has not finished with.
+    Answering it with the predecessor's `accepted` would report a decision as made
+    in the very version that recorded it as not made.
+    """
+    from grouping.store import record_group
+
+    record_group(versioned_conn, _group(state=SUPPORTED))
+    _chain(versioned_conn, "plan-1", "plan-2")
+    record_acceptance(versioned_conn, _acceptance(
+        acceptance_id="acc-yes", plan_version_id="plan-1", acceptance=ACCEPTED))
+    record_acceptance(versioned_conn, _acceptance(
+        acceptance_id="acc-wait", plan_version_id="plan-2", acceptance=DEFERRED,
+        review_state=DEFERRED))
+
+    assert group_state_as_of(
+        versioned_conn, group_id=GROUP, plan_version_id="plan-2") == SUPPORTED
+
+
+def test_the_walk_needs_a_recorded_lineage_and_does_not_invent_one(versioned_conn):
+    """A version nobody recorded has no ancestry, so it inherits nothing.
+
+    `plan-2` here is a bare id, not a plan version. This is what keeps the shared
+    `Group.state` reachable at all, and it is why the P9-only tests above -- run
+    against a database with no `plan_versions` table -- still describe the same
+    function.
+    """
+    from grouping.store import record_group
+
+    record_group(versioned_conn, _group(state=SUPPORTED))
+    _chain(versioned_conn, "plan-1")
+    record_acceptance(versioned_conn, _acceptance(plan_version_id="plan-1"))
+
+    assert group_state_as_of(
+        versioned_conn, group_id=GROUP, plan_version_id="plan-2") == SUPPORTED
+
+
+def test_a_cycle_in_the_ancestry_terminates(versioned_conn):
+    """`predecessor_id` is a self-reference with no cycle constraint, so a cycle is
+    reachable and would otherwise be an unkillable loop inside a read."""
+    from grouping.store import record_group
+
+    record_group(versioned_conn, _group(state=SUPPORTED))
+    _chain(versioned_conn, "plan-2", "plan-3")
+    versioned_conn.execute(
+        "UPDATE plan_versions SET predecessor_id = ? WHERE plan_version_id = ?",
+        ("plan-3", "plan-2"))
+
+    assert group_state_as_of(
+        versioned_conn, group_id=GROUP, plan_version_id="plan-3") == SUPPORTED
+
+
+# --- the same rule for a membership's review obligation --------------------------
+
+
+def test_an_unanswered_review_obligation_survives_an_edit(versioned_conn):
+    """The obligation that keeps an uncertain member from being a silent decision.
+
+    `record_context_review_pending` writes it in the version that proposed the
+    member. If it stopped being findable the moment the user renamed a folder, a
+    `context-supported` file would be visible in the plan with nothing recording
+    that anyone still owes it a review.
+    """
+    _chain(versioned_conn, "plan-1", "plan-2")
+    record_context_review_pending(
+        versioned_conn, plan_version_id="plan-1", group_id=GROUP,
+        membership_id=MEMBERSHIP, created_at=T0)
+
+    assert membership_review_state_as_of(
+        versioned_conn, membership_id=MEMBERSHIP,
+        plan_version_id="plan-2") == PENDING_REVIEW
+
+
+def test_an_answered_review_is_not_asked_again_after_an_edit(versioned_conn):
+    """The other direction, and the one the user feels. Having accepted the member,
+    they rename a folder; the acceptance is what carries, not the question."""
+    _chain(versioned_conn, "plan-1", "plan-2")
+    first = record_context_review_pending(
+        versioned_conn, plan_version_id="plan-1", group_id=GROUP,
+        membership_id=MEMBERSHIP, created_at=T0)
+    record_acceptance(versioned_conn, _acceptance(
+        acceptance_id="acc-answered", plan_version_id="plan-1",
+        membership_id=MEMBERSHIP, acceptance=ACCEPTED,
+        review_state=USER_ACCEPTED, created_at=T1, supersedes=first,
+        supersede_reason="the user accepted the member"))
+
+    assert membership_review_state_as_of(
+        versioned_conn, membership_id=MEMBERSHIP,
+        plan_version_id="plan-2") == USER_ACCEPTED
+
+
+def test_inheriting_is_still_not_deriving(versioned_conn):
+    """The negative twin for the membership accessor. A membership no version in
+    the ancestry ever spoke about still raises: absence is not a state, and a walk
+    that returned `pending-review` for one would be the basis-derived default this
+    accessor refuses, reached by a longer route."""
+    _chain(versioned_conn, "plan-1", "plan-2")
+    with pytest.raises(AcceptanceStateAbsent):
+        membership_review_state_as_of(
+            versioned_conn, membership_id=MEMBERSHIP, plan_version_id="plan-2")

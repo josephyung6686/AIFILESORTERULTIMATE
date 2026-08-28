@@ -1040,7 +1040,7 @@ def _fresh(corpus):
     return seed_seam_corpus(conn, root)
 
 
-# --- the break this file found and does not own -------------------------------------
+# --- the break this file found, and the part that owned it closed --------------------
 
 
 def test_the_acceptance_the_user_gave_is_visible_under_the_version_it_was_given_in(
@@ -1061,51 +1061,44 @@ def test_the_acceptance_the_user_gave_is_visible_under_the_version_it_was_given_
 
 
 def test_an_accepted_group_is_still_accepted_as_of_the_version_p10_froze(corpus):
-    """§6.8's group-aware placement is unreachable on any tree the user edited.
+    """§6.8's group pass, over a tree the user has edited three times.
 
-    THE SAME identity problem as §8.8's, one part further up, and it is the
-    reason this file exists. `group_acceptance` is keyed on `plan_version_id`.
-    P10's chain opens a NEW plan version for every recorded edit (§8.8: "When the
-    user edits the tree, the product should create a draft plan version"), so by
-    the time the tree is frozen the acceptance names an ancestor of the adopted
-    version and not the adopted version itself.
+    THE SAME identity problem as §8.8's, one part further up, and it is the reason
+    this file exists. `group_acceptance` is keyed on `plan_version_id`. P10's chain
+    opens a NEW plan version for every recorded edit (§8.8: "When the user edits
+    the tree, the product should create a draft plan version"), so by the time the
+    tree is frozen the acceptance names an ANCESTOR of the adopted version and not
+    the adopted version itself. Resolved on the exact id, `group_state_as_of` fell
+    back to the SHARED `Group.state` -- `supported`, which is what the group IS and
+    not what any version decided -- and `accepted_group_as_of` refused. Every group
+    placement raised `GroupNotAcceptedInVersion`, so `place_group` and
+    `run_corpus`'s §6.8 pass could not run against a real P10 tree at all.
 
-    `group_state_as_of` then finds no opinion for the frozen version and falls
-    back to the SHARED `Group.state` — `supported`, which is what the group IS
-    and not what any version decided — and `accepted_group_as_of` refuses. So
-    `place_group` and `run_corpus`'s §6.8 pass cannot run against a real P10
-    tree at all: every group placement raises `GroupNotAcceptedInVersion`.
+    Fixed in P9, which is the part that owns "as of a plan version".
+    `grouping.acceptance` now resolves the nearest opinion along the version's own
+    ancestry (`plan_versions.predecessor_id`), which is §5.12's "the user can
+    change the visual organization without destroying the underlying evidence"
+    and §8.9's "evolve without destabilizing accepted structure" made operative.
+    The other two candidate sites stayed shut: P10 writing P9's table is what
+    `test_freeze_is_a_view_over_the_evidence` forbids by name, and P11 asking as of
+    an earlier version would have put the version's definition of itself in the
+    consumer.
 
-    Measured, not inferred: `plan_0` answers `accepted` (the test above) and the
-    frozen version answers `supported`.
-
-    **Not fixed here, deliberately.** The three places it could be fixed are
-    `grouping.acceptance.group_state_as_of` walking the plan-version lineage
-    (P9's file), `open_draft` carrying acceptances forward (P10 writing P9's
-    table, which `test_freeze_is_a_view_over_the_evidence` forbids by name), or
-    `accepted_group_as_of` asking as of an earlier version (a cross-part read of
-    `plan_versions` that no contract declares). Choosing among those is a P9/P10
-    contract decision, and inventing one inside the part that merely NOTICED it
-    is how a seam acquires a second opinion.
-
-    `xfail(strict=True)`: it reports the gap today and turns the suite RED the
-    moment someone closes it, which forces the marker off rather than leaving a
-    stale exemption behind.
+    The chain this corpus actually builds is `plan_0 -> plan_6 -> plan_12 ->
+    plan_19(frozen)`, and the acceptance is on `plan_0`. Measured, not inferred:
+    the test above reads it under `plan_0`, this one reads it three edits later.
     """
     from placement.groups import accepted_group_as_of
 
-    from p10.seam_corpus import GROUP_ID
+    from p10.seam_corpus import GROUP_ID, PLAN_0
 
     result = run_p10(corpus)
     index(corpus, result)
+    frozen = result.tree.plan_version_id
+    # The premise, asserted rather than assumed: the version P10 froze is not the
+    # version the user accepted in. Without this the test would still pass the day
+    # P10 stopped minting, and would then be proving nothing.
+    assert frozen != PLAN_0
     group = accepted_group_as_of(corpus.conn, group_id=GROUP_ID,
-                                 plan_version=result.tree.plan_version_id)
+                                 plan_version=frozen)
     assert len(group.memberships) == 3
-
-
-test_an_accepted_group_is_still_accepted_as_of_the_version_p10_froze = pytest.mark.xfail(
-    strict=True,
-    reason="P9 keys acceptance on one plan_version_id and P10 mints a new "
-           "version per edit, so §6.8's group pass cannot run against a real "
-           "P10 tree. XPASSes and fails the suite the moment it is fixed.",
-)(test_an_accepted_group_is_still_accepted_as_of_the_version_p10_froze)
