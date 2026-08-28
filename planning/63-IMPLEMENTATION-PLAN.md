@@ -116,3 +116,42 @@ twice. It carries §5.10's six existing-folder gestures and the five unimplement
   are owner decisions and are listed there to be answered, not assumed.
 - It sets no dates. Every item above is gated on the one before it, and the gate in §0 is gated
   on work that is still in flight.
+
+---
+
+## 8. G9 result — what the connection audit actually shows, and what it cannot
+
+Run 2026-08-29 against a refreshed graph (32,946 nodes, 57,756 edges, 1,647 communities).
+
+**graphify orients; it does not prove a connection.** Its `path` output distinguishes
+`calls [EXTRACTED]` from `imports` and `[INFERRED]`, and only the first is evidence.
+`load_shipped_catalogue --calls--> load_catalogue` is one hop and real. But
+`run_production_corpus → place_file` resolves as three hops of **imports** through `cli.py`,
+and `Detector → assign` as an **inferred** type relationship through `ClassificationRecord`.
+Under this project's own rule those prove nothing:
+
+> *A seam is verified when the caller's arguments have been bound against the callee's live
+> signature, or when a test drives the real callee end to end — never when a reference chain
+> exists between them.*
+
+So the connection claim rests on the seam tests — `test_production_corpus.py`,
+`test_p10_p11_live_seam.py`, `test_recognition_seam.py` — and the graph is a map, not a proof.
+This is worth stating because a graph that shows everything joined is exactly what this
+codebase looked like while eight seam breaks sat inside it.
+
+**A textual screen of `src/`** found 364 of 1,188 public definitions with no reference from any
+other `src/` file. **That is a screening list and not a defect list** — most are exception
+classes raised in their own module, or `cli.py`'s own helpers. Three are whole capabilities and
+are the real finding, each defined in one file, referenced by no other `src/` file, and covered
+by two to five test files:
+
+| capability | file | tests | note |
+|---|---|---|---|
+| the adversarial gate | `eval_harness/adversarial.py` | 2 | `run_gate`, `run_case`, `load_all_cases`, `build_case_bundle` |
+| content verification | `database_agent/verify.py` | 3 | `verify_content`, `confirm_cross_volume_copy` |
+| the older vector store | `database_agent/vectors.py` | 5 | `put_embedding`/`get_embedding`, apparently superseded by `vector_versions.py`, which is what `grouping/embeddings.py` actually imports |
+
+The third is probably dead code rather than a broken chain, and dead code that ships with five
+test files is its own hazard: it reads as a supported path. **None of the three is chased here.**
+They are recorded because the honest answer to "is everything connected" is *no, and here are
+the three places*, not a green tick.
