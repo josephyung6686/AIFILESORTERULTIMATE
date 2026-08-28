@@ -361,3 +361,13 @@ and H8's rename stands: **`authorization` is correct in `src/`, and the catalogu
 to match it.** The peer's concern is right in substance — one concept must not carry two
 spellings across two stores — but the direction of the fix runs from `54`'s `authorisation`
 toward `00`, not the other way.
+
+**A blind spot in the signature method itself, worth stating so the next census does not
+re-raise all of these.** A signature check follows key *spellings*. **Any key that arrives by
+an adjudicated redirect will therefore read as unsigned** — the row signed one spelling and
+`47`/`48`/`49` sent it to another. Four of the five entries above are exactly that shape
+(`sponsor`→`institution`, `programme`→`project`, `workforce_member`→`subject_of_record`,
+`fiscal_period`→`record_period`). The census is still worth running: it caught a real
+over-declaration on `logistics` that no reading of the adjudications would have surfaced.
+But its output is "no *spelling* signature", not "no signature", and the two must not be
+confused — the first is a prompt to find the redirect, the second is a defect.
