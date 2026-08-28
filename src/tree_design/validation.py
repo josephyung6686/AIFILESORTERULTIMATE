@@ -122,16 +122,21 @@ def _v3(candidate: MaterialisedCandidate,
         limits: TreeLimits) -> CheckFailure | None:
     """Exceeds practical depth limits.
 
-    The number is `tree.max_folder_proposals_and_depth`, read from P1. §5.7 and
-    §8.6 both decline to state one, so there is nothing to hard-code.
+    The number is `tree.max_depth`, read from P1. §5.7 and §8.6 both decline to
+    state one, so there is nothing to hard-code.
+
+    It used to be `tree.max_folder_proposals_and_depth`, the single key P1
+    published for the two numbers `00`:256 names -- which meant a depth limit
+    large enough for `00`:78's own five-level tree was also a picker offering
+    five options per branch. Depth is the reader that left when the key split.
     """
     folder_levels = [level for level in candidate.levels if not level.metadata_only]
     depth = candidate.ancestor_depth + len(folder_levels)
-    if depth > limits.max_folder_proposals_and_depth:
+    if depth > limits.max_depth:
         return CheckFailure(
             "V3",
             f"the candidate reaches depth {depth}, above the configured "
-            f"{limits.max_folder_proposals_and_depth}",
+            f"{limits.max_depth}",
             tuple(level.dimension_role for level in folder_levels),
         )
     return None

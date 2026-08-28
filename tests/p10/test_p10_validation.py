@@ -23,7 +23,8 @@ from tree_design.validation import (
 
 @pytest.fixture()
 def limits(conn):
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 4)
+    set_ceiling(conn, "tree.max_folder_proposals", 4)
+    set_ceiling(conn, "tree.max_depth", 4)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     return tree_limits(
         conn, excessive_depth_warning=3, tiny_folder_max_files=2,
@@ -101,7 +102,7 @@ def test_v3_depth_is_measured_against_configuration_never_a_constant(limits):
     candidate = _candidate(levels, ancestors=("root",), depth=2)
     report = run_checks(candidate, report_id="vr_1", limits=limits, **CHECK_ARGS)
     assert [f.check for f in report.failures] == ["V3"]
-    assert str(limits.max_folder_proposals_and_depth) in report.failures[0].reason
+    assert str(limits.max_depth) in report.failures[0].reason
 
 
 def test_v3_cannot_run_without_a_configured_depth(conn):

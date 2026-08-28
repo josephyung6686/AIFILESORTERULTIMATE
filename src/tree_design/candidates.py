@@ -469,7 +469,7 @@ def vertical_options(
         # disagree with the tree beside it.
         if evidence is not None:
             evidence = narrow_wide_date_levels(
-                evidence, max_folders=limits.max_folder_proposals_and_depth)
+                evidence, max_folders=limits.max_folder_proposals)
         built = None if evidence is None else preview(candidate, evidence)
         counts = {} if evidence is None else child_counts(evidence)
         children = () if built is None else _child_previews(built)

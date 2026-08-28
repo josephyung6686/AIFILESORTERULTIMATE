@@ -4,11 +4,12 @@ from database_agent.budget import CEILING_KEYS, all_ceilings, get_ceiling, set_c
 from database_agent.db import create_schema
 
 
-def test_there_are_exactly_sixteen_keys():
+def test_there_are_exactly_seventeen_keys():
     # §8.6's twelve, three of them namespaced across two owners (O10) = fifteen,
-    # plus `evidence.context_window` ratified 2026-08-20.
-    assert len(CEILING_KEYS) == 16
-    assert len(set(CEILING_KEYS)) == 16
+    # plus `evidence.context_window` ratified 2026-08-20, plus `tree.max_depth`
+    # 2026-08-29 -- the second of the two numbers `00`:256 names on one line.
+    assert len(CEILING_KEYS) == 17
+    assert len(set(CEILING_KEYS)) == 17
 
 
 def test_grouping_and_placement_resolve_independently(conn):
@@ -20,7 +21,7 @@ def test_grouping_and_placement_resolve_independently(conn):
     assert get_ceiling(conn, "placement.max_retrieved_neighbors") == 8
 
 
-def test_all_sixteen_keys_are_readable(conn):
+def test_all_seventeen_keys_are_readable(conn):
     create_schema(conn)
     for key in CEILING_KEYS:
         set_ceiling(conn, key, 1)
@@ -49,12 +50,30 @@ def test_the_sixteenth_key_is_the_evidence_context_window(conn):
     number, which was honest and left the ceiling homeless."""
     from database_agent.budget import CEILING_KEYS, get_ceiling, set_ceiling
     assert "evidence.context_window" in CEILING_KEYS
-    assert len(CEILING_KEYS) == 16
+    assert len(CEILING_KEYS) == 17
     set_ceiling(conn, "evidence.context_window", 400)
     assert get_ceiling(conn, "evidence.context_window") == 400
 
 
-def test_a_seventeenth_key_is_still_rejected(conn):
+def test_the_seventeenth_key_is_the_tree_depth_ceiling(conn):
+    """2026-08-29. `00`:256 reads "Maximum folder proposals and maximum depth" --
+    two numbers on one line, where every other line in that list is one. P1
+    published one key for both and P10 read the single value four times, two of
+    them wanting opposite values: `00`:78's own recommended tree is five levels
+    deep and a picker offering five options per branch is not a picker.
+
+    Splitting publishes what §8.6 already names. It adds no ceiling the design
+    does not state, which is the only reason it is not a contract act."""
+    assert "tree.max_folder_proposals" in CEILING_KEYS
+    assert "tree.max_depth" in CEILING_KEYS
+    assert "tree.max_folder_proposals_and_depth" not in CEILING_KEYS
+    set_ceiling(conn, "tree.max_folder_proposals", 4)
+    set_ceiling(conn, "tree.max_depth", 5)
+    assert get_ceiling(conn, "tree.max_folder_proposals") == 4
+    assert get_ceiling(conn, "tree.max_depth") == 5
+
+
+def test_an_eighteenth_key_is_still_rejected(conn):
     """The key set stays closed: adding one is a contract act, not a call."""
     from database_agent.budget import set_ceiling
     with pytest.raises(KeyError):

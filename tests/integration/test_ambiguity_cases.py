@@ -594,7 +594,8 @@ def _limits(conn):
 
     from database_agent.budget import set_ceiling
 
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     return tree_limits(
         conn, excessive_depth_warning=5, tiny_folder_max_files=2,

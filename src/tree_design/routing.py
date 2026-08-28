@@ -557,7 +557,7 @@ def route_branch(
     refusal on every candidate.
 
     Ranking is injected because the design fixes no weights, and the ceiling is
-    P1's `tree.max_folder_proposals_and_depth`. Surplus candidates are DEFERRED
+    P1's `tree.max_folder_proposals`. Surplus candidates are DEFERRED
     and counted, never silently dropped: §8.6 requires the interface to "show the
     difference between completed work and deferred work".
 
@@ -664,9 +664,9 @@ def route_branch(
 
     ranked = list(rank_candidates(candidates))
     deferred = 0
-    if limits is not None and len(ranked) > limits.max_folder_proposals_and_depth:
-        deferred = len(ranked) - limits.max_folder_proposals_and_depth
-        ranked = ranked[:limits.max_folder_proposals_and_depth]
+    if limits is not None and len(ranked) > limits.max_folder_proposals:
+        deferred = len(ranked) - limits.max_folder_proposals
+        ranked = ranked[:limits.max_folder_proposals]
 
     return RoutingReport(
         candidates=tuple(ranked),

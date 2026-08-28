@@ -337,7 +337,8 @@ def _limits(conn, **over):
     from database_agent.budget import set_ceiling
     from tree_design.config import tree_limits
 
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     kwargs = dict(excessive_depth_warning=3, tiny_folder_max_files=2,
                   tiny_folder_count_warning=3,
@@ -856,7 +857,8 @@ def test_example_members_is_a_sample_and_the_count_is_not(conn):
         by_value.setdefault(f"v{index % 5}", set()).add(name)
     options = _options(conn, _evidence(_level("d", "d", 0, by_value)), "d")
 
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     limits = tree_limits(conn, excessive_depth_warning=3, tiny_folder_max_files=2,
                          tiny_folder_count_warning=3,

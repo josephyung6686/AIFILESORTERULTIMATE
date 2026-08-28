@@ -508,7 +508,8 @@ def test_the_router_returns_a_bounded_ranked_set_not_every_match(conn):
     """
     from database_agent.budget import set_ceiling
 
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 1)
+    set_ceiling(conn, "tree.max_folder_proposals", 1)
+    set_ceiling(conn, "tree.max_depth", 1)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     limits = tree_limits(
         conn, excessive_depth_warning=6, tiny_folder_max_files=3,

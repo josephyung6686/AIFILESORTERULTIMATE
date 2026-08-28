@@ -124,7 +124,11 @@ CEILING_VALUE: int = 8
 
 #: §5.7's and §5.9's tree bounds. `00` states no numbers for these either.
 TREE_LIMITS = TreeLimits(
-    max_folder_proposals_and_depth=5, max_dossier_tokens=4000,
+    # `00`:256's two numbers, since P1 publishes them separately. Four options
+    # is a picker a person can read; five levels is `00`:78's own recommended
+    # tree, `Academics/Columbia/2026-Spring/PHYS1401/Homework`, which a depth
+    # limit of four would refuse.
+    max_folder_proposals=4, max_depth=5, max_dossier_tokens=4000,
     excessive_depth_warning=4, tiny_folder_max_files=1,
     tiny_folder_count_warning=2,
     # §5.9's flattening test. A deployment with no retrieval telemetry cannot

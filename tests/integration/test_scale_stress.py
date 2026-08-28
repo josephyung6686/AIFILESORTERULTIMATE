@@ -143,7 +143,8 @@ def _node_at(node_id, parent, label, dimension=None) -> Node:
 
 
 def _limits(conn, **over):
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     kwargs = dict(excessive_depth_warning=3, tiny_folder_max_files=2,
                   tiny_folder_count_warning=3,
@@ -596,7 +597,7 @@ def test_nothing_caps_the_number_of_folders_one_split_would_create(conn):
 
     # The ceiling is set to six, the value P10's own tests use.
     option = _picker(conn, evidence, ("capture_date",))[0]
-    print(f"\n  ceiling max_folder_proposals_and_depth = 6"
+    print(f"\n  ceilings max_folder_proposals = max_depth = 6"
           f"\n  folders this one option would create   = "
           f"{option.total_child_branches}"
           f"\n  summary the user reads: {option.summary}")
@@ -1064,8 +1065,8 @@ def test_the_budget_that_scales_with_the_corpus_is_enforced():
 
 
 def test_one_ceiling_can_serve_both_the_picker_and_the_depth_limit(conn):
-    """P1 publishes `tree.max_folder_proposals_and_depth` as ONE key and P10 uses
-    the single value for two unrelated things, which `config.py` documents:
+    """P1 published `tree.max_folder_proposals_and_depth` as ONE key and P10 used
+    the single value for two unrelated things, which `config.py` documented:
     `routing.py:481` caps how many OPTIONS the picker offers, and
     `validation.py:130` refuses a candidate whose DEPTH exceeds it.
 
@@ -1092,16 +1093,25 @@ def test_one_ceiling_can_serve_both_the_picker_and_the_depth_limit(conn):
                 for index, role in enumerate(roles)),
         )
 
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 4)
-    four = tree_limits(conn, excessive_depth_warning=9, tiny_folder_max_files=2,
-                       tiny_folder_count_warning=3,
-                       materially_improves_retrieval=lambda preview: None)
-    failure = _v3(academic_candidate(), four)
-    print(f"\n  ceiling=4 (a readable picker): V3 says "
+    # `00`:256 names TWO numbers on one line -- "Maximum folder proposals and
+    # maximum depth" -- and P1 published one key for both, which `config.py`
+    # recorded as a complaint: that single value caps the picker's OPTIONS, a
+    # candidate's DEPTH, a date level's WIDTH and the sample size of the printed
+    # lists. The first two want opposite values and no P10 change can reconcile
+    # them. P1 now publishes the two numbers the design names.
+    set_ceiling(conn, "tree.max_folder_proposals", 4)
+    set_ceiling(conn, "tree.max_depth", 5)
+    set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
+    limits = tree_limits(conn, excessive_depth_warning=9, tiny_folder_max_files=2,
+                         tiny_folder_count_warning=3,
+                         materially_improves_retrieval=lambda preview: None)
+    failure = _v3(academic_candidate(), limits)
+    print(f"\n  picker ceiling=4, depth ceiling=5: V3 says "
           f"{failure.reason if failure else 'accepted'}")
     assert failure is None, (
-        "with the ceiling at 4 -- four options, which is a readable picker -- V3 "
-        f"refuses `00`:78's own recommended tree: {failure.reason}. Raising it "
-        "so the tree passes raises the number of options the picker offers by "
-        "the same amount, because P1 publishes one key for both."
+        "with four options -- a readable picker -- V3 still refuses `00`:78's "
+        f"own recommended tree: {failure.reason}"
     )
+    # And the two are genuinely independent: a picker of four, a tree of five.
+    assert limits.max_folder_proposals == 4
+    assert limits.max_depth == 5

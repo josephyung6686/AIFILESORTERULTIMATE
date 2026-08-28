@@ -293,7 +293,7 @@ def _route(conn, groups, *, signals):
     report = route_branch(
         conn, load_shipped_catalogue(read_packaged_library_file), context,
         limits=TreeLimits(
-            max_folder_proposals_and_depth=5, max_dossier_tokens=4000,
+            max_folder_proposals=5, max_depth=5, max_dossier_tokens=4000,
             excessive_depth_warning=4, tiny_folder_max_files=1,
             tiny_folder_count_warning=4,
             materially_improves_retrieval=lambda _option: True),

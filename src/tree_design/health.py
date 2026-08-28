@@ -50,7 +50,7 @@ def sample_size(limits: TreeLimits) -> int:
     `test_one_ceiling_can_serve_both_the_picker_and_the_depth_limit` is the
     standing evidence that P1 should publish more than one.
     """
-    return limits.max_folder_proposals_and_depth
+    return limits.max_folder_proposals
 
 
 @dataclass(frozen=True)
@@ -313,7 +313,7 @@ def warnings_for(
     **Excessive depth.** `00`:78 forbids reading depth by itself as a defect —
     "The canvas must support uneven depth ... One branch may require four levels,
     while another should remain flat" — and the ABSOLUTE depth limit is §5.7's
-    V3, which uses §8.6's published `tree.max_folder_proposals_and_depth` and
+    V3, which uses §8.6's published `tree.max_folder_proposals` and
     REFUSES rather than advises. So the advice cannot be a second absolute-depth
     rule with a number nobody published. What `00`:78 does say is that a branch
     "should offer the dimensions that are actually present in its member groups";

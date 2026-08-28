@@ -34,7 +34,8 @@ from tree_design.vocabulary import (
 
 @pytest.fixture()
 def limits(conn):
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     return tree_limits(
         conn, excessive_depth_warning=3, tiny_folder_max_files=2,
@@ -160,7 +161,8 @@ def test_the_flatten_recommendation_stays_silent_while_the_test_is_unauthored(li
 
 
 def test_the_flatten_recommendation_fires_once_a_test_says_no(conn):
-    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
     set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
     limits = tree_limits(
         conn, excessive_depth_warning=3, tiny_folder_max_files=2,

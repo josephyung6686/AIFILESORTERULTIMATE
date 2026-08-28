@@ -53,7 +53,7 @@ def corpus(conn, tmp_path):
 
 
 def limits(**over) -> TreeLimits:
-    values = dict(max_folder_proposals_and_depth=5, max_dossier_tokens=4000,
+    values = dict(max_folder_proposals=5, max_depth=5, max_dossier_tokens=4000,
                   excessive_depth_warning=4, tiny_folder_max_files=1,
                   tiny_folder_count_warning=4,
                   materially_improves_retrieval=lambda _option: True)
