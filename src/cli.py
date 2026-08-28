@@ -823,13 +823,22 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         prog="database-agent",
         description="Read a directory, propose a folder tree for it, and say "
                     "where each file would go. Nothing is moved.")
-    parser.add_argument("directory", type=Path, help="the folder to read")
+    # These three are required for a run and are NOT marked required here, because
+    # `--list-situations` exists to tell a person what to pass to `--situation`. A
+    # discovery flag that requires the answer it supplies is a closed door: the only
+    # way to learn a situation name would be to already know one. argparse cannot
+    # express "required unless another flag is set", so the requirement is enforced
+    # below, after the listing returns, and it is enforced through `parser.error`
+    # so the message and the exit code are the ones argparse would have given.
+    parser.add_argument("directory", type=Path, nargs="?",
+                        help="the folder to read")
     parser.add_argument(
-        "--situation", required=True,
+        "--situation",
         help="which situation these files are, e.g. academic.coursework. Required: "
-             "nothing upstream can answer it and this command will not guess.")
+             "nothing upstream can answer it and this command will not guess. "
+             "`--list-situations` prints every one the shipped library carries.")
     parser.add_argument(
-        "--label", required=True,
+        "--label",
         help="what to call the top-level folder, e.g. 'Coursework'. Required for "
              "the same reason.")
     parser.add_argument("--user", default=getpass.getuser(),
@@ -848,6 +857,15 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                               for s in row.detection_signal_refs}):
             print(signal.removeprefix("recognition:"), file=out)
         return 0
+
+    # The requirement argparse could not express. Same message and same exit code
+    # it would have produced, so a run that forgets one reads no differently.
+    missing = [name for name, value in (("directory", args.directory),
+                                        ("--situation", args.situation),
+                                        ("--label", args.label)) if value is None]
+    if missing:
+        parser.error("the following arguments are required: "
+                     + ", ".join(missing))
 
     directory = args.directory.expanduser().resolve()
     if not directory.is_dir():
