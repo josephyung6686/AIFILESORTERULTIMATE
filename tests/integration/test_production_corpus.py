@@ -834,25 +834,27 @@ def test_an_acceptance_in_the_review_version_is_invisible_to_p11(conn, tmp_path)
             accepted_group_as_of(conn, group_id=group_id, plan_version=version)
 
 
-def test_an_unclassified_file_refuses_the_whole_corpus_rather_than_abstaining(
-        conn, tmp_path):
-    """The break at the P7 -> P11 join, and the reason the CLI states a policy.
+def test_one_unclassified_file_does_not_refuse_the_whole_corpus(conn, tmp_path):
+    """The break at the P7 -> P11 join, fixed, and the shape of what replaced it.
 
     P7's detector leaving a file unclassified is DESIGNED -- it is what stops it
     guessing, and §8.6 says absence resolves to the gate outcome
-    `unreadable_unclassified`, never down to `public_low`. P7 even publishes
+    `unreadable_unclassified`, never down to `public_low`. P7 publishes
     `resolve_class(None)` to say exactly that.
 
-    `placement.privacy.privacy_state_for` does not ask it. It raises
-    `ClassificationRequired`, and `run_corpus` does not catch it -- so ONE file
-    the detector said nothing about refuses the WHOLE corpus run, and the person
-    gets a traceback instead of a plan with one file marked for review.
+    `placement.privacy.privacy_state_for` did not ask it. It raised
+    `ClassificationRequired`, and `run_corpus` did not catch it -- so ONE file the
+    detector said nothing about refused the WHOLE corpus run, and a person with
+    ten thousand files and one ambiguous scan got a traceback instead of a plan.
 
-    P11 owns the fix. `src/cli.py` works around it by stating a deployment
-    policy -- what we cannot recognise, we treat as the most protected thing we
-    handle -- which can only ever over-protect.
+    It now reads P7's answer. The composed run completes, every file comes back,
+    and the unrecognised one comes back BLOCKED: `blocked_pending_user` and not
+    the ordinary review queue, because a reviewer can confirm a decision that
+    merely needs confirming and cannot confirm one whose subject nothing has
+    classified. `tests/p11/test_p11_privacy.py` and `test_p11_pipeline.py` hold
+    both halves at P11's own boundary.
     """
-    from placement.privacy import ClassificationRequired
+    from privacy.classification import UNREADABLE_UNCLASSIFIED
 
     def silent_about_one(conn_, file_id, content_hash):
         row = conn_.execute("SELECT filename FROM files WHERE file_id = ?",
@@ -861,8 +863,31 @@ def test_an_unclassified_file_refuses_the_whole_corpus_rather_than_abstaining(
             return None
         return _classify(conn_, file_id, content_hash)
 
-    with pytest.raises(ClassificationRequired):
-        run_corpus_through(conn, tmp_path, classify=silent_about_one)
+    result = run_corpus_through(conn, tmp_path, classify=silent_about_one)
+
+    by_file = {}
+    for decision in result.placement.decisions:
+        row = conn.execute("SELECT filename FROM files WHERE file_id = ?",
+                           (decision.subject.file_id,)).fetchone()
+        by_file[row["filename"]] = decision
+    # Every file in the corpus produced a decision, including the one nothing
+    # could classify. A run that dropped it would be the silent omission the
+    # standing rule forbids just as surely as a run that refused.
+    assert set(by_file) == set(CORPUS)
+
+    unclassified = by_file["NYU BUSIB4300 Syllabus.pdf"]
+    assert unclassified.privacy.handling_class == UNREADABLE_UNCLASSIFIED
+    assert unclassified.review_policy == "blocked_pending_user"
+    # And it is not the protected bundle wearing a different name. `protected` is
+    # P7's FLAG and nothing raised one here: `00` -- "sensitive personal material
+    # is not the same thing as `Numbers.app`" -- and neither is either of them the
+    # same thing as a file nothing could read.
+    assert unclassified.privacy.protected is False
+
+    # The files the detector DID answer about are untouched by any of this.
+    for name in ("Columbia PHYS1401 Syllabus.pdf", "Columbia PHYS1401 Homework.pdf"):
+        assert by_file[name].privacy.handling_class == ORDINARY_CLASS
+        assert by_file[name].review_policy != "blocked_pending_user"
 
 
 def test_a_dimension_with_no_settled_value_truncates_every_level_beneath_it(

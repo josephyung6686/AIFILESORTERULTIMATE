@@ -567,7 +567,18 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
     # optimisation of WHERE committed pages live, not of whether they are
     # committed. `synchronous` is untouched and nothing here is a durability
     # trade. On a non-WAL connection it is a no-op.
-    conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+    #
+    # And only from autocommit. SQLite answers a checkpoint issued inside an open
+    # transaction with `database table is locked`, and a caller who opened the
+    # handle with `sqlite3.connect` rather than `open_database` is holding one:
+    # Python's implicit-transaction mode opens a transaction before the first
+    # write and holds it until `commit()`, so the boundary above took the SAVEPOINT
+    # branch and the caller's transaction is still in flight. Skipping costs the
+    # measurement nothing -- a checkpoint moves COMMITTED pages out of the log and
+    # with a write still in flight there are none to move -- and issuing it anyway
+    # would throw away a completed index build over an optimisation.
+    if not conn.in_transaction:
+        conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
     return entries
 
 

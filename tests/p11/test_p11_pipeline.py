@@ -342,17 +342,62 @@ def test_the_decision_is_stored_and_its_event_appended(skeleton):
 
 
 def test_an_unclassified_file_is_blocked_and_not_placed(p11_conn):
-    # P7's detector does not exist, so this is the ordinary path on a real corpus:
-    # no classification means blocked, never a default to public.
-    from placement.privacy import ClassificationRequired
+    # P7's detector abstains often and by design, so this is the ORDINARY path on
+    # a real corpus: no classification means blocked, never a default to public --
+    # and blocked means a decision the person can see, not a refusal.
+    from privacy.classification import UNREADABLE_UNCLASSIFIED
 
     for key in CEILINGS.values():
         set_ceiling(p11_conn, key, 8)
     _policy(p11_conn)
     build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
                             observed_at=FIXED_CLOCK)
-    with pytest.raises(ClassificationRequired):
-        _place(p11_conn)
+    decision = _place(p11_conn)
+    assert decision.privacy.handling_class == UNREADABLE_UNCLASSIFIED
+    assert decision.review_policy == v.BLOCKED_PENDING_USER
+    # Not protected. `protected` is P7's FLAG and an absent record carries none;
+    # inventing one here would file a file nobody read alongside a passport.
+    assert decision.privacy.protected is False
+    # It is on disk like any other decision, which is what stops it being the
+    # silent omission the standing rule forbids.
+    assert current_decision(
+        p11_conn, plan_version="plan-1",
+        subject_ref="file:f1:h1").review_policy == v.BLOCKED_PENDING_USER
+
+
+def test_one_unclassified_file_does_not_refuse_the_corpus_it_arrived_in(skeleton):
+    """The break itself: one abstention used to take down the whole run.
+
+    `privacy_state_for` raised `ClassificationRequired` and `run_corpus` did not
+    catch it, so a person with ten thousand files and one ambiguous scan got a
+    traceback and no plan at all. The detector declining to guess is CORRECT --
+    `00` requires abstention where the evidence does not support a reading -- and
+    a product built to abstain cannot let one abstention refuse everything else.
+    """
+    from placement.pipeline import run_corpus
+    from privacy.classification import UNREADABLE_UNCLASSIFIED
+
+    unknown = Subject(kind=v.FILE, file_id="f-unclassified", content_hash="h-u",
+                      group_id=None, member_file_ids=())
+    result = run_corpus(
+        skeleton, subjects=(SUBJECT, unknown), group_ids=(),
+        inputs=_inputs(skeleton, partition=_partition),
+        evidence_for=lambda file_id: _evidence(
+            group_ids=PLACING_GROUPS if file_id == "f1" else ()),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+
+    by_file = {d.subject.file_id: d for d in result.decisions}
+    # BOTH files came back. The unclassified one is present and counted, and the
+    # classified one placed exactly as it would have on its own.
+    assert set(by_file) == {"f1", "f-unclassified"}
+    assert by_file["f1"].outcome == v.PLACE
+    assert by_file["f1"].privacy.handling_class == "personal_non_sensitive"
+    # And the one nothing looked at is blocked -- present, explained, and not
+    # actionable until somebody says what it is.
+    blocked = by_file["f-unclassified"]
+    assert blocked.review_policy == v.BLOCKED_PENDING_USER
+    assert blocked.privacy.handling_class == UNREADABLE_UNCLASSIFIED
+    assert blocked.privacy.protected is False
 
 
 # --- §8.7: the user's own correction, before any `place` --------------------------
@@ -588,6 +633,37 @@ def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
     assert "protected material" not in decision.explanation
     assert "did not clear this file for a model" in decision.explanation
+
+
+def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(
+        skeleton, monkeypatch, tmp_path):
+    """The third cause of `privacy_blocked`, and the sentence a person gets for it.
+
+    `00`: "sensitive personal material is not the same thing as `Numbers.app`" --
+    and neither is the same thing as a file nothing has been able to read. Telling
+    this person their file is "protected material" claims a finding P7 never made;
+    telling them "no legal destination cleared §6.10" blames the evidence for a
+    gate that never opened. The record says which of the three happened.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
+                                       name="scan.pdf", body=b"%PDF-1.4 u")
+    # Deliberately NOT classified: P7's detector declined to say anything.
+    subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                      group_id=None, member_file_ids=())
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "has not been classified" in decision.explanation
+    assert "protected material" not in decision.explanation
+    assert "No legal destination cleared" not in decision.explanation
+    # The decision is blocked rather than merely awaiting a confirmation, because
+    # there is nothing yet for a reviewer to confirm it against.
+    assert decision.review_policy == v.BLOCKED_PENDING_USER
 
 
 # --- §6.8 and §6.9: the group plan ------------------------------------------------
@@ -944,7 +1020,10 @@ def _second_group(conn, *, group_id, file_ids):
                                  observation_key=f"obs-{group_id}"),),
         pre_model_signals={}, anchor_count=len(file_ids),
         coherence_verdict=COHERENT, coherence_citations=(f"obs-{group_id}",),
-        group_category="course", display_label="PHYS1402 packet",
+        # `academic` and not `course`: P9 refuses a category outside
+        # `facts.domains.SCHEMA_IDS`, and a group no live P9 run could produce
+        # would make this seam test prove nothing about the real one.
+        group_category="academic", display_label="PHYS1402 packet",
         label_source=ENGINE, conflicts=(), stop_rule_hits=(), state=SUPPORTED,
         sensitivity_state=NO_SENSITIVITY, dossier_id=None,
         llm_response_ref=None, validation_verdict_ref=None, created_by=RULES,

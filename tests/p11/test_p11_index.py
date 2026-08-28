@@ -173,3 +173,65 @@ def test_building_an_entry_appends_its_event(p11_conn):
         (v.INDEX_ENTRY_BUILT,)).fetchall()
     assert len(rows) == len(legal_node_ids(p11_conn, plan_version="plan-1"))
     assert "n-course" in " ".join(r["explanation"] for r in rows)
+
+
+# --- the checkpoint, on a connection it did not open -------------------------------
+
+def _legacy_connection(path):
+    """A connection opened the way `sqlite3` does by default, not the way P1 does.
+
+    `open_database` passes `isolation_level=None`; `sqlite3.connect` does not, and
+    in that mode the driver opens a transaction before the first write and holds
+    it until somebody calls `commit()`. Every P11 module's docstring assumes the
+    autocommit handle, so an ordinary `conn.execute("INSERT ...")` on this one
+    leaves a write transaction open behind it -- which is the accident, and it is
+    staged here rather than asserted about a caller nobody controls.
+    """
+    import sqlite3
+
+    from database_agent.db import create_schema
+    from facts.fields import create_fields
+    from placement.schema import create_placement_schema
+
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode = WAL")
+    create_schema(conn)
+    create_fields(conn)
+    create_placement_schema(conn)
+    # One ordinary write with no explicit boundary -- the shape every part of this
+    # codebase documents and relies on (`tree_design/store.py:119`,
+    # `facts/file_facts.py:268`: "each statement is its own transaction"). On this
+    # handle it is not one; it opens a transaction and nothing closes it.
+    conn.execute(
+        "INSERT INTO placement_index_term_counts (record_id, plan_version, "
+        "source_field, term_key, row_count, created_at) VALUES "
+        "('probe', 'plan-0', 'expected_values', 'probe', 1, ?)", (FIXED_CLOCK,))
+    return conn
+
+
+def test_the_index_builds_on_a_connection_that_still_holds_a_transaction(tmp_path):
+    """§6.2's build survives the checkpoint it issues, on any caller's handle.
+
+    `PRAGMA wal_checkpoint` does not fail because a connection is in Python's
+    implicit-transaction mode; it fails because that mode leaves a transaction
+    OPEN, and SQLite answers a checkpoint issued inside one with `database table
+    is locked`. The build had already done its work and committed nothing the
+    caller can see -- so the whole index was lost to an optimisation.
+
+    A checkpoint moves COMMITTED pages out of the log. With the caller's write
+    still in flight there are none to move, so skipping it here gives up nothing
+    that was ever available; `test_the_index_build_leaves_no_log_for_the_next_writer_to_pay_for`
+    in `test_p11_retrieval_scale.py` is the other half and holds the measurement
+    on the handle P1 actually opens.
+    """
+    conn = _legacy_connection(tmp_path / "legacy.sqlite")
+    try:
+        assert conn.in_transaction, (
+            "the schema build must have left a transaction open, or this test "
+            "checkpoints from autocommit and proves nothing")
+        entries = build_destination_index(conn, FROZEN_TREE, **BUILD)
+        assert {entry.node_id for entry in entries} == legal_node_ids(
+            conn, plan_version="plan-1")
+    finally:
+        conn.close()

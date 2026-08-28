@@ -84,6 +84,97 @@ def test_the_shared_state_is_never_mistaken_for_acceptance(seeded):
                              plan_version_id="plan-2") == SUPPORTED
 
 
+# --- the P10 -> P11 join: what makes an acceptance visible here -------------------
+#
+# §8.8 mints a NEW plan version for every recorded edit, so the version P11 is
+# given -- P10's FROZEN one -- is never the version the review screen wrote into,
+# and P10's chain does not descend from it. `accepted_group_as_of` asks as of the
+# frozen version, so until something carried the acceptance across, §6.8's group
+# pass refused every group: every file was placed alone, with no shared context and
+# no explanation a user could act on.
+#
+# The carry is a DECISION and not a wider lookup. Approving the frozen plan IS the
+# user accepting the groups in it, and `production.CorpusDecisions.approve_plan`
+# is where that decision arrives. P11's read stays a read of ONE version -- looking
+# at both would place files against groups the user never approved, which is the
+# defect and not the fix.
+
+def _p10_chain(conn, *versions: str) -> None:
+    """P10's minted line of descent, root first, through P10's own writer.
+
+    A hand-rolled `CREATE TABLE plan_versions` would be a copy that can drift from
+    the schema the acceptance read actually walks. Written from the root down
+    because `predecessor_id` carries a foreign key.
+    """
+    from tree_design.records import PlanVersion
+    from tree_design.schema import create_tree_schema
+    from tree_design.store import write_plan_version
+
+    create_tree_schema(conn)
+    predecessor = None
+    for version in versions:
+        write_plan_version(conn, PlanVersion(
+            plan_version_id=version, predecessor_id=predecessor, state="draft",
+            created_at=T0, cross_folder_moves=False, selection_id="sel-1"))
+        predecessor = version
+
+
+def test_an_acceptance_only_the_review_recorded_does_not_reach_p11(seeded):
+    """The negative half, and the one that decides whether the fix is safe.
+
+    `seed_accepted_columbia` records the acceptance at `plan-1`, which is the
+    review's version. The frozen version below is on P10's own chain and descends
+    from nothing the review touched, so the lineage walk `1d5063e` added inherits
+    nothing -- correctly. A group the user has not approved in THIS plan is not a
+    group P11 may place files against, however clearly they accepted it somewhere
+    else.
+    """
+    _p10_chain(seeded, "plan-frozen-0", "plan-frozen-1")
+    with pytest.raises(GroupNotAcceptedInVersion) as raised:
+        accepted_group_as_of(seeded, group_id=GROUP_ID,
+                             plan_version="plan-frozen-1")
+    # And it says what it saw: the shared lifecycle state, which is what the group
+    # IS and not what this version decided about it.
+    assert SUPPORTED in str(raised.value)
+    # The review's own record is untouched by any of this. §5.12: the accepted
+    # groups stay separate from the tree, so editing the tree destroys nothing.
+    assert accepted_group_as_of(seeded, group_id=GROUP_ID,
+                                plan_version="plan-1").state == "accepted"
+
+
+def test_the_acceptance_the_user_approved_is_the_one_p11_reads(seeded):
+    """The positive half. Approving the frozen plan is what carries it across.
+
+    Recorded through P9's own writer against the FROZEN version, because that is
+    the version P11 asks about -- and it exists there because somebody decided it,
+    not because the read was widened until it found one.
+    """
+    from grouping.acceptance import record_acceptance
+
+    _p10_chain(seeded, "plan-frozen-0", "plan-frozen-1")
+    record_acceptance(seeded, GroupAcceptance(
+        acceptance_id="acc:plan-frozen-1:g-columbia",
+        plan_version_id="plan-frozen-1", group_id=GROUP_ID, membership_id=None,
+        acceptance="accepted", review_state="pending-review",
+        user_edited_label="Columbia application", aliases=(),
+        review_decision_ref=None, decided_by=USER, created_at=T0))
+
+    accepted = accepted_group_as_of(seeded, group_id=GROUP_ID,
+                                    plan_version="plan-frozen-1")
+    assert accepted.state == "accepted"
+    assert accepted.plan_version == "plan-frozen-1"
+    # With its members, which is the whole point: §6.8 confirms one shared parent
+    # and classifies beneath it, and a group with no memberships is four unrelated
+    # file moves wearing one name.
+    assert len(accepted.memberships) == 4
+    # An earlier version of P10's own chain still has no opinion. The walk goes to
+    # ancestors and never to descendants, so approving the frozen plan does not
+    # retroactively approve the drafts it replaced.
+    with pytest.raises(GroupNotAcceptedInVersion):
+        accepted_group_as_of(seeded, group_id=GROUP_ID,
+                             plan_version="plan-frozen-0")
+
+
 # --- the shared parent, confirmed first --------------------------------------------
 
 def test_the_shared_parent_is_confirmed_before_any_member_is_classified():

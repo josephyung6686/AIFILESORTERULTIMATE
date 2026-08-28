@@ -20,8 +20,8 @@ from privacy.vocabulary import DISPLAY_FACETS, OutOfVocabulary
 
 from placement import vocabulary as v
 from placement.privacy import (
-    ClassificationRequired, PolicyRequired, automatic_move_permitted_for,
-    blocked_policy, may_assemble_dossier, privacy_state_for, review_policy_for,
+    PolicyRequired, automatic_move_permitted_for, blocked_policy,
+    is_unclassified, may_assemble_dossier, privacy_state_for, review_policy_for,
 )
 from placement.records import GroupSupport, TwoCondition
 from p11.p10_fixtures import FROZEN_TREE as FROZEN_TREE_FOR_LEGALITY
@@ -88,10 +88,41 @@ def _state(conn, *, file_id="f1"):
 
 # --- the carry ------------------------------------------------------------------
 
-def test_an_unclassified_file_blocks_and_never_defaults_to_public(p11_conn):
+def test_an_unclassified_file_reads_p7s_own_answer_instead_of_refusing(p11_conn):
+    # P7's detector abstaining is DESIGNED behaviour -- it is what stops it
+    # guessing -- and `resolve_class(None)` is P7's published answer for it.
+    # Refusing here instead meant one file the detector said nothing about took
+    # down the whole corpus run: ten thousand files and one ambiguous scan
+    # produced a traceback and no plan at all.
     _policy(p11_conn)
-    with pytest.raises(ClassificationRequired):
-        _state(p11_conn)
+    state = _state(p11_conn)
+    assert state.handling_class == UNREADABLE_UNCLASSIFIED
+    # §8.6's rule, in the direction that matters: absence resolves to the gate
+    # outcome and NEVER down to the least protected class.
+    assert state.handling_class != "public_low"
+    # And §8.4's precondition holds: classification comes before escalation, so
+    # nothing about a file nobody classified is assembled for a model.
+    assert state.model_eligibility == v.LOCAL_ONLY
+    assert may_assemble_dossier(state) is False
+
+
+def test_an_unclassified_file_is_not_a_protected_one(p11_conn):
+    # The two findings must stay apart. `unclassified` is "we could not tell";
+    # `protected` is "the user said this is sensitive and we deliberately did not
+    # look". §8.4 Open question 1 makes `protected` a FLAG a consumer carries and
+    # never infers, and an absent record carries no flag -- so raising one here
+    # would describe a passport and an unreadable scan with the same word, which
+    # is the collapse `00` forbids in terms: sensitive personal material is not
+    # the same thing as `Numbers.app`.
+    _policy(p11_conn)
+    unclassified = _state(p11_conn)
+    _classify(p11_conn, file_id="f2", protected=True,
+              handling_class="highly_sensitive_credential_bearing")
+    passport = privacy_state_for(p11_conn, file_id="f2", content_hash="h1",
+                                 plan_version="plan-1")
+    assert unclassified.protected is False
+    assert passport.protected is True
+    assert unclassified.handling_class != passport.handling_class
 
 
 def test_a_missing_policy_refuses_rather_than_assuming_a_mode(p11_conn):
@@ -152,8 +183,8 @@ def test_unclassified_arrives_only_as_absence_so_the_carry_has_one_path(p11_conn
     _policy(p11_conn)
     with pytest.raises(GateOutcomeNotAFileFact):
         _classify(p11_conn, handling_class=UNREADABLE_UNCLASSIFIED)
-    with pytest.raises(ClassificationRequired):
-        _state(p11_conn)
+    # So the value can only ever arrive from absence, through `resolve_class`.
+    assert _state(p11_conn).handling_class == UNREADABLE_UNCLASSIFIED
 
 
 def test_a_handling_class_can_never_be_a_redaction_setting_key(p11_conn):
@@ -292,6 +323,60 @@ def test_a_null_protected_flag_is_refused_rather_than_read_as_false(p11_conn):
 
 def test_the_unclassified_answer_is_blocked_and_not_a_quiet_review(p11_conn):
     assert blocked_policy() == v.BLOCKED_PENDING_USER
+
+
+def test_an_unclassified_file_is_never_auto_eligible_however_strong_the_match(
+        p11_conn):
+    """The negative half of "one unclassified file no longer refuses the run".
+
+    A fix that merely stopped raising would leave every file nobody classified
+    ORDINARY -- and a unique direct match at an ordinary node with a permissive
+    policy is precisely the shape that reaches `auto_eligible`. An unattended move
+    of a file nothing has ever looked at is the outcome §8.4's gate exists to
+    prevent, so every other input here is as permissive as it can be made.
+    """
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn),
+        two_condition=_two_condition(support_score=1.0, margin_over_next=0.99,
+                                     meets_threshold=True, requires_review=False),
+        group_support=None, unique_direct_match=True,
+        automatic_move_permitted=True,
+        destination_disposition=None) == v.BLOCKED_PENDING_USER
+
+
+def test_blocked_is_a_different_obligation_from_the_ordinary_review_queue(p11_conn):
+    """`blocked_pending_user` and `review_required` ask the person for two things.
+
+    A reviewer can confirm a decision that merely needs confirming; they cannot
+    confirm one whose subject nothing has classified, because there is nothing to
+    confirm it against. A protected file with no move permission gets the second
+    -- it is a decision about SENSITIVITY, and it is actionable. An unclassified
+    file gets the first. Collapsing them would put a file nobody looked at into
+    the ordinary approve queue, and would also describe a passport as an evidence
+    failure on the way past.
+    """
+    _policy(p11_conn)
+    _classify(p11_conn, file_id="f2", handling_class="sensitive_personal",
+              protected=True)
+    protected = privacy_state_for(p11_conn, file_id="f2", content_hash="h1",
+                                  plan_version="plan-1")
+    ordinary = dict(two_condition=_two_condition(), group_support=None,
+                    unique_direct_match=True, destination_disposition=None)
+    assert review_policy_for(privacy_state=protected, **ordinary) == v.REVIEW_REQUIRED
+    assert review_policy_for(privacy_state=_state(p11_conn),
+                             **ordinary) == v.BLOCKED_PENDING_USER
+
+
+def test_the_unclassified_gate_is_asked_before_the_destinations(p11_conn):
+    # Ordering, and it is load-bearing. A review-only destination answers
+    # `review_required` on its own, so an unclassified file sent to one would come
+    # back describable as "just needs a look" if the class were checked second.
+    _policy(p11_conn)
+    assert review_policy_for(
+        privacy_state=_state(p11_conn), two_condition=_two_condition(),
+        group_support=None, unique_direct_match=True,
+        destination_disposition=v.REVIEW_ONLY) == v.BLOCKED_PENDING_USER
 
 
 # --- §7.4's residual disposition: what happens when a node IS chosen -------------

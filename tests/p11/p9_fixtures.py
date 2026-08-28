@@ -68,7 +68,11 @@ COLUMBIA_GROUP = Group(
                              reliability_state=VALIDATED,
                              observation_key="obs-f-essay"),),
     pre_model_signals={}, anchor_count=2, coherence_verdict=COHERENT,
-    coherence_citations=("obs-f-essay",), group_category="application",
+    # `college_applications` and not `application`: P9 now refuses a category
+    # outside `facts.domains.SCHEMA_IDS`, and P11 reads this fixture as a P9
+    # record rather than as a string, so a domain P6 does not recognise would be
+    # a group no live P9 run could produce.
+    coherence_citations=("obs-f-essay",), group_category="college_applications",
     display_label="Columbia application", label_source=ENGINE, conflicts=(),
     stop_rule_hits=(), state=SUPPORTED, sensitivity_state=NO_SENSITIVITY,
     dossier_id=None, llm_response_ref=None, validation_verdict_ref=None,

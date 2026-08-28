@@ -67,8 +67,8 @@ from placement.p8_seam import (
     residual_authorities, site_dependencies, to_p8_conflicts, transcribe,
 )
 from placement.privacy import (
-    automatic_move_permitted_for, may_assemble_dossier, privacy_state_for,
-    review_policy_for,
+    automatic_move_permitted_for, is_unclassified, may_assemble_dossier,
+    privacy_state_for, review_policy_for,
 )
 from placement.records import (
     Ask, DecisionDepth, Destination, PlacementDecision, ResidualContext,
@@ -561,6 +561,19 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
             "choice about your material, not a gap in the evidence."
         )
     if reason == PRIVACY_BLOCKED:
+        if is_unclassified(context.privacy):
+            # The third cause, and the one a corpus produces most. Neither of the
+            # sentences below is true of it: nothing marked this file sensitive,
+            # and the evidence never got as far as being weighed. `00` --
+            # "sensitive personal material is not the same thing as `Numbers.app`"
+            # -- and a file nothing could read is a third thing again.
+            return (
+                "This file has not been classified -- nothing has been able to "
+                "read enough of it to say what kind of material it is -- so it "
+                "was not shown to a model and nothing moved. It is waiting for "
+                "you to say what it is, not marked sensitive and not judged on "
+                "thin evidence."
+            )
         if context.privacy.protected:
             return (
                 "This file is protected material (§8.4), so nothing about it was "

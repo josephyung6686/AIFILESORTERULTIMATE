@@ -118,12 +118,25 @@ def test_p11_records_no_cd_verdict_of_its_own():
 # --- P7: the gate is held and never exercised ------------------------------------------
 
 
-def test_p7_is_reached_only_through_the_four_surfaces_it_published():
+def test_p7_is_reached_only_through_the_surfaces_it_published():
+    """Every P7 name P11 reads is one P7 published for a reader.
+
+    `privacy.classification` joined the list when the unclassified case stopped
+    being a refusal: `resolve_class` is P7's own answer for a file with no record
+    and `UNREADABLE_UNCLASSIFIED` is PUBLISHED rather than private by that
+    module's own docstring, so reading them is the opposite of P11 inventing a
+    policy for absence. `unclassified_denies` is the matching gate predicate,
+    beside `mode_forbids` and owned by the same module.
+    """
     reached = _importers_of("privacy")
     assert set(reached) == {"privacy.py", "vocabulary.py"}
     assert reached["privacy.py"] == {
+        "privacy.classification",
+        "privacy.classification.UNREADABLE_UNCLASSIFIED",
+        "privacy.classification.resolve_class",
         "privacy.classification_store", "privacy.classification_store.ClassificationStore",
         "privacy.denial", "privacy.denial.mode_forbids",
+        "privacy.denial.unclassified_denies",
         "privacy.moves", "privacy.moves.may_move_automatically",
         "privacy.policy", "privacy.policy.current_policy",
         "privacy.release", "privacy.release.LOCALITIES",
@@ -379,19 +392,24 @@ def test_apply_review_action_still_has_no_caller_in_src():
     assert _callers_of("record_correction") == {"review.py"}
 
 
-def test_reproject_and_blocked_policy_still_have_no_caller_in_src():
-    """§8.8's diff and §6.11's blocked policy, both waiting for their caller.
+def test_reproject_still_has_no_caller_and_blocked_policy_now_does():
+    """§8.8's diff still waits for its caller; §6.11's blocked policy found one.
 
     `reproject` answers "what does adopting plan-2 do to plan-1's decisions?",
-    which nothing in a single-version corpus run asks. `blocked_policy` is the
-    review policy for a decision whose subject P7 has not classified -- and
-    `privacy_state_for` RAISES on that case rather than building one, so today
-    there is no decision for it to be the policy OF.
+    which nothing in a single-version corpus run asks. It is a KNOWN GAP, named so
+    that the day a caller appears in `src/` this assertion fails and somebody has
+    to decide whether the wiring is right.
 
-    Both fail the day a producer appears, which is the point.
+    `blocked_policy` was in the same state for the opposite reason:
+    `privacy_state_for` RAISED on an unclassified file rather than building a
+    state for it, so there was no decision for it to be the policy OF -- and one
+    file the detector honestly declined to guess about refused the whole corpus.
+    Now absence resolves through P7's `resolve_class` and `review_policy_for` is
+    its one caller, which is what stops an unclassified file being placed as an
+    ordinary one.
     """
     assert _callers_of("reproject") == set()
-    assert _callers_of("blocked_policy") == set()
+    assert _callers_of("blocked_policy") == {"privacy.py"}
     assert _callers_of("learned_preferences_still_applicable") == set()
 
 
