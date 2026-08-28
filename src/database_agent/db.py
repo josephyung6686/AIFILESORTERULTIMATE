@@ -102,6 +102,73 @@ def transaction(conn: sqlite3.Connection):
     conn.execute("COMMIT")
 
 
+@contextmanager
+def batched_writes(conn: sqlite3.Connection, *, size: int):
+    """A write transaction that commits every `size` completed units of work.
+
+    Yields a callable; the caller invokes it once per unit finished. Every `size`
+    invocations the transaction commits and the next one opens, so the writes of a
+    long loop are grouped instead of each one standing alone.
+
+    **Why it exists.** `open_database` opens the connection in autocommit
+    (`isolation_level=None`), so without an explicit boundary every statement is
+    its own transaction — and at `synchronous = FULL` every one of those is an
+    fsync. A scan writes five rows per file admitted, and on macOS that fsync is
+    `F_FULLFSYNC`, a flush of the whole device write cache, which stalls the NEXT
+    file's `open()` as well as the write it was asked to durably record — a
+    cProfile of the scan blamed `_io.open` for 79% of the run, and the same
+    profile with one transaction held open showed `_io.open` fall by 5x without
+    one line of the hashing changing. Measured over
+    `tests/integration/test_scale_stress.py`'s disk-shaped corpus: 13.7 ms per
+    file as shipped against 2.2 ms with a boundary, so 11.5 ms of every 13.7 was
+    fsync.
+
+    **This trades away no durability.** `synchronous` is untouched: a batch that
+    has committed is on the platter exactly as before. What changes is how much a
+    power cut can lose — the units completed since the last commit, at most `size`
+    of them. Losing those is not corruption and not silent: they are units that
+    were never recorded, which is the same state as a run stopped before it
+    reached them, and re-running records them. Relaxing `synchronous` instead
+    would buy the same speed by making the database itself damageable, which is a
+    different thing entirely and is not what this does.
+
+    **Why a batch and not one transaction round the whole loop.** In WAL mode the
+    log cannot checkpoint while a write transaction is open, so a single
+    transaction over a 500,000-file scan grows a WAL holding every page it wrote,
+    and a crash then loses all of it rather than the last `size` units. The batch
+    bounds both, and the fsync it still pays amortises to `1/size` of a file.
+
+    Reentrant in the same sense as `transaction`: if a transaction is already in
+    flight the caller has already chosen the boundary, so nothing is committed
+    here and the yielded callable does nothing.
+    """
+    if conn.in_transaction:
+        yield lambda: None
+        return
+
+    pending = 0
+
+    def recorded() -> None:
+        nonlocal pending
+        pending += 1
+        if pending >= size:
+            conn.execute("COMMIT")
+            conn.execute("BEGIN")
+            pending = 0
+
+    conn.execute("BEGIN")
+    try:
+        yield recorded
+    except BaseException:
+        # BaseException, not Exception: a scan is long enough to be interrupted by
+        # hand, and the batch in flight should be rolled back rather than left
+        # half-written for the next statement to commit by accident. Every batch
+        # that already committed survives.
+        conn.execute("ROLLBACK")
+        raise
+    conn.execute("COMMIT")
+
+
 FILES_DDL = """
 CREATE TABLE IF NOT EXISTS files (
     file_id                   TEXT PRIMARY KEY,

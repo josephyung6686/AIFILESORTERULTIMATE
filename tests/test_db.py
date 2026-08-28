@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 
 from database_agent.db import (
-    DatabaseInsideCorpus, default_database_path, open_database, transaction,
+    DatabaseInsideCorpus, batched_writes, default_database_path, open_database,
+    transaction,
 )
 
 
@@ -56,6 +57,67 @@ def test_transaction_rolls_back_on_error(tmp_path: Path):
             raise RuntimeError("boom")
     except RuntimeError:
         pass
+    assert conn.execute("SELECT count(*) FROM t").fetchone()[0] == 0
+    conn.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `batched_writes`. The connection is in autocommit, so a long write loop with no
+# explicit boundary fsyncs once per STATEMENT at `synchronous = FULL`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _counting(conn: sqlite3.Connection) -> list[str]:
+    log: list[str] = []
+    conn.set_trace_callback(lambda statement: log.append(statement.strip().upper()))
+    return log
+
+
+def test_batched_writes_commits_once_per_size_units(tmp_path: Path):
+    conn = open_database(tmp_path / "agent.sqlite")
+    conn.execute("CREATE TABLE t (x INTEGER)")
+    log = _counting(conn)
+    with batched_writes(conn, size=4) as recorded:
+        for x in range(12):
+            conn.execute("INSERT INTO t VALUES (?)", (x,))
+            recorded()
+    assert conn.execute("SELECT count(*) FROM t").fetchone()[0] == 12
+    # Three full batches, then the closing commit of the (empty) fourth.
+    assert sum(1 for s in log if s.startswith("COMMIT")) == 4
+    conn.close()
+
+
+def test_a_batch_that_has_committed_survives_a_later_failure(tmp_path: Path):
+    """The whole durability claim, in one test: what a crash costs is the units
+    since the last commit, not the run. `synchronous` is never relaxed to buy
+    this, so a committed batch is on the platter."""
+    conn = open_database(tmp_path / "agent.sqlite")
+    conn.execute("CREATE TABLE t (x INTEGER)")
+    with pytest.raises(RuntimeError):
+        with batched_writes(conn, size=4) as recorded:
+            for x in range(10):
+                conn.execute("INSERT INTO t VALUES (?)", (x,))
+                recorded()
+                if x == 9:
+                    raise RuntimeError("power cut")
+    # Two batches of four committed; the two units in flight rolled back.
+    assert conn.execute("SELECT count(*) FROM t").fetchone()[0] == 8
+    assert not conn.in_transaction
+    conn.close()
+
+
+def test_batched_writes_defers_to_a_transaction_already_in_flight(tmp_path: Path):
+    """A caller who has already opened a transaction has already chosen the
+    boundary; committing inside it would break their atomicity in half."""
+    conn = open_database(tmp_path / "agent.sqlite")
+    conn.execute("CREATE TABLE t (x INTEGER)")
+    conn.commit()
+    with pytest.raises(RuntimeError):
+        with transaction(conn):
+            with batched_writes(conn, size=1) as recorded:
+                for x in range(5):
+                    conn.execute("INSERT INTO t VALUES (?)", (x,))
+                    recorded()
+            raise RuntimeError("boom")
     assert conn.execute("SELECT count(*) FROM t").fetchone()[0] == 0
     conn.close()
 
