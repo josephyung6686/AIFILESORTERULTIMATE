@@ -163,6 +163,12 @@ def _retrieval_value(retrieval) -> dict:
         "retrieved": [candidate.node_id for candidate in retrieval.candidates],
         "suppressed": sorted({node_id for conflict in retrieval.conflicts
                               for node_id in conflict.suppressed_node_ids}),
+        # And how many there were. The list names the nodes a channel reached;
+        # the count is every node the conflict ruled out. A replay comparing only
+        # the list would call two runs identical when one suppressed two branches
+        # and the other suppressed eight hundred.
+        "suppressed_count": sum(conflict.suppressed_node_count
+                                for conflict in retrieval.conflicts),
         "semantic_only": sorted(retrieval.semantic_only_node_ids),
     }
 

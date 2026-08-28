@@ -25,10 +25,11 @@ from p11.test_p11_records import _decision
 #: (`residual.surface_residual_sets` and `residual.record_set_decision`); the
 #: direct seed stays because this test is about the trigger, not the writer, and
 #: standing up a whole §7.5 surfacing to delete one row would test the surfacing.
-#: `placement_index_entries`, `placement_index_terms` and `placement_group_plans`
-#: have no writer whose absence this test could stand in for -- `index.py` writes
-#: the first two together, and this seeds them separately for the same reason as
-#: the rest: the subject is the trigger, not the writer.
+#: `placement_index_entries`, `placement_index_terms`,
+#: `placement_index_term_counts` and `placement_group_plans` have no writer whose
+#: absence this test could stand in for -- `index.py` writes the first three
+#: together, and this seeds them separately for the same reason as the rest: the
+#: subject is the trigger, not the writer.
 _SEED: dict[str, tuple[str, tuple]] = {
     "placement_index_entries":
         ("(record_id, plan_version, node_id, payload, created_at) "
@@ -39,6 +40,10 @@ _SEED: dict[str, tuple[str, tuple]] = {
          "ordinal, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
          ("t1", "plan-1", "n1", "expected_values", "subject", "PHYS1401", 0,
           FIXED_CLOCK)),
+    "placement_index_term_counts":
+        ("(record_id, plan_version, source_field, term_key, row_count, "
+         "created_at) VALUES (?, ?, ?, ?, ?, ?)",
+         ("tc1", "plan-1", "expected_values", "subject", 1, FIXED_CLOCK)),
     "placement_group_plans":
         ("(record_id, plan_version, group_id, payload, created_at) "
          "VALUES (?, ?, ?, ?, ?)",

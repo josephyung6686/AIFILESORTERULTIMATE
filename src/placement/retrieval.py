@@ -10,6 +10,14 @@ suppresses" nodes, and SPEC:502-504 requires the suppression to reach
 `conflicts_considered` so the review interface can show what was ruled out and
 why. A node dropped without a record is a question the user cannot ask.
 
+What the record NAMES is the nodes a channel was pulling the subject towards --
+`00`:107's Columbia branches, reached by the essays and ruled out by the Duke
+fact. What it COUNTS is every node the conflicting value rules out, including the
+ones nothing was pulling towards. Naming those too is one row per node per file:
+eight million ids on a 10,000-file disk with an 800-node tree
+(`planning/58-SCALE-STRESS.md` §2), and a review surface listing every folder the
+user owns. Counted-and-unnamed keeps them visible without making them the record.
+
 An `ignored` node needs no rule here at all: it never entered the index, so it can
 neither be retrieved nor suppressed, and §5.10 holds without a second mechanism.
 """
@@ -94,7 +102,8 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
     # collected nothing from it and suppressed nothing on it.
     reachable = reachable_entries(
         conn, plan_version=plan_version, pairs=frozenset(by_field),
-        group_ids=wanted_groups, labels=wanted_labels, node_ids=semantic)
+        group_ids=wanted_groups, labels=wanted_labels, node_ids=semantic,
+        name_limit=limits.max_retrieved_neighbors)
 
     matched: dict[str, dict] = {}
     conflicts: list[ConflictConsidered] = []
@@ -103,10 +112,15 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
     # §6.3's suppression, recorded before anything is a candidate. The key is the
     # subject's OWN value for the field, not the value the node carried, because
     # `ConflictConsidered.conflicting_value` is "what this file says" -- one
-    # record per stated value, listing every branch it ruled out.
-    for field, node_ids in reachable.contradicted.items():
+    # record per stated value, naming the branches it pulled the file away from
+    # and counting every branch it ruled out.
+    suppressed_counts: dict[tuple[str, str], int] = {}
+    for field, total in reachable.contradicted_counts.items():
         held = next(fact for fact in usable if fact.field == field)
-        suppressed_by_value.setdefault((field, held.value), []).extend(node_ids)
+        key = (field, held.value)
+        suppressed_by_value.setdefault(key, []).extend(
+            reachable.contradicted.get(field, ()))
+        suppressed_counts[key] = suppressed_counts.get(key, 0) + total
 
     for node_id in reachable.candidate_node_ids:
         channels: list[str] = []
@@ -139,6 +153,7 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
             kind=field, conflicting_value=value,
             suppressed_node_ids=tuple(sorted(node_ids)),
             evidence_ref=held.evidence_ref,
+            suppressed_node_count=suppressed_counts[(field, value)],
         ))
 
     def _rank(item):
@@ -165,6 +180,7 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
         conn, subject_ref=subject_ref, plan_version=plan_version,
         retrieved=[c.node_id for c in candidates],
         suppressed=sorted({n for c in conflicts for n in c.suppressed_node_ids}),
+        suppressed_count=sum(c.suppressed_node_count for c in conflicts),
         component_version=component_version, observed_at=observed_at,
         file_id=subject.file_id, content_hash=subject.content_hash,
     )

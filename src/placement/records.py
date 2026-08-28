@@ -209,15 +209,54 @@ class GraphAnchor:
 
 @dataclass(frozen=True)
 class ConflictConsidered:
+    """§6.3's suppression, named in part and counted in full.
+
+    `suppressed_node_ids` are the nodes some retrieval channel was pulling the
+    subject towards and this conflict removed -- `00`:107's Columbia application
+    branches, which the essay evidence reached and the Duke fact ruled out.
+
+    `suppressed_node_count` is every node the conflicting value rules out,
+    including the ones nothing was pulling towards. The two differ because naming
+    the second set costs one row per node per file: on an 800-node tree where
+    every branch states a course code, a 10,000-file corpus would record eight
+    million node ids and hand the review surface a list of every folder the user
+    owns (`planning/58-SCALE-STRESS.md` §2). Counted and unnamed is the same
+    treatment §7's protected sets get -- present, explained, never silently
+    omitted -- and it is the reason the count is a required part of the record
+    rather than a convenience.
+
+    It defaults to the length of the list, so a conflict built from a list ALONE
+    still states a true count and no caller can produce a record where the number
+    is smaller than the names.
+    """
+
     kind: str
     conflicting_value: str
     suppressed_node_ids: tuple[str, ...]
     evidence_ref: str
+    suppressed_node_count: int | None = None
 
     def __post_init__(self) -> None:
         for name in ("kind", "conflicting_value", "evidence_ref"):
             _require(getattr(self, name), name=name)
-        if not _freeze(self, "suppressed_node_ids"):
+        _freeze(self, "suppressed_node_ids")
+        if self.suppressed_node_count is None:
+            object.__setattr__(self, "suppressed_node_count",
+                               len(self.suppressed_node_ids))
+        if not isinstance(self.suppressed_node_count, int) or (
+                isinstance(self.suppressed_node_count, bool)):
+            raise MalformedPlacementRecord(
+                "suppressed_node_count is how many nodes the conflicting value "
+                "ruled out; a non-integer is not a count"
+            )
+        if self.suppressed_node_count < len(self.suppressed_node_ids):
+            raise MalformedPlacementRecord(
+                f"this conflict names {len(self.suppressed_node_ids)} suppressed "
+                f"nodes and claims {self.suppressed_node_count}; the named ones "
+                "are a SUBSET of the counted ones, and a count below them would "
+                "make the summary contradict the list beside it"
+            )
+        if self.suppressed_node_count <= 0:
             raise MalformedPlacementRecord(
                 "a conflict that suppressed nothing did not act; §6.3 records the "
                 "nodes it removed so the review surface can show what was ruled out"

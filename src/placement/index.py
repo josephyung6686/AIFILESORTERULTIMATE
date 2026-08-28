@@ -34,6 +34,16 @@ class FrozenTreeRequired(RuntimeError):
     """The tree P11 was handed is not a complete frozen tree. Never a partial index."""
 
 
+class IndexCountsUnavailable(RuntimeError):
+    """`placement_index_term_counts` does not cover a term the index carries.
+
+    §6.3's suppression is recorded as a bounded list of names and an exact count,
+    and the count is served from that aggregate. Missing, it would silently fall
+    back to the length of the list -- four destinations reported where the plan
+    ruled out eight hundred -- so it is refused rather than approximated.
+    """
+
+
 @dataclass(frozen=True)
 class IndexEntry:
     node_id: str
@@ -166,11 +176,12 @@ def _terms_of(entry: IndexEntry) -> tuple[tuple[str, str, str, int], ...]:
     return tuple(rows)
 
 
-#: The byte that joins a field to its value inside one SQL parameter, and joins
-#: node ids inside one `group_concat`. `char(31)` is ASCII Unit Separator: it
-#: cannot occur in a P10 node id, a P6 field key or a fact value, all of which are
-#: printable, so the join is unambiguous without escaping.
+#: The byte that joins a field to its value inside one SQL parameter. `char(31)`
+#: is ASCII Unit Separator: it cannot occur in a P10 node id, a P6 field key or a
+#: fact value, all of which are printable, so the join is unambiguous without
+#: escaping.
 _UNIT: str = "\x1f"
+
 
 
 @dataclass(frozen=True)
@@ -183,20 +194,44 @@ class Reachable:
     suppressed nothing on it, so skipping it is a provable no-op -- which is what
     makes this narrowing a performance change and not a behaviour change.
 
-    The match/contradiction split is decided in SQL rather than in Python because
-    it is the one part of retrieval that is unavoidably proportional to the tree:
-    §6.3 requires every node ruled out by a conflicting value to be RECORDED
-    (SPEC:502-504), and P8 Site C rejects a dossier citing a conflict this list
-    omits. So the list is produced, but it is produced by one aggregate query
-    instead of a Python pass over every node the user froze.
+    **Suppression is counted in full and named up to a ceiling, and that split is
+    the whole of the second narrowing.** §6.3 suppresses a node when the subject
+    states a field the node states differently, and every legal node stating that
+    field with any other value is one -- so on `planning/58-SCALE-STRESS.md` §2's
+    tree the list is 799 long for every file in the corpus, eight million ids
+    across a 10,000-file disk, and the sentence the user reads names every folder
+    they own. That is the failure the same document records against §5.9's
+    warnings under its own heading: "the warning list outgrows the tree it
+    describes".
+
+    So the list is a BOUNDED SAMPLE and the count is EXACT. Nothing is silently
+    omitted: a conflict that ruled out 799 branches says 799 either way, and the
+    ones it does name are the ones a reader can act on.
+
+    Which ones get named is not arbitrary. The nodes a retrieval channel REACHED
+    go first, always -- they are the ones §6.3's own sentence is about
+    (`00`:107's Columbia branches, pulled at by the essays and ruled out by the
+    Duke fact), and they are the ones the user is about to ask "why not that
+    one?". The remainder of the budget is filled from the field's own index order,
+    which is stable across runs and therefore replayable.
+
+    The budget is `max_retrieved_neighbors`, and reusing it is deliberate rather
+    than convenient. `planning/58-SCALE-STRESS.md` item 9 is a complaint about one
+    P1 key serving two jobs that "want opposite values"; these two want the SAME
+    value, because both answer one question -- how many destinations should a
+    human read about one file -- from opposite sides. The candidates it kept and
+    the rejections it explains are the same list length by construction.
     """
     #: node_id -> the `(field, value)` pairs the subject's facts MATCH, in the
     #: entry's own order, which is the order the facts land on the record in.
     matched_pairs: dict[str, tuple[tuple[str, str], ...]]
-    #: field -> the node ids that carry that field with a value the subject
+    #: field -> the NAMED node ids that carry that field with a value the subject
     #: contradicts, one entry per contradicting value, exactly as §6.3's loop
-    #: appended them.
+    #: appended them. Reached nodes first, then the field's index order, bounded.
     contradicted: dict[str, tuple[str, ...]]
+    #: field -> how many `(node, value)` rows in the whole plan that field ruled
+    #: out, named or not. Always >= `len(contradicted[field])`.
+    contradicted_counts: dict[str, int]
     contradicted_node_ids: frozenset[str]
     accepted_groups: dict[str, frozenset[str]]
     label_matches: frozenset[str]
@@ -204,7 +239,13 @@ class Reachable:
 
     @property
     def candidate_node_ids(self) -> tuple[str, ...]:
-        """The nodes a channel reaches and no conflict rules out, sorted."""
+        """The nodes a channel reaches and no conflict rules out, sorted.
+
+        `contradicted_node_ids` is the SUPPRESSION set and not the naming set: it
+        holds every reached node a conflict removed, whether or not the bounded
+        list above found room to name it, so the sample can never let a
+        contradicted node back into the candidates.
+        """
         reached = (set(self.matched_pairs) | set(self.accepted_groups)
                    | self.label_matches | self.semantic_matches)
         return tuple(sorted(reached - self.contradicted_node_ids))
@@ -214,64 +255,78 @@ def _in_clause(count: int) -> str:
     return ", ".join("?" * count)
 
 
+def _chunks(conn: sqlite3.Connection, node_ids: list[str], *, reserved: int):
+    """`node_ids` in slices SQLite will accept as bound parameters.
+
+    Every other `IN (...)` in `src/` is fixed-width, which is why
+    `planning/58-SCALE-STRESS.md`'s "What was checked and found sound" could say
+    `SQLITE_MAX_VARIABLE_NUMBER` "is not reachable no matter how large a group
+    gets". This one is the width of an answer, so the limit becomes reachable and
+    the read is sliced to stay under it.
+
+    The size is ASKED OF THE CONNECTION rather than chosen. A constant here would
+    be a number P11 invented about somebody else's library, and it would be wrong
+    in both directions: 999 on a build compiled to 32,766 wastes reads, and 32,766
+    on a build compiled to 999 raises.
+    """
+    width = conn.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER) - reserved
+    if width < 1:
+        raise ValueError(
+            f"this subject states {reserved} terms, which already exhausts "
+            "SQLite's bound-parameter limit before a single node id is named"
+        )
+    for start in range(0, len(node_ids), width):
+        yield node_ids[start:start + width]
+
+
 def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
                       pairs: frozenset[tuple[str, str]],
                       group_ids: frozenset[str], labels: frozenset[str],
-                      node_ids: frozenset[str]) -> Reachable:
-    """§6.2's index used as an index: four narrow reads, no payload parsed.
+                      node_ids: frozenset[str], name_limit: int) -> Reachable:
+    """§6.2's index used as an index. Every read is the size of its own answer.
 
     `retrieve` used to open with `entries_for_plan` and walk every legal node,
     deserialising each one -- `planning/58-SCALE-STRESS.md` §2 measured x4.2 per
     file for a four-fold tree, which makes total placement cost files x nodes.
 
-    Two reads carry the direct-fact channel and they are asymmetric on purpose.
-    The MATCH is an exact index seek on `(field, value)`, so it costs the size of
-    the answer. The CONTRADICTION cannot be: §6.3 requires every node a
-    conflicting value ruled out to be recorded (SPEC:502-504) and P8's Site C
-    rejects a dossier citing a conflict this list omits, so the list is as long
-    as the number of nodes carrying that field however it is computed. What this
-    does is stop paying PYTHON for each of them -- SQLite assembles the ids into
-    one string per field and the matched rows are removed from it here.
+    Four reads find what the subject's own evidence reaches. A fifth asks those
+    nodes -- and only those -- which of the subject's stated fields they state
+    differently, which is §6.3's suppression over the set it can actually apply
+    to. A sixth reads `name_limit` more of the ruled-out nodes per stated field,
+    so a small tree still says WHICH branch it rejected. A seventh reads one
+    integer per stated field, so the conflict can say how many it ruled out in
+    total without visiting them.
+
+    `name_limit` is §8.6's `max_retrieved_neighbors`, passed in rather than known
+    here: P11 reads no ceiling of its own (`config.py`).
 
     Nothing here decides anything. `retrieval.retrieve` applies every §6.3 rule.
     """
+    if not isinstance(name_limit, int) or isinstance(name_limit, bool) or (
+            name_limit <= 0):
+        raise ValueError(
+            f"name_limit is {name_limit!r}; §6.3's suppression names at least one "
+            "node or the review surface cannot answer 'why not that folder?' at "
+            "all, and this module ships no ceiling of its own"
+        )
     fields = sorted({field for field, _ in pairs})
     matched: dict[str, list[tuple[int, str, str]]] = {}
-    matched_rows: dict[tuple[str, str], int] = {}
-    contradicted: dict[str, tuple[str, ...]] = {}
+    #: field -> how many rows in the WHOLE plan the subject matched, which is the
+    #: subtrahend for the plan-wide contradiction count below.
+    matched_per_field: dict[str, int] = {}
     if fields:
-        scope = ("FROM placement_index_terms WHERE plan_version = ? AND "
-                 "source_field = 'expected_values' AND superseded_by IS NULL")
         values = ", ".join("(?, ?)" for _ in pairs)
         flat = [item for pair in sorted(pairs) for item in pair]
         for row in conn.execute(
-                f"SELECT node_id, ordinal, term_key, term_value {scope} AND "
+                "SELECT node_id, ordinal, term_key, term_value "
+                "FROM placement_index_terms WHERE plan_version = ? AND "
+                "source_field = 'expected_values' AND superseded_by IS NULL AND "
                 f"(term_key, term_value) IN (VALUES {values})",
                 (plan_version, *flat)):
             matched.setdefault(row["node_id"], []).append(
                 (row["ordinal"], row["term_key"], row["term_value"]))
-            key = (row["term_key"], row["node_id"])
-            matched_rows[key] = matched_rows.get(key, 0) + 1
-        # ONE row per stated field rather than one per node. The predicate is a
-        # pure index range so SQLite never evaluates an expression per row; the
-        # rows that MATCHED are subtracted below, as a multiset, because a node
-        # carrying two values for one field is contradicted once per value it
-        # states that the subject does not -- which is what §6.3's loop did when
-        # it appended inside the inner iteration.
-        for row in conn.execute(
-                f"SELECT term_key, group_concat(node_id, char(31)) AS ids {scope} "
-                f"AND term_key IN ({_in_clause(len(fields))}) GROUP BY term_key",
-                (plan_version, *fields)):
-            field = row["term_key"]
-            ruled_out: list[str] = []
-            for node_id in row["ids"].split(_UNIT):
-                key = (field, node_id)
-                if matched_rows.get(key):
-                    matched_rows[key] -= 1
-                else:
-                    ruled_out.append(node_id)
-            if ruled_out:
-                contradicted[field] = tuple(ruled_out)
+            matched_per_field[row["term_key"]] = (
+                matched_per_field.get(row["term_key"], 0) + 1)
     groups: dict[str, set[str]] = {}
     if group_ids:
         for row in conn.execute(
@@ -300,14 +355,109 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
                 f"plan_version = ? AND node_id IN ({_in_clause(len(node_ids))}) "
                 "AND superseded_by IS NULL", (plan_version, *sorted(node_ids)))
         }
+
+    reached = sorted(set(matched) | set(groups) | matched_labels | semantic)
+    contradicted: dict[str, list[str]] = {}
+    #: The REACHED nodes a conflict removed. This is the suppression set and it is
+    #: kept apart from the naming list on purpose: the list is bounded and the
+    #: exclusion is not, so a node the sample had no room to name is still barred
+    #: from the candidates.
+    suppressed: set[str] = set()
+    #: The `(field, node, value)` rows already named, so the fill below cannot
+    #: name one twice. It is the ROW and not the node, because a node stating two
+    #: values the subject does not hold is ruled out twice -- which is what §6.3's
+    #: loop did when it appended inside the per-expected-value iteration.
+    named_rows: set[tuple[str, str, str]] = set()
+    if fields and reached:
+        # The reached nodes' own rows for the stated fields. One index seek per
+        # chunk, and every row it returns belongs to a node a channel already
+        # named -- so this read is the size of the CANDIDATE set, not of the tree.
+        for chunk in _chunks(conn, reached, reserved=len(fields) + 1):
+            rows = [tuple(row) for row in conn.execute(
+                    "SELECT node_id, term_key, term_value FROM "
+                    "placement_index_terms WHERE plan_version = ? AND "
+                    "source_field = 'expected_values' AND "
+                    f"node_id IN ({_in_clause(len(chunk))}) AND "
+                    f"term_key IN ({_in_clause(len(fields))}) AND "
+                    "superseded_by IS NULL",
+                    (plan_version, *chunk, *fields))]
+            for node_id, field, value in sorted(rows):
+                if (field, value) in pairs:
+                    continue
+                contradicted.setdefault(field, []).append(node_id)
+                named_rows.add((field, node_id, value))
+                suppressed.add(node_id)
+
+    # The rest of the naming budget, filled from the field's own index order.
+    # `LIMIT` is what makes this affordable: the read stops after `name_limit`
+    # rows however many nodes state the field, so a tree of eight hundred courses
+    # costs the same as a tree of four. The subject's own values are excluded in
+    # SQL so a matched row can never be named as a rejection.
+    for field in fields:
+        if len(contradicted.get(field, ())) >= name_limit:
+            continue
+        held = sorted(value for key, value in pairs if key == field)
+        for node_id, value in conn.execute(
+                "SELECT node_id, term_value FROM placement_index_terms WHERE "
+                "plan_version = ? AND source_field = 'expected_values' AND "
+                f"term_key = ? AND term_value NOT IN ({_in_clause(len(held))}) "
+                "AND superseded_by IS NULL LIMIT ?",
+                (plan_version, field, *held, name_limit)):
+            if (field, node_id, value) in named_rows:
+                continue
+            contradicted.setdefault(field, []).append(node_id)
+            named_rows.add((field, node_id, value))
+            if len(contradicted[field]) >= name_limit:
+                break
+
+    counts: dict[str, int] = {}
+    if fields:
+        # ONE integer per stated field, written when the index was built. The
+        # alternative -- `COUNT(*)` over the term rows -- is the same walk over
+        # every node stating that field, in C rather than in Python, and still
+        # files x nodes.
+        answered: set[str] = set()
+        for row in conn.execute(
+                "SELECT term_key, row_count FROM placement_index_term_counts "
+                "WHERE plan_version = ? AND source_field = 'expected_values' AND "
+                f"term_key IN ({_in_clause(len(fields))}) AND "
+                "superseded_by IS NULL", (plan_version, *fields)):
+            answered.add(row["term_key"])
+            total = row["row_count"] - matched_per_field.get(row["term_key"], 0)
+            if total > 0:
+                counts[row["term_key"]] = total
+        # A field with no aggregate row is a field no node in this plan states,
+        # so it rules nothing out and needs no count. A field with no aggregate
+        # row that DID match or contradict something is the aggregate disagreeing
+        # with the table it summarises -- and the failure mode is silent: the
+        # count would fall back to the bounded list and report four destinations
+        # ruled out where the plan ruled out eight hundred. Under-reporting a
+        # suppression is the omission the count exists to prevent, so it raises.
+        unanswered = sorted(
+            {*(field for field in contradicted), *matched_per_field} - answered)
+        if unanswered:
+            raise IndexCountsUnavailable(
+                f"{unanswered} match or contradict rows in "
+                f"`placement_index_terms` for {plan_version!r} and have no row in "
+                "`placement_index_term_counts`; the aggregate disagrees with the "
+                "table it summarises, and a suppression counted from the "
+                "bounded list instead would report a handful of destinations "
+                "ruled out where the plan ruled out the whole tree"
+            )
+    # The named ones are always a subset of the counted ones, so no caller can
+    # read a count smaller than the list beside it.
+    for field, found in contradicted.items():
+        counts[field] = max(counts.get(field, 0), len(found))
+
     return Reachable(
         matched_pairs={
             node_id: tuple((field, value) for _, field, value in sorted(rows))
             for node_id, rows in matched.items()
         },
-        contradicted=contradicted,
-        contradicted_node_ids=frozenset(
-            node_id for found in contradicted.values() for node_id in found),
+        contradicted={field: tuple(found[:name_limit])
+                      for field, found in sorted(contradicted.items())},
+        contradicted_counts=counts,
+        contradicted_node_ids=frozenset(suppressed),
         accepted_groups={node_id: frozenset(found)
                          for node_id, found in groups.items()},
         label_matches=frozenset(matched_labels),
@@ -356,6 +506,13 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
             f"{sorted(indexed ^ set(tree.freeze_record.legal_destination_ids))} "
             "differ; P10 owns legality and P11 only projects it"
         )
+    #: (plan_version, source_field, term_key) -> how many term rows this build
+    #: writes for it. Counted from the same `_terms_of` call the rows come from --
+    #: one loop, one source -- so the aggregate cannot describe a different set
+    #: from the table. The plan version is part of the key rather than taken from
+    #: the tree, because the rows below are written with the ENTRY's version and a
+    #: count filed under a different one would be a count of nothing.
+    totals: dict[tuple[str, str, str], int] = {}
     with transaction(conn):
         for entry in entries:
             conn.execute(
@@ -375,10 +532,42 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
                      entry.plan_version, entry.node_id, source_field, term_key,
                      term_value, ordinal, observed_at),
                 )
+                key = (entry.plan_version, source_field, term_key)
+                totals[key] = totals.get(key, 0) + 1
             placement_events.index_entry_built(
                 conn, node_id=entry.node_id, plan_version=entry.plan_version,
                 component_version=component_version, observed_at=observed_at,
             )
+        for (version, source_field, term_key), row_count in sorted(totals.items()):
+            conn.execute(
+                "INSERT INTO placement_index_term_counts (record_id, "
+                "plan_version, source_field, term_key, row_count, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (f"{version}:{source_field}:{term_key}", version, source_field,
+                 term_key, row_count, observed_at),
+            )
+    # The one bulk write P11 makes, and the only place a checkpoint belongs.
+    #
+    # `open_database` runs WAL with `synchronous = FULL`, so every later autocommit
+    # write -- and §8.2 makes `retrieve` write one event per subject -- is an
+    # `F_FULLFSYNC`. Until the log is checkpointed, that fsync is paid against
+    # whatever this build left in it: four thousand rows for an 800-node tree.
+    # Measured, per-file `retrieve` over 20 subjects on the mixed tree:
+    #
+    #   tree      before        after
+    #   200       0.39 ms       0.190 ms
+    #   800       0.78 ms       0.185 ms
+    #   3200      0.23 ms       0.197 ms
+    #
+    # -- flat, and the 3200 column is why the diagnosis is the log and not the
+    # tree: that build alone was large enough to trip SQLite's own auto-checkpoint,
+    # so it was already paying the cheap price before this line existed.
+    #
+    # PASSIVE and not TRUNCATE: it never blocks a reader, and it is an
+    # optimisation of WHERE committed pages live, not of whether they are
+    # committed. `synchronous` is untouched and nothing here is a durability
+    # trade. On a non-WAL connection it is a no-op.
+    conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
     return entries
 
 

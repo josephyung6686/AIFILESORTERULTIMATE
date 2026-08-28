@@ -71,6 +71,31 @@ _COLUMNS: dict[str, tuple[tuple[str, str], ...]] = {
         ("ordinal", "INTEGER NOT NULL"),
         ("created_at", "TEXT NOT NULL"),
     ),
+    # How many rows the table above holds for one term key, written by the one
+    # writer of that table, in the one transaction that writes it.
+    #
+    # This exists so that "how many nodes state this field?" is not a question
+    # whose ANSWER is the size of the tree. §6.3 rules out every node that states
+    # a field the subject states with a different value, and the record has to say
+    # how many were ruled out (SPEC:502-504) -- but counting them per subject is
+    # the O(files x nodes) read `planning/58-SCALE-STRESS.md` §2 measured, and a
+    # `COUNT(*)` is that same read with a smaller constant.
+    #
+    # It is a materialised aggregate and therefore a second home for a value,
+    # which `placement_index_entries` deliberately avoids. The reason it is
+    # tolerable here and nowhere else is that it is DERIVED FROM AN APPEND-ONLY
+    # TABLE THAT ONE FUNCTION WRITES ONCE PER PLAN VERSION, and
+    # `tests/p11/test_p11_retrieval_scale.py` asserts row-for-row that the stored
+    # count equals a live `COUNT(*)`, so drift fails a test rather than quietly
+    # under-counting a suppression.
+    "placement_index_term_counts": (
+        ("record_id", "TEXT PRIMARY KEY"),
+        ("plan_version", "TEXT NOT NULL"),
+        ("source_field", "TEXT NOT NULL"),
+        ("term_key", "TEXT NOT NULL"),
+        ("row_count", "INTEGER NOT NULL"),
+        ("created_at", "TEXT NOT NULL"),
+    ),
     "placement_group_plans": (
         ("record_id", "TEXT PRIMARY KEY"),
         ("plan_version", "TEXT NOT NULL"),
@@ -116,6 +141,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_current_index_entry
 
 CREATE INDEX IF NOT EXISTS placement_index_terms_lookup
     ON placement_index_terms (plan_version, source_field, term_key, term_value);
+
+-- The other direction. The lookup above answers "which nodes carry this term?";
+-- this one answers "which terms does this node carry?", which is the question
+-- §6.3's suppression asks once the four channels have named the nodes the
+-- subject's own evidence reaches. Without it that read is a scan of every term
+-- in the plan, which is the cost the narrowing exists to remove.
+CREATE INDEX IF NOT EXISTS placement_index_terms_by_node
+    ON placement_index_terms (plan_version, source_field, node_id, term_key);
+
+CREATE UNIQUE INDEX IF NOT EXISTS one_current_term_count
+    ON placement_index_term_counts (plan_version, source_field, term_key)
+    WHERE superseded_by IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS one_current_group_plan
     ON placement_group_plans (plan_version, group_id)

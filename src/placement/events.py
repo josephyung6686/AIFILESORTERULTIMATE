@@ -50,16 +50,23 @@ def index_entry_built(conn, *, node_id, plan_version, component_version,
 
 
 def candidate_retrieval(conn, *, subject_ref, plan_version, retrieved,
-                        suppressed, component_version, observed_at,
-                        file_id=None, content_hash=None) -> int:
+                        suppressed, suppressed_count, component_version,
+                        observed_at, file_id=None, content_hash=None) -> int:
     # §8.2 requires the retrieved AND the suppressed ids: a review surface that
     # cannot show what was ruled out cannot answer "why not that folder?".
+    #
+    # `suppressed` names the nodes a channel reached and the conflict removed;
+    # `suppressed_count` is every node it ruled out. The count is separate and
+    # required rather than derived from the list, because they differ by design
+    # (`retrieval.py`) and an event carrying only the list would report a
+    # suppression of two where the run suppressed 799.
     return _append(
         conn, CANDIDATE_RETRIEVAL, component_version=component_version,
         observed_at=observed_at, file_id=file_id, content_hash=content_hash,
         explanation=json.dumps({
             "subject_ref": subject_ref, "plan_version": plan_version,
             "retrieved": list(retrieved), "suppressed": list(suppressed),
+            "suppressed_count": suppressed_count,
         }, sort_keys=True),
     )
 

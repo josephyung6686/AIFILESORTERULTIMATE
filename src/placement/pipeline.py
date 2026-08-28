@@ -484,11 +484,28 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False) -> st
         parts.append("chosen by the hierarchical destination judge from P11's "
                      "legal candidates, and validated by P8")
     if retrieval.conflicts:
-        parts.append(
-            "ruled out " + ", ".join(
-                node for conflict in retrieval.conflicts
-                for node in conflict.suppressed_node_ids)
-            + " on conflicting evidence")
+        # Named first, counted always. The named ones are the branches something
+        # was pulling this file towards; the count is every branch the conflict
+        # ruled out. A sentence that listed all of them would name every folder in
+        # the tree on a corpus like `planning/58-SCALE-STRESS.md` §2's, which is
+        # the failure that document records for §5.9's warnings under its own
+        # heading -- "the warning list outgrows the tree it describes".
+        named = [node for conflict in retrieval.conflicts
+                 for node in conflict.suppressed_node_ids]
+        total = sum(conflict.suppressed_node_count
+                    for conflict in retrieval.conflicts)
+        if named:
+            unnamed = total - len(named)
+            parts.append(
+                "ruled out " + ", ".join(named)
+                + (f" and {unnamed} further destination"
+                   f"{'' if unnamed == 1 else 's'}" if unnamed else "")
+                + " on conflicting evidence")
+        else:
+            parts.append(
+                f"ruled out {total} destination{'' if total == 1 else 's'} on "
+                "conflicting evidence, none of which this file's evidence "
+                "reached")
     parts.append(
         f"support {assessment.two_condition.support_score:.2f} against a "
         f"threshold of {assessment.two_condition.support_threshold:.2f}")

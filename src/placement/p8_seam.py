@@ -134,6 +134,11 @@ def to_p8_conflicts(conflicts) -> tuple[P8Conflict, ...]:
     for conflict in conflicts:
         address = hashlib.sha256(_JOIN.join(
             (conflict.kind, conflict.conflicting_value, conflict.evidence_ref,
+             # The count is part of the address for the same reason every other
+             # field is: two conflicts that ruled out different numbers of
+             # branches are different conflicts, and sharing an id would let a
+             # model address one and be accepted for the other.
+             str(conflict.suppressed_node_count),
              *conflict.suppressed_node_ids)).encode("utf-8")).hexdigest()[:16]
         converted.append(P8Conflict(conflict_id=f"conflict-{address}",
                                     kind=conflict.kind))
