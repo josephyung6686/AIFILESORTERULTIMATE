@@ -251,9 +251,18 @@ def test_the_whole_p6_suite_passes_with_no_model_configured():
     # P6's deterministic suite must remain green without a configured model. The
     # whole suite is run in a child process, with a marker that stops this test from
     # recursing.
+    # The child is plugin-isolated on purpose. This test's claim is about MODEL
+    # configuration -- P6 stays green with no model -- and it can only mean that
+    # if the child's result does not also depend on which plugins happen to be
+    # installed in the interpreter that launched it. `pytest-randomly` is a real
+    # instance rather than a hypothetical one: it reseeds every RNG advertised
+    # through its entry point, and any `thinc` (spaCy) in the same interpreter
+    # advertises one that hands `numpy.random.seed` an out-of-range value, so
+    # every child test errors in setup AND teardown. That reported 1172 errors
+    # here and not one of them was about a model.
     completed = subprocess.run(
         [sys.executable, "-m", "pytest", str(TEST_DIR), "-q",
-         "-p", "no:cacheprovider"],
+         "-p", "no:cacheprovider", "-p", "no:randomly"],
         cwd=REPO_ROOT, env=dict(os.environ, **{CHILD_MARKER: "1"}),
         capture_output=True, text=True, timeout=900, check=False)
     assert completed.returncode == 0, completed.stdout[-4000:]
