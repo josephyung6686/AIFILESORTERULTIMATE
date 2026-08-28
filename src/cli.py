@@ -66,7 +66,6 @@ from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
 from placement.pipeline import PipelineInputs
 from placement.schema import create_placement_schema
-from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from production import (
@@ -323,48 +322,31 @@ def _detect_format(path: Path) -> str | None:
     return {".pdf": "pdf", ".txt": "txt", ".md": "md"}.get(path.suffix.lower())
 
 
-#: What this deployment does with a file its detector recognises nothing in.
-#:
-#: The detector abstaining is a real and common outcome -- it is what stops it
-#: guessing, and `recognition`'s own tests pin it. But `placement.privacy`
-#: RAISES `ClassificationRequired` for a file with no classification rather than
-#: reading P7's own `resolve_class(None) -> unreadable_unclassified`, so one
-#: unrecognised file refuses the whole corpus run. `unreadable_unclassified` is a
-#: gate outcome P7's store will not write, so it cannot be recorded either.
-#:
-#: So this deployment states a policy, which is what §8.4 leaves to an operator:
-#: what we cannot recognise, we treat as the MOST protected thing we handle. It
-#: can only ever over-protect -- such a file is never eligible for a dossier, is
-#: never moved automatically, and abstains with its reason on the record. The
-#: opposite choice, `public_low`, is the silent downgrade §8.6 exists to prevent.
-UNRECOGNISED_HANDLING: str = PROTECTED_CLASS
-
-
 def classifier(detector, *, now):
-    """P7's candidate producer: the real detector, with this deployment's policy
-    for what it declines to answer about."""
+    """P7's candidate producer: the real detector, and nothing behind it.
+
+    A file the detector declines to answer about stays UNCLASSIFIED, and that is
+    the whole policy. It used to be classified `highly_sensitive_credential_bearing,
+    protected=True` -- a deliberate over-protection, written when
+    `placement.privacy` raised `ClassificationRequired` for an unclassified file
+    and one unrecognised file therefore refused the entire corpus run.
+
+    That refusal is fixed: P11 now reads P7's own `resolve_class(None) ->
+    unreadable_unclassified` and returns the file as `blocked_pending_user`. So the
+    over-protection has stopped being a precaution and become a COLLAPSE. It made
+    an unreadable scan and a passport identical in P7's store -- same class, same
+    flag, same sentence to the user -- and made the honest unclassified path
+    unreachable from this command. `00`: "sensitive personal material is not the
+    same thing as `Numbers.app`."
+
+    Over-protecting is not free. "We deliberately did not look" and "we could not
+    tell" are different answers, they ask the user for different things, and a
+    product that says the first when it means the second is lying in the direction
+    that happens to feel safe.
+    """
 
     def classify(conn: sqlite3.Connection, file_id: str, content_hash: str):
-        candidate = detector(conn, file_id, content_hash)
-        if candidate is not None:
-            return candidate
-        row = conn.execute(
-            "SELECT observation_key FROM evidence WHERE file_id = ? AND "
-            "content_hash = ? ORDER BY rowid LIMIT 1",
-            (file_id, content_hash)).fetchone()
-        if row is None:
-            # No observation to cite. §3.1's rule is unconditional -- a record
-            # with no evidence is not a record -- so nothing is written and the
-            # file stays unclassified. It will refuse at placement and say so.
-            return None
-        return ClassificationRecord(
-            file_id=file_id, content_hash=content_hash,
-            handling_class=UNRECOGNISED_HANDLING, protected=True,
-            basis="detector",
-            evidence_refs=(row["observation_key"],),
-            # `possible`, not `direct`: nothing was recognised, so this is the
-            # deployment's precaution and not a reading of the file.
-            reliability_state="possible", observed_at=now())
+        return detector(conn, file_id, content_hash)
 
     return classify
 

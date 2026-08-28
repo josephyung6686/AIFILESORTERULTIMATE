@@ -54,6 +54,49 @@ def test_a_real_run_still_refuses_to_guess_the_situation():
         assert exited.value.code == 2, argv
 
 
+def test_a_file_the_detector_declines_is_not_written_up_as_a_passport():
+    """An unreadable scan and a passport are different things and must stay so.
+
+    This deployment once answered the detector's abstention with
+    `highly_sensitive_credential_bearing, protected=True`, as a workaround for
+    `placement.privacy` refusing the whole corpus run over one unclassified file.
+    That refusal is fixed -- P11 reads P7's own `resolve_class(None)` -- so the
+    workaround now only collapses the two: every file the detector declined to
+    guess about would enter P7's store indistinguishable from a passport, and
+    the honest `unreadable_unclassified` path would be unreachable from the CLI.
+
+    `00`: "sensitive personal material is not the same thing as `Numbers.app`."
+    """
+    # A real P4 observation key: `sha256:` plus 64 hex. The record validates the
+    # shape, so a placeholder would fail this test for the wrong reason.
+    key = "sha256:" + "ab" * 32
+
+    classify = cli.classifier(lambda conn, f, c: None,
+                              now=lambda: "2026-01-01T00:00:00Z")
+
+    class _Conn:
+        def execute(self, *_a):
+            class _Cur:
+                def fetchone(_self):
+                    return {"observation_key": key}
+            return _Cur()
+
+    record = classify(_Conn(), "file-1", "sha256:abc")
+    assert record is None, (
+        "the detector declined and the CLI invented a classification for it: "
+        f"{record}. An unclassified file must reach P11 unclassified so P7's "
+        "own resolve_class(None) decides, not this deployment.")
+
+
+def test_a_file_the_detector_does_recognise_still_gets_its_candidate():
+    """The negative twin. Returning None for everything would pass the test above
+    and disable classification entirely."""
+    sentinel = object()
+    classify = cli.classifier(lambda conn, f, c: sentinel,
+                              now=lambda: "2026-01-01T00:00:00Z")
+    assert classify(None, "file-1", "sha256:abc") is sentinel
+
+
 def test_the_help_says_nothing_is_moved(capsys):
     """`00`'s promise, in the first sentence a person reads. This command reads and
     proposes; P12 is what moves files and P12 does not exist, so a help text that
