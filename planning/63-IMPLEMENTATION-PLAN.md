@@ -155,3 +155,50 @@ The third is probably dead code rather than a broken chain, and dead code that s
 test files is its own hazard: it reads as a supported path. **None of the three is chased here.**
 They are recorded because the honest answer to "is everything connected" is *no, and here are
 the three places*, not a green tick.
+
+---
+
+## 9. Gate status, 2026-08-29
+
+| | condition | state | evidence |
+|---|---|---|---|
+| G1 | full suite green | ✅ | **5185 passed, 19 skipped, 1 xfailed, 0 failed** (4640 at session start) |
+| G2 | scale suite green | **2 of 19 failing** | was 13 of 19 |
+| G3 | no strict xfail standing | ✅ | one stands and correctly — §8 of `64` |
+| G4 | test order independent | measuring | method established; `--randomly-dont-reset-seed` required, see `pyproject.toml` |
+| G5 | every schema can file | ✅ | 19 of 23 with templates; 4 are named protection/safety exemptions |
+| G6 | `load_catalogue` has a caller | ✅ | `load_shipped_catalogue`, and the guard inverted |
+| G7 | P8→P11 production composition | ✅ | `run_production_corpus`, plus `src/cli.py` |
+| G8 | nothing inert | ✅ | recounted; 1 genuine (`sensitivity_policy_ref`), 2 tracked |
+| G9 | connection audit | ✅ | §8 above — answered, with 3 findings recorded rather than a tick |
+| G10 | the persona re-run | **open** | first real run recorded in `65`; the persona sweep is still owed |
+
+### G2 — the two that remain
+
+**Scan is still superlinear on unique files.** 2,681 files/s at 1,000 files, 1,326 at 4,000 —
+per-file cost x2.0. The transaction-boundary fix moved the constant from 69 files/s to ~1,700
+and did not change the shape. Every other scan measurement is flat: 4 syscalls per file at any
+duplicate-family size, 1 row read per file on re-observation.
+
+**`model.max_dossier_tokens_per_call` is unset in one test.** The failing test asks whether one
+ceiling can serve both the picker and the depth limit, which `fix-canvas` independently
+identified as a configuration-shape question — `config.py` now records a complaint that the key
+answers four different questions. The test is probably right that the shape is wrong.
+
+### What this session changed, for the record
+
+Green went 4640 → 5185 with every defect found along the way fixed rather than deferred.
+Measured, before → after:
+
+| | before | after |
+|---|---|---|
+| scan throughput | 69 files/s · 24 min for 100k | **~1,700 files/s · ~1 min** |
+| identity per file | 402 syscalls at family-800, x4.0 | **4 syscalls, x1.0** |
+| placement retrieval | x6.8 · 8M queries at 10k×800 | **0.2 ms/file flat, x1.2** |
+| tree health | 3.343s at 3,200 nodes → 27 min at 50k | **0.027s · 0.48s at 51,200** |
+| picker | x3.4 · 34s per option at 10k folders | **x0.6 · ~1s** |
+| warnings on a 3,200-node tree | 2,991 | **21, ranked** |
+| widest single split | 337 folders under a ceiling of 6 | **5** |
+| schemas that can file | 6 of 23 | **19 of 23 + 4 named exemptions** |
+| applicability rows reachable | 25 of 54 | **208 of 208** |
+| human labels | 2 fixtures | **503, none equal to its field key** |
