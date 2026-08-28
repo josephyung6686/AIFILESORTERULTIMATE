@@ -104,3 +104,253 @@ def test_the_help_says_nothing_is_moved(capsys):
     with pytest.raises(SystemExit):
         cli.main(["--help"], out=io.StringIO())
     assert "Nothing is moved" in capsys.readouterr().out
+
+
+# ======================================================================================
+# The report, read as a person reads it
+# ======================================================================================
+#
+# `report` takes what the run returned and a name for every file, so these build
+# both directly. A stub rather than a live corpus because the cases that matter
+# here -- forty files of one kind, a protected group among them -- are cases a
+# four-file demo folder cannot produce, and the live path is covered end to end by
+# `tests/integration/test_production_corpus.py`.
+
+from types import SimpleNamespace  # noqa: E402
+
+ABSTAINED = (
+    "This file has not been classified -- nothing has been able to read enough "
+    "of it to say what kind of material it is -- so it was not shown to a model "
+    "and nothing moved. It is waiting for you to say what it is, not marked "
+    "sensitive and not judged on thin evidence.")
+
+UNTOUCHED = ("Nothing inside these was read, indexed, classified or moved, and "
+             "none of them is a place anything can be filed.")
+
+
+def _decision(*, outcome, file_id, explanation="", node_id=None,
+              protected=False, marked_state=None):
+    return SimpleNamespace(
+        outcome=outcome, explanation=explanation, marked_state=marked_state,
+        subject=SimpleNamespace(file_id=file_id, member_file_ids=()),
+        destination=SimpleNamespace(node_id=node_id) if node_id else None,
+        privacy=SimpleNamespace(protected=protected))
+
+
+def _node(node_id, label, *, parent=None, accepts=True):
+    return SimpleNamespace(node_id=node_id, display_label=label,
+                           parent_node_id=parent, accepts_placement=accepts)
+
+
+def _set(label, members, reason, *, protected=False):
+    return SimpleNamespace(label=label, member_file_ids=tuple(members),
+                           file_count=len(members), reason_not_placed=reason,
+                           protected=protected)
+
+
+def _area(name, path):
+    return SimpleNamespace(display_label=name, label="untouched_protected",
+                           path=path)
+
+
+def _fake_run(*, nodes=(), decisions=(), sets=(), areas=(), destinations=()):
+    return SimpleNamespace(
+        protected_areas=tuple(areas),
+        tree=SimpleNamespace(tree=SimpleNamespace(
+            plan_version_id="version_2", nodes=tuple(nodes))),
+        destinations=tuple(destinations),
+        placement=SimpleNamespace(decisions=tuple(decisions),
+                                  residual_sets=tuple(sets)))
+
+
+def _printed(run, names):
+    out = io.StringIO()
+    cli.report(run, names, out=out)
+    return out.getvalue()
+
+
+def _coursework(count=4):
+    """Four files, one folder, one shared reason -- the demo run's own shape."""
+    names = {f"id-{n}": f"Homework {n}.txt" for n in range(count)}
+    run = _fake_run(
+        nodes=[_node("node_0", "Coursework")], destinations=["node_0"],
+        decisions=[_decision(outcome="abstain", file_id=file_id,
+                             explanation=ABSTAINED) for file_id in names],
+        sets=[_set("Not yet placed", tuple(names),
+                   "no destination in this tree matched them well enough to "
+                   "decide without asking you")])
+    return run, names
+
+
+def test_the_report_calls_files_by_their_name_and_never_by_a_uuid():
+    """A person cannot tell which of their own files `74ce335f-...` is.
+
+    `files.current_path` is in the database and always has been, so the id was
+    never the only thing the report could print.
+    """
+    run, names = _coursework()
+    printed = _printed(run, names)
+
+    for name in names.values():
+        assert name in printed, printed
+    for file_id in names:
+        assert file_id not in printed, (
+            f"{file_id} reached the report; a person cannot act on an id")
+
+
+def test_one_reason_shared_by_four_files_is_said_once():
+    """The wording is right and stays verbatim; saying it four times is not."""
+    run, names = _coursework()
+    printed = _printed(run, names)
+
+    assert printed.count("not judged on thin evidence") == 1, printed
+    # Grouped, not weakened: the three things it keeps apart are all still there.
+    flat = " ".join(printed.split())
+    assert ABSTAINED in flat, flat
+
+
+def test_every_decided_file_is_accounted_for_when_the_list_is_shortened():
+    """Forty files of one kind are not forty lines, but they are still forty.
+
+    `src/tree_design/health.py` shortens its warning list the same way. What may
+    never happen is a file leaving the report: the count is the whole corpus and
+    the remainder says how many were counted rather than listed.
+    """
+    names = {f"id-{n}": f"note-{n:02d}.txt" for n in range(40)}
+    run = _fake_run(
+        nodes=[_node("node_0", "Coursework")], destinations=["node_0"],
+        decisions=[_decision(outcome="abstain", file_id=file_id,
+                             explanation=ABSTAINED) for file_id in names])
+    printed = _printed(run, names)
+
+    assert "40 files" in printed, printed
+    listed = [name for name in names.values() if name in printed]
+    assert len(listed) < 40, "forty names is the list this shortening exists for"
+    assert f"and {40 - len(listed)} more" in printed, printed
+    assert "never summarised away" in printed, printed
+
+
+def test_a_protected_group_is_never_the_one_summarised_away():
+    """The negative twin, and the standing rule arriving as a usability change.
+
+    Shortening the list is fine. Shortening the part that says what was marked
+    protected and left alone is the exact harm the rule forbids -- so a protected
+    group is listed in full however long it is, and sorts first.
+    """
+    names = {f"ord-{n}": f"note-{n:02d}.txt" for n in range(40)}
+    names.update({f"prot-{n}": f"secret-{n:02d}.key" for n in range(40)})
+    decisions = [_decision(outcome="abstain", file_id=f"ord-{n}",
+                           explanation=ABSTAINED) for n in range(40)]
+    decisions += [_decision(outcome="mark_state", file_id=f"prot-{n}",
+                            marked_state="protected", protected=True,
+                            explanation="this is protected material and was "
+                                        "marked rather than opened")
+                  for n in range(40)]
+    run = _fake_run(nodes=[_node("node_0", "Coursework")],
+                    destinations=["node_0"], decisions=decisions)
+    printed = _printed(run, names)
+
+    for n in range(40):
+        assert f"secret-{n:02d}.key" in printed, (
+            f"secret-{n:02d}.key was summarised away; a protected file is "
+            "marked and counted and never silently omitted")
+    ordinary = [name for name in names.values()
+                if name.startswith("note-") and name in printed]
+    assert len(ordinary) < 40, "the ordinary list should still be shortened"
+    assert printed.index("secret-00.key") < printed.index("note-00.txt")
+
+
+def test_the_protected_containers_block_survives_the_regrouping():
+    """Count, name, path and sentence, all four, unchanged.
+
+    This is the standing rule made visible. Every other part of the report may be
+    grouped, renamed or shortened; this one is what the grouping must not reach.
+    """
+    run, names = _coursework()
+    run.protected_areas = (_area("Notes.app", "/tmp/demo/Notes.app"),)
+    printed = _printed(run, names)
+
+    assert "Protected containers: 1 marked, none opened" in printed
+    assert "Notes.app  (untouched_protected)" in printed
+    assert "/tmp/demo/Notes.app" in printed
+    assert UNTOUCHED in printed
+    # And it is the first thing, not a line at the bottom of a long report.
+    assert printed.index("Protected containers") < printed.index("Coursework")
+
+
+def test_the_folder_list_is_not_headed_by_the_internal_plan_version():
+    """§8.8's plan versions are real and are not the user's vocabulary.
+
+    The identifier still has to be reachable -- a replay asks for it by name --
+    so it is a provenance line at the end rather than the heading of the list of
+    the user's own folders.
+    """
+    run, names = _coursework()
+    printed = _printed(run, names)
+    lines = printed.splitlines()
+
+    heading = next(line for line in lines if "folders" in line)
+    assert "version_2" not in heading, heading
+    assert "Coursework" in printed
+    footer = next(line for line in lines if line.startswith("Plan version:"))
+    assert "version_2" in footer
+    assert lines.index(footer) > lines.index(heading)
+
+
+def test_the_review_set_is_not_a_second_count_of_the_same_files():
+    """`Files: 4 decided, 0 placed` and `Not yet placed (4 files)` were one fact
+    printed twice. The set's own reason is not the same fact and stays."""
+    run, names = _coursework()
+    printed = _printed(run, names)
+
+    assert printed.count("4 files") == 1, printed
+    assert "For review:" not in printed
+    assert "no destination in this tree matched" in " ".join(printed.split())
+    assert "Not yet placed" in printed
+
+
+def test_a_review_set_covering_no_decided_file_is_still_printed():
+    """Nothing may be dropped to make the output shorter. A set folded into a
+    group it does not cover would be a set that vanished."""
+    run, names = _coursework()
+    run.placement.residual_sets += (
+        _set("Left for you", ("id-elsewhere",), "nothing decided about these"),)
+    printed = _printed(run, names)
+
+    assert "Left for you" in printed, printed
+    assert "nothing decided about these" in " ".join(printed.split())
+
+
+def test_a_placement_names_the_folder_rather_than_printing_a_dash():
+    """A bare `-` reads as a missing value. "Nowhere yet" is a decision."""
+    names = {"id-0": "Syllabus.txt"}
+    run = _fake_run(
+        nodes=[_node("node_0", "Coursework")], destinations=["node_0"],
+        decisions=[_decision(outcome="place", file_id="id-0",
+                             node_id="node_0", explanation="matched")])
+    printed = _printed(run, names)
+
+    assert "Coursework" in printed
+    assert not [line for line in printed.splitlines() if line.strip() == "-"]
+    assert "Ready to file into Coursework" in printed
+
+
+def test_file_names_are_read_from_the_database_and_shown_from_the_folder_read():
+    """`files.current_path` is the source, and the name is shown relative to the
+    folder the person typed -- which is what tells two `notes.txt` apart."""
+    import sqlite3
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("CREATE TABLE files (file_id TEXT, current_path TEXT)")
+    conn.executemany("INSERT INTO files VALUES (?, ?)", [
+        ("id-0", "/tmp/demo/Syllabus.txt"),
+        ("id-1", "/tmp/demo/term one/notes.txt"),
+        ("id-2", "/elsewhere/stray.txt")])
+
+    names = cli.file_names(conn, Path("/tmp/demo"))
+
+    assert names["id-0"] == "Syllabus.txt"
+    assert names["id-1"] == "term one/notes.txt"
+    # Outside the folder read: the full path, never a guess and never dropped.
+    assert names["id-2"] == "/elsewhere/stray.txt"

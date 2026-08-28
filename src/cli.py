@@ -36,6 +36,7 @@ import json
 import re
 import sqlite3
 import sys
+import textwrap
 from itertools import count
 from pathlib import Path
 from typing import Sequence
@@ -676,7 +677,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                  "protected": False, "weak_graph_neighbours": (),
                  "reason_not_placed":
                      "no destination in this tree matched them well enough to "
-                     "decide without asking you"},)
+                     "decide without asking you."},)
 
     def placement_inputs(tree) -> PipelineInputs:
         return PipelineInputs(
@@ -748,12 +749,98 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 # ======================================================================================
 
 
-def report(result: ProductionRun, *, out=None) -> None:
+#: P11's outcome vocabulary, in the words the person whose files these are would
+#: use. `00` §5.1 asks labels to "reflect the user's vocabulary rather than a
+#: universal corporate taxonomy", and a report is as much a label as a folder is.
+#: An outcome missing from this table prints its own name rather than nothing: a
+#: gap in this deployment's vocabulary must never become a file that vanished.
+#: The order is the order these are printed in -- what is settled first, what
+#: needs the person last.
+OUTCOME_WORDS: dict[str, str] = {
+    pv.PLACE: "Ready to file",
+    pv.LEAVE_IN_PLACE: "Staying exactly where they are",
+    pv.MARK_STATE: "Marked and left alone",
+    pv.MARK_REVIEW_LATER: "Set aside for you to look at later",
+    pv.RETURN_TO_PLACEMENT: "Sent back round for another look",
+    pv.ASK_USER: "Waiting for you to choose where these go",
+    pv.ABSTAIN: "Waiting for you to say what these are",
+}
+
+#: How many files of one kind are named before the rest are counted instead.
+#: `src/tree_design/health.py` shortens its warning list for the same reason --
+#: a list longer than the thing it describes is not a summary of anything -- and
+#: this follows it, INCLUDING the one exemption: a protected group is never one
+#: of the counted ones. `00` states no number; ten is enough to recognise a
+#: folder's worth of files by eye and short enough to stay a summary.
+NAMES_LISTED_PER_GROUP: int = 10
+
+
+def file_names(conn: sqlite3.Connection, root: Path) -> dict[str, str]:
+    """Every indexed file, by the name its owner calls it.
+
+    `files.current_path` is P1's own column and has always been there, so a
+    report printing `74ce335f-110b-42c0-8a50-ecdc8f8734b7` was never showing the
+    only thing it had. A person cannot tell which of their own files that is,
+    which makes every line built on it unusable.
+
+    Shown relative to the folder that was scanned, because that is the name the
+    person typed and the part that tells two `notes.txt` apart. A file outside
+    that folder keeps its full path rather than being guessed at.
+
+    Nothing inside a protected container appears here, and not by omission: P3
+    never walks into one, so no `files` row for its interior exists to read.
+    """
+    names: dict[str, str] = {}
+    for row in conn.execute("SELECT file_id, current_path FROM files"):
+        path = Path(row["current_path"])
+        try:
+            names[row["file_id"]] = str(path.relative_to(root))
+        except ValueError:
+            names[row["file_id"]] = str(path)
+    return names
+
+
+def _wrapped(text: str, *, indent: str) -> str:
+    return textwrap.fill(text, width=78, initial_indent=indent,
+                         subsequent_indent=indent)
+
+
+def _files_of(decision) -> tuple[str, ...]:
+    """The files one decision is about: a file version, or a group's members."""
+    subject = decision.subject
+    return ((subject.file_id,) if subject.file_id
+            else tuple(subject.member_file_ids))
+
+
+def _protected(decision, sets: Sequence) -> bool:
+    """Whether this decision is about material that was marked, not opened.
+
+    Three records can say so and they are not interchangeable: P7's flag travels
+    on `privacy.protected`, P11's own `marked_state` says the file was marked
+    rather than placed, and §7.5's review set carries the flag for a whole set.
+    Any of them is enough, because the cost of treating an ordinary group as
+    protected is a slightly longer list and the cost of the reverse is the
+    silent omission the standing rule exists to forbid.
+    """
+    return bool(decision.privacy.protected
+                or decision.marked_state == pv.PROTECTED
+                or any(item.protected for item in sets))
+
+
+def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
     """The run, in the order a person would ask about it.
 
-    The protected containers come FIRST and are never folded into a total. "Marked
-    and counted, never opened" is only true if the count is somewhere the person
-    reads, and a line at the bottom of a long report is not that.
+    Four questions, in this order: what was left alone, what folders are being
+    proposed, what happens to each file, and what this needs from you.
+
+    The protected containers come FIRST and are never folded into a total.
+    "Marked and counted, never opened" is only true if the count is somewhere the
+    person reads, and a line at the bottom of a long report is not that. The
+    grouping below never reaches this block -- count, name, path and sentence are
+    what the rest of the report is shortened around, not with.
+
+    `names` is required rather than optional. A default would let the id-only
+    report back in by nothing more than a forgotten argument.
     """
     out = out if out is not None else sys.stdout
     areas = result.protected_areas
@@ -766,8 +853,9 @@ def report(result: ProductionRun, *, out=None) -> None:
               "none of them is a place anything can be filed.", file=out)
 
     tree = result.tree.tree
-    print(f"\nPlan {tree.plan_version_id}: {len(tree.nodes)} folders, "
-          f"{len(result.destinations)} of them places a file can go", file=out)
+    places = len(result.destinations)
+    print(f"\nProposed folders: {len(tree.nodes)}. {places} of them "
+          f"{'is' if places == 1 else 'are'} somewhere a file can go.", file=out)
     by_parent: dict[str | None, list] = {}
     for node in tree.nodes:
         by_parent.setdefault(node.parent_node_id, []).append(node)
@@ -782,19 +870,81 @@ def report(result: ProductionRun, *, out=None) -> None:
 
     labels = {node.node_id: node.display_label for node in tree.nodes}
     decisions = result.placement.decisions
-    placed = [d for d in decisions if d.outcome == pv.PLACE]
-    print(f"\nFiles: {len(decisions)} decided, {len(placed)} placed", file=out)
-    for decision in decisions:
-        where = (labels.get(decision.destination.node_id, "?")
-                 if decision.destination else "-")
-        print(f"  {decision.outcome:<10} {where:<24} {decision.subject.file_id}",
-              file=out)
-        if decision.outcome != pv.PLACE:
-            print(f"    {decision.explanation}", file=out)
-
+    placed = sum(1 for d in decisions if d.outcome == pv.PLACE)
+    sets_by_file: dict[str, list] = {}
     for item in result.placement.residual_sets:
-        print(f"\nFor review: {item.label} ({item.file_count} files)", file=out)
-        print(f"  {item.reason_not_placed}", file=out)
+        for file_id in item.member_file_ids:
+            sets_by_file.setdefault(file_id, []).append(item)
+
+    # One line per KIND of outcome, not one per file. Four files that stopped for
+    # the same reason are four names and one reason, because the reason was one
+    # fact the first time it was printed and stayed one fact the other three.
+    members: dict[tuple, list[str]] = {}
+    shielded: dict[tuple, bool] = {}
+    for decision in decisions:
+        # Deduplicated by identity, not by value: two review sets that happen to
+        # read alike are still two sets, and folding them would lose one.
+        sets, seen = [], set()
+        for file_id in _files_of(decision):
+            for item in sets_by_file.get(file_id, ()):
+                if id(item) not in seen:
+                    seen.add(id(item))
+                    sets.append(item)
+        where = (labels.get(decision.destination.node_id,
+                            decision.destination.node_id)
+                 if decision.destination else None)
+        # A placement's folder is its whole answer; every other outcome owes the
+        # person the sentence saying why it stopped.
+        reason = "" if decision.outcome == pv.PLACE else decision.explanation
+        review = tuple(f'Held for review as "{item.label}": {item.reason_not_placed}'
+                       for item in sets)
+        key = (decision.outcome, where, reason, review)
+        members.setdefault(key, []).extend(_files_of(decision))
+        shielded[key] = shielded.get(key, False) or _protected(decision, sets)
+
+    rank = {outcome: index for index, outcome in enumerate(OUTCOME_WORDS)}
+    ordered = sorted(members, key=lambda key: (
+        # Protected first, exactly as `tree_design.health` ranks its warnings.
+        not shielded[key], rank.get(key[0], len(rank)), key[1] or "", key[2]))
+
+    print(f"\nFiles: {len(decisions)} decided, {placed} ready to file", file=out)
+    for key in ordered:
+        outcome, where, reason, review = key
+        files = sorted(members[key], key=lambda f: names.get(f, f))
+        heading = OUTCOME_WORDS.get(outcome, outcome)
+        if where:
+            heading = f"{heading} into {where}"
+        plural = "" if len(files) == 1 else "s"
+        print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
+        listed = files if shielded[key] else files[:NAMES_LISTED_PER_GROUP]
+        for file_id in listed:
+            print(f"    {names.get(file_id, file_id)}", file=out)
+        rest = len(files) - len(listed)
+        if rest:
+            print(_wrapped(
+                f"...and {rest} more, counted here rather than listed one by one "
+                "so that the list stays shorter than the folder it describes; "
+                "none of them is a protected area, which is never summarised "
+                "away", indent="    "), file=out)
+        if reason:
+            print(_wrapped(f"Same reason for each: {reason}", indent="    "),
+                  file=out)
+        for note in review:
+            print(_wrapped(note, indent="    "), file=out)
+
+    # §7.5's sets are printed where the files they cover are printed, so the same
+    # four files are never counted twice in two vocabularies. A set covering no
+    # decided file has nowhere to be folded into and gets its own line: shortening
+    # the report may not drop one.
+    accounted = {file_id for files in members.values() for file_id in files}
+    for item in result.placement.residual_sets:
+        if not set(item.member_file_ids) & accounted:
+            print(f"\n  Held for review as \"{item.label}\" -- "
+                  f"{item.file_count} file(s), none of them decided here", file=out)
+            print(_wrapped(item.reason_not_placed, indent="    "), file=out)
+
+    print(f"\nNothing was moved.\nPlan version: {tree.plan_version_id}  "
+          f"(the name this proposal is saved under)", file=out)
 
 
 def main(argv: Sequence[str] | None = None, *, out=None) -> int:
@@ -886,7 +1036,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
-    report(result, out=out)
+    report(result, file_names(conn, directory), out=out)
     return 0
 
 
