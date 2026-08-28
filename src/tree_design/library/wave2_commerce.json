@@ -1,0 +1,1369 @@
+{
+  "definitions": [
+    {
+      "template_id": "def.custody-subject-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.counterparty-subject-kind",
+          "is_default": true,
+          "rationale": "logistics.json's default template, verbatim: 'the carrier or trading counterparty ONLY where the corpus genuinely spans more than one -> the custody subject (the consignment or container ...) -> the document function -> time only as a leaf'. Not time-first, and the anchor says why in its own words: 'A consignment's booking, declaration, transport document and delivery receipt frequently straddle a month or a year boundary, and a time-first order would scatter exactly the files a claim needs together.' The time leaf the anchor describes is absent because 60 B1 strips record_period from logistics, so there is no key to build it from and this recipe does not smuggle one in.",
+          "dimensions": [
+            {
+              "role_ref": "counterparty_org",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "logistics.json puts the carrier first ONLY where the corpus genuinely spans more than one, so an operator shipping through a single carrier gains a one-child branch and the level simply does not resolve. Optional is the shape of that condition; absent would be a different recipe."
+            },
+            {
+              "role_ref": "custody_subject",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The consignment is 'the stable subject that makes a packing list, a customs declaration, a delivery receipt and an exception photograph intelligible together' (logistics.json), and it identifies goods rather than a person."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "49 section 3 routes logistics to record_type - the file 'evidences that something happened' - and a proof of delivery is the leaf a person searches for once the movement it belongs to is fixed."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "drop the counterparty level entirely for a single-carrier corpus, which is the condition logistics.json already states rather than a new pattern",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "custody_subject and artifact_kind are TWO levels and never one role. 60 B2 mints consignment for exactly this reason: logistics.last-mile-pod's own recorded order is 'consignment/parcel -> delivery event', and folded into event that reads event > event, 'which 00:97's validator forbids by name'.",
+        "no level of this recipe may resolve to event. logistics declares no event key at all - 60 section 7: 'event sat on logistics only as the absorber of consignment; with B2 reversing that merge it has no signature left', and the anchor 'eliminated it by name: event is the Photos capture-occasion'.",
+        "counterparty_org may bind only an organization read from a LABELLED carrier, haulier, forwarder, shipping line or airline slot. 60 B3: 'a consignment note routinely names consignor, consignee and carrier in three different roles on one page, so without the label the extractor picks one of three organization tokens at random' - and two of those three are the wrong org for a folder.",
+        "no level may be built from a consignee name or a delivery address. logistics.last-mile-pod: 'Recipient names, delivery addresses, coordinates, safe-place details and driver identities are evidence and privacy-sensitive values, not default folder dimensions', and 00:97 refuses a template that uses 'an author or organization merely as a collector'.",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Maersk",
+          "MAEU5512884",
+          "Bill of lading"
+        ],
+        [
+          "MAEU5512884",
+          "Proof of delivery"
+        ]
+      ],
+      "relative_order": [
+        [
+          "counterparty_org",
+          "custody_subject"
+        ],
+        [
+          "custody_subject",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "Three logistics corpora sit behind this recipe and all three state the same nesting, subject above function, with no reversal offered anywhere. logistics.shipment: 'custody context or carrier only where it genuinely separates the corpus -> consignment/container -> record_type'. logistics.customs-export: 'consignment or movement -> record_type, with carrier or site only when they are explicit and materially improve retrieval'. logistics.last-mile-pod: 'consignment/parcel -> delivery event or record_type'. The one row in this family that DOES put the document function first, logistics.driver-compliance, reaches that shape by deleting the subject level outright - 'a double deletion ... and, uniquely in this family, NO SUBJECT LEVEL' - which is a different recipe rather than this one reversed, and it ships separately as def.duty-function-record. A function-first candidate authored here would be an order no corpus in the family asked for, shown beside three that did."
+    },
+    {
+      "template_id": "def.operated-asset-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.asset-then-kind",
+          "is_default": true,
+          "rationale": "logistics.fleet-vehicle verbatim: 'asset, then document function, then time as a leaf - with NO carrier or counterparty level, which the schema default places first.' The time leaf is absent because 60 B1 strips record_period from logistics; the row's own reason for wanting it - 'the same inspection recurs and the date is the only thing distinguishing two otherwise identical sheets' - is recorded as a gap rather than met with a borrowed key.",
+          "dimensions": [
+            {
+              "role_ref": "operated_asset",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "logistics.fleet-vehicle: the duty artefacts 'recur on a schedule for as long as the operator runs the asset, which is what makes the vehicle a standing subject rather than a purchase'. The vehicle is the only parent the whole file shares."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Inspection sheet, defect report, statutory test result and operator licence are the four things a person asks for once the vehicle is fixed, and 49 section 3 routes them to record_type."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "keep a multi-vehicle corpus grouped and flat rather than borrowing another schema's key to look complete, which is logistics.fleet-vehicle's own instruction",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "NO LEVEL MAY BE BUILT FROM A PERSON - logistics.fleet-vehicle: 'not the driver who signed the check, not the technician who signed the rectification, not the transport manager named on the licence.'",
+        "no counterparty level, and the deletion is the argument rather than a shortening of it: 'a fleet asset's file is authored by a licensing authority, a testing station, an insurer, a lessor and several garages, none of them a counterparty to a movement, so a counterparty level scatters one asset across five branches and answers no question the operator asks.'",
+        "a MULTI-asset register export has no single asset value and does not belong here. That restriction travels with the key itself (48, carried on asset's own note) and its home is the site-kept recipe.",
+        "a display alias is preferable to a full vehicle-identification string as the level label - logistics.fleet-vehicle asserts this and flags that it is asserting rather than citing",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "LC64 ZXR",
+          "Statutory test"
+        ]
+      ],
+      "relative_order": [
+        [
+          "operated_asset",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "logistics.fleet-vehicle is the only corpus behind this recipe and it states one nesting and argues against the only other one a two-role recipe can offer. Its anchor sentence is that the vehicle is a STANDING SUBJECT whose duty artefacts recur for as long as the asset is operated; a function-first tree therefore breaks one asset's own recurring file into four unrelated piles, which is precisely the defect the row names when it refuses a level above the asset for scattering 'one asset across five branches'. The row's own recorded alternative is not a reversal at all - it is the open question NJ-FV-2, whether the duty artefact is 'a work_type value rather than an activation condition', which would collapse the row into finance.vehicle-records rather than reorder it."
+    },
+    {
+      "template_id": "def.duty-function-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.record-kind-only",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.duty-function-only",
+          "is_default": true,
+          "rationale": "logistics.driver-compliance verbatim: the recommendation 'DIFFERS FROM THE SCHEMA DEFAULT BY A DOUBLE DELETION - no counterparty level and, uniquely in this family, NO SUBJECT LEVEL: document function (entitlement / fitness / training / hours and infringements), then the expiry or the covered period as a leaf.' One level is what remains once both deletions are honoured, and the leaf the row wanted has no key on this schema.",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Entitlement, medical fitness, periodic training and hours-and-infringements are four unlike artefacts that interleave across every year a person drives, and the document function is the only separator this recipe is allowed to build."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "hold the driver dossier as a GROUP with a display alias, never as a destination - logistics.driver-compliance's own recommendation and the reason this recipe has one level rather than two"
+      ],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "NO SUBJECT LEVEL, and that absence IS the recipe rather than a gap in it. logistics.driver-compliance: 'the driver dossier is the most coherent grouping in the whole family and is exactly what an operator asks for - and it must still not be built, because 00 holds that A folder should not become a collection point for everything produced by the same person or organization. A person under the filer's authority deserves at least the protection the family gives a counterparty.'",
+        "no counterparty level: 'a licensing authority, an examining clinician, a training provider and an analysis bureau are issuers, not counterparties to a movement'",
+        "no time level. The row records an inversion peculiar to it - 'the leaf that matters is the FUTURE lapse date, not the past issue date, so any time level built from creation dates would bury the only fact the file is retained for' - and 60 B1 strips record_period from logistics in any case, so there is no key to build one from.",
+        "NJ-DC-1 is open and this recipe must not be read as answering it: whether a driver dossier may ever be foldered 'is logistics's own NJ-LOG-4 seen from the row that generates it, and R1c should answer it once for both'"
+      ],
+      "example_label_chains": [
+        [
+          "Medical fitness"
+        ],
+        [
+          "Hours and infringements"
+        ]
+      ],
+      "relative_order": [],
+      "privacy_floor": null,
+      "sole_order_attestation": null
+    },
+    {
+      "template_id": "def.site-kept-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "cross-domain",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.site-then-kind",
+          "is_default": true,
+          "rationale": "logistics.warehouse-ops verbatim: 'THIS ROW RECOMMENDS site -> record_type, with time only as a leaf', and it promotes the site 'for an evidential reason, not a tidiness one: a bin code is only meaningful relative to a building, the same code A-12-03-B exists in every facility an operator runs, and so the facility is the parent dimension that makes the child intelligible - 00: a parent dimension should provide the context required to understand the child.' retail_hospitality.premises-licensing reaches the same two levels from the other side: the permission is keyed 'to a PREMISES ADDRESS ... not to an entity identifier and a filing period'.",
+          "dimensions": [
+            {
+              "role_ref": "operating_site",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The operating place is what makes the child intelligible: a bin code, a licence stage and a review are each meaningless until the building they belong to is known, and the same identifiers repeat at every site an operator runs."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Once the place is fixed, what the document IS - a count variance, a licence variation, a management response - is the level a person actually browses."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "drop the site level entirely for a single-facility corpus, leaving the record function alone - logistics.warehouse-ops states this as its own optional branch (a)",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "operating_site is the OPERATING PLACE - 48 section 1b: 'plant, works, depot, store, field' - and never the Photos location key: 'Ten proposing rows across four schemas all eliminated location identically, so this is not a respelling of the Photos key.'",
+        "operating_site is never an organization and never the operator's own trading name used as a collector. 00:97 refuses a template that uses 'an author or organization merely as a collector'.",
+        "NO PERSON LEVEL, on any of the three corpora this recipe serves: logistics.warehouse-ops forbids 'an operative's name', retail_hospitality.premises-licensing forbids 'a NAMED DPS, FBO, licence holder or objector', and retail_hospitality.guest-feedback forbids a reviewer's or complainant's name because its authors are members of the public.",
+        "no bin coordinate and no SKU level - logistics.warehouse-ops: 'a bin code is a machine coordinate that would open thousands of branches no human browses, and a SKU is this row's worst never_alone token'",
+        "a bare licence number must not become a visible branch label without user-approved redaction - retail_hospitality.premises-licensing: 'a permission reference resolves in public registers to a person and often a home address'",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Camden depot",
+          "Cycle count"
+        ],
+        [
+          "The Bell, Wharf Street",
+          "Variation"
+        ]
+      ],
+      "relative_order": [
+        [
+          "operating_site",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "Three corpora across two schemas sit behind this recipe and each states the same one nesting. logistics.warehouse-ops: 'THIS ROW RECOMMENDS site -> record_type'. retail_hospitality.premises-licensing: 'Site remains conditional ... Function then splits as application / grant-and-conditions / variation / temporary notice / review-and-hearing.' retail_hospitality.guest-feedback: 'SITE (only where the corpus spans more than one) then CHANNEL then FEEDBACK RECORD FUNCTION', whose middle level has no key and does not survive. None of the three offers a reversal, and the only alternative any of them writes down is a DELETION rather than an inversion - warehouse-ops: 'drop the site level entirely for a single-facility corpus, leaving record_type alone.' A function-first candidate here would be one nobody wrote, shown beside one three rows did."
+    },
+    {
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.site-occasion-kind",
+          "is_default": true,
+          "rationale": "retail_hospitality.json's default, verbatim and stated there as 'THE PARAGRAPH EVERY ONE OF THE FOURTEEN TEMPLATES MUST DIFFER FROM': 'the TRADING UNIT - site, venue or channel - ONLY where the corpus genuinely spans more than one, then the TRADING OCCASION - the session, count, order cycle, booking, function or licensed premises the material belongs to, then the OPERATIONAL RECORD FUNCTION. Trading period sits INSIDE the occasion level, never above the site. NOT TIME-FIRST.' The anchor also states why the family is more tempted than most: 'the date IDENTIFIES the occasion, it does not ROOT the tree ... any child template claiming time_first is claiming the photos exception without the photos evidence.'",
+          "dimensions": [
+            {
+              "role_ref": "operating_site",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "retail_hospitality.json makes the trading unit conditional 'only where the corpus genuinely spans more than one', because 'a single-site operator's tree would gain a one-child branch naming their own shop above everything'. Two rows suppress it entirely for off-premise work, which is an omitted dimension at runtime rather than a different order."
+            },
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The trading occasion is what pairs 'a COUNTED REALITY against a RECORDED BELIEF, or a FINITE CAPACITY against a DATED DEMAND' (retail_hospitality.json), and it is the level that keeps a count sheet with the variance record it produced."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Once the occasion is fixed, the operational record function is the leaf: a Z read, a variance sheet, a cancellation note or a final account, routed to record_type by 49 section 3 because each evidences that a trading operation occurred."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "suppress the trading unit entirely for off-premise work at a client's place or a hired venue - retail_hospitality.catering-contract and retail_hospitality.event-production both make the site level 'presumptively OFF' rather than conditional",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "A GUEST, DINER, DELEGATE, CLIENT, CREW OR STAFF NAME MUST NEVER BECOME A DIMENSION. retail_hospitality.json: 'A product or a guest name must NEVER become a dimension: the first produces a branch per SKU, the second publishes a member of the public's name into the directory tree.'",
+        "PRODUCT MUST NEVER BECOME A DIMENSION even though 60 section 5 declares product on retail_hospitality. The same anchor sentence rejects 'a branch per SKU', and 00:97's validator refuses a template that would 'create meaningless one-child levels'. The key is declared for search and for grouping; it is not a level, and no row of this recipe binds it.",
+        "occasion_anchor binds event, whose own note makes it 'the bounded occurrence a set of records is about' and records that 'manufacturing, retail_hospitality and hr reference it'. The same note settles the family's hardest question: 'Time-primacy belongs to 00:70's Photos template order, not to the key, so a non-photo schema does not inherit it.'",
+        "no date may sit above the occasion. All fourteen retail_hospitality rows refuse it in the same words - 'the date IDENTIFIES the occasion; it does not ROOT the tree' - and reserve the exception to capture: 'Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.'",
+        "operating_site may never resolve to an organization or to the operator's own trading name. retail_hospitality.catering-contract: rooting a pack at the operator's kitchen site 'produces a one-child branch naming the holder's own business above everything'.",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Store 214 - Camden",
+          "Fri 13 Mar close",
+          "Z read"
+        ],
+        [
+          "Ashworth wedding",
+          "Final account"
+        ]
+      ],
+      "relative_order": [
+        [
+          "operating_site",
+          "occasion_anchor"
+        ],
+        [
+          "occasion_anchor",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "Eight retail_hospitality corpora sit behind this recipe and every one of them states the schema anchor's single nesting and then states its own difference as a SUBSTITUTION inside the occasion level or as a SUPPRESSION of the site level - never as a reversal. retail_hospitality.pos-reporting substitutes the till session, stocktake the count event, store-operations the site operating day, returns-warranty the return case ('trading_occasion should be WIDENED to admit it'), supplier-order the order cycle, bookings-reservations the booking itself. The two rows that 'INVERT THE TOP', event-production and catering-contract, invert it by turning the site level OFF - 'The schema's default makes site conditional; this row makes it presumptively OFF' - which is an omitted dimension at runtime, not a second order. The one reversal the family actually discusses, a date above the occasion, is refused by name in all fourteen rows. There is no second order here that a corpus asked for, and an invented one shown beside this one would be indistinguishable from it."
+    },
+    {
+      "template_id": "def.trading-period-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.site-period-kind",
+          "is_default": true,
+          "rationale": "The two retail_hospitality rows whose material has no trading occasion at all and a covered interval instead. retail_hospitality.ecommerce-ops: 'There is NO TRADING SESSION here and that is structural, not incidental: the storefront never closes ... What replaces it is the EXPORT WINDOW, which is a date RANGE chosen by whoever pulled the report.' retail_hospitality.food-safety: 'TRADING UNIT (conditional, on the same terms) then CONTROL POINT then RECORD PERIOD then FUNCTION'. The period sits in the middle rather than at the root, which is the anchor's rule: 'Trading period sits INSIDE the occasion level, never above the site.'",
+          "dimensions": [
+            {
+              "role_ref": "operating_site",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "retail_hospitality.ecommerce-ops argues the level is unconditional for a merchant on more than one selling surface - 'the order-identifier NAMESPACES COLLIDE between channels - the same #1042 exists on two systems and means two different buyers' - and states its own degradation honestly: 'Where a merchant genuinely has one channel the level collapses and the recommendation degrades to the schema default.' Optional is that degradation."
+            },
+            {
+              "role_ref": "scope_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "An export window and a diary week are the bounded interval the record COVERS, which is the only thing separating two otherwise identical exports or two otherwise identical ruled sheets."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Orders export, listing state, temperature log or corrective action is what a person asks for once the window is fixed, and 49 section 3 routes all of them to record_type."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "collapse the trading-unit level for a single-channel merchant, which retail_hospitality.ecommerce-ops states as its own degradation rather than as a separate pattern",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "scope_period binds record_period, 'the bounded interval a record COVERS' (47), and never a capture date. retail_hospitality.food-safety: 'A photographed paper sheet's capture date is not the trading date it covers, and the capture exception belongs to media alone.'",
+        "the period level never rises above the trading unit - retail_hospitality.json: 'Trading period sits INSIDE the occasion level, never above the site'",
+        "no SKU or product level and no customer level - retail_hospitality.ecommerce-ops: 'A SKU must never become a dimension (one branch per line) and a customer must never become one (it publishes a member of the public's name into the directory tree).'",
+        "no operative's name level - retail_hospitality.food-safety forbids it by name, because a missed-check branch is a staff-facing allegation-adjacent record",
+        "the CONTROL POINT level food-safety wants is not built here and its absence is recorded rather than substituted: a fridge, probe or hot-hold is an asset, retail_hospitality declares no asset key (60 section 5), and NJ-RH-FS-1's own alternative B - 'drop it and let the site-plus-period hold every sheet flat' - is the shape that remains",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Shopify - UK store",
+          "March 2026",
+          "Orders export"
+        ],
+        [
+          "Camden kitchen",
+          "Week 12",
+          "Temperature log"
+        ]
+      ],
+      "relative_order": [
+        [
+          "operating_site",
+          "scope_period"
+        ],
+        [
+          "scope_period",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "Two corpora sit behind this recipe and both state the same nesting with the period in the middle - retail_hospitality.food-safety ('TRADING UNIT ... then CONTROL POINT then RECORD PERIOD then FUNCTION') and retail_hospitality.ecommerce-ops ('the CHANNEL, UNCONDITIONALLY FIRST, then the EXPORT WINDOW OR ORDER LIFECYCLE, then the record function'). Neither offers a reversal, and both refuse the only one a period-bearing recipe is tempted by, each calling itself the family's most tempted row and then refusing anyway: ecommerce-ops because 'an export window IS a date range', food-safety because 'every artefact is named by a day'. What this recipe is missing is a KEY, not an order - food-safety's control point, and ecommerce-ops's NJ-EC-1 question about whether a selling channel is a site - and both gaps are recorded on the rows rather than filled with a second nesting."
+    },
+    {
+      "template_id": "def.requisition-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.role-cycle-kind",
+          "is_default": true,
+          "rationale": "career.employer-side-hiring verbatim, and it is a correction to 00's recorded career order rather than an application of it: '00's recorded career order is a Career template may define company -> role or recruiting cycle -> document type, and its first level is degenerate on this side: every file in an employer-side hiring corpus names the SAME employer, so a company level proposes exactly the branch 00 tells the interface to warn about ... The intelligible parent here is the requisition (the role together with its hiring cycle), because a scorecard or a debrief is unreadable without knowing which opening it was written for. Document type goes last, as on every career situation.'",
+          "dimensions": [
+            {
+              "role_ref": "role_title",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The opening is what a scorecard, a debrief and a panel packet all belong to; 00:70 already makes the role a folder level - 'company -> role or recruiting cycle -> document type' - and on this side of the process it is the first level rather than the second, because the company level is degenerate."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The requisition is 'the role together with its hiring cycle', and the cycle is what keeps this spring's opening for the same title apart from last spring's. It is optional because a one-off opening has no round."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Requisition, applicant packet, scorecard, debrief and approval are the leaf, and 49 section 3 routes them to record_type because each evidences that a step in the process occurred."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "flatten to the role alone where an employer runs one opening per title, which is 00's own instruction to 'recommend flattening when a dimension does not materially improve retrieval'"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "NO CANDIDATE LEVEL, ever, and this recipe cannot express one in either direction. career.employer-side-hiring: 'a folder named for a person is a personnel file about a third party, and 00 disfavours person-collectors outright - A folder should not become a collection point for everything produced by the same person or organization.' The row recommends against it and records the decision as Joseph's; nothing here forecloses that decision, and nothing here implements it.",
+        "NO EMPLOYER LEVEL, and its absence is the argument for this recipe rather than an omission from def.career-search-and-tenure: 'every file in an employer-side hiring corpus names the SAME employer', so the level 00 puts first is the one-child branch 00 tells the interface to warn about.",
+        "role_title binds job_title, which is 'the POSITION held, never the person (subject_of_record) and never the organization (employer, target_employer)'",
+        "NJ #2 on the row is open and this recipe does not close it: the requisition as ONE identifier - 'neither company nor role or recruiting cycle but a pairing of a role with a cycle under an opening identifier' - has no key, and 'whether that is a key, a value of an existing key, or a group label that never becomes a field is a vocabulary decision and therefore Joseph's'. This recipe builds the pairing as two levels because that is what the declared keys allow.",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Senior Engineer",
+          "2026 H1",
+          "Scorecards"
+        ]
+      ],
+      "relative_order": [
+        [
+          "role_title",
+          "cycle_period"
+        ],
+        [
+          "cycle_period",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "career.employer-side-hiring is the only corpus behind this recipe and it states one nesting and rules out the reversal in the same sentence it states the nesting: the requisition is 'the intelligible parent ... because a scorecard or a debrief is unreadable without knowing which opening it was written for', so a document-type level above it is exactly the unintelligible shape the row argues against, and 'Document type goes last, as on every career situation.' The alternative the row actually records is not a second order but a missing key - the requisition as one identifier - and it hands that decision to Joseph. Authoring a second candidate here would put a choice in front of the user that this corpus never offered."
+    }
+  ],
+  "applicabilities": [
+    {
+      "applicability_id": "ap.career.recruiting",
+      "applicability_version": 1,
+      "template_id": "def.career-search-and-tenure",
+      "template_version": 1,
+      "uses_schema": "career",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "target_employer",
+        "job_title",
+        "recruiting_cycle",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:career.recruiting"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "employer_org",
+          "field_ref": "target_employer",
+          "label": "Company I applied to"
+        },
+        {
+          "role_ref": "role_title",
+          "field_ref": "job_title",
+          "label": "Job I went for"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "recruiting_cycle",
+          "label": "My search"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "What I sent them"
+        }
+      ],
+      "exclusions": [
+        "employer as a folder level: on this side of the process the organization is the one being ADDRESSED, and 00:44's rule - 'An application essay can mention the author's current school and the university to which the essay is addressed. Those are not the same field.' - is why this row binds target_employer and the tenure row binds employer",
+        "our_firm and client as folder levels: career.json rules both out by name, 'client is the counterparty of the our_firm role split rather than an employer of record'"
+      ],
+      "provenance": [
+        "row:career.recruiting",
+        "memo:planning/domains/nodes/career.recruiting.research.md",
+        "60-VOCABULARY-RULINGS.md section 8.3 - the search half of career is the work_type half, 'the search (resumes, cover letters, portfolio) - work_type'",
+        "60-VOCABULARY-RULINGS.md section 5 - career declares employer, target_employer, recruiting_cycle, work_type, record_type and job_title",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - D30 ships and this is one of the rows it had none of",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.career.employment-records",
+      "applicability_version": 1,
+      "template_id": "def.career-search-and-tenure",
+      "template_version": 1,
+      "uses_schema": "career",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "employer",
+        "job_title",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:career.employment-records"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "employer_org",
+          "field_ref": "employer",
+          "label": "Where I worked"
+        },
+        {
+          "role_ref": "role_title",
+          "field_ref": "job_title",
+          "label": "Job I held"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of job paperwork"
+        }
+      ],
+      "exclusions": [
+        "recruiting_cycle as a folder level: career.employment-records - 'a job held has no recruiting cycle - the tenure is bounded by an agreement and a separation, not by an application season - so the role (or, for a single-role tenure, nothing at all) occupies that level while recruiting takes the cycle'",
+        "our_firm as a folder level: 60 M12 - 'for an employee the employer IS the holder's own organization', and our_firm is the authorship-side identity that is never a destination"
+      ],
+      "provenance": [
+        "row:career.employment-records",
+        "memo:planning/domains/nodes/career.employment-records.research.md",
+        "60-VOCABULARY-RULINGS.md section 8.3 - the tenure half of career is the record_type half, 'the tenure (contracts, payslips, reviews) - record_type', and it is the half the employer-first default was chosen for",
+        "60-VOCABULARY-RULINGS.md section 8.1 - job_title is destination-ELIGIBLE, so role_title binds a real folder level",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - D30 ships and this is one of the rows it had none of",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.career.employer-side-hiring",
+      "applicability_version": 1,
+      "template_id": "def.requisition-record",
+      "template_version": 1,
+      "uses_schema": "career",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "job_title",
+        "recruiting_cycle",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:career.employer-side-hiring"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "role_title",
+          "field_ref": "job_title",
+          "label": "Role we were hiring for"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "recruiting_cycle",
+          "label": "Hiring round"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of hiring record"
+        }
+      ],
+      "exclusions": [
+        "employer as a folder level: 'every file in an employer-side hiring corpus names the SAME employer', which is the one-child branch 00 tells the interface to warn about",
+        "any per-candidate folder level: 'a folder named for a person is a personnel file about a third party'. The row recommends against it and hands the decision to Joseph; this row implements the recommendation and forecloses nothing"
+      ],
+      "provenance": [
+        "row:career.employer-side-hiring",
+        "memo:planning/domains/nodes/career.employer-side-hiring.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - career declares job_title, recruiting_cycle and record_type, which is exactly the requisition this row files by",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.logistics.shipment",
+      "applicability_version": 1,
+      "template_id": "def.custody-subject-record",
+      "template_version": 1,
+      "uses_schema": "logistics",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "supplier",
+        "consignment",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:logistics.shipment"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "counterparty_org",
+          "field_ref": "supplier",
+          "label": "Carrier"
+        },
+        {
+          "role_ref": "custody_subject",
+          "field_ref": "consignment",
+          "label": "Shipment"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of shipping document"
+        }
+      ],
+      "exclusions": [
+        "consignee names and delivery addresses as folder levels: 'Consignee names and delivery addresses are role-bearing evidence, not default folder dimensions; carrier is a counterparty and should not become a collector folder by default'"
+      ],
+      "provenance": [
+        "row:logistics.shipment",
+        "memo:planning/domains/nodes/logistics.shipment.research.md",
+        "60-VOCABULARY-RULINGS.md B2 - consignment is minted and its fold into event reversed, which is what makes this row's own recorded projection buildable",
+        "60-VOCABULARY-RULINGS.md B3 and section 9.1 - carrier folds into supplier as an ALIAS and supplier is destination-ELIGIBLE on logistics, since eligibility is a property of the key",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.logistics.last-mile-pod",
+      "applicability_version": 1,
+      "template_id": "def.custody-subject-record",
+      "template_version": 1,
+      "uses_schema": "logistics",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "consignment",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:logistics.last-mile-pod"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "custody_subject",
+          "field_ref": "consignment",
+          "label": "Parcel"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of delivery proof"
+        }
+      ],
+      "exclusions": [
+        "the carrier as a folder level: this row's recorded projection is 'consignment/parcel -> delivery event or record_type, with route or depot only where those are genuinely the file's subject', and it names no counterparty level",
+        "recipient names, delivery addresses, coordinates, safe-place details and driver identities as folder levels - the row lists all five as 'evidence and privacy-sensitive values, not default folder dimensions'",
+        "a delivery event as a second level beside the parcel: 60 B2 reversed that fold precisely because 'consignment/parcel -> delivery event' folded into one key reads event > event, 'which 00:97's validator forbids by name'"
+      ],
+      "provenance": [
+        "row:logistics.last-mile-pod",
+        "memo:planning/domains/nodes/logistics.last-mile-pod.research.md",
+        "60-VOCABULARY-RULINGS.md B2 - this row's own recorded order is the evidence the mint was argued from",
+        "60-VOCABULARY-RULINGS.md section 7 - logistics drops event, so the second half of the row's 'delivery event or record_type' disjunction resolves to record_type",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.logistics.customs-export",
+      "applicability_version": 1,
+      "template_id": "def.custody-subject-record",
+      "template_version": 1,
+      "uses_schema": "logistics",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "consignment",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:logistics.customs-export"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "custody_subject",
+          "field_ref": "consignment",
+          "label": "Goods being declared"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of customs paper"
+        }
+      ],
+      "exclusions": [
+        "the carrier as a folder level, and this row is the one that argues it rather than merely omitting it: 'This differs from the logistics default's carrier/counterparty -> consignment -> record_type because customs is authority-control-led and the same movement may involve several brokers or authorities; a carrier name must not collect unrelated customs cases'",
+        "declarant, importer and exporter roles as folder levels - the row holds them 'search-only because they are organization/identity collectors' pending NJ-CUSTOMS-2"
+      ],
+      "provenance": [
+        "row:logistics.customs-export",
+        "memo:planning/domains/nodes/logistics.customs-export.research.md",
+        "60-VOCABULARY-RULINGS.md B2 - consignment is the sole safe customs parent this row asked for, and NJ-CUSTOMS-1's alternative (a neutral movement key) is not minted here",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.logistics.fleet-vehicle",
+      "applicability_version": 1,
+      "template_id": "def.operated-asset-record",
+      "template_version": 1,
+      "uses_schema": "logistics",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "asset",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:logistics.fleet-vehicle"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operated_asset",
+          "field_ref": "asset",
+          "label": "Vehicle"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of vehicle record"
+        }
+      ],
+      "exclusions": [
+        "the carrier or counterparty level the schema default places first, deleted by this row's own argument: 'a fleet asset's file is authored by a licensing authority, a testing station, an insurer, a lessor and several garages, none of them a counterparty to a movement'",
+        "the driver, technician and transport manager as folder levels - 'NO LEVEL MAY BE BUILT FROM A PERSON'",
+        "a time level: the row wants one ('the same inspection recurs and the date is the only thing distinguishing two otherwise identical sheets') and 60 B1 strips record_period from logistics, so the gap is recorded rather than filled with a borrowed key"
+      ],
+      "provenance": [
+        "row:logistics.fleet-vehicle",
+        "memo:planning/domains/nodes/logistics.fleet-vehicle.research.md",
+        "60-VOCABULARY-RULINGS.md section 4 - asset is minted destination-eligible, which answers NJ-FV-1 in favour of asset over a narrow vehicle key",
+        "60-VOCABULARY-RULINGS.md B1 - logistics keeps five keys and loses record_period only, which is why this row files two levels rather than three",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.logistics.warehouse-ops",
+      "applicability_version": 1,
+      "template_id": "def.site-kept-record",
+      "template_version": 1,
+      "uses_schema": "logistics",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:logistics.warehouse-ops"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Depot"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of stock record"
+        }
+      ],
+      "exclusions": [
+        "the counterparty level, SUPPRESSED OUTRIGHT rather than made conditional: 'A put-away task list, a cycle-count variance sheet and a stock-on-hand report name no carrier and frequently no supplier either; opening a counterparty level here opens a branch the facts cannot fill, and a level most of the corpus cannot enter is worse than no level'",
+        "the consignment as a level: 'the consignment identity does not survive the building - one inbound pallet leaves in many outbound consignments, and one bin holds stock from many receipts'",
+        "a bin coordinate or a SKU as a level, and an operative's or a supplier's name as a level - the row forbids all four by name"
+      ],
+      "provenance": [
+        "row:logistics.warehouse-ops",
+        "memo:planning/domains/nodes/logistics.warehouse-ops.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - logistics declares site, which is the level this row promotes to first",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.logistics.driver-compliance",
+      "applicability_version": 1,
+      "template_id": "def.duty-function-record",
+      "template_version": 1,
+      "uses_schema": "logistics",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:logistics.driver-compliance"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of driver check"
+        }
+      ],
+      "exclusions": [
+        "the driver as a folder level, which is this row's own hardest deletion and is deliberate: 'the driver dossier is the most coherent grouping in the whole family and is exactly what an operator asks for - and it must still not be built'",
+        "the licensing authority, examining clinician, training provider and analysis bureau as folder levels - 'issuers, not counterparties to a movement'",
+        "an expiry or covered-period level: the row wants the FUTURE lapse date as its leaf, and logistics declares no period key"
+      ],
+      "provenance": [
+        "row:logistics.driver-compliance",
+        "memo:planning/domains/nodes/logistics.driver-compliance.research.md",
+        "60-VOCABULARY-RULINGS.md B1 - record_period is stripped from logistics, which is why the row's wanted leaf is absent",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.bookings-reservations",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.bookings-reservations"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Which venue"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Booking"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of booking record"
+        }
+      ],
+      "exclusions": [
+        "a guest, diner or lead name as a folder level - the row calls this one of TWO ABSOLUTE PROHIBITIONS that 'bind harder here than on stocktake or POS siblings'",
+        "a branch per booking reference: 'a BOOKING REFERENCE must not become a deep tree of one-child branches per code'"
+      ],
+      "provenance": [
+        "row:retail_hospitality.bookings-reservations",
+        "memo:planning/domains/nodes/retail_hospitality.bookings-reservations.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - retail_hospitality declares site, event, record_type, record_period and product",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.pos-reporting",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.pos-reporting"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Which store"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Till session"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of close-down record"
+        }
+      ],
+      "exclusions": [
+        "the TERMINAL level, which is this row's whole dimensional difference and has no key: retail_hospitality declares no asset, so NJ-POS-1's alternative B - 'drop it, and let the session hold every close flat' - is the shape that remains, and the gap is recorded rather than filled by widening site to mean a register",
+        "a staff name as a folder level - this row's privacy posture is inverted, staff-facing rather than guest-facing, and an over/short branch named for a person is the sharpest form of that risk"
+      ],
+      "provenance": [
+        "row:retail_hospitality.pos-reporting",
+        "memo:planning/domains/nodes/retail_hospitality.pos-reporting.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - retail_hospitality declares site, event and record_type; NJ-RH-5's sub-daily session is carried by event rather than by record_period",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.stocktake",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.stocktake"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Which site"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Count"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Count sheet or variance"
+        }
+      ],
+      "exclusions": [
+        "the COUNT LOCATION level, which is this row's whole dimensional difference and has no key that is not already the parent: a cellar, bar or dry store is a room inside the site, and repeating the site key one level down is the repeated parent dimension 00:97 forbids. NJ-RH-STOCK-1's alternative B is the shape that remains and the loss the row named is real: 'a four-room count files four different rooms' ruled sheets in one pile'",
+        "PRODUCT or SKU as a folder level - 'a branch per line item over a population of thousands'",
+        "the COUNTER'S OR APPROVER'S NAME as a folder level - 'which would publish a staff-facing loss branch into the directory tree'"
+      ],
+      "provenance": [
+        "row:retail_hospitality.stocktake",
+        "memo:planning/domains/nodes/retail_hospitality.stocktake.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - retail_hospitality declares product and this row is one of the two that would most readily level on it; it does not",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.store-operations",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.store-operations"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Which shop"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Trading day"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of shift paperwork"
+        }
+      ],
+      "exclusions": [
+        "A STAFF NAME as a folder level, stated by the row in those words",
+        "the rota's own labour data as a level: NJ-SO-1 leaves the bare rota undecidable between this row and hr, and this row opens no level that would settle it silently"
+      ],
+      "provenance": [
+        "row:retail_hospitality.store-operations",
+        "memo:planning/domains/nodes/retail_hospitality.store-operations.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - the site operating day is carried by event, the key whose note is 'the bounded occurrence a set of records is about'",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.returns-warranty",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.returns-warranty"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Store handling it"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Return case"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of return document"
+        }
+      ],
+      "exclusions": [
+        "filing a return under the order it reverses: 'one case routinely has NO order to be filed under - a warranty claim on a gift, on transferred goods, or on a unit bought through another channel - so filing returns under the order they reverse leaves that material with no home at all'",
+        "a PRODUCT as a folder level and a CUSTOMER OR CLAIMANT as a folder level - the row forbids both by name"
+      ],
+      "provenance": [
+        "row:retail_hospitality.returns-warranty",
+        "memo:planning/domains/nodes/retail_hospitality.returns-warranty.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - NJ-RW-1 asked for the occasion key to be WIDENED to admit a return case rather than for a new key, and event is the widened key",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.supplier-order",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.supplier-order"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Where it was delivered"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Order"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Order, delivery or credit"
+        }
+      ],
+      "exclusions": [
+        "the SUPPLIER ACCOUNT level, which is this row's entire dimensional difference from the family default and has no key here: 60 section 5 declares supplier on business_operations and logistics and NOT on retail_hospitality, so the level the row argues for - 'an order reference names nothing standing alone, exactly as Homework 3 is meaningless without the course' - cannot be built, and the loss is recorded rather than papered over by binding another organization key",
+        "a PRODUCT as a folder level and a DRIVER'S OR REPRESENTATIVE'S NAME as a folder level - the row forbids both by name"
+      ],
+      "provenance": [
+        "row:retail_hospitality.supplier-order",
+        "memo:planning/domains/nodes/retail_hospitality.supplier-order.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - retail_hospitality's declared set has no supplier, which is what strands this row's proposed middle level",
+        "60-VOCABULARY-RULINGS.md section 9.1 - supplier is destination-eligible as a KEY; the constraint here is which schema references it, not its eligibility",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.catering-contract",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.catering-contract"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "The function"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Proposal, contract or account"
+        }
+      ],
+      "exclusions": [
+        "the trading unit as a folder level, made presumptively OFF rather than conditional: 'off-premise and hired-venue catering happens at the CLIENT'S place, not at the operator's trading unit ... Rooting a catering pack at the operator's kitchen site produces a one-child branch naming the holder's own business above everything'",
+        "A GUEST OR CLIENT NAME as a folder level, stated by the row in those words"
+      ],
+      "provenance": [
+        "row:retail_hospitality.catering-contract",
+        "memo:planning/domains/nodes/retail_hospitality.catering-contract.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - the client engagement is carried by event, the bounded occurrence the records are about; retail_hospitality declares no client key and this row does not borrow one",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.event-production",
+      "applicability_version": 1,
+      "template_id": "def.trading-occasion-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "event",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.event-production"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Which event we ran"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Plan, run sheet or debrief"
+        }
+      ],
+      "exclusions": [
+        "the trading unit as a folder level, made presumptively OFF: 'an event's place is frequently not the operator's trading unit at all - it is a hired venue, a client's premises, a field, a marquee, a street'",
+        "A GUEST, DELEGATE, CLIENT OR CREW NAME as a folder level, stated by the row in those words",
+        "a clock-position level inside the day: 'The clock IDENTIFIES positions inside the occasion; it does not ROOT the tree'"
+      ],
+      "provenance": [
+        "row:retail_hospitality.event-production",
+        "memo:planning/domains/nodes/retail_hospitality.event-production.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - the occasion is carried by event, and the key's own note refuses the time-primacy this row is most tempted by: 'Time-primacy belongs to 00:70's Photos template order, not to the key'",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.food-safety",
+      "applicability_version": 1,
+      "template_id": "def.trading-period-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "record_period",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.food-safety"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Which kitchen"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Week or month it covers"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of check"
+        }
+      ],
+      "exclusions": [
+        "the CONTROL POINT level, which is this row's entire dimensional difference and has no key: a fridge, walk-in, hot hold or probe is an asset and retail_hospitality declares none. NJ-RH-FS-1's alternative B - 'drop it and let the site-plus-period hold every sheet flat' - is the shape that remains, and the row's own warning about that outcome stands: it 'puts four unrelated ruled sheets in one undifferentiated pile at exactly the moment an inspector or the operator is asking which unit failed'",
+        "PRODUCT or dish as a folder level, and the OPERATIVE'S NAME as a folder level - the row forbids both outright"
+      ],
+      "provenance": [
+        "row:retail_hospitality.food-safety",
+        "memo:planning/domains/nodes/retail_hospitality.food-safety.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - retail_hospitality declares record_period, which is the level this row keeps, and declares no asset, which is the level it loses",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.ecommerce-ops",
+      "applicability_version": 1,
+      "template_id": "def.trading-period-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "record_period",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.ecommerce-ops"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Sales channel"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Export window"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of channel report"
+        }
+      ],
+      "exclusions": [
+        "a SKU as a folder level and a customer as a folder level - the row forbids both by name",
+        "a trading session level: 'There is NO TRADING SESSION here and that is structural, not incidental: the storefront never closes', so the occasion recipe is not the one this row uses"
+      ],
+      "provenance": [
+        "row:retail_hospitality.ecommerce-ops",
+        "memo:planning/domains/nodes/retail_hospitality.ecommerce-ops.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - site is the declared trading-unit key, and NJ-EC-1 is answered the way this row itself preferred: 'widen site to the trading unit or selling surface', which the shipped key's own note already permits by naming 'store' among plant, works, depot, store, field. No channel key is minted",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.guest-feedback",
+      "applicability_version": 1,
+      "template_id": "def.site-kept-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.guest-feedback"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Place they reviewed"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Review, complaint or reply"
+        }
+      ],
+      "exclusions": [
+        "the CHANNEL level, which is this row's proposed replacement for the collapsed occasion and is the one mint it asked for. 60 section 4 mints no channel key, and the row itself explains why site cannot absorb it: 'A single-site hotel has ONE trading unit and FIVE review channels; if channel is a site value, those five collapse into one branch and the operator loses the only dimension that governs their actual workflow'. The level is therefore absent rather than faked, and NJ-GF-1 stands open",
+        "the trading occasion as a level: 'platforms anonymise and do not return a booking reference, so most reviews cannot be tied to the stay that produced them'",
+        "a REVIEWER'S or COMPLAINANT'S name as a folder level - these are members of the public and the prohibition 'binds harder here than anywhere else in the family'"
+      ],
+      "provenance": [
+        "row:retail_hospitality.guest-feedback",
+        "memo:planning/domains/nodes/retail_hospitality.guest-feedback.research.md",
+        "60-VOCABULARY-RULINGS.md section 4 - the mint list carries no channel key, so this row files by site and function alone and records the missing level rather than borrowing site for it",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.retail_hospitality.premises-licensing",
+      "applicability_version": 1,
+      "template_id": "def.site-kept-record",
+      "template_version": 1,
+      "uses_schema": "retail_hospitality",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "site",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:retail_hospitality.premises-licensing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "operating_site",
+          "field_ref": "site",
+          "label": "Licensed premises"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Stage of the licence"
+        }
+      ],
+      "exclusions": [
+        "the CONTINUING PERMISSION as a middle level: NJ-PL-1 asks whether the occasion key 'may legally stretch to a continuing permission', and it does not - event is 'the bounded occurrence a set of records is about' and 'a premises licence is not capacity-bearing and spans years'. The row mints nothing and neither does this one, so the licence reference stays a value rather than becoming a level",
+        "a NAMED DPS, FBO, licence holder or objector as a folder level, stated by the row in those words",
+        "a bare licence number as a visible branch label without user-approved redaction: 'a permission reference resolves in public registers to a person and often a home address'"
+      ],
+      "provenance": [
+        "row:retail_hospitality.premises-licensing",
+        "memo:planning/domains/nodes/retail_hospitality.premises-licensing.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - retail_hospitality declares site, which is the premises this file is keyed to, and event, which this row declines to stretch",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    }
+  ]
+}
