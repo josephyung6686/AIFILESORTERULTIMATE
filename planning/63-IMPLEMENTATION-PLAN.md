@@ -165,7 +165,7 @@ the three places*, not a green tick.
 | G1 | full suite green | ✅ | **5185 passed, 19 skipped, 1 xfailed, 0 failed** (4640 at session start) |
 | G2 | scale suite green | **2 of 19 failing** | was 13 of 19 |
 | G3 | no strict xfail standing | ✅ | one stands and correctly — §8 of `64` |
-| G4 | test order independent | measuring | method established; `--randomly-dont-reset-seed` required, see `pyproject.toml` |
+| G4 | test order independent | ✅ | **5185 passed in randomised order**, identical to sequential. `--randomly-dont-reset-seed` required, see `pyproject.toml` |
 | G5 | every schema can file | ✅ | 19 of 23 with templates; 4 are named protection/safety exemptions |
 | G6 | `load_catalogue` has a caller | ✅ | `load_shipped_catalogue`, and the guard inverted |
 | G7 | P8→P11 production composition | ✅ | `run_production_corpus`, plus `src/cli.py` |
