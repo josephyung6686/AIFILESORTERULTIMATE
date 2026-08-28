@@ -216,9 +216,9 @@ be stated without naming its domain* — `media_type` ("kind of **capture**"),
 
 ---
 
-## 4. The mint list — 18 new canonical keys
+## 4. The mint list — 19 new canonical keys
 
-37 live + 18 = **55**.
+37 live + 19 = **56**.
 
 | key | scope declared | dest | ceiling | source |
 |---|---|---|---|---|
@@ -240,6 +240,7 @@ be stated without naming its domain* — `media_type` ("kind of **capture**"),
 | `employer` | career | true | possible | `57` §2 |
 | `target_employer` | career | true | possible | `00`:44 rule |
 | `account_holder` | finance | **false** | possible | M13 |
+| `job_title` | career | true | possible | §8.1 |
 
 `workforce_member` and `personnel_case` are **NOT minted.** They fold to `subject_of_record`
 and `event` respectively (`54`, unchallenged), and J-5 keeps `hr` on the protection argument
