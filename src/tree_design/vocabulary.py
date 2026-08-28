@@ -39,7 +39,9 @@ from llm_harness.vocabulary import (
     SCOPE_TEMPLATE_LOCAL,
     TEMPLATE_ELIGIBILITY,
 )
-from privacy.vocabulary import HANDLING_CLASSES, OPERATION_MODES
+from privacy.vocabulary import (
+    HANDLING_CLASSES, OPERATION_MODES, USER as _BASIS_USER,
+)
 from scan_agent.inventory import CURATION_SIGNAL_VALUES
 
 # --- node identity (§5.12) ------------------------------------------------------
@@ -139,6 +141,14 @@ DIMENSION_ACTIONS: tuple[str, ...] = (
     ACTION_SELECTED, ACTION_OMITTED, ACTION_REORDERED, ACTION_FLATTENED,
     ACTION_RENAMED, ACTION_ADDED,
 )
+
+#: P7's basis for "the user's own act", REUSED rather than restated. `64` §2:
+#: "the catalogue is a proposal, the user's edits are facts", and the precedence
+#: that carries it already exists — a P7 record on this basis outranks an
+#: inferred one of any reliability. A second word for the same idea would be two
+#: vocabularies to keep in step, and `tree_design.user_edits` checks membership
+#: in `CLASSIFICATION_BASES` so the reuse cannot quietly become a copy.
+BASIS_USER: str = _BASIS_USER
 
 # --- the two check families -----------------------------------------------------
 #

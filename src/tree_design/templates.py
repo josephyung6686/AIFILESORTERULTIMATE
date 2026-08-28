@@ -565,6 +565,14 @@ class ResolvedDimension:
     order_index: int
     display_label: str | None
     scope: str
+    #: What THIS release proposed for the level, kept when a user edit replaced
+    #: it. `64` §5b: on an upgrade "the user wins, and the fact that the library
+    #: proposed something different is recorded, not discarded" -- a proposal
+    #: that vanished cannot be offered back, and the upgrade could not be
+    #: explained in `diff.py`'s terms. `None` on every level nobody renamed,
+    #: because there is then nothing the release proposed OTHER than the name
+    #: this record already carries.
+    proposed_label: str | None = None
 
     def __post_init__(self) -> None:
         _require(self.role_ref, name="ResolvedDimension.role_ref")

@@ -22,6 +22,7 @@ P10_TABLES: tuple[str, ...] = (
     "shared_material_policies",
     "node_expected_values",
     "frozen_trees",
+    "user_level_edits",
 )
 
 TREE_DDL = """
@@ -108,6 +109,35 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_global_shared_material_policy
 -- profiles at read time would consult all three, and would consult them against
 -- a P9/P4/P6 state that has moved on since freeze. Freeze writes the bundle
 -- once; every later reader gets the version that was actually adopted.
+-- `64` §3's overlay. THE PRIMARY KEY IS THE WHOLE DESIGN, and what it does NOT
+-- hold is as deliberate as what it does: no `plan_version_id`, no `node_id`, no
+-- `template_id`. §8.8 mints a new node id per plan version and an upgrade
+-- changes the packaging, so an overlay keyed on either would silently stop
+-- applying at the first tree edit or the first library update -- which is
+-- exactly the defect the seam pass found in
+-- `placement.versions.learned_preferences_still_applicable`.
+--
+-- `(uses_schema, role_ref, field_ref)` is the VOCABULARY, and neither a re-route
+-- nor an upgrade changes what a `subject` is. It is per-schema and not global
+-- for the same reason `RoleBinding.label` lives on the applicability row:
+-- renaming "Course" to "Class" in an academic context renames nothing in a
+-- research one.
+CREATE TABLE IF NOT EXISTS user_level_edits (
+    uses_schema    TEXT NOT NULL,
+    role_ref       TEXT NOT NULL,
+    field_ref      TEXT NOT NULL,
+    action         TEXT NOT NULL,
+    display_label  TEXT NOT NULL,
+    -- What the library called this level when the user overrode it (§5b).
+    proposed_label TEXT,
+    -- P7's word. A record on the user's basis outranks an inferred one of any
+    -- reliability, and this overlay holds nothing else.
+    basis          TEXT NOT NULL CHECK (basis = 'user'),
+    user_id        TEXT NOT NULL,
+    recorded_at    TEXT NOT NULL,
+    PRIMARY KEY (uses_schema, role_ref, field_ref)
+);
+
 CREATE TABLE IF NOT EXISTS frozen_trees (
     plan_version_id TEXT PRIMARY KEY REFERENCES plan_versions (plan_version_id),
     created_at      TEXT NOT NULL,

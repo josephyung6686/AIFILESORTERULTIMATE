@@ -72,6 +72,16 @@ class NotFrozen(RuntimeError):
     """A frozen bundle was asked for and this version has none."""
 
 
+class ReleaseNotRecorded(RuntimeError):
+    """This tree does not say which library built it, so it cannot be compared.
+
+    `64` §5a: a tree that names no release makes a library upgrade UNDETECTABLE,
+    not merely unhandled. Reporting `None` as the release would be worse than
+    refusing — two different libraries would compare equal — so the reader
+    refuses and names the version that cannot answer.
+    """
+
+
 @dataclass(frozen=True)
 class FreezeRecord:
     """§8.8's adopted-plan-version record. Ids and configuration only."""
@@ -86,6 +96,21 @@ class FreezeRecord:
     shared_material_policy_ids: tuple[str, ...]
     cross_folder_moves: bool
     selection_id: str
+    #: `64` §5a. WHICH LIBRARY BUILT THIS TREE. `load_shipped_catalogue` already
+    #: derives `release_id` as a digest of exactly the bytes it read — "a library
+    #: that changed moves it" — so the value existed and simply was not carried
+    #: onto the frozen tree, which made an upgrade undetectable rather than
+    #: merely unhandled.
+    #:
+    #: `None` is not a default anybody should reach for; it is the state of a
+    #: tree frozen by a caller that named no catalogue, and `catalogue_release`
+    #: refuses it by name rather than reporting it as a release.
+    catalogue_release_id: str | None = None
+    #: The `(template_id, template_version)` set the tree actually used, sorted.
+    #: The release id says which library; this says which of its recipes, so an
+    #: upgrade that republished one definition can be told from one that
+    #: republished all of them.
+    template_versions: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -103,6 +128,18 @@ class FrozenTree:
     profiles: tuple[DestinationProfile, ...]
     shared_material_policy: str
     shared_material_policy_scope: str | None = None
+
+
+def catalogue_release(tree: FrozenTree) -> str:
+    """Which library built this tree (`64` §5a). Refuses rather than guessing."""
+    release = tree.freeze_record.catalogue_release_id
+    if not release:
+        raise ReleaseNotRecorded(
+            f"plan version {tree.plan_version_id!r} was frozen without a "
+            "catalogue release id, so which library built it is not recorded and "
+            "an upgrade against it cannot be detected"
+        )
+    return release
 
 
 def legal_destination_ids(record: FreezeRecord) -> frozenset[str]:
@@ -336,6 +373,8 @@ def _record_json(record: FreezeRecord) -> dict:
         "shared_material_policy_ids": list(record.shared_material_policy_ids),
         "cross_folder_moves": record.cross_folder_moves,
         "selection_id": record.selection_id,
+        "catalogue_release_id": record.catalogue_release_id,
+        "template_versions": [list(pair) for pair in record.template_versions],
     }
 
 
@@ -352,6 +391,12 @@ def _record_from_json(raw: dict) -> FreezeRecord:
         shared_material_policy_ids=tuple(raw["shared_material_policy_ids"]),
         cross_folder_moves=bool(raw["cross_folder_moves"]),
         selection_id=raw["selection_id"],
+        # `.get`, because a bundle written before §5a landed holds neither key
+        # and reading it must report "this tree names no release" rather than
+        # failing to load a tree the user already adopted.
+        catalogue_release_id=raw.get("catalogue_release_id"),
+        template_versions=tuple(
+            (name, version) for name, version in raw.get("template_versions", ())),
     )
 
 
@@ -378,6 +423,8 @@ def freeze(
     approved_branch_ids: Sequence[str],
     profiles: Sequence[DestinationProfile],
     protected_areas: Sequence[ProtectedArea] = (),
+    catalogue_release_id: str | None = None,
+    template_versions: Sequence[tuple[str, int]] = (),
 ) -> FrozenTree:
     """Validate, write the bundle once, mark the version frozen, record adoption.
 
@@ -423,6 +470,11 @@ def freeze(
         shared_material_policy_ids=tuple(policy_ids),
         cross_folder_moves=bool(version["cross_folder_moves"]),
         selection_id=version["selection_id"],
+        catalogue_release_id=catalogue_release_id,
+        # Sorted and deduplicated: two branches built from one recipe used it
+        # once, and "which recipes built this tree" is a set rather than a log.
+        template_versions=tuple(sorted(
+            {(name, int(number)) for name, number in template_versions})),
     )
     bundle = FrozenTree(
         plan_version_id=plan_version_id, freeze_record=record, nodes=nodes,

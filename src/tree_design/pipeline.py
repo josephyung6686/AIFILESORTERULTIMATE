@@ -58,6 +58,7 @@ from tree_design.store import (
     apply_review_action, nodes_for_version, write_node, write_plan_version,
 )
 from tree_design.templates import CompositionConflict
+from tree_design.user_edits import UserLevelEdit, user_level_edits
 from tree_design.upstream import (
     AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
     accepted_groups, cross_folder_moves, existing_folders, protected_areas,
@@ -246,6 +247,11 @@ class BranchDesign:
     #: §5.9's warnings for the option the user took, computed by
     #: `vertical_options` over `health.warnings_for` and `parent_concepts_for`.
     warnings: tuple[object, ...]
+    #: The composition the user's chosen option was built from, or `None` when
+    #: they took `opt_no_split`. `64` §5a reads `template_refs` off it: "the
+    #: `(template_id, template_version)` set it ACTUALLY used" is the set the
+    #: chosen options named, not every recipe that was merely offered.
+    composition: CompositionCandidate | None = None
 
 
 @dataclass(frozen=True)
@@ -298,7 +304,8 @@ def _members(groups: Sequence[AcceptedGroup]) -> tuple[GroupMember, ...]:
 
 
 def _route(conn, authorities, *, branch_node_id: str,
-           groups: Sequence[AcceptedGroup]) -> RoutingReport:
+           groups: Sequence[AcceptedGroup],
+           user_edits: Sequence[UserLevelEdit] = ()) -> RoutingReport:
     members = _members(groups)
     context = BranchContext(
         branch_node_id=branch_node_id,
@@ -329,7 +336,11 @@ def _route(conn, authorities, *, branch_node_id: str,
         conn, authorities.catalogue, context, limits=authorities.limits,
         privacy_rank=authorities.privacy_rank,
         satisfies_purpose_profile=authorities.satisfies_purpose_profile,
-        rank_candidates=authorities.rank_candidates)
+        rank_candidates=authorities.rank_candidates,
+        # `64` §1's third hole, closed. The chain fed NO user vocabulary into
+        # routing, so a rename lived on one node in one plan version and the
+        # next route re-derived the catalogue's word over it.
+        user_edits=user_edits)
 
 
 def _option_bindings(conn, authorities, *, parent: Node,
@@ -494,6 +505,11 @@ def design_tree(conn: sqlite3.Connection, *,
     """
     groups, folders, areas, moves = _upstream(conn, authorities, decisions)
     by_id = {group.group_id: group for group in groups}
+    # READ, not injected. The whole point of `64` is that a rename outlives the
+    # session it was made in, so a chain that took the overlay as a decision
+    # would lose every edit the moment a caller forgot to pass it — which is
+    # `64` §1's hole 3 in a different disguise.
+    edits = user_level_edits(conn)
 
     candidates = horizontal_candidates(
         conn, accepted=groups, existing_folders=folders, user_labels=(),
@@ -522,7 +538,7 @@ def design_tree(conn: sqlite3.Connection, *,
             conn, authorities, decisions, candidate=candidate,
             groups=tuple(by_id[group_id]
                          for group_id in candidate.accepted_group_ids),
-            version=version)
+            version=version, user_edits=edits)
         versions.append(version)
         branches.append(design)
 
@@ -577,7 +593,15 @@ def design_tree(conn: sqlite3.Connection, *,
         approved_branch_ids=tuple(
             node.node_id for node in nodes_for_version(conn, version)
             if node.accepts_placement),
-        profiles=profiles, protected_areas=areas)
+        profiles=profiles, protected_areas=areas,
+        # §5a. `load_shipped_catalogue` already derives `release_id` as a digest
+        # of exactly the bytes it read; the value existed and was simply never
+        # carried onto the frozen tree, which made a library upgrade
+        # undetectable rather than merely unhandled.
+        catalogue_release_id=getattr(authorities.catalogue, "release_id", None),
+        template_versions=tuple(
+            ref for design in branches if design.composition is not None
+            for ref in design.composition.template_refs))
 
     return TreeDesignResult(
         tree=frozen_tree(conn, plan_version=version),
@@ -602,7 +626,9 @@ def _open_first_draft(conn, authorities, decisions, cross_folder: bool) -> str:
 
 
 def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
-                       version: str) -> tuple[str, BranchDesign]:
+                       version: str,
+                       user_edits: Sequence[UserLevelEdit] = (),
+                       ) -> tuple[str, BranchDesign]:
     """One branch: written, routed, materialised, judged, split.
 
     The top-level node is written directly into the current draft and the SPLIT
@@ -627,7 +653,8 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
         decisions.refinement_for)
     write_node(conn, parent)
 
-    report = _route(conn, authorities, branch_node_id=parent.node_id, groups=groups)
+    report = _route(conn, authorities, branch_node_id=parent.node_id,
+                    groups=groups, user_edits=user_edits)
     materialise, validate, preview, evidence_by, reports = _option_bindings(
         conn, authorities, parent=parent, members=members)
     options = vertical_options(
@@ -680,7 +707,7 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
     return new_version, BranchDesign(
         origin_node_id=parent.origin_node_id, candidate=candidate,
         routing=report, options=options, chosen_option_id=option_id,
-        evidence=evidence, warnings=chosen.warnings)
+        evidence=evidence, warnings=chosen.warnings, composition=composition)
 
 
 def _projection(conn, authorities, decisions, *, evidence, validation,

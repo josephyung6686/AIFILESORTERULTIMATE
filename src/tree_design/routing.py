@@ -46,6 +46,9 @@ from tree_design.templates import (
     resolve_fragment_imports,
 )
 from tree_design.upstream import AcceptedGroup, UpstreamUnavailable, resolve_role_to_field
+from tree_design.user_edits import (
+    UnappliedUserEdit, UserLevelEdit, apply_user_level_edits, describe_applied_edits,
+)
 from tree_design.vocabulary import (
     ACTION_SELECTED,
     SCOPE_SCHEMA_FIELD,
@@ -143,6 +146,15 @@ class CompositionCandidate:
     #: visible in the preview rather than buried in the log.
     overridden_gates: tuple[str, ...]
     explanation: str
+    #: The `(template_id, template_version)` pairs this composition's rows named.
+    #: `64` §5a puts the set of these on the frozen tree, so a tree can say which
+    #: RECIPES built it and not only which library shipped them.
+    template_refs: tuple[tuple[str, int], ...] = ()
+    #: The user's own edits this composition could not honour (`64` §5c). A
+    #: structural conflict is SURFACED, not resolved: if the release removed a
+    #: level the user renamed, or resolves its role to another field, that is a
+    #: question for the user rather than a decision for the product.
+    unapplied_user_edits: tuple[UnappliedUserEdit, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -288,8 +300,16 @@ def evaluate_composition(
     privacy_rank: Callable[[str], int],
     satisfies_purpose_profile: Callable[[PurposeProfileRef, Sequence[AcceptedGroup]], bool],
     overrides: Sequence[CompositionOverride] = (),
+    user_edits: Sequence[UserLevelEdit] = (),
 ) -> CompositionCandidate:
-    """Run C1-C8 over one candidate set of rows. Raise or return; never both."""
+    """Run C1-C8 over one candidate set of rows. Raise or return; never both.
+
+    `user_edits` is applied AT THE END and never at the start (`64` §4). The
+    gates must go on judging THE RECIPE rather than the recipe-as-the-user-
+    rewrote-it: two rows that name one role two ways is a C4 refusal, and a
+    rename applied first would collapse them into the user's single name and let
+    a composition C4 exists to refuse ship as valid.
+    """
     if not rows:
         raise CompositionConflict(
             C3, [*context.domains],
@@ -338,11 +358,18 @@ def evaluate_composition(
     #: picks one, the label that ships is the one authored beside the field they
     #: picked, not a name belonging to the mapping they rejected.
     offered_labels: dict[tuple[str, str], set[str]] = {}
+    #: WHICH SCHEMAS bound each pair. A user edit is keyed per schema (`64` §3),
+    #: and one recipe may serve two through two one-schema rows, so "does this
+    #: rename speak about this level" is answered by the row that offered it and
+    #: not by the composition as a whole.
+    binding_schemas: dict[tuple[str, str], set[str]] = {}
     for row in rows:
         for binding in row.role_bindings:
             offered.setdefault(binding.role_ref, set()).add(binding.field_ref)
             offered_labels.setdefault(
                 (binding.role_ref, binding.field_ref), set()).add(binding.label)
+            binding_schemas.setdefault(
+                (binding.role_ref, binding.field_ref), set()).add(row.uses_schema)
     ambiguous = sorted(role for role, fields in offered.items() if len(fields) > 1)
     chosen: dict[str, str] = {
         role: next(iter(fields)) for role, fields in offered.items()
@@ -471,6 +498,16 @@ def evaluate_composition(
 
     # C8 — activation. Reaching here produces a preview and nothing else.
 
+    # THE LAST STEP, and its position is the design (`64` §4). Every gate above
+    # judged the recipe the library composed; this applies what the user said
+    # about how the result is NAMED. A rename is the last word about
+    # presentation and never a way to smuggle a change past a gate — which is
+    # why nothing below it can refuse, and why nothing above it can see it.
+    resolved, unapplied = apply_user_level_edits(
+        resolved, user_edits, schemas_for_binding={
+            key: frozenset(value) for key, value in binding_schemas.items()},
+        composition_schemas=frozenset(schemas))
+
     explanation = (
         f"{len(rows)} applicability row(s) across {sorted(schemas)} resolve "
         f"{len(resolved)} dimension(s) from this branch's accepted groups; the "
@@ -480,6 +517,7 @@ def evaluate_composition(
         explanation += (
             f" The user resolved {', '.join(overridden)} by recorded decision."
         )
+    explanation += describe_applied_edits(resolved)
     return CompositionCandidate(
         applicability_refs=tuple(
             ApplicabilityRef(row.applicability_id, row.applicability_version)
@@ -490,6 +528,9 @@ def evaluate_composition(
         gates_passed=tuple(COMPOSITION_GATES),
         overridden_gates=tuple(overridden),
         explanation=explanation,
+        template_refs=tuple(sorted(
+            {(row.template_id, row.template_version) for row in rows})),
+        unapplied_user_edits=unapplied,
     )
 
 
@@ -503,6 +544,7 @@ def route_branch(
     satisfies_purpose_profile: Callable[[PurposeProfileRef, Sequence[AcceptedGroup]], bool],
     rank_candidates: Callable[[Sequence[CompositionCandidate]], Sequence[CompositionCandidate]],
     overrides: Sequence[CompositionOverride] = (),
+    user_edits: Sequence[UserLevelEdit] = (),
 ) -> RoutingReport:
     """One candidate per eligible recipe AND the groups that recipe covers.
 
@@ -601,7 +643,7 @@ def route_branch(
                 dataclasses.replace(context, accepted_groups=covers),
                 template_rows, privacy_rank=privacy_rank,
                 satisfies_purpose_profile=satisfies_purpose_profile,
-                overrides=overrides))
+                overrides=overrides, user_edits=user_edits))
         except CompositionConflict as conflict:
             conflicts.append(conflict)
 

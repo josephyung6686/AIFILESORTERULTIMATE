@@ -193,9 +193,28 @@ def _accept_a_group_over(conn, corpus) -> None:
 # --- the recipe, and the two nestings it offers ------------------------------------
 
 
-def two_dimension_catalogue(*, default_order_id: str = "course_first",
-                            work_type_label: str = "Assignment type"):
+def two_dimension_catalogue(**over):
+    """`two_dimension_manifest`, through the real loader."""
+    from tree_design.catalogue import load_catalogue
+
+    return load_catalogue(lambda: json.dumps(two_dimension_manifest(**over)))
+
+
+def two_dimension_manifest(*, default_order_id: str = "course_first",
+                           work_type_label: str = "Assignment type",
+                           subject_label: str = "Course",
+                           release_id: str = "rel_seam") -> dict:
     """One recipe over `subject` and `work_type`, offering BOTH nestings.
+
+    A DICT rather than a catalogue, because two of its readers need the raw
+    records: `load_shipped_catalogue` derives `release_id` as a digest of the
+    bytes it read, so a test that wants a genuinely different library has to
+    hand it different bytes rather than a different string.
+
+    `subject_label` is the level the user renames in `64` -- the library calls
+    it "Course" and the person calls it "Class" -- and it moves for the same
+    reason `work_type_label` does: changing exactly one authored value and
+    re-running the chain is how a difference is attributed to it.
 
     `tree_design.fixtures.template_library_fixture()` has a single dimension, so
     ordering can make no difference to the tree it builds and `candidate_orders`
@@ -221,7 +240,6 @@ def two_dimension_catalogue(*, default_order_id: str = "course_first",
     make the recommendation unobservable — the experiment would come back
     "no difference" for the wrong reason.
     """
-    from tree_design.catalogue import load_catalogue
     from tree_design.vocabulary import (
         BUILT_IN, CROSS_DOMAIN, PUBLISHED, REQUIRED,
     )
@@ -238,7 +256,7 @@ def two_dimension_catalogue(*, default_order_id: str = "course_first",
         }
 
     manifest = {
-        "release_id": "rel_seam",
+        "release_id": release_id,
         "fragments": [{
             "fragment_id": "coursework", "fragment_version": 1,
             "roles": ["subject", "work_type"], "relative_order": [],
@@ -275,11 +293,11 @@ def two_dimension_catalogue(*, default_order_id: str = "course_first",
                 # them in every node's §5.12 explanation, so a test can read the
                 # frozen tree and say whether the authored word crossed.
                 {"role_ref": "subject", "field_ref": "subject",
-                 "label": "Course"},
+                 "label": subject_label},
                 {"role_ref": "work_type", "field_ref": "work_type",
                  "label": work_type_label},
             ],
             "exclusions": [], "provenance": ["row:seam"],
         }],
     }
-    return load_catalogue(lambda: json.dumps(manifest))
+    return manifest
