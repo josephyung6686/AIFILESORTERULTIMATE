@@ -20,12 +20,18 @@ from dataclasses import dataclass
 
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.health import (
+    sample_size,
     Warning_,
     branch_counts,
     parent_concepts_for,
     warnings_for,
 )
-from tree_design.materialise import BranchEvidence, BranchPreview, child_counts
+from tree_design.materialise import (
+    BranchEvidence,
+    BranchPreview,
+    child_counts,
+    narrow_wide_date_levels,
+)
 from tree_design.provenance import branch_basis_key, suppressed_branch_basis_keys
 from tree_design.routing import CompositionCandidate, RoutingReport
 from tree_design.records import Node
@@ -98,7 +104,14 @@ class VerticalOption:
     kind: str
     resulting_child_counts: Mapping[str, int]
     total_child_branches: int
+    #: `00`:99's "example members" — a SAMPLE, which is what the word says. It
+    #: was `members[:len(members)]`, a slice that truncates nothing written in
+    #: the shape of a truncation, so every option carried its own copy of the
+    #: branch's whole membership: at 20,000 files that is the corpus, once per
+    #: option. `member_count` beside it is the whole number, so a shorter list
+    #: hides nothing — the count the user reads is unchanged.
     example_members: tuple[str, ...]
+    member_count: int
     unresolved_file_ids: tuple[str, ...]
     summary: str
     validation: ValidationReport | None
@@ -449,6 +462,14 @@ def vertical_options(
 
     for index, candidate in enumerate(report.candidates):
         evidence = materialise(candidate)
+        # Before anything is previewed, counted or warned about: a date level
+        # wide enough to be a folder per day is coarsened to the granularity
+        # `00`:88's Photos template names. The preview, the counts and §5.9 all
+        # read the SAME evidence afterwards, so no number the user sees can
+        # disagree with the tree beside it.
+        if evidence is not None:
+            evidence = narrow_wide_date_levels(
+                evidence, max_folders=limits.max_folder_proposals_and_depth)
         built = None if evidence is None else preview(candidate, evidence)
         counts = {} if evidence is None else child_counts(evidence)
         children = () if built is None else _child_previews(built)
@@ -483,7 +504,8 @@ def vertical_options(
             # level's count. `00`:99 puts this number in front of the user
             # before they choose, so it has to count something they can see.
             total_child_branches=len(children),
-            example_members=members[:len(members)],
+            example_members=members[:sample_size(limits)],
+            member_count=len(members),
             unresolved_file_ids=unresolved,
             summary=summary,
             validation=validation,
@@ -510,7 +532,8 @@ def vertical_options(
         kind=NO_SPLIT,
         resulting_child_counts={},
         total_child_branches=0,
-        example_members=members,
+        example_members=members[:sample_size(limits)],
+        member_count=len(members),
         unresolved_file_ids=(),
         summary=no_split_summary,
         validation=None,

@@ -27,6 +27,8 @@ This module imports no other part's names. It reads P6 through
 """
 from __future__ import annotations
 
+import dataclasses
+import re
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -471,3 +473,83 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                  template_context_for=template_context_for,
                  protected_movement_permitted=protected_movement_permitted,
                  out=out, members_out=members_out)
+
+
+#: A value that is a whole calendar day, and a value that is a whole month. Both
+#: are matched WHOLE and strictly: `2026-Spring` is a term and not a month, and a
+#: level of terms must not be read as a level of dates.
+_DAY = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+_MONTH = re.compile(r"^(\d{4})-(\d{2})$")
+
+#: day -> month -> year. Each step is a PREFIX of the value the fact already
+#: carries, so no label is invented: `2026-03-14` really does record 2026.
+#: Each step drops the last hyphen-separated component, which is a PREFIX of the
+#: value the fact already carries: `2026-03-14` really does record `2026-03`, and
+#: `2026-03` really does record `2026`. No label is invented and no file moves
+#: out of the branch — it lands in a coarser folder, which is the only narrowing
+#: that costs the user nothing.
+_COARSER: tuple[tuple[object, object], ...] = (
+    (_DAY, lambda value: value.rsplit("-", 1)[0]),
+    (_MONTH, lambda value: value.rsplit("-", 1)[0]),
+)
+
+
+def _coarsen(level: LevelEvidence, key_of) -> LevelEvidence:
+    members: dict[str, frozenset[str]] = {}
+    classes: dict[str, frozenset[str]] = {}
+    for value, files in level.members_by_value.items():
+        key = key_of(value)
+        members[key] = members.get(key, frozenset()) | files
+        classes[key] = (classes.get(key, frozenset())
+                        | level.handling_classes_by_value.get(value, frozenset()))
+    return dataclasses.replace(
+        level,
+        display_labels={key: key for key in members},
+        members_by_value=members,
+        handling_classes_by_value=classes,
+    )
+
+
+def narrow_wide_date_levels(
+    evidence: BranchEvidence, *, max_folders: int,
+) -> BranchEvidence:
+    """Coarsen a date level that would otherwise propose a folder per day.
+
+    NOTHING BOUNDED HOW WIDE A SPLIT WAS. §8.6's ceiling is called "Maximum
+    folder proposals and maximum depth"; P10 read it as how many OPTIONS to offer
+    and how DEEP one may go, and never as how many FOLDERS a proposal creates —
+    which is the reading its own words most plainly carry. A capture-date split
+    on a real photo library proposed 337 folders with that ceiling set to six,
+    and `00`:88 recommends exactly that split: "Photos and capture-based media
+    are the major exception: time often belongs first."
+
+    A CEILING IS THE WRONG INSTRUMENT ANYWAY, and this is why only dates are
+    touched. Capping a level of 400 courses at 100 folders means either dropping
+    300 courses, which is the silent omission the standing rule forbids, or
+    merging them by something the evidence never said, which is invention. There
+    is no third option for values with no structure, so a level of opaque values
+    passes through at whatever width its evidence produced. A DATE has structure
+    the fact already carries: `00`:88's own Photos template "may define year →
+    event", and every file keeps a folder — a coarser one, named by a prefix of
+    the value P6 settled, with nothing dropped and nothing invented.
+    """
+    if max_folders < 1:
+        return evidence
+    levels = []
+    changed = False
+    for level in evidence.levels:
+        current = level
+        for pattern, key_of in _COARSER:
+            values = tuple(current.members_by_value)
+            if len(values) <= max_folders:
+                break
+            if not values or not all(pattern.match(value) for value in values):
+                continue
+            coarser = _coarsen(current, key_of)
+            if len(coarser.members_by_value) < len(current.members_by_value):
+                current = coarser
+                changed = True
+        levels.append(current)
+    if not changed:
+        return evidence
+    return dataclasses.replace(evidence, levels=tuple(levels))

@@ -383,15 +383,51 @@ def test_a_level_that_would_produce_one_child_warns_before_the_choice(conn):
     `warnings_for` had NO production caller — the §5.9 safety net was not
     connected to the thing that proposes trees. An unwarned picker is how the
     product proposes a bad tree with a straight face.
+
+    THE TREE HERE DIVIDES NOWHERE. One school, one term, and every file in both:
+    the user opens a folder to find a folder to find the files, and neither level
+    separated anything. That is §5.7's "MEANINGLESS one-child level". The twin
+    below is the same warning on `00`:78's own shape, where it must stay silent.
     """
     from tree_design.vocabulary import WARN_ONE_CHILD
 
     evidence = _evidence(
         _level("school", "school", 0, {"Columbia": {"f1", "f2", "f3"}}),
-        _level("term", "term", 1, {"2026": {"f1"}, "2025": {"f2", "f3"}}))
+        _level("term", "term", 1, {"2026": {"f1", "f2", "f3"}}))
     option = _options(conn, evidence, "school", "term")[0]
     assert WARN_ONE_CHILD in {w.kind for w in option.warnings}
     assert any(w.evidence for w in option.warnings)
+
+
+def test_a_one_child_level_that_makes_a_real_split_readable_stays_silent(conn):
+    """The negative twin, and it is `00`:78's own recommended path:
+
+        Academics/Columbia/2026-Spring/PHYS1401/Homework
+
+    One school, in one term, taking one course, produces three single-child
+    levels and every one of them is correct — §5.8 makes uneven and shallow
+    branches a REQUIREMENT, and §5.6 says "a parent dimension should provide the
+    context required to understand the child". Homework is meaningful only once
+    the course is known. The three context levels earn themselves because the
+    level beneath them DOES divide.
+
+    A warning that fires on a correct tree trains the user to ignore the list,
+    which is worse than having no list.
+    """
+    from tree_design.vocabulary import WARN_ONE_CHILD
+
+    every = {"f1", "f2", "f3"}
+    evidence = _evidence(
+        _level("school", "school", 0, {"Columbia": every}),
+        _level("term", "term", 1, {"2026-Spring": every}),
+        _level("course", "course", 2, {"PHYS1401": every}),
+        _level("work_type", "work_type", 3,
+               {"Homework": {"f1"}, "Lectures": {"f2"}, "Syllabus": {"f3"}}))
+    option = _options(conn, evidence, "school", "term", "course", "work_type")[0]
+    fired = [w for w in option.warnings if w.kind == WARN_ONE_CHILD]
+    assert fired == [], (
+        f"{len(fired)} single-child warnings fire on `00`:78's own example: "
+        f"{[w.reason for w in fired]}")
 
 
 def test_an_option_that_would_scatter_files_into_tiny_folders_warns(conn):
@@ -738,3 +774,96 @@ def test_evidence_gaps_stay_empty_because_nothing_produces_one(conn):
     }
     assert naming_it == {"health.py", "candidates.py"}, (
         "a producer for evidence gaps appeared; wire it into _counts_for_preview")
+
+
+# --- nothing bounded how WIDE a split was, and a cap is the wrong instrument ------
+
+
+def test_a_capture_date_split_does_not_propose_a_folder_per_day(conn):
+    """`00`:88 recommends exactly the split that exposes this: "Photos and
+    capture-based media are the major exception: time often belongs first."
+
+    §8.6's ceiling is called "Maximum folder proposals and maximum depth", and
+    P10 read it as how many OPTIONS to offer and how DEEP one may go — never as
+    how many FOLDERS a proposal creates. Four years of photos proposed a folder
+    per day with that ceiling set to six.
+
+    The answer is `00`:88's own Photos template, which "may define year → event",
+    and not a cap: every photo still lands in a folder.
+    """
+    photos = {f"IMG_{index:04d}" for index in range(400)}
+    by_day = {}
+    for index, photo in enumerate(sorted(photos)):
+        day = f"202{index % 4}-{index % 12 + 1:02d}-{index % 28 + 1:02d}"
+        by_day.setdefault(day, set()).add(photo)
+    assert len(by_day) > 80, "the corpus really is a folder-per-day corpus"
+
+    option = _options(conn, _evidence(
+        _level("capture_date", "capture_date", 0, by_day)), "capture_date")[0]
+    assert option.total_child_branches <= 10
+    # Nothing was dropped to get there. A cap would have had to drop or invent.
+    assert sum(child.file_count for child in option.children) == len(photos)
+    assert option.unresolved_file_ids == ()
+    assert all(len(child.label_chain[-1]) == len("2026")
+               for child in option.children)
+
+
+def test_a_split_on_values_with_no_structure_keeps_every_folder(conn):
+    """The twin, and the reason only dates are touched.
+
+    Capping a level of four hundred courses at a hundred folders means either
+    dropping three hundred courses — the silent omission the standing rule
+    forbids — or merging them by something the evidence never said. A date has
+    structure the fact already carries; an opaque value has none, so it passes
+    through at whatever width its evidence produced.
+    """
+    by_course = {f"COURSE{index:03d}": {f"f{index}"} for index in range(400)}
+    option = _options(conn, _evidence(
+        _level("course", "course", 0, by_course)), "course")[0]
+    assert option.total_child_branches == 400
+    assert sum(child.file_count for child in option.children) == 400
+
+
+def test_a_term_label_is_not_read_as_a_date(conn):
+    """`2026-Spring` is a term. Coarsening it would merge two terms into a year
+    the user never asked for, so the match is whole and strict."""
+    by_term = {f"20{year:02d}-{season}": {f"f{year}{season}"}
+               for year in range(20, 30)
+               for season in ("Spring", "Fall")}
+    option = _options(conn, _evidence(
+        _level("term", "term", 0, by_term)), "term")[0]
+    assert option.total_child_branches == len(by_term)
+
+
+# --- `00`:99's "example members" is a sample, and the count beside it is whole ----
+
+
+def test_example_members_is_a_sample_and_the_count_is_not(conn):
+    """`example_members` was `members[:len(members)]` — a slice that truncates
+    nothing, written in the shape of a truncation. Every option carried its own
+    copy of the branch's whole membership.
+
+    `member_count` is what stops the shorter list hiding anything: `00`:99 asks
+    for example members AND for the numbers, and the numbers are unchanged.
+    """
+    from tree_design.health import sample_size
+    from tree_design.config import tree_limits
+    from database_agent.budget import set_ceiling
+
+    files = {f"f{index}" for index in range(500)}
+    by_value = {}
+    for index, name in enumerate(sorted(files)):
+        by_value.setdefault(f"v{index % 5}", set()).add(name)
+    options = _options(conn, _evidence(_level("d", "d", 0, by_value)), "d")
+
+    set_ceiling(conn, "tree.max_folder_proposals_and_depth", 6)
+    set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
+    limits = tree_limits(conn, excessive_depth_warning=3, tiny_folder_max_files=2,
+                         tiny_folder_count_warning=3,
+                         materially_improves_retrieval=lambda preview: None)
+
+    for option in options:            # the split option AND no-split
+        assert len(option.example_members) == sample_size(limits)
+        assert set(option.example_members) <= files
+        assert option.member_count == len(files), (
+            "the sample is shorter; the number the user reads is not")

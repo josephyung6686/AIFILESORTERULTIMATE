@@ -8,6 +8,21 @@ P10 reads what P1 publishes and uses the single value for both the proposal
 ceiling and the depth ceiling. Splitting it is a change to `database_agent.budget`
 and to §8.6, not a P10 default, and this comment is where a reader finds that out.
 
+THAT KEY NOW ANSWERS FOUR QUESTIONS, and the count is a complaint about the key
+and not about any of the four answers. It caps how many OPTIONS the picker offers
+(`routing.route_branch`); it caps how DEEP a candidate may go (`validation._v3`);
+it caps how WIDE a date level may be before it is coarsened to the granularity
+`00`:88's Photos template names (`materialise.narrow_wide_date_levels`); and it
+is the sample size for the lists §5.9 and §5.5 print (`health.sample_size`). All
+four are "how many things does the interface put in front of the user at once",
+which is the reading §8.6's own words most plainly carry. The alternative to
+reading it four times is choosing three numbers here, which is the one thing this
+module exists to refuse. `test_one_ceiling_can_serve_both_the_picker_and_the_depth_limit`
+in `tests/integration/test_scale_stress.py` FAILS and is standing evidence that
+P1 should publish more than one key: `00`:78's own tree is five levels deep, so
+the depth job wants at least five, and a picker offering five options per branch
+is not a picker. No P10 change can reconcile them.
+
 The §5.9 thresholds have no ceiling key at all, so they are mandatory injected
 arguments. Same rule, different mechanism: absent means refuse, never guess.
 """

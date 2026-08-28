@@ -506,7 +506,10 @@ def test_a_branch_designed_from_several_groups_counts_every_one_of_their_files(c
 
     every_file = (corpus.group_file_ids(ACADEMIC_GROUP)
                   | corpus.group_file_ids(LAW_GROUP))
-    assert set(design_.options[0].example_members) == every_file
+    # `example_members` is a SAMPLE per `00`:99; `member_count` is the whole
+    # number, and it is the number that has to account for both lives.
+    assert design_.options[0].member_count == len(every_file)
+    assert set(design_.options[0].example_members) <= every_file
     # Two lives in one branch is two options, not one refusal, and no file of
     # either is missing from the pair.
     covered = frozenset().union(
