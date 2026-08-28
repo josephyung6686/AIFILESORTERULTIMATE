@@ -102,3 +102,78 @@ tiny folders" at the tree; this is the same shape one layer earlier, at grouping
   measurement.
 - The persona work `59` did — a lawyer, a parent, a researcher, someone who is several at once —
   is still owed, and this run is one file-shape against one of them.
+
+---
+
+## 4. Second run, 2026-08-29 — after the output was made readable
+
+`fix-cli-output` (commit `bb898ce`) landed and the same corpus was run again. The four defects
+§3 recorded are gone: names instead of UUIDs, one reason for four files instead of four copies
+of it, the plan version demoted to a self-explaining footnote, and the review set folded into
+the block whose files it covers rather than counted a second time in its own vocabulary.
+
+Two findings came out of the second run that the first could not produce, because the first
+run's output was too unreadable to notice them.
+
+### 4.1 The refusal describes the one step that worked
+
+The report says, for all four files:
+
+> *"This file has not been classified — nothing has been able to read enough of it to say what
+> kind of material it is."*
+
+The database says otherwise:
+
+| table | rows | meaning |
+|---|---|---|
+| `file_facts` | **4** — one `subject` per file, all `direct` | **reading worked** |
+| `classifications` | **0** | the detector declined |
+| `placement_decisions` | 4, all `abstain`, `node_id` NULL | placement had no class to route on |
+
+Extraction is the step that succeeded, and it is the step the sentence blames. The honest
+sentence is that the file was read and **not classified** — P7's detector abstained, correctly,
+under the rule that an unrecognised file must reach P11 unclassified rather than be written up
+as something it is not (commit `6be2ada`).
+
+**`66` §4 already forbids this.** "Protected," "unreadable," "unsupported format," "still
+indexing" and "no strong match" are five states that *"should never share one vague message."*
+This is two of them sharing one: an **unclassified** file described as an **unreadable** one.
+The requirement was written for Find; it applies to this report today.
+
+### 4.2 Four files from one course became four groups — §2.3's question, answered
+
+`65` §2 left open why four files sharing `PHYS1401` did not become one group. The grouping rows
+answer it:
+
+```
+group:e46ba371-…:strongly-identified-file   academic   PHYS1401   coherent   engine
+group:84d59bfc-…:strongly-identified-file   academic   PHYS1401   coherent   engine
+group:96020a5e-…:strongly-identified-file   academic   PHYS1401   coherent   engine
+group:9db8361f-…:strongly-identified-file   academic   PHYS1401   coherent   engine
+```
+
+**Every group id is keyed on a FILE id**, and the strategy is `strongly-identified-file`. A file
+that identifies itself strongly enough becomes its own group. Four files that each strongly
+identify as PHYS1401 therefore produce four one-file groups carrying the same `display_label`,
+rather than one group of four. `memberships` holds 8 rows for 4 files: each file is in its own
+singleton and in the plan's `Coursework` group.
+
+This is why `Coursework` is proposed and then left empty, and why all four placements abstain.
+
+**It is a north-star defect, not a cosmetic one.** A person with four files from one course
+expects one course folder containing four files. They are shown four identically-named groups
+and an empty folder. And it is upstream of everything: `66` §3's six-state model — current
+location, filed home, also-related-to, shared-material, historical, possible placement — has
+nothing to present if the engine cannot say that four files belong to one course in the first
+place. Find inherits this, it does not fix it.
+
+The strategy is not wrong in general: a strongly self-identifying file *should* be able to stand
+alone when nothing else shares its identity. The defect is that the strategy does not check
+whether anything else resolved to the same identity before minting a singleton for it.
+
+### 4.3 What this changes about the order of work
+
+`63` §5's list has "widen the extractor" at step 5. §4.2 above should sit next to it, because
+they are the same class of problem seen from two sides: the product's understanding of a course
+is assembled from a course code, and both the reading of that code and the grouping on it are
+one-shot. Neither is a question for the user, and `66` §14 is what says so.
