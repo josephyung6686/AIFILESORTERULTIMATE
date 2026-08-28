@@ -979,7 +979,28 @@ def test_no_destination_field_expresses_which_side_of_the_table_you_are_on(conn)
         "purpose", "project", "stage", "artifact_type", "lab", "venue",
         "institution", "account_type", "tax_year", "record_type",
         "capture_year", "event", "location", "media_type", "repository",
+        # `60` §4's nineteen, minus the four it seeds ineligible.
+        "site", "asset", "product", "supplier", "issuing_body", "record_period",
+        "property", "design_item", "authorization", "consignment", "people_cycle",
+        "recruiting_cycle", "employer", "target_employer", "job_title",
     }
+
+    # NARROWED BY `60`, NOT CLOSED. One axis now has a direction: `employer` and
+    # `target_employer` are a reciprocal `role_split` (§4), so a résumé addressed to
+    # a firm and an employment record from a firm no longer settle the same key.
+    from facts.fields import DOMAIN_FIELDS
+    employer_row = next(r for r in FIELD_ROWS if r.field_key == "employer")
+    assert "target_employer" in employer_row.role_split
+    assert {"employer", "target_employer"} <= set(DOMAIN_FIELDS["career"])
+
+    # The invoice case survives untouched. `client` is still the only counterparty
+    # key either side can fill, its `role_split` partner `our_firm` is still
+    # ineligible (D9), and `supplier` — the one new counterparty key — carries the
+    # supplier role on ONE side by definition, so it cannot say which side we are on
+    # for a document that names both parties.
+    assert {"client", "supplier"} <= eligible
+    assert "our_firm" not in eligible
+    assert not eligible & {"consignor", "consignee", "issued_by", "received_from"}
 
 
 def test_two_opposite_side_folders_tie_and_every_such_file_abstains(p11_conn):
@@ -1043,18 +1064,19 @@ def test_two_opposite_side_folders_tie_and_every_such_file_abstains(p11_conn):
 # --------------------------------------------------------------------------------
 
 
-def test_thirteen_of_the_corpus_twenty_three_schemas_have_no_runtime_identity():
-    """A lawyer, an engineer and a nurse have no schema id to be grouped under.
+def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
+    """GAP CLOSED. A lawyer, an engineer and a nurse now have a schema id.
 
-    P6 recognises ten schema ids (`src/facts/domains.py:51-53`); the corpus
-    carries 358 rows across 23. The thirteen with no runtime identity are the
-    professional half of the corpus, and they hold most of the cross-schema
-    overlap the seed cases are about: `law_practice` alone holds 37 rows and 45
-    cross-schema `also_holds_with` edges.
+    This test was written as the negative: P6 recognised ten schema ids while the
+    corpus carried 358 rows across 23, so the thirteen professional schemas — which
+    hold most of the cross-schema overlap the seed cases are about, `law_practice`
+    alone holding 37 rows and 45 cross-schema `also_holds_with` edges — had no
+    runtime identity. A group whose category was one of those thirteen had no
+    applicability row, so C3 refused before C6 was reached.
 
-    A group whose category is one of those thirteen has no applicability row, so
-    C3 refuses before C6 is reached and the branch gets the no-split option with
-    "no applicable recipe resolved against this branch's evidence".
+    `planning/60-VOCABULARY-RULINGS.md` J-1 closes it: "All 23 roster schemas become
+    schemas the product recognises." `60` §5 gives twenty of them a field set, and
+    the three that keep none are §3.15's out-of-scope safety domains.
     """
     from facts.domains import FIELD_LESS_SCHEMA_IDS, SCHEMA_IDS
 
@@ -1067,19 +1089,20 @@ def test_thirteen_of_the_corpus_twenty_three_schemas_have_no_runtime_identity():
 
     assert total == 358
     assert len(corpus_schemas) == 23
-    assert len(SCHEMA_IDS) == 10
-    assert set(SCHEMA_IDS) <= corpus_schemas
-    missing = corpus_schemas - set(SCHEMA_IDS)
-    assert len(missing) == 13
-    assert missing == {
+    assert len(SCHEMA_IDS) == 23
+    assert set(SCHEMA_IDS) == corpus_schemas
+    assert corpus_schemas - set(SCHEMA_IDS) == set()
+    # The thirteen that used to be missing, named so the closure is legible.
+    assert {
         "business_operations", "clinical_practice", "construction_property",
         "creative", "engineering", "government", "hr", "law_practice",
         "logistics", "manufacturing", "nonprofit", "resource_operations",
         "retail_hospitality",
-    }
-    # And four of the ten that ARE recognised carry no fields at all, so they can
-    # be activated and still build nothing: identity, medical, legal, career.
-    assert set(FIELD_LESS_SCHEMA_IDS) == {"career", "identity", "medical", "legal"}
+    } <= set(SCHEMA_IDS)
+    # And only §3.15's three safety domains carry no fields, so they can be activated
+    # and still build nothing. `career` has left that tuple: `60` J-3 declares both
+    # `work_type` and `record_type` on it, paying D1's "Career is owed before P10".
+    assert set(FIELD_LESS_SCHEMA_IDS) == {"identity", "medical", "legal"}
 
 
 def test_placement_now_records_a_decision_about_every_one_of_these(p11_conn):

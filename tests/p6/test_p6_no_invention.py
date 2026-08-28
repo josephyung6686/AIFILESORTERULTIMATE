@@ -67,7 +67,12 @@ REPO = Path(__file__).resolve().parents[2]
 CATALOGUE_01 = REPO / "planning" / "deferred-catalogues" / "01-tool-producer-strings.json"
 
 #: Task 2 owns the spelling of each scope; this file re-spells none of them.
-UNIVERSAL, ACADEMIC, COLLEGE_APPLICATIONS, RESEARCH, FINANCE, PHOTOS, CODE = FIELD_SCOPES
+#: `60` J-1 widened FIELD_SCOPES from seven members to twenty-one, so the seven this
+#: file names are taken from the front of the tuple rather than unpacking all of it.
+#: They are still a prefix, in the SPEC's order -- `facts.vocabulary` says so and
+#: `tests/p6/test_p6_vocabulary_adoption.py` asserts it.
+UNIVERSAL, ACADEMIC, COLLEGE_APPLICATIONS, RESEARCH, FINANCE, PHOTOS, CODE = \
+    FIELD_SCOPES[:7]
 
 #: The file layout the plan declares. A `catalogues.py` appearing here is how catalogue 01
 #: would arrive as a module-level constant while satisfying the letter of every other
@@ -97,6 +102,9 @@ DECLARED_VOCABULARIES = frozenset({
     "FIELDS_COLUMNS", "VALUE_KINDS", "ROLE_FIELDS",           # Task 2  the `fields` table
     "_UNIVERSAL_3_11", "_DOWNLOAD_SESSION", "_ROLES_3_8", "_ACADEMIC",   # Task 2  the
     "_COLLEGE_APPLICATIONS", "_RESEARCH", "_FINANCE", "_PHOTOS", "_CODE",  # authored rows
+    "_CAREER", "_BUSINESS_OPERATIONS", "_CONSTRUCTION_PROPERTY",           # `60` S4 the
+    "_ENGINEERING", "_MANUFACTURING", "_RESOURCE_OPERATIONS", "_LOGISTICS",  # eighteen
+    "_HR", "_LAW_PRACTICE",                                                # minted rows
     "VALUE_ORIGINS", "_VALUE_ORIGINS",                        # Task 3  S3.12
     "FILE_FACTS_COLUMNS", "FORBIDDEN_COLUMN_SUBSTRINGS", "FACT_ORIGINS",  # Task 4 S3.1
     "UNRESOLVED_REASONS", "ATTEMPTED_PRODUCERS", "_ATTEMPTED_PRODUCERS",  # Task 5 B7

@@ -18,9 +18,11 @@ from facts.fields import (
 KEYS = tuple(row.field_key for row in FIELD_ROWS)
 
 
-def test_the_catalogue_is_thirty_seven_rows_with_no_duplicate_key():
-    assert len(FIELD_ROWS) == 37
-    assert len(set(KEYS)) == 37
+def test_the_catalogue_is_fifty_six_rows_with_no_duplicate_key():
+    # `60` §4: "37 live + 19 = 56." J-1 widened the recognised schemas 10 -> 23 and §4
+    # minted nineteen keys for them; the live thirty-seven keep their positions.
+    assert len(FIELD_ROWS) == 56
+    assert len(set(KEYS)) == 56
 
 
 def test_the_catalogue_is_exactly_these_keys_and_nothing_else():
@@ -46,6 +48,18 @@ def test_the_catalogue_is_exactly_these_keys_and_nothing_else():
         "repository", "programming_language",
         # §3.8's four role fields
         "authored_by", "target_school", "our_firm", "client",
+        # `60` §4's eighteen, grouped by the scope that DECLARES each
+        "recruiting_cycle", "employer", "target_employer", "job_title",  # career (J-2,
+                                                                    # J-3, §8.1)
+        "organization", "record_period", "supplier", "issuing_body",  # business_ops
+        "property",                                                # construction_property
+        "design_item",                                             # engineering (M10)
+        "site", "asset", "product",                                # manufacturing
+        "authorization",                                           # resource_ops (H8)
+        "consignment",                                             # logistics (B2)
+        "people_cycle", "workforce_unit",                          # hr (J-2, J-5)
+        "subject_of_record",                                       # law_practice
+        "account_holder",                                          # finance (M13)
     }
 
 
@@ -101,18 +115,29 @@ def test_jurisdiction_is_a_value_and_never_a_field_name():
     assert not [k for k in KEYS if "jurisdiction" in k]
 
 
-def test_career_identity_medical_and_legal_have_no_field_rows():
-    # §5's Career template words are "company → role or recruiting cycle → document
-    # type"; none of them is a `fields` row. S3 deferred those schemas.
+def test_identity_medical_and_legal_still_have_no_field_rows_and_career_now_does():
+    # THE REVERSAL THIS TEST ANTICIPATED. Its own words: "this asserts the catalogue's
+    # contents today. It does NOT assert that the contents can never change — a later
+    # deliberate reversal of S3 is a decision, not a regression." `60` J-1 and J-3 are
+    # that decision, and D1's deferral said so too: "Career is owed before P10."
     #
-    # D1 (narrowed 2026-08-21): this asserts the catalogue's contents today. It does
-    # NOT assert that the contents can never change — a later deliberate reversal of
-    # S3 is a decision, not a regression, and P6's suite is not where it is held.
-    for absent in ("company", "role", "recruiting_cycle", "job_title", "employer",
+    # `00`:70's Career template words are "company → role or recruiting cycle →
+    # document type". `recruiting_cycle` is now a key, on the `00` spelling (J-2).
+    # `role` is now a key too, under its stored spelling `job_title` (`60` §8.1:
+    # "`role` is the middle level of `00`'s own career template"), so `role` survives
+    # as an alias and never as a second key. `company` is still not a key: it folds to
+    # `employer` / `target_employer` / `organization` by role.
+    for present in ("recruiting_cycle", "employer", "target_employer", "job_title"):
+        assert present in KEYS
+    for absent in ("company", "role",
                    "resume_version", "passport_number", "identity_document_type",
                    "patient", "diagnosis", "medical_record_type",
                    "matter", "case_number", "counterparty"):
         assert absent not in KEYS
+    # The three §3.15 safety domains are still field-less, which is what keeps
+    # "field-less" a live category rather than an emptied one.
+    assert not [key for key in KEYS
+                if get_row(key).scope in ("identity", "medical", "legal")]
 
 
 def test_the_four_3_8_role_fields_exist_and_d9_splits_destination_eligibility():
@@ -172,9 +197,12 @@ def test_download_session_is_universal_and_never_a_folder_level():
     assert "download_session" in UNIVERSAL_FIELDS
 
 
-def test_the_seven_scopes_are_the_specs_seven_and_every_row_uses_one():
-    assert FIELD_SCOPES == ("universal", "academic", "college_applications",
-                            "research", "finance", "photos", "code")
+def test_the_twenty_one_scopes_open_with_the_specs_seven_and_every_row_uses_one():
+    # `60` J-1: adoption APPENDS. The SPEC's seven are still the first seven members,
+    # in the SPEC's order, so nothing that read this tuple positionally changed meaning.
+    assert FIELD_SCOPES[:7] == ("universal", "academic", "college_applications",
+                                "research", "finance", "photos", "code")
+    assert len(FIELD_SCOPES) == 21
     for row in FIELD_ROWS:
         assert row.scope in FIELD_SCOPES, row.field_key
         assert row.value_kind in VALUE_KINDS, row.field_key
@@ -184,10 +212,17 @@ def test_project_and_artifact_type_are_one_row_each_referenced_by_two_domains():
     # canonical_fields.json's own model: "One global table: schemas REFERENCE these
     # keys and declare no private spellings." Two rows would be two join handles for
     # one concept — the tie-break rule's exact failure.
+    # `research` gains `institution` under `60` H9 (per `48` §2): nonprofit's row
+    # warned that without a funder role its strongest node — restricted money with
+    # strings — has no key "and a template author will mint one", and `48`'s answer was
+    # to declare the canonical key on `research` and `nonprofit` rather than mint
+    # `sponsor`. It is one row, declared at `finance`, now referenced by three schemas.
     assert DOMAIN_FIELDS["research"] == ("project", "stage", "artifact_type", "lab",
-                                         "venue")
+                                         "venue", "institution")
     assert DOMAIN_FIELDS["code"] == ("project", "repository", "programming_language",
                                      "artifact_type")
+    assert get_row("institution").scope == "finance"
+    assert len([r for r in FIELD_ROWS if r.field_key == "institution"]) == 1
     assert get_row("project").scope == "research"
     assert get_row("artifact_type").scope == "research"
     assert len([r for r in FIELD_ROWS if r.field_key == "project"]) == 1
@@ -231,10 +266,10 @@ def test_an_unknown_field_key_raises_rather_than_creating_a_row(p6_conn):
 
 def test_create_fields_loads_the_authored_table_and_is_idempotent(p6_conn):
     # `p6_conn` has already called it once.
-    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 37
+    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 56
     create_fields(p6_conn)
     create_fields(p6_conn)
-    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 37
+    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 56
 
 
 def test_the_stored_row_carries_exactly_the_specs_columns(p6_conn):
@@ -273,8 +308,13 @@ def test_fields_in_scope_returns_the_rows_declared_at_that_scope(p6_conn):
     # by this §3.11 sentence". They differ for exactly the two shared keys.
     assert [r["field_key"] for r in fields_in_scope(p6_conn, "code")] == [
         "repository", "programming_language"]
+    assert [r["field_key"] for r in fields_in_scope(p6_conn, "career")] == [
+        "employer", "target_employer", "recruiting_cycle", "job_title"]
+    # `account_holder` is the fifth: `60` M13 / `49` §4.1. It was moved out of
+    # `finance.fields[]` mid-session and fell through, and `finance` is a live schema,
+    # so the omission was a SHIPPING schema losing a field with no replacement.
     assert [r["field_key"] for r in fields_in_scope(p6_conn, "finance")] == [
-        "institution", "account_type", "tax_year", "record_type"]
+        "institution", "account_type", "tax_year", "record_type", "account_holder"]
     assert [r["field_key"] for r in fields_in_scope(p6_conn, "universal")] == [
         "file_type", "creation_date", "language", "duplicate_family",
         "version_family", "download_session",
@@ -282,10 +322,14 @@ def test_fields_in_scope_returns_the_rows_declared_at_that_scope(p6_conn):
     assert len(fields_in_scope(p6_conn, "photos")) == 7
 
 
-def test_fields_in_scope_refuses_a_scope_outside_the_seven(p6_conn):
-    for absent in ("career", "identity", "medical", "legal", "Universal"):
+def test_fields_in_scope_refuses_a_scope_outside_the_twenty_one(p6_conn):
+    # `career` has LEFT this list (J-3 declares its fields). The three §3.15 safety
+    # domains have not: `60` §5 keeps them field-less by PR-6, so asking for their rows
+    # is still a refusal and not an empty list.
+    for absent in ("identity", "medical", "legal", "Universal", "travel", "astrology"):
         with pytest.raises(NotInVocabulary):
             fields_in_scope(p6_conn, absent)
+    assert fields_in_scope(p6_conn, "career")
 
 
 def test_every_destination_eligible_flag_round_trips_as_a_boolean(p6_conn):

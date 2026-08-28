@@ -72,13 +72,17 @@ def abstract(p6_conn, tmp_path):
     return file_id, content_hash
 
 
-# --- the ten schemas, and the four that carry no fields ----------------------
+# --- the twenty-three schemas, and the three that carry no fields ------------
 
-def test_the_ten_recognised_schemas_are_named_once():
-    assert SCHEMA_IDS == ("academic", "college_applications", "research", "career",
-                          "photos", "code", "finance", "identity", "medical",
-                          "legal")
-    assert len(set(SCHEMA_IDS)) == 10
+def test_the_twenty_three_recognised_schemas_are_named_once():
+    # `60` J-1, ratifying J-WIDE-1: "All 23 roster schemas become schemas the product
+    # recognises." The live ten keep their order and their positions; the thirteen
+    # professional schemas are appended. `tests/p6/test_p6_vocabulary_adoption.py`
+    # holds the roster cross-check and the still-refused negative.
+    assert SCHEMA_IDS[:10] == ("academic", "college_applications", "research", "career",
+                               "photos", "code", "finance", "identity", "medical",
+                               "legal")
+    assert len(set(SCHEMA_IDS)) == 23
 
 
 def test_the_field_bearing_schemas_are_exactly_the_non_universal_field_scopes():
@@ -94,14 +98,15 @@ def test_universal_scope_is_named_without_positional_vocabulary_coupling():
     assert "FIELD_SCOPES[0]" not in source
 
 
-def test_career_identity_medical_and_legal_carry_no_field_rows(p6_conn):
-    # D1 (narrowed): "Do not author career fields. Not in this task, not in the domain
-    # catalogue as field rows. Career is owed before P10." Identity, medical and legal
-    # are §3.15 safety domains that §3.11 gives no field row.
-    assert FIELD_LESS_SCHEMA_IDS == ("career", "identity", "medical", "legal")
+def test_only_identity_medical_and_legal_carry_no_field_rows(p6_conn):
+    # D1 (narrowed) said "Career is owed before P10"; `60` J-3 pays it, so career has
+    # left this tuple. Identity, medical and legal are §3.15 safety domains that §3.11
+    # gives no field row and `60` §5 keeps field-less by PR-6.
+    assert FIELD_LESS_SCHEMA_IDS == ("identity", "medical", "legal")
     for schema_id in FIELD_LESS_SCHEMA_IDS:
         assert schema_fields(schema_id) == ()
         assert schema_id not in DOMAIN_FIELDS
+    assert schema_fields("career")
 
 
 def test_the_catalogue_constant_and_the_loaded_table_are_the_same_data(p6_conn):
@@ -123,11 +128,19 @@ def test_the_catalogue_constant_and_the_loaded_table_are_the_same_data(p6_conn):
         assert declared <= set(keys)
         for field_key in keys:
             assert get_field(p6_conn, field_key)["field_key"] == field_key
-    # The divergence is exactly one entry, and it is the shared-field entry.
+    # The divergence used to be exactly one entry. After `60` §5 it is fifteen: every
+    # schema that references a key another schema declares. Five of the fifteen declare
+    # NOTHING and reference everything, which is why the allowlist is built on
+    # `DOMAIN_FIELDS` and not on declarations.
     diverging = {schema_id for schema_id, keys in DOMAIN_FIELDS.items()
                  if {row["field_key"] for row in fields_in_scope(p6_conn, schema_id)}
                  != set(keys)}
-    assert diverging == {"code"}
+    assert "code" in diverging
+    assert {"creative", "retail_hospitality", "government", "nonprofit",
+            "clinical_practice"} <= diverging
+    # And the negative half: a schema whose declarations ARE its field set still shows
+    # no divergence, so the set above is not simply "all of them".
+    assert {"academic", "college_applications", "photos", "finance"} & diverging == set()
 
 
 def test_an_unrecognised_schema_is_refused_rather_than_created():
@@ -240,31 +253,30 @@ def test_no_field_is_dropped_when_two_domains_share_one(p6_conn, abstract):
     assert allowlist.count("artifact_type") == 1
 
 
-def test_code_alone_reaches_only_the_fields_the_code_scope_declares(p6_conn,
-                                                                    abstract):
-    # NOT IN THE PLAN. Added to make the contradiction above executable rather than
-    # only written down.
+def test_code_alone_now_reaches_the_whole_code_sentence(p6_conn, abstract):
+    # THE TRIPWIRE THIS TEST SET, TRIPPED ON PURPOSE. Its previous body pinned the
+    # opposite: `active_field_allowlist` walked DECLARATION scopes, so activating Code
+    # alone yielded `repository` and `programming_language` but NOT `project` or
+    # `artifact_type` -- which §3.11's own Code sentence names. Its closing words were
+    # "If the allowlist is later rebuilt on `DOMAIN_FIELDS`, this is the test that
+    # says so." This is that rebuild, and this is it saying so.
     #
-    # `active_field_allowlist` walks DECLARATION scopes (`fields_in_scope`), so
-    # activating Code alone yields `repository` and `programming_language` but NOT
-    # `project` or `artifact_type` -- which §3.11's own Code sentence names: "Code
-    # files may use project, repository, programming language, and artifact type."
-    # §3.5 makes the allowlist what the model may propose, so on the plan's
-    # implementation a Code-only file cannot be proposed a `project`.
-    #
-    # The plan's own shared-field test sidesteps this by activating Research too.
-    # This test pins the behaviour the plan specified; it is a tripwire, not an
-    # endorsement. If the allowlist is later rebuilt on `DOMAIN_FIELDS`, this is the
-    # test that says so.
+    # `60` §5 is what forces it. Five schemas declare no key at all and reference
+    # everything, so on the old rule an active `creative` could be proposed no field
+    # whatsoever, and §3.5's "can only propose facts that belong to the active domain
+    # schema" would be enforcing a schema nobody wrote. The two-key `code` divergence
+    # was the same defect at a size small enough to live with.
     file_id, content_hash = abstract
     signals = ActivationSignals((_when_field_present("code", "project"),))
     allowlist = active_field_allowlist(p6_conn, file_id=file_id,
                                        content_hash=content_hash,
                                        activation_signals=signals)
-    assert {"repository", "programming_language"} <= set(allowlist)
-    assert "project" not in allowlist
-    assert "artifact_type" not in allowlist
-    assert not set(DOMAIN_FIELDS["code"]) <= set(allowlist)
+    assert set(DOMAIN_FIELDS["code"]) <= set(allowlist)
+    assert {"repository", "programming_language", "project", "artifact_type"} <= set(
+        allowlist)
+    # Still an ALLOWLIST: reaching a referenced key is not reaching every key.
+    assert "lab" not in allowlist
+    assert "venue" not in allowlist
 
 
 def test_an_inactive_domains_fields_stay_out_of_the_allowlist(p6_conn, abstract):
@@ -279,17 +291,26 @@ def test_an_inactive_domains_fields_stay_out_of_the_allowlist(p6_conn, abstract)
 
 
 def test_a_field_less_schema_activates_and_contributes_nothing(p6_conn, abstract):
-    # Activating `career` must not cause a career field to appear. S3's deferral holds
-    # and P6 does not un-defer it by side effect.
+    # Activating `medical` must not cause a medical field to appear. §3.15 keeps the
+    # safety domains out of scope and P6 does not un-defer one by side effect. The
+    # branch that skips a recognised schema with no field set is still REACHABLE after
+    # the widening -- identity, medical and legal are what keep it live.
     file_id, content_hash = abstract
-    signals = ActivationSignals((_when_field_present("career", "project"),))
+    signals = ActivationSignals((_when_field_present("medical", "project"),))
     assert active_domains(p6_conn, file_id=file_id, content_hash=content_hash,
-                          activation_signals=signals) == frozenset({"career"})
+                          activation_signals=signals) == frozenset({"medical"})
     allowlist = active_field_allowlist(p6_conn, file_id=file_id,
                                        content_hash=content_hash,
                                        activation_signals=signals)
     assert set(allowlist) == {row["field_key"]
                               for row in fields_in_scope(p6_conn, UNIVERSAL_SCOPE)}
+    # And the negative twin: `career` is no longer field-less, so activating it DOES
+    # contribute. Without this the assertion above would also pass on a catalogue that
+    # had quietly lost every domain field.
+    career = ActivationSignals((_when_field_present("career", "project"),))
+    assert set(DOMAIN_FIELDS["career"]) <= set(active_field_allowlist(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=career))
 
 
 # --- the allowlist is a value, and it is deterministic -----------------------

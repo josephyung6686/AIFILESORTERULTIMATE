@@ -13,10 +13,24 @@ Task 5 adds `UNRESOLVED_REASONS` and `ATTEMPTED_PRODUCERS` to this module.
 """
 from __future__ import annotations
 
-#: §3.11's six domain families plus the universal scope. Exactly the SPEC's list, in
-#: the SPEC's order. Adding a member is a contract revision: §3.15 names Career and
-#: recruiting, identity, medical and legal, and §3.11 gives them no field row, so
-#: they are Deferred rather than empty scopes (S3).
+#: The universal scope plus every schema that declares a field set. Adding a member is
+#: a contract revision, and this is one: `planning/60-VOCABULARY-RULINGS.md` J-1 widens
+#: the recognised schemas 10 -> 23 and §5 declares a field set for twenty of them.
+#:
+#: **The live seven are a PREFIX, in the SPEC's own order.** Adoption appends; it does
+#: not reshuffle, so nothing that read this tuple positionally changes meaning.
+#:
+#: The three that are still absent are §3.15's safety domains — `identity`, `medical`
+#: and `legal` — which §3.11 gives no field row and `60` §5 keeps field-less by PR-6.
+#: `facts.domains.FIELD_LESS_SCHEMA_IDS` derives them from this absence rather than
+#: listing them, so the two vocabularies cannot drift. `career` LEAVES that tuple here:
+#: D1 deferred career fields with "Career is owed before P10", and `60` J-3 pays the
+#: debt by declaring both `work_type` and `record_type` on it.
+#:
+#: A scope may legitimately declare NO rows: `creative`, `retail_hospitality`,
+#: `government`, `nonprofit` and `clinical_practice` reference keys other schemas mint
+#: and mint none of their own. `fields_in_scope` returns `[]` for them, which is why
+#: the field allowlist is built on `DOMAIN_FIELDS` and not on declarations.
 FIELD_SCOPES: tuple[str, ...] = (
     "universal",
     "academic",
@@ -25,6 +39,20 @@ FIELD_SCOPES: tuple[str, ...] = (
     "finance",
     "photos",
     "code",
+    "career",
+    "business_operations",
+    "clinical_practice",
+    "construction_property",
+    "creative",
+    "engineering",
+    "government",
+    "hr",
+    "law_practice",
+    "logistics",
+    "manufacturing",
+    "nonprofit",
+    "resource_operations",
+    "retail_hospitality",
 )
 
 #: How a field's values normalize (SPEC, `fields` table). Exactly the four kinds

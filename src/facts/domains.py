@@ -25,17 +25,18 @@ Two things follow and both are structural:
   `ActivationSignals` with no default; an empty one activates nothing, which is the
   honest behaviour of an unauthored rule.
 
-**Schemas are named, fields are not implied.** `SCHEMA_IDS` is the ten domains the
-product recognises -- §3.11's six with field rows plus §3.15's remaining safety
-domains. Four of the ten have **no field rows at all** (D1, narrowed): activating one
-contributes nothing to the allowlist, which is exactly right, because a schema with no
-authored fields must not cause fields to be invented. `FIELD_LESS_SCHEMA_IDS` is
-derived from `facts.fields.FIELD_SCOPES` rather than written down, so the two
-vocabularies cannot drift apart.
+**Schemas are named, fields are not implied.** `SCHEMA_IDS` is the twenty-three domains
+the product recognises -- §3.11's six with field rows, §3.15's four safety domains, and
+the thirteen professional schemas `60` J-1 adopts. Three of the twenty-three have **no
+field set at all**: activating one contributes nothing to the allowlist, which is
+exactly right, because a schema with no authored fields must not cause fields to be
+invented. `FIELD_LESS_SCHEMA_IDS` is derived from `facts.fields.DOMAIN_FIELDS` rather
+than written down, so the two vocabularies cannot drift apart.
 
 **This module reads `planning/domains/` never.** That directory is a research artifact
-of 574 proposed entries with its own gate; the catalogue this activates is
-`facts.fields`, and Task 25 asserts the import does not exist.
+with its own gate; the catalogue this activates is `facts.fields`, whose content was
+READ from `60`'s rulings when they were applied. Task 25 asserts the import does not
+exist, and widening the vocabulary did not create one.
 """
 from __future__ import annotations
 
@@ -46,12 +47,21 @@ from dataclasses import dataclass
 from facts.fields import DOMAIN_FIELDS, FIELD_SCOPES, fields_in_scope
 from facts.file_facts import facts_for_file
 
-#: §3.11's six domains with field rows, plus §3.15's four safety domains. Named here
-#: because a schema id is a closed vocabulary the product recognises; what activates
+#: The twenty-three schemas the product recognises — `planning/60-VOCABULARY-RULINGS.md`
+#: J-1, ratifying J-WIDE-1: "All 23 roster schemas become schemas the product
+#: recognises." Named here because a schema id is a closed vocabulary; what activates
 #: one, and which fields one carries, are elsewhere.
+#:
+#: **Widened, still closed.** The live ten keep their order and their positions — §3.11's
+#: six plus §3.15's four — and the thirteen professional schemas `planning/domains/
+#: roster.json` carries are appended alphabetically. A schema outside the twenty-three
+#: still raises `UnknownSchema`, which is the half of "recognised" that gives it meaning.
 SCHEMA_IDS: tuple[str, ...] = (
     "academic", "college_applications", "research", "career", "photos", "code",
-    "finance", "identity", "medical", "legal")
+    "finance", "identity", "medical", "legal",
+    "business_operations", "clinical_practice", "construction_property", "creative",
+    "engineering", "government", "hr", "law_practice", "logistics", "manufacturing",
+    "nonprofit", "resource_operations", "retail_hospitality")
 
 #: Derive the one non-domain scope from P6's single vocabulary home without tying
 #: this consumer to a positional lookup. §3.11's universal set "applies to every
@@ -59,12 +69,18 @@ SCHEMA_IDS: tuple[str, ...] = (
 UNIVERSAL_SCOPE: str = next(scope for scope in FIELD_SCOPES
                             if scope not in SCHEMA_IDS)
 
-#: Derived, not authored: the schemas the product recognises that carry no field rows.
-#: D1 (narrowed): "Do not author career fields ... Career is owed before P10." The
-#: same holds for identity, medical and legal, which §3.15 names as safety domains and
-#: §3.11 gives no field row.
+#: Derived, not authored: the schemas the product recognises that carry no field set.
+#: After `60`, that is §3.15's three out-of-scope safety domains — `identity`,
+#: `medical`, `legal` — and nothing else. `career` has LEFT this tuple: D1 deferred its
+#: fields with "Career is owed before P10" and `60` J-3 pays that debt.
+#:
+#: Derived from `DOMAIN_FIELDS` rather than from `FIELD_SCOPES`, because the two are no
+#: longer the same question: five schemas (`creative`, `retail_hospitality`,
+#: `government`, `nonprofit`, `clinical_practice`) are field SCOPES with zero rows
+#: declared at them and a real field set referenced from elsewhere. Deriving from
+#: declarations would call all five field-less and silence them.
 FIELD_LESS_SCHEMA_IDS: tuple[str, ...] = tuple(
-    schema_id for schema_id in SCHEMA_IDS if schema_id not in FIELD_SCOPES)
+    schema_id for schema_id in SCHEMA_IDS if schema_id not in DOMAIN_FIELDS)
 
 
 class UnknownSchema(KeyError):
@@ -121,28 +137,42 @@ def active_domains(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
 def active_field_allowlist(conn: sqlite3.Connection, *, file_id: str,
                            content_hash: str,
                            activation_signals: ActivationSignals) -> tuple[str, ...]:
-    """The universal fields plus every active schema's fields, deduplicated.
+    """The universal fields plus every active schema's field SET, deduplicated.
 
     This is the object §3.5's sentence turns on -- the model "can only propose facts
     that belong to the active domain schema" -- and Task 17 hands this exact tuple to
     P8, so the allowlist is one computation and not two.
 
-    Order is deterministic and is the catalogue's: universal first, then each active
-    schema in `SCHEMA_IDS` order. `project` and `artifact_type` belong to both Research
-    and Code, so a file with both active must list each once and lose neither.
+    **Built on `DOMAIN_FIELDS`, not on declaration scopes.** It used to walk
+    `fields_in_scope`, and `tests/p6/test_p6_domains.py` carried a tripwire saying so:
+    an active Code file could not be proposed a `project`, because `project` is
+    DECLARED at `research` and merely REFERENCED by Code. That divergence was two keys
+    wide; after `60` §5 it is the whole catalogue. Five schemas -- `creative`,
+    `retail_hospitality`, `government`, `nonprofit`, `clinical_practice` -- declare
+    nothing and reference everything, so on the old rule activating `creative` would
+    have allowed the model to propose no field at all, and §3.5 would have been
+    enforcing a schema nobody wrote.
+
+    Order is deterministic and is the catalogue's: the universal rows in stored order,
+    then each active schema in `SCHEMA_IDS` order, each schema's keys in the order
+    `DOMAIN_FIELDS` declares. `record_type` belongs to seven schemas and `project` to
+    eight, so a file with several active must list each once and lose neither.
     """
     active = active_domains(conn, file_id=file_id, content_hash=content_hash,
                             activation_signals=activation_signals)
-    allowed: list[str] = []
-    for scope in (UNIVERSAL_SCOPE,
-                  *(schema_id for schema_id in SCHEMA_IDS if schema_id in active)):
-        if scope not in FIELD_SCOPES:
-            # A recognised schema with no field rows (D1). It activates and
-            # contributes nothing; it does not cause a field to be invented.
+    allowed: list[str] = [row["field_key"]
+                          for row in fields_in_scope(conn, UNIVERSAL_SCOPE)]
+    for schema_id in SCHEMA_IDS:
+        if schema_id not in active:
             continue
-        for row in fields_in_scope(conn, scope):
-            if row["field_key"] not in allowed:
-                allowed.append(row["field_key"])
+        if schema_id not in DOMAIN_FIELDS:
+            # A recognised schema with no field set: §3.15's identity, medical and
+            # legal. It activates and contributes nothing; it does not cause a field
+            # to be invented. Still reachable, and `60` did not widen it away.
+            continue
+        for field_key in DOMAIN_FIELDS[schema_id]:
+            if field_key not in allowed:
+                allowed.append(field_key)
     return tuple(allowed)
 
 

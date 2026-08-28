@@ -49,7 +49,7 @@ from evidence_shape.vocabulary import check
 
 from facts.domains import ActivationSignals, active_field_allowlist
 from facts.families import DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD
-from facts.fields import FIELD_SCOPES, fields_in_scope, get_field
+from facts.fields import DOMAIN_FIELDS, FIELD_SCOPES, fields_in_scope, get_field
 from facts.file_facts import facts_for_file
 from facts.photo_event import EVENT_FIELD
 from facts.session import DOWNLOAD_SESSION_FIELD
@@ -128,7 +128,14 @@ def facts_for(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     in_domain: frozenset[str] | None = None
     if domain is not None:
         check(domain, FIELD_SCOPES, name="scope")
-        in_domain = frozenset(row["field_key"] for row in fields_in_scope(conn, domain))
+        # A scope names either the universal set or one schema. For a SCHEMA the answer
+        # is its field set, not the rows that happen to be DECLARED at that scope: after
+        # `60` §5 five schemas declare nothing and reference everything, and filtering on
+        # declarations would hand those five an empty list -- which is exactly the "a
+        # typo must not read as an answer" failure this function raises to avoid.
+        in_domain = frozenset(
+            DOMAIN_FIELDS[domain] if domain in DOMAIN_FIELDS
+            else (row["field_key"] for row in fields_in_scope(conn, domain)))
 
     selected: list[sqlite3.Row] = []
     for row in facts_for_file(conn, file_id, content_hash):
