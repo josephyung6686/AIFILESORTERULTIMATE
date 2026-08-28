@@ -48,6 +48,29 @@ _COLUMNS: dict[str, tuple[tuple[str, str], ...]] = {
         ("payload", "TEXT NOT NULL"),
         ("created_at", "TEXT NOT NULL"),
     ),
+    # §6.2's index, as an INDEX. `placement_index_entries` is the record store --
+    # one payload per node, read whole when a caller wants a node's profile. This
+    # is the inverted projection `retrieve` reads: one row per (node, term), so a
+    # subject's stated fields, group ids and folder labels select the nodes that
+    # can possibly matter instead of every node the user froze. `00`:105 is the
+    # reason it exists at all: "the engine retrieves the few most relevant
+    # approved destination nodes, RATHER THAN SEARCHING THE ENTIRE FILESYSTEM".
+    #
+    # `source_field` names the `IndexEntry` FIELD the term was projected from, not
+    # the §6.3 channel it drives -- because an `expected_values` term drives a
+    # channel when it MATCHES and a suppression when it contradicts, and calling
+    # it `direct_fact` would name only half of its job. The channel vocabulary
+    # stays in `retrieval.py`, which is the module that owns the concept.
+    "placement_index_terms": (
+        ("record_id", "TEXT PRIMARY KEY"),
+        ("plan_version", "TEXT NOT NULL"),
+        ("node_id", "TEXT NOT NULL"),
+        ("source_field", "TEXT NOT NULL"),
+        ("term_key", "TEXT NOT NULL"),
+        ("term_value", "TEXT NOT NULL"),
+        ("ordinal", "INTEGER NOT NULL"),
+        ("created_at", "TEXT NOT NULL"),
+    ),
     "placement_group_plans": (
         ("record_id", "TEXT PRIMARY KEY"),
         ("plan_version", "TEXT NOT NULL"),
@@ -90,6 +113,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_current_placement_decision
 CREATE UNIQUE INDEX IF NOT EXISTS one_current_index_entry
     ON placement_index_entries (plan_version, node_id)
     WHERE superseded_by IS NULL;
+
+CREATE INDEX IF NOT EXISTS placement_index_terms_lookup
+    ON placement_index_terms (plan_version, source_field, term_key, term_value);
 
 CREATE UNIQUE INDEX IF NOT EXISTS one_current_group_plan
     ON placement_group_plans (plan_version, group_id)

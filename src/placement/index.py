@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields as _dataclass_fields
 
 from database_agent.db import transaction
 
@@ -134,6 +134,187 @@ def _entry(node, profile, by_id) -> IndexEntry:
     )
 
 
+#: The three `IndexEntry` fields §6.3 can reach a node THROUGH, and the whole set
+#: of them. `retrieve` reads a subject's stated fields, its accepted group ids,
+#: its curated folder labels and a list of semantic node ids; the fourth is a
+#: list of node ids and needs no term. Anything else on the entry -- the ancestor
+#: labels, the representative files, the document types -- is read AFTER a node
+#: is already a candidate, so indexing it would build a term nothing queries.
+TERM_SOURCES: tuple[str, ...] = (
+    "expected_values", "accepted_group_ids", "display_label",
+)
+assert set(TERM_SOURCES) <= {field.name for field in _dataclass_fields(IndexEntry)}
+
+
+def _terms_of(entry: IndexEntry) -> tuple[tuple[str, str, str, int], ...]:
+    """`(source_field, term_key, term_value, ordinal)` for one entry.
+
+    `ordinal` exists for `expected_values` alone and is load-bearing there:
+    `retrieve` walks a node's expected values IN ORDER and the facts it collects
+    keep that order on the record. The other two sources are read as sets.
+
+    The label is folded once here rather than per subject, which is the point of
+    an index: `retrieve` casefolds the SUBJECT's labels, which are few, and never
+    the tree's, which are many.
+    """
+    rows = [("expected_values", field, value, ordinal)
+            for ordinal, (field, value) in enumerate(entry.expected_values)]
+    rows += [("accepted_group_ids", group_id, "", ordinal)
+             for ordinal, group_id in enumerate(entry.accepted_group_ids)]
+    rows.append(("display_label", entry.display_label.casefold(),
+                 entry.display_label, 0))
+    return tuple(rows)
+
+
+#: The byte that joins a field to its value inside one SQL parameter, and joins
+#: node ids inside one `group_concat`. `char(31)` is ASCII Unit Separator: it
+#: cannot occur in a P10 node id, a P6 field key or a fact value, all of which are
+#: printable, so the join is unambiguous without escaping.
+_UNIT: str = "\x1f"
+
+
+@dataclass(frozen=True)
+class Reachable:
+    """Every node §6.3 can reach for one subject, and nothing else.
+
+    A node absent from all of these carries none of the subject's stated fields,
+    is in none of its groups, does not wear a label it named, and is not a
+    semantic neighbour. §6.3's loop would have collected nothing from it and
+    suppressed nothing on it, so skipping it is a provable no-op -- which is what
+    makes this narrowing a performance change and not a behaviour change.
+
+    The match/contradiction split is decided in SQL rather than in Python because
+    it is the one part of retrieval that is unavoidably proportional to the tree:
+    §6.3 requires every node ruled out by a conflicting value to be RECORDED
+    (SPEC:502-504), and P8 Site C rejects a dossier citing a conflict this list
+    omits. So the list is produced, but it is produced by one aggregate query
+    instead of a Python pass over every node the user froze.
+    """
+    #: node_id -> the `(field, value)` pairs the subject's facts MATCH, in the
+    #: entry's own order, which is the order the facts land on the record in.
+    matched_pairs: dict[str, tuple[tuple[str, str], ...]]
+    #: field -> the node ids that carry that field with a value the subject
+    #: contradicts, one entry per contradicting value, exactly as §6.3's loop
+    #: appended them.
+    contradicted: dict[str, tuple[str, ...]]
+    contradicted_node_ids: frozenset[str]
+    accepted_groups: dict[str, frozenset[str]]
+    label_matches: frozenset[str]
+    semantic_matches: frozenset[str]
+
+    @property
+    def candidate_node_ids(self) -> tuple[str, ...]:
+        """The nodes a channel reaches and no conflict rules out, sorted."""
+        reached = (set(self.matched_pairs) | set(self.accepted_groups)
+                   | self.label_matches | self.semantic_matches)
+        return tuple(sorted(reached - self.contradicted_node_ids))
+
+
+def _in_clause(count: int) -> str:
+    return ", ".join("?" * count)
+
+
+def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
+                      pairs: frozenset[tuple[str, str]],
+                      group_ids: frozenset[str], labels: frozenset[str],
+                      node_ids: frozenset[str]) -> Reachable:
+    """§6.2's index used as an index: four narrow reads, no payload parsed.
+
+    `retrieve` used to open with `entries_for_plan` and walk every legal node,
+    deserialising each one -- `planning/58-SCALE-STRESS.md` §2 measured x4.2 per
+    file for a four-fold tree, which makes total placement cost files x nodes.
+
+    Two reads carry the direct-fact channel and they are asymmetric on purpose.
+    The MATCH is an exact index seek on `(field, value)`, so it costs the size of
+    the answer. The CONTRADICTION cannot be: §6.3 requires every node a
+    conflicting value ruled out to be recorded (SPEC:502-504) and P8's Site C
+    rejects a dossier citing a conflict this list omits, so the list is as long
+    as the number of nodes carrying that field however it is computed. What this
+    does is stop paying PYTHON for each of them -- SQLite assembles the ids into
+    one string per field and the matched rows are removed from it here.
+
+    Nothing here decides anything. `retrieval.retrieve` applies every §6.3 rule.
+    """
+    fields = sorted({field for field, _ in pairs})
+    matched: dict[str, list[tuple[int, str, str]]] = {}
+    matched_rows: dict[tuple[str, str], int] = {}
+    contradicted: dict[str, tuple[str, ...]] = {}
+    if fields:
+        scope = ("FROM placement_index_terms WHERE plan_version = ? AND "
+                 "source_field = 'expected_values' AND superseded_by IS NULL")
+        values = ", ".join("(?, ?)" for _ in pairs)
+        flat = [item for pair in sorted(pairs) for item in pair]
+        for row in conn.execute(
+                f"SELECT node_id, ordinal, term_key, term_value {scope} AND "
+                f"(term_key, term_value) IN (VALUES {values})",
+                (plan_version, *flat)):
+            matched.setdefault(row["node_id"], []).append(
+                (row["ordinal"], row["term_key"], row["term_value"]))
+            key = (row["term_key"], row["node_id"])
+            matched_rows[key] = matched_rows.get(key, 0) + 1
+        # ONE row per stated field rather than one per node. The predicate is a
+        # pure index range so SQLite never evaluates an expression per row; the
+        # rows that MATCHED are subtracted below, as a multiset, because a node
+        # carrying two values for one field is contradicted once per value it
+        # states that the subject does not -- which is what §6.3's loop did when
+        # it appended inside the inner iteration.
+        for row in conn.execute(
+                f"SELECT term_key, group_concat(node_id, char(31)) AS ids {scope} "
+                f"AND term_key IN ({_in_clause(len(fields))}) GROUP BY term_key",
+                (plan_version, *fields)):
+            field = row["term_key"]
+            ruled_out: list[str] = []
+            for node_id in row["ids"].split(_UNIT):
+                key = (field, node_id)
+                if matched_rows.get(key):
+                    matched_rows[key] -= 1
+                else:
+                    ruled_out.append(node_id)
+            if ruled_out:
+                contradicted[field] = tuple(ruled_out)
+    groups: dict[str, set[str]] = {}
+    if group_ids:
+        for row in conn.execute(
+                "SELECT node_id, term_key FROM placement_index_terms WHERE "
+                "plan_version = ? AND source_field = 'accepted_group_ids' AND "
+                f"term_key IN ({_in_clause(len(group_ids))}) AND "
+                "superseded_by IS NULL", (plan_version, *sorted(group_ids))):
+            groups.setdefault(row["node_id"], set()).add(row["term_key"])
+    matched_labels: set[str] = set()
+    if labels:
+        matched_labels = {
+            row["node_id"] for row in conn.execute(
+                "SELECT node_id FROM placement_index_terms WHERE "
+                "plan_version = ? AND source_field = 'display_label' AND "
+                f"term_key IN ({_in_clause(len(labels))}) AND "
+                "superseded_by IS NULL", (plan_version, *sorted(labels)))
+        }
+    semantic: set[str] = set()
+    if node_ids:
+        # Legality, asked of the entries table rather than assumed of the
+        # caller's list. §5.10: an `ignored` node is not in the index at all, so
+        # a semantic neighbour naming one is not a candidate the user argues with.
+        semantic = {
+            row["node_id"] for row in conn.execute(
+                "SELECT node_id FROM placement_index_entries WHERE "
+                f"plan_version = ? AND node_id IN ({_in_clause(len(node_ids))}) "
+                "AND superseded_by IS NULL", (plan_version, *sorted(node_ids)))
+        }
+    return Reachable(
+        matched_pairs={
+            node_id: tuple((field, value) for _, field, value in sorted(rows))
+            for node_id, rows in matched.items()
+        },
+        contradicted=contradicted,
+        contradicted_node_ids=frozenset(
+            node_id for found in contradicted.values() for node_id in found),
+        accepted_groups={node_id: frozenset(found)
+                         for node_id, found in groups.items()},
+        label_matches=frozenset(matched_labels),
+        semantic_matches=frozenset(semantic),
+    )
+
+
 def build_destination_index(conn: sqlite3.Connection, tree, *,
                             component_version: str,
                             observed_at: str) -> tuple[IndexEntry, ...]:
@@ -184,6 +365,16 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
                  entry.node_id, json.dumps(asdict(entry), sort_keys=True),
                  observed_at),
             )
+            for source_field, term_key, term_value, ordinal in _terms_of(entry):
+                conn.execute(
+                    "INSERT INTO placement_index_terms (record_id, plan_version, "
+                    "node_id, source_field, term_key, term_value, ordinal, "
+                    "created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (f"{entry.plan_version}:{entry.node_id}:{source_field}:"
+                     f"{ordinal}:{term_key}",
+                     entry.plan_version, entry.node_id, source_field, term_key,
+                     term_value, ordinal, observed_at),
+                )
             placement_events.index_entry_built(
                 conn, node_id=entry.node_id, plan_version=entry.plan_version,
                 component_version=component_version, observed_at=observed_at,
@@ -217,15 +408,8 @@ def node_exists(conn: sqlite3.Connection, *,
     return exists
 
 
-def entry_for(conn: sqlite3.Connection, *, plan_version: str,
-              node_id: str) -> IndexEntry | None:
-    row = conn.execute(
-        "SELECT payload FROM placement_index_entries WHERE plan_version = ? AND "
-        "node_id = ? AND superseded_by IS NULL", (plan_version, node_id),
-    ).fetchone()
-    if row is None:
-        return None
-    body = json.loads(row["payload"])
+def _entry_of(payload: str) -> IndexEntry:
+    body = json.loads(payload)
     for name, value in body.items():
         if isinstance(value, list):
             body[name] = tuple(value)
@@ -233,9 +417,23 @@ def entry_for(conn: sqlite3.Connection, *, plan_version: str,
     return IndexEntry(**body)
 
 
+def entry_for(conn: sqlite3.Connection, *, plan_version: str,
+              node_id: str) -> IndexEntry | None:
+    row = conn.execute(
+        "SELECT payload FROM placement_index_entries WHERE plan_version = ? AND "
+        "node_id = ? AND superseded_by IS NULL", (plan_version, node_id),
+    ).fetchone()
+    return None if row is None else _entry_of(row["payload"])
+
+
 def entries_for_plan(conn: sqlite3.Connection, *,
                      plan_version: str) -> tuple[IndexEntry, ...]:
+    """One query. It was `legal_node_ids` plus one `SELECT` and one `json.loads`
+    PER NODE, which made a whole-plan read N+1 round trips
+    (`planning/58-SCALE-STRESS.md` §2). The node id order is unchanged, because
+    callers in `versions.py` compare sets built from it."""
     return tuple(
-        entry_for(conn, plan_version=plan_version, node_id=node_id)
-        for node_id in sorted(legal_node_ids(conn, plan_version=plan_version))
+        _entry_of(row["payload"]) for row in conn.execute(
+            "SELECT payload FROM placement_index_entries WHERE plan_version = ? "
+            "AND superseded_by IS NULL ORDER BY node_id", (plan_version,))
     )

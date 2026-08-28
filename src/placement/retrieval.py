@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from facts.read_surface import is_destination_eligible
 
 from placement import events as placement_events
-from placement.index import entries_for_plan
+from placement.index import reachable_entries
 from placement.records import ConflictConsidered, MatchingFact
 from placement.store import subject_ref_of
 
@@ -79,48 +79,53 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
              facts, group_ids, curated_folder_labels, semantic_neighbours,
              component_version: str, observed_at: str) -> Retrieval:
     subject_ref = subject_ref_of(subject)
-    entries = entries_for_plan(conn, plan_version=plan_version)
     usable = _eligible_facts(conn, facts)
     by_field = {(fact.field, fact.value): fact for fact in usable}
-    stated_fields = {fact.field for fact in usable}
-    wanted_groups = set(group_ids)
-    wanted_labels = {label.casefold() for label in curated_folder_labels}
-    semantic = set(semantic_neighbours)
+    wanted_groups = frozenset(group_ids)
+    wanted_labels = frozenset(label.casefold() for label in curated_folder_labels)
+    semantic = frozenset(semantic_neighbours)
+
+    # §6.2's index, asked for the nodes this subject's own evidence selects. It
+    # used to be `entries_for_plan` -- every legal node, payload deserialised,
+    # once per subject -- which is the O(files x nodes) read
+    # `planning/58-SCALE-STRESS.md` §2 measured. Every node this skips carries
+    # none of the subject's stated fields, none of its groups and none of its
+    # labels, and is not a semantic neighbour, so §6.3's loop would have
+    # collected nothing from it and suppressed nothing on it.
+    reachable = reachable_entries(
+        conn, plan_version=plan_version, pairs=frozenset(by_field),
+        group_ids=wanted_groups, labels=wanted_labels, node_ids=semantic)
 
     matched: dict[str, dict] = {}
     conflicts: list[ConflictConsidered] = []
     suppressed_by_value: dict[tuple[str, str], list[str]] = {}
 
-    for entry in entries:
+    # §6.3's suppression, recorded before anything is a candidate. The keying is
+    # the subject's HELD value for the field, not the value the node carried: the
+    # conflict is one fact disagreeing with a branch, and the branch's value is
+    # already implied by the node ids listed under it.
+    for field, node_ids in reachable.contradicted.items():
+        held = next(fact for fact in usable if fact.field == field)
+        suppressed_by_value.setdefault((field, held.value), []).extend(node_ids)
+
+    for node_id in reachable.candidate_node_ids:
         channels: list[str] = []
         entry_facts: list[MatchingFact] = []
         entry_groups: list[str] = []
-        contradicted = False
-        for field, value in entry.expected_values:
-            fact = by_field.get((field, value))
-            if fact is not None:
-                channels.append(DIRECT_FACT)
-                entry_facts.append(fact)
-            elif field in stated_fields:
-                # The subject states this field with a DIFFERENT value. §6.3's
-                # suppression: a direct `target institution = Duke` must not
-                # retrieve Columbia branches as a top candidate.
-                contradicted = True
-                held = next(f for f in usable if f.field == field)
-                suppressed_by_value.setdefault(
-                    (field, held.value), []).append(entry.node_id)
-        if contradicted:
-            continue
-        overlap = wanted_groups & set(entry.accepted_group_ids)
+        for field, value in reachable.matched_pairs.get(node_id, ()):
+            channels.append(DIRECT_FACT)
+            entry_facts.append(by_field[(field, value)])
+        overlap = wanted_groups & reachable.accepted_groups.get(
+            node_id, frozenset())
         if overlap:
             channels.append(ACCEPTED_GROUP)
             entry_groups.extend(sorted(overlap))
-        if entry.display_label.casefold() in wanted_labels:
+        if node_id in reachable.label_matches:
             channels.append(CURATED_FOLDER)
-        if entry.node_id in semantic:
+        if node_id in reachable.semantic_matches:
             channels.append(SEMANTIC_NEIGHBOUR)
         if channels:
-            matched[entry.node_id] = {
+            matched[node_id] = {
                 "channels": tuple(dict.fromkeys(channels)),
                 "facts": tuple(entry_facts), "groups": tuple(entry_groups),
             }
