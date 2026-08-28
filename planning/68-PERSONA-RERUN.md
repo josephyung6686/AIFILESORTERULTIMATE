@@ -193,7 +193,7 @@ nothing marks the solution set as material that must not sit beside student subm
 file belongs to is exactly the sort of thing evidence cannot safely decide and a narrow,
 evidence-linked question can.
 
-### F7 — The multi-life run split its review set in two and said nothing about why
+### F7 — The multi-life run split its review into two blocks, and the reason is a ceiling
 
 The 13-file run printed two blocks:
 
@@ -207,15 +207,18 @@ The 13-file run printed two blocks:
     matched them well enough to decide without asking you.
 ```
 
-Identical labels, identical reasons, no statement of what separates them. The cause is structural:
-the deployment's partition returns ONE set per call (`src/cli.py`, `residual_partition`) and is
-called once per placement pass, so a corpus with both a group plan and standalone files gets two
-sets that differ by which pass produced them — an implementation fact, surfaced to the user as an
-unexplained ordinal. `66` §4's rule against states sharing one vague message is the same principle
-one level down: two sets a person cannot tell apart are worse than one set.
+**Correction, recorded rather than quietly edited.** The first version of this section reported the
+cause as two placement passes each returning their own set. That was wrong, and the database says
+so: `residual_sets` holds `version_2:Not yet placed-1` and `-2`, and
+`residual.max_files_per_review_batch` is **8**. Thirteen unplaced files, a review batch bounded at
+eight, so 8 + 5. `residual.py` is explicit about why it splits rather than shortens — *"Split, never
+truncate: §8.6 reduces work and never drops files"* — and that is `00` §8.6 working, not failing.
 
-Small, and worth fixing when the report is next touched: either merge sets whose reason is
-identical, or say what each covers.
+So this is not a defect. What remains is a small legibility question: `(1 of 2)` is honest but does
+not say that the person's review was divided into batches, or why the batch is eight. A person
+reading it can reasonably think the product found two different kinds of problem. One clause would
+settle it — *"your review is split into batches of 8"* — and it belongs with P13's `progress_line`
+rather than in this command.
 
 ---
 
@@ -252,6 +255,10 @@ could not be run at all:
 | 1 | No classifier ships, so every file stops unclassified (F1) | **Joseph** — `65` §2.2's sizing question, open by decision |
 | 2 | The non-interactive review merges every group, so the tree is one folder (F3) | **P13** — a review screen is the answer; no default can substitute |
 | 3 | An identifier from an identity document can name a group and would name a folder (F4) | **P13 + P12** — must close before any folder is materialised |
+
+F7 was reported as a fourth and withdrawn on the evidence: the split is `00` §8.6's review-batch
+ceiling doing its job. The withdrawal is left in §3 rather than deleted, because a re-run that
+silently drops a claim it made is not a record anyone can check.
 
 F5 (no field names the child) and F6 (one situation per run) are real and are `66` §15 and §13
 design work already owed, not implementation gaps.
