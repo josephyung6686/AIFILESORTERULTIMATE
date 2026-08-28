@@ -122,6 +122,47 @@ the disk of a person with two roles** (`66` §13).
 
 ---
 
+## 3a. What writing the two plans found, which is not future work
+
+Both plan authors flagged conflicts rather than resolving them, per the authoring brief. Most are
+about parts that do not exist yet and stay in the plans. **Two are claims about the repo as it
+stands today, and I verified both.**
+
+### Three incompatible `review_action` fixtures are already shipped, and only one can be right
+
+P13 publishes ONE `review_action` record. Three parts have already written a fixture for it, each
+encoding the view of the part that expects to RECEIVE the action:
+
+| | identity field | when | how the subject is named |
+|---|---|---|---|
+| `tests/p9/p13_fixtures.py` | *(none)* | `decided_at` | `group_id` + `membership_id` |
+| `tests/p10/p13_fixtures.py` | `review_action_id` | `observed_at` | `subject_ref` |
+| `tests/p11/p13_fixtures.py` | `action_id` | `acted_at` | `subject_ref` + `session_id` |
+
+Three names for the identity, three for the timestamp, and two different ways of naming what was
+acted on. Only P11's matches the SPEC. **This is the same shape as the `scan_state` defect fixed
+today** — two parts, two spellings of one thing, each correct in its own vocabulary, both green —
+and it will bite in exactly the same way when P13 ships the real record. P13's plan handles it
+correctly: Task 9 ships a strict-xfail compatibility report, not a shim that hides it.
+
+### §8.2 has no event type for an action that was REFUSED
+
+`RESERVED_EVENT_TYPES` is `00` §8.2's nineteen, verbatim, and registration is *"a spec-level act…
+There is no run-time registration call."* It carries `failed move` — a move attempted that failed.
+P12's Done-means 13 needs a record for a move **refused or paused before it was attempted**, which
+is a different event, and the distinction is the same one this project already enforces between
+"unreadable" and "unclassified". **Adding an event type is Joseph's**, not a part's.
+
+### Everything else stays in the plans
+
+P12 flagged 17, P13 flagged 6 plus ten still-open SPEC questions. The rest are all one of: an
+authority with no producer yet (`root_anchor` paths, the §8.4 permitting policy, any filing-policy
+record — so `66` §9's dry-run surface, §10's distinct filing refusals and the activity list's
+"authorizing policy" are carried as explicit `None` with a note, never faked), or a SPEC open
+question neither author would answer on Joseph's behalf.
+
+---
+
 ## 4. What to do next, in order
 
 1. **Joseph decides the sizing question** (`65` §2.2, `68` F1). Widen the extractor, narrow the
