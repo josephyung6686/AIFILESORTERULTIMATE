@@ -174,8 +174,8 @@ the three places*, not a green tick.
 
 | | condition | state | evidence |
 |---|---|---|---|
-| G1 | full suite green | ✅ | **5185 passed, 19 skipped, 1 xfailed, 0 failed** (4640 at session start) |
-| G2 | scale suite green | **2 of 19 failing** | was 13 of 19 |
+| G1 | full suite green | ✅ | **5231 passed, 19 skipped, 1 xfailed, 0 failed** (5185 at the previous entry, 4640 the session before) |
+| G2 | scale suite green | ✅ **CLOSED 2026-08-29** | **19 of 19**, `f5132a1` — see below |
 | G3 | no strict xfail standing | ✅ | one stands and correctly — §8 of `64` |
 | G4 | test order independent | ✅ | **5185 passed in randomised order**, identical to sequential. `--randomly-dont-reset-seed` required, see `pyproject.toml` |
 | G5 | every schema can file | ✅ | 19 of 23 with templates; 4 are named protection/safety exemptions |
@@ -183,19 +183,29 @@ the three places*, not a green tick.
 | G7 | P8→P11 production composition | ✅ | `run_production_corpus`, plus `src/cli.py` |
 | G8 | nothing inert | ✅ | recounted; 1 genuine (`sensitivity_policy_ref`), 2 tracked |
 | G9 | connection audit | ✅ | §8 above — answered, with 3 findings recorded rather than a tick |
-| G10 | the persona re-run | **open** | first real run recorded in `65`; the persona sweep is still owed |
+| G10 | the persona re-run | **RUN, and it does NOT pass** | `68-PERSONA-RERUN.md`, 2026-08-29 — four corpora through the shipped command; three named blockers, each with an owner |
 
-### G2 — the two that remain
+### G2 — CLOSED, 2026-08-29 (commit `f5132a1`)
 
-**Scan is still superlinear on unique files.** 2,681 files/s at 1,000 files, 1,326 at 4,000 —
-per-file cost x2.0. The transaction-boundary fix moved the constant from 69 files/s to ~1,700
-and did not change the shape. Every other scan measurement is flat: 4 syscalls per file at any
-duplicate-family size, 1 row read per file on re-observation.
+`SCALE_STRESS=1 python3 -m pytest tests/integration/test_scale_stress.py -q` → **19 passed, 0
+failed**, from 18/1 (and 6/13 before that).
 
-**`model.max_dossier_tokens_per_call` is unset in one test.** The failing test asks whether one
-ceiling can serve both the picker and the depth limit, which `fix-canvas` independently
-identified as a configuration-shape question — `config.py` now records a complaint that the key
-answers four different questions. The test is probably right that the shape is wrong.
+**The scan-shape failure is gone.** The superlinear measurement this section recorded no longer
+reproduces; every scan measurement in the suite now passes as written.
+
+**The configuration-shape failure was real and is fixed at the shape.**
+`test_one_ceiling_can_serve_both_the_picker_and_the_depth_limit` was right: `00`:256 reads
+*"Maximum folder proposals and maximum depth"* — **two numbers on one line**, where every other
+line in §8.6's list is one quantity — and P1 published ONE key for both. P10 read that single
+value four times: how many OPTIONS the picker offers, how DEEP a candidate may go, how WIDE a
+date level may be before coarsening, and the sample size of the printed lists. The first two want
+opposite values (`00`:78's own recommended tree is five levels deep; a picker offering five
+options per branch is not a picker), so no P10 change could reconcile them.
+
+P1 now publishes `tree.max_folder_proposals` and `tree.max_depth` — seventeen keys.
+**This is not a new ceiling**: §8.6 already names both numbers, and publishing one key for two
+was the deviation. `validation._v3` reads the depth one and nothing else does. The deployment
+runs a four-option picker and a five-level depth limit.
 
 ### What this session changed, for the record
 
