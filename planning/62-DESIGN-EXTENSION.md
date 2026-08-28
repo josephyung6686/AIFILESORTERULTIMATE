@@ -138,3 +138,51 @@ chooses among branches the user has already approved in the frozen tree, exactly
 process does, and a file for which no approved destination fits stays where it is and is
 surfaced — because the correct response to a file the product does not understand is to say so,
 not to put it somewhere that sounds reasonable.
+
+---
+
+## D. Correction — the role declaration is not a lookup
+
+Recorded 2026-08-29, from the owner, and it overturns the last paragraph of §A.5.
+
+> *"These should not just be directly matched — the LLM uses that information to judge. This
+> cannot be rule based and that simplified in this sense."*
+
+§A.5 called the free-text-to-schema matcher *"the interesting engineering problem"* and framed
+it as a mapping: an answer either selects from the closed vocabulary or is recorded as
+unmatched. **That framing is wrong and the correction is not a detail.**
+
+What the user says about themselves is **evidence a model reasons with**, in the same way a
+file's text is. "I'm a sound engineer" is not a failed lookup against a 23-item list; it is a
+sentence that bears on how every ambiguous file in that corpus should be read, and the judgement
+it supports is exactly the kind §3.5 already gives to a model rather than to a rule. A matcher
+would flatten it into one of twenty-three tokens and discard everything else in it — the part
+that says *sound*, the part that says *engineer*, and the fact that those two together describe
+work the schema list has no single name for.
+
+**What survives from §A.5 and what does not.**
+
+- **Survives:** the four bounds. A model reading the declaration still may not invent a schema,
+  may not mint a field key, may not lower a privacy floor, and may not act unconfirmed. Those
+  are constraints on the *outcome* and none of them requires the input to be a lookup.
+- **Survives:** the structural/contextual split (§A.3), and it becomes more important rather
+  than less. If a model is reasoning over these answers, the line between an answer that may
+  gate a decision and one that may only inform interpretation is the only thing keeping a
+  friendly onboarding question from silently reshaping a tree.
+- **Does not survive:** "records an unmatched answer honestly rather than snapping it to the
+  nearest schema" as a *mechanism*. The instinct behind it is right — never snap — but the
+  mechanism was a matcher and there is no matcher.
+- **Does not survive:** §C's listing of the matcher as an open question. The open question is
+  different now, and larger: **what a model is given about the user, what it is allowed to
+  conclude from it, and how the user sees what it concluded.**
+
+**This bears directly on §A's own scheduling claim and on doc `65`.** §A argued the role
+declaration is an engine input rather than a feature. That is still true, but the reason
+changes: it is not that it supplies a schema id early, it is that it supplies *context* the
+whole interpretation path can read. Doc `65`'s sizing question — 5,072 researched terms against
+one regex — was posed as a choice between widening what is read and asking the user. Under this
+correction those are not alternatives on one axis: the user's answer is another input to the
+same judgement, not a substitute for reading.
+
+**Fuller guidance is owed and was promised.** Nothing here should be built until it arrives.
+This section exists so that §A.5 does not keep asserting a mechanism the owner has ruled out.
