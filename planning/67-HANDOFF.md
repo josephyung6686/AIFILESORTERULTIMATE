@@ -1,5 +1,10 @@
 # 67 — Handoff, 2026-08-29
 
+> **SUPERSEDED by `69-HANDOFF.md` (2026-08-29, evening).** Everything in §5's ordered list has
+> been done or has moved, and §4's gate table is stale — G2 is closed and G10 has been run.
+> §0's standing constraints and §3's account of the two agents are still accurate history.
+> Read `69` for the live state.
+
 Written because Joseph is restarting the machine. Two agents were mid-build and will not
 survive the restart; §3 says exactly where each one stopped and how to resume it.
 
