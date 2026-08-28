@@ -736,29 +736,29 @@ def test_a_design_factory_that_swaps_the_release_is_refused(conn, tmp_path):
 # registers as a change rather than as the same green. Three are somebody else's.
 
 
-def test_p9_never_writes_a_group_category_or_a_label_on_any_path(conn, tmp_path):
-    """THE break at the P9 -> P10 join, and the reason `_review` above exists.
+def test_p9_writes_a_category_and_a_label_a_live_run_can_route(conn, tmp_path):
+    """THE break at the P9 -> P10 join, fixed, and pinned from the other side.
 
-    `src/grouping/pipeline.py:230` is the ONLY originating writer of
-    `group_category`, `display_label`, `coherence_verdict` and `label_source`,
-    and it writes `None` to all four unconditionally. `apply_p8_verdict` writes
-    memberships and touches none of them, so the MODEL path leaves them `None`
-    too.
+    This test was written inverted, asserting that `group_category`,
+    `display_label` and `coherence_verdict` were `None` on every path -- because
+    `src/grouping/pipeline.py:230` was the only originating writer and wrote
+    `None` to all of them unconditionally, and `apply_p8_verdict` touched none.
 
-    What that costs, downstream, is total:
+    What that cost was total, which is why it was pinned rather than described:
 
     * `tree_design.upstream._label` raises `UpstreamUnavailable` for a group with
-      no label, so an accepted group is unreadable unless the user typed a name;
-    * `AcceptedGroup.domain` is P9's `group_category`, so it is always `None`,
-      so `BranchContext.domains` is always empty, so `route_branch` answers C3 --
-      "no applicability row makes any recipe eligible" -- for EVERY branch, on
-      every corpus, with any catalogue. All 208 shipped rows are unreachable from
-      a live P9 run.
+      no label, so an accepted group was unreadable unless the user typed a name;
+    * `AcceptedGroup.domain` IS P9's `group_category`, so it was always `None`,
+      so `BranchContext.domains` was always empty, so `route_branch` answered C3
+      -- "no applicability row makes any recipe eligible" -- for EVERY branch, on
+      every corpus, with any catalogue. All 208 shipped rows were unreachable
+      from a live P9 run.
 
-    P9 owns the fix. Until it lands, a category and a name can only arrive from
-    the user's review, which is what `_review` records -- through P9's own
-    `record_group` as a supersession, so P9's proposal is still on disk beside
-    the user's answer.
+    P9 now writes all three. The assertions are the same three facts read the
+    other way round, plus the one that makes it worth asserting: the category is
+    a schema the product actually recognises. A category P10 cannot route is the
+    same outcome as `None` with an extra step, so `is not None` alone would let
+    the defect back in wearing a string.
     """
     from grouping.pipeline import group_subject
 
@@ -791,11 +791,21 @@ def test_p9_never_writes_a_group_category_or_a_label_on_any_path(conn, tmp_path)
 
     groups = [result.group for result in made if result.group is not None]
     assert groups, "P9 made no group at all, which is a different failure"
-    assert all(group.group_category is None for group in groups)
-    assert all(group.display_label is None for group in groups)
-    assert all(group.coherence_verdict is None for group in groups)
+    assert all(group.group_category is not None for group in groups), [
+        group.group_id for group in groups if group.group_category is None]
+    assert all(group.display_label is not None for group in groups), [
+        group.group_id for group in groups if group.display_label is None]
+    assert all(group.coherence_verdict is not None for group in groups)
 
-    # And what that costs, at the reader P10 actually uses.
+    # The half that makes the other three worth asserting: a category outside the
+    # closed vocabulary routes exactly as badly as `None` did, so a bare
+    # `is not None` would readmit the defect wearing a string.
+    from facts.domains import SCHEMA_IDS
+    assert all(group.group_category in SCHEMA_IDS for group in groups), [
+        group.group_category for group in groups
+        if group.group_category not in SCHEMA_IDS]
+
+    # And what that buys, at the reader P10 actually uses.
     from tree_design.upstream import UpstreamUnavailable, accepted_groups
 
     record_acceptance(conn, GroupAcceptance(
@@ -803,8 +813,14 @@ def test_p9_never_writes_a_group_category_or_a_label_on_any_path(conn, tmp_path)
         group_id=groups[0].group_id, membership_id=None, acceptance=ACCEPTED,
         review_state=PENDING_REVIEW, user_edited_label=None, aliases=(),
         review_decision_ref=None, decided_by=USER, created_at=CLOCK))
-    with pytest.raises(UpstreamUnavailable):
-        accepted_groups(AcceptedGroupEnumeration(conn), plan_version_id=PLAN_0)
+    # `user_edited_label=None` on purpose: the user typed nothing, so this reads
+    # P9's own label or it reads nothing. It used to raise here.
+    upstream = accepted_groups(AcceptedGroupEnumeration(conn),
+                               plan_version_id=PLAN_0)
+    assert upstream, "an accepted group with a P9 label is still unreadable"
+    assert all(group.domain in SCHEMA_IDS for group in upstream), [
+        group.domain for group in upstream]
+    assert UpstreamUnavailable  # still the refusal for a group with no label
 
 
 def test_an_acceptance_in_the_review_version_is_invisible_to_p11(conn, tmp_path):
