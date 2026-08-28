@@ -27,6 +27,7 @@ written down, not merely at the point where it would be honoured.
 """
 from __future__ import annotations
 
+import dataclasses
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -448,7 +449,15 @@ def route_branch(
     rank_candidates: Callable[[Sequence[CompositionCandidate]], Sequence[CompositionCandidate]],
     overrides: Sequence[CompositionOverride] = (),
 ) -> RoutingReport:
-    """One template's worth of candidates per eligible definition, bounded.
+    """One candidate per eligible recipe AND the groups that recipe covers.
+
+    A branch may hold more than one life. §5.3's card names "which accepted
+    groups would live beneath" a top-level branch, plural, and `BranchContext`
+    carries them plural — so the branch a person actually has spans several
+    schemas, and a recipe authored for one of them covers some of its groups and
+    not others. Each recipe is therefore asked about the groups it can reach, and
+    a group no recipe reaches comes back as a NAMED C6 refusal rather than as a
+    refusal on every candidate.
 
     Ranking is injected because the design fixes no weights, and the ceiling is
     P1's `tree.max_folder_proposals_and_depth`. Surplus candidates are DEFERRED
@@ -473,14 +482,68 @@ def route_branch(
             "no applicability row makes any recipe eligible for this branch's "
             "domains, and there is no generic fallback to invent"))
 
-    for group in by_template.values():
+    # ONE COMPOSITION PER COVERAGE, not one per template over the whole branch.
+    #
+    # `59` §2: a branch holding a practice beside a degree beside a child's
+    # health records "is not a two-branch outcome. It is a HARD ERROR on every
+    # candidate" — because every template was handed EVERY group, and C6 refuses
+    # any composition that would drop one. The fix is not to weaken C6. C6 means
+    # "a successful preview loses nothing", it refuses for a good reason, and
+    # material vanishing from a preview the user approved is the one outcome the
+    # owner's standing rule forbids.
+    #
+    # The fix is that a multi-domain branch was handed to ONE composition at
+    # all. `evaluate_composition`'s own comment says what it assumes — "Every
+    # member of every accepted group IN THIS BRANCH" — which presupposes the
+    # branch is a coverage. So the coverage is made here: each recipe is asked
+    # about the groups its schemas actually reach, and a life the recipe does not
+    # speak for is another recipe's candidate rather than this one's refusal.
+    #
+    # C6 keeps its teeth on both sides of that line. Inside a composition it is
+    # unchanged and still refuses. Outside, material that reaches NO recipe is
+    # not quietly absent from the candidate set: it is a C6 refusal of its own,
+    # named by file, non-overridable, and — unlike before — it no longer
+    # annihilates the candidates that do cover the rest of the branch.
+    attempted: set[str] = set()
+    for template_rows in by_template.values():
+        schemas = {row.uses_schema for row in template_rows}
+        covers = tuple(group for group in context.accepted_groups
+                       if group.domain in schemas)
+        if context.accepted_groups and not covers:
+            # This recipe is eligible for a schema this branch has no group in.
+            # That is not a refusal — nothing was dropped, because there was
+            # nothing here for it to hold — so it is simply not a candidate.
+            continue
+        attempted.update(group.group_id for group in covers)
         try:
             candidates.append(evaluate_composition(
-                conn, catalogue, context, group, privacy_rank=privacy_rank,
+                conn, catalogue,
+                # Only `accepted_groups` is narrowed. `domains` stays the whole
+                # branch's because it is what the C3 message reports, and
+                # `member_file_ids` stays whole because a candidate's coverage is
+                # read off `covered_file_ids`, which `evaluate_composition`
+                # derives from the groups it was actually asked about.
+                dataclasses.replace(context, accepted_groups=covers),
+                template_rows, privacy_rank=privacy_rank,
                 satisfies_purpose_profile=satisfies_purpose_profile,
                 overrides=overrides))
         except CompositionConflict as conflict:
             conflicts.append(conflict)
+
+    # With NO eligible row at all, C3 above has already said so for the whole
+    # branch, and a C6 naming the same files would be the same fact twice.
+    unreached = tuple(group for group in context.accepted_groups
+                      if group.group_id not in attempted) if by_template else ()
+    if unreached:
+        conflicts.append(CompositionConflict(
+            C6,
+            sorted(member.file_id
+                   for group in unreached for member in group.members),
+            "no recipe eligible for this branch covers "
+            f"{', '.join(sorted(group.label for group in unreached))}: their "
+            "domain is not one any applicable row is authored for. These files "
+            "are named rather than dropped, and the candidates above cover the "
+            "rest of the branch"))
 
     ranked = list(rank_candidates(candidates))
     deferred = 0

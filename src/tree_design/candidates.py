@@ -216,6 +216,13 @@ def horizontal_candidates(
     matches, rejected labels, and rejected residual recommendations must be
     stored with the evidence that produced them. Otherwise the system will
     repeatedly resurface the same attractive but incorrect grouping."
+
+    That rejection is the ONLY thing that removes an accepted group from this
+    surface. `active_domains` is evidence about the corpus, not a verdict on a
+    group: a group whose domain did not activate still appears, and its card
+    says so. Every other outcome is a silent omission, which the standing rule
+    forbids and which cost the professional half of a multi-life disk its entire
+    presence on the canvas.
     """
     suppressed = suppressed_branch_basis_keys(conn, parent_node_id=None)
     candidates: list[BranchCandidate] = []
@@ -229,10 +236,21 @@ def horizontal_candidates(
     }
 
     for group in accepted:
-        if group.domain is not None and group.domain not in active_domains:
-            continue
         if suppressed_label(group.label):
             continue
+        # A group whose domain did not activate on this corpus USED TO BE
+        # DROPPED HERE, silently and with no record anywhere. That is the one
+        # outcome the owner's standing rule forbids without exception: material
+        # is never silently omitted. It is also how a multi-life person loses a
+        # whole life — P9 categorises their matters `law_practice`, activation
+        # does not name that schema, and every matter they own disappears from
+        # the canvas with nothing to click and nothing to read.
+        #
+        # §4.9 and §8.7 already say what a proposal the user does NOT want looks
+        # like: a rejected label, recorded with its evidence, which
+        # `suppressed_label` above honours. An inactive domain is not that. So
+        # the group is still offered and the card says what the engine found.
+        inactive = group.domain is not None and group.domain not in active_domains
         resembling = tuple(
             folder.directory_path for label, folder in folders_by_label.items()
             if label.lower() in group.label.lower()
@@ -245,6 +263,11 @@ def horizontal_candidates(
         )
         if group.domain:
             detail += f" in the {group.domain} schema"
+        if inactive:
+            detail += (
+                "; that schema did not activate on this corpus, so no recipe "
+                "will offer a structure for it and it is shown as it is rather "
+                "than left out")
         if sensitive:
             detail += "; this area holds sensitive material and is shown without filenames"
         candidates.append(BranchCandidate(

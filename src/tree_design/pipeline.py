@@ -59,8 +59,8 @@ from tree_design.store import (
 )
 from tree_design.templates import CompositionConflict
 from tree_design.upstream import (
-    AcceptedGroup, ProtectedArea, UpstreamUnavailable, accepted_groups,
-    cross_folder_moves, existing_folders, protected_areas,
+    AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
+    accepted_groups, cross_folder_moves, existing_folders, protected_areas,
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
@@ -268,8 +268,27 @@ def _upstream(conn, authorities, decisions):
 # --- steps 3 to 6, for one branch ---------------------------------------------------
 
 
+def _members(groups: Sequence[AcceptedGroup]) -> tuple[GroupMember, ...]:
+    """Every member of every group in one branch, in branch order.
+
+    Deduplicated on `file_id`: two groups in one branch may both claim a file —
+    that is §6.9's shared material — and a member counted twice would inflate
+    every count the user reads before choosing a split.
+    """
+    seen: set[str] = set()
+    members = []
+    for group in groups:
+        for member in group.members:
+            if member.file_id in seen:
+                continue
+            seen.add(member.file_id)
+            members.append(member)
+    return tuple(members)
+
+
 def _route(conn, authorities, *, branch_node_id: str,
-           group: AcceptedGroup) -> RoutingReport:
+           groups: Sequence[AcceptedGroup]) -> RoutingReport:
+    members = _members(groups)
     context = BranchContext(
         branch_node_id=branch_node_id,
         # `group.domain` is P9's `group_category`, which is the schema an
@@ -277,12 +296,17 @@ def _route(conn, authorities, *, branch_node_id: str,
         # row, and that is a real state — `tests/p10/p9_fixtures.py` records that
         # live P9 emits unlabelled groups today — so it produces a C3 conflict
         # rather than being widened to every schema here.
-        domains=() if group.domain is None else (group.domain,),
-        accepted_groups=(group,),
-        member_file_ids=frozenset(member.file_id for member in group.members),
+        #
+        # EVERY domain the branch's groups carry, not one. A branch holding two
+        # lives is eligible for both their recipes, and `route_branch` composes
+        # per coverage so neither refuses on account of the other.
+        domains=tuple(dict.fromkeys(
+            group.domain for group in groups if group.domain is not None)),
+        accepted_groups=tuple(groups),
+        member_file_ids=frozenset(member.file_id for member in members),
         handling_classes=frozenset(
             authorities.handling_class_for_member(member)
-            for member in group.members),
+            for member in members),
     )
     return route_branch(
         conn, authorities.catalogue, context, limits=authorities.limits,
@@ -291,7 +315,8 @@ def _route(conn, authorities, *, branch_node_id: str,
         rank_candidates=authorities.rank_candidates)
 
 
-def _option_bindings(conn, authorities, *, parent: Node, group: AcceptedGroup):
+def _option_bindings(conn, authorities, *, parent: Node,
+                     members: Sequence[GroupMember]):
     """`materialise`, `validate` and `preview` for one branch, sharing one pass.
 
     `vertical_options` calls all three per candidate and they must agree: a
@@ -311,7 +336,7 @@ def _option_bindings(conn, authorities, *, parent: Node, group: AcceptedGroup):
         try:
             candidate_view, evidence = materialise_branch(
                 conn, candidate, branch_node_id=parent.node_id,
-                members=group.members, ancestor_field_refs=(), ancestor_depth=0,
+                members=members, ancestor_field_refs=(), ancestor_depth=0,
                 handling_class_for_member=authorities.handling_class_for_member,
                 protected_handling_classes=authorities.protected_handling_classes)
         except (MaterialisationRefused, UpstreamUnavailable, CompositionConflict):
@@ -472,9 +497,14 @@ def design_tree(conn: sqlite3.Connection, *,
     branches: list[BranchDesign] = []
 
     for candidate in chosen:
-        group = by_id[candidate.subject_id]
+        # Every group the candidate names, not the one its `subject_id` happens
+        # to be. A candidate derived from an existing folder or a user label
+        # names NO group — `by_id[candidate.subject_id]` raised `KeyError` on
+        # both — and a candidate that aggregates several names several.
         version, design = _design_one_branch(
-            conn, authorities, decisions, candidate=candidate, group=group,
+            conn, authorities, decisions, candidate=candidate,
+            groups=tuple(by_id[group_id]
+                         for group_id in candidate.accepted_group_ids),
             version=version)
         versions.append(version)
         branches.append(design)
@@ -554,7 +584,7 @@ def _open_first_draft(conn, authorities, decisions, cross_folder: bool) -> str:
     return version_id
 
 
-def _design_one_branch(conn, authorities, decisions, *, candidate, group,
+def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
                        version: str) -> tuple[str, BranchDesign]:
     """One branch: written, routed, materialised, judged, split.
 
@@ -562,21 +592,29 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, group,
     is what goes through `apply_review_action`. That asymmetry is §5.3's own: the
     horizontal pass produces the few major areas and the vertical pass is the
     edit the user makes to one of them, which §8.8 turns into a version.
+
+    `groups` is PLURAL because `BranchCandidate.accepted_group_ids` is, and
+    `Node.associated_group_ids` is, and §5.3's card is: "Academics, 201 files:
+    ... includes five accepted course groups". This used to read ONE group per
+    branch — the candidate's `subject_id` — so a branch naming three groups was
+    designed from one, and the other two were absent from every count, every
+    option and every level while the node it wrote still claimed all three.
     """
+    members = _members(groups)
     parent = _with_refinement(
         _top_level_node(candidate, plan_version_id=version,
                         authorities=authorities,
                         member_classes=frozenset(
                             authorities.handling_class_for_member(member)
-                            for member in group.members)),
+                            for member in members)),
         decisions.refinement_for)
     write_node(conn, parent)
 
-    report = _route(conn, authorities, branch_node_id=parent.node_id, group=group)
+    report = _route(conn, authorities, branch_node_id=parent.node_id, groups=groups)
     materialise, validate, preview, evidence_by, reports = _option_bindings(
-        conn, authorities, parent=parent, group=group)
+        conn, authorities, parent=parent, members=members)
     options = vertical_options(
-        report, branch_members=[member.file_id for member in group.members],
+        report, branch_members=[member.file_id for member in members],
         materialise=materialise, validate=validate, limits=authorities.limits,
         preview=preview)
     option_id = decisions.choose_option(candidate, options)
