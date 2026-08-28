@@ -18,6 +18,12 @@ Two different things keep it local, and they are not the same strength:
   its neighbourhood reached, and a non-empty declaration is refused. It cannot
   catch a caller that stays silent; the filter above is what makes silence safe.
 
+§8.6 gives this object two ceilings and they are both enforced here: the cluster
+of files the graph reaches (`max_candidate_cluster_size`) and the edges between
+them (`max_local_graph_neighborhood`). They are separate bounds on separate
+things, and a graph that satisfied only the second could still show a model fifty
+files reached by one edge each.
+
 Two §6.5 rules produce the `is_typed_support` answer. A semantic embedding is not
 an edge type here at all, so it contributes nothing; and a neighbourhood held
 together by one entity that appears everywhere is not support, which is why the
@@ -57,7 +63,16 @@ class NodeLocalGraph:
     anchors: tuple[GraphAnchor, ...]
     distinct_entities: frozenset[str]
     high_frequency_entities: frozenset[str]
+    #: How many EDGES survived, bounded by `max_local_graph_neighborhood`.
     neighbourhood_size: int
+    #: How many distinct community FILES they span, bounded by
+    #: `max_candidate_cluster_size`. Separate from the count above because §8.6
+    #: bounds both and one does not imply the other: fifty edges between three
+    #: files and fifty edges to fifty files are different neighbourhoods.
+    cluster_size: int
+    #: True if EITHER ceiling cut something. §8.6 renders a bounded neighbourhood
+    #: differently from a complete one, and which of the two bounds did the
+    #: cutting does not change that a reviewer is looking at a reduction.
     reduced_to_strongest: bool
 
 
@@ -93,9 +108,37 @@ def build_node_local_graph(*, subject, candidate, entry, related_files, limits,
     ordered = sorted(
         kept, key=lambda item: (-item["weight"], item["to_file_id"]),
     )
+    # §8.6's two ceilings on this object, applied in the order that makes both
+    # hold. They bound different things and neither implies the other: a vague
+    # file can reach five files through fifty edges, or fifty files through
+    # fifty. `max_candidate_cluster_size` bounds the CLUSTER -- §6.5's "small
+    # local cluster around an approved destination profile", which is a set of
+    # files -- and `max_local_graph_neighborhood` bounds the EDGES between them.
+    #
+    # The cluster is cut first because the other order does not converge: trimming
+    # edges can leave the surviving ones still spanning more files than the
+    # cluster ceiling allows, so the bound would not be a bound.
+    #
+    # Both cuts follow §8.6's own rule -- "reduce to the strongest anchors and
+    # highest-quality edges" -- over the one ordering above. The cluster cut skips
+    # rather than stops: every edge to a member already in the cluster survives,
+    # and only edges that would admit a surplus MEMBER are dropped, so no strong
+    # edge is lost to a weaker one that happened to come first.
+    cluster_ceiling = limits.max_candidate_cluster_size
+    members: set[str] = set()
+    within: list = []
+    for item in ordered:
+        if item["to_file_id"] not in members and len(members) >= cluster_ceiling:
+            continue
+        members.add(item["to_file_id"])
+        within.append(item)
+    reduced = len(within) < len(ordered)
+    ordered = within
+
     ceiling = limits.max_local_graph_neighborhood
-    reduced = len(ordered) > ceiling
+    reduced = reduced or len(ordered) > ceiling
     ordered = ordered[:ceiling]
+    cluster = {item["to_file_id"] for item in ordered}
 
     anchors = tuple(
         # `subject.file_id` is passed through, never coerced: `GraphAnchor`
@@ -116,7 +159,8 @@ def build_node_local_graph(*, subject, candidate, entry, related_files, limits,
         subject_ref=subject_ref_of(subject), node_id=candidate.node_id,
         anchors=anchors, distinct_entities=frozenset(entities),
         high_frequency_entities=high_frequency,
-        neighbourhood_size=len(ordered), reduced_to_strongest=reduced,
+        neighbourhood_size=len(ordered), cluster_size=len(cluster),
+        reduced_to_strongest=reduced,
     )
 
 

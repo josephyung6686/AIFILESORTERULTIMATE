@@ -151,3 +151,67 @@ def test_the_graph_refuses_a_neighbourhood_that_spans_two_nodes(entry):
         _build(entry, related_files=(_related(),
                                      _related(other="f-other", entity="X")),
                foreign_node_ids=("n-course-alt",))
+
+
+def test_a_cluster_over_its_ceiling_reduces_to_the_strongest_members(entry):
+    """§8.6's `max_candidate_cluster_size`, which had no consumer at all
+    (`planning/58-SCALE-STRESS.md` item 8) until this line.
+
+    It bounds the FILES §6.5's "small local cluster around an approved
+    destination profile" reaches, which is a different quantity from the edges
+    between them: this neighbourhood is eight edges to eight files, and the
+    neighbourhood ceiling alone would let all eight files through if it were set
+    wide enough.
+    """
+    wide_limits = dataclasses.replace(LIMITS, max_local_graph_neighborhood=99,
+                                      max_candidate_cluster_size=3)
+    related = tuple(_related(other=f"f-{i}", weight=i) for i in range(1, 9))
+    wide = dataclasses.replace(
+        entry, representative_files=tuple(f"f-{i}" for i in range(1, 9)))
+    graph = _build(wide, related_files=related, limits=wide_limits)
+    assert graph.cluster_size == 3
+    assert [a.anchor_file_id for a in graph.anchors] == ["f-8", "f-7", "f-6"]
+    assert graph.reduced_to_strongest is True
+    # The neighbourhood ceiling did none of that work: it was set to 99 and the
+    # eight edges were all inside it. A test that left both ceilings tight could
+    # not tell which one fired.
+    assert graph.neighbourhood_size == 3 < wide_limits.max_local_graph_neighborhood
+
+
+def test_a_cluster_inside_its_ceiling_is_left_alone(entry):
+    """The negative twin. A ceiling that always fires is as broken as one that
+    never does, and this is the half that says the reduction above was the
+    ceiling and not a rewrite of how the graph is built."""
+    wide_limits = dataclasses.replace(LIMITS, max_local_graph_neighborhood=99,
+                                      max_candidate_cluster_size=3)
+    related = tuple(_related(other=f"f-{i}", weight=i) for i in range(1, 4))
+    wide = dataclasses.replace(
+        entry, representative_files=tuple(f"f-{i}" for i in range(1, 4)))
+    graph = _build(wide, related_files=related, limits=wide_limits)
+    assert graph.cluster_size == 3
+    assert [a.anchor_file_id for a in graph.anchors] == ["f-3", "f-2", "f-1"]
+    assert graph.reduced_to_strongest is False
+
+
+def test_the_cluster_ceiling_counts_files_and_the_neighbourhood_counts_edges(entry):
+    """The two ceilings bound different things, and this is the shape that
+    separates them: many edges between FEW files.
+
+    Six edges among two community files is a cluster of two, so a cluster ceiling
+    of three leaves it untouched -- while a neighbourhood ceiling of three cuts
+    it in half. Reading `max_candidate_cluster_size` as "how many edges" would
+    make this graph reduce for the wrong reason.
+    """
+    limits = dataclasses.replace(LIMITS, max_local_graph_neighborhood=99,
+                                 max_candidate_cluster_size=3)
+    related = tuple(
+        _related(other=f"f-{i % 2}", edge_type=kind, weight=i)
+        for i, kind in enumerate(
+            ("shared_validated_fact", "duplicate", "version_family",
+             "compatible_document_type", "existing_related_folder",
+             "shared_validated_fact")))
+    wide = dataclasses.replace(entry, representative_files=("f-0", "f-1"))
+    graph = _build(wide, related_files=related, limits=limits)
+    assert graph.cluster_size == 2
+    assert graph.neighbourhood_size == 6
+    assert graph.reduced_to_strongest is False

@@ -41,6 +41,7 @@ from __future__ import annotations
 import dataclasses
 import sqlite3
 from dataclasses import dataclass
+from decimal import Decimal
 
 from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
@@ -122,6 +123,18 @@ class ModelJudgementUnavailable(RuntimeError):
 
 class ResidualActionUnavailable(RuntimeError):
     """A Site D verdict arrived with no way to recover §7.7's action."""
+
+
+class ScanBudgetRequired(RuntimeError):
+    """A model call was about to be made with no scan to charge it to.
+
+    §8.6's two spend ceilings are per SCAN -- calls per thousand files, cost per
+    scan -- so they need the scan's identity and its file count, which belong to
+    the scan and not to P11. P11 supplies the ceilings; the caller supplies what
+    they are ceilings ON. Absent, `run_call` would reserve against nothing and
+    the run would spend without a bound, which is the state §8.6 exists to make
+    impossible.
+    """
 
 
 @dataclass(frozen=True)
@@ -682,9 +695,41 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
             conn, plan_version=inputs.plan_version, approved_target_ids=legal,
             sensitivity_policy=inputs.sensitivity_policy))
 
+    # §8.6's two spend ceilings, put on the budget P8 reserves against.
+    #
+    # They are set here for the same reason `allowed_vocabulary` is, and the
+    # argument is the same sentence with two words changed: a caller-supplied
+    # BUDGET is a caller-supplied answer to "what did the user agree to spend",
+    # which is P1's question and is already answered in
+    # `model.max_llm_calls_per_thousand_files` and `model.max_cost_per_scan`.
+    # Before this, `PlacementLimits` carried both and no module read either
+    # (`planning/58-SCALE-STRESS.md` item 8), so the only thing bounding a scan's
+    # model spend was whatever number the caller happened to construct.
+    #
+    # What is NOT taken from P11 is the scan itself. `scan_id` and
+    # `corpus_file_count` describe the run and belong to it; P11 knows the
+    # ceilings and not how many files the disk holds. So the two are replaced and
+    # the two are kept.
+    #
+    # Enforcement is P8's and stays P8's: `reserve_call` refuses past either
+    # ceiling, `run_call` turns the refusal into `BUDGET_EXHAUSTED`, and
+    # `p8_seam.transcribe` records it as `budget_deferred` with a
+    # `deferred_stage` -- §8.6's "retain extracted evidence, mark the deferred
+    # stage, and leave the file in review", never a cheaper placement.
+    budget = inputs.call_dependencies.scan_budget
+    if budget is None:
+        raise ScanBudgetRequired(
+            "§8.6 bounds model spend per scan, and this request names no scan to "
+            "charge against; P11 supplies the two ceilings and the caller "
+            "supplies the scan they apply to"
+        )
     dependencies = dataclasses.replace(
         inputs.call_dependencies,
         site_dependencies=sites,
+        scan_budget=dataclasses.replace(
+            budget,
+            max_calls_per_1000_files=inputs.limits.max_llm_calls_per_thousand_files,
+            max_estimated_cost=Decimal(inputs.limits.max_cost_per_scan)),
         allowed_vocabulary=legal,
         proposal_class=PLACEMENT if call_site == C_PLACEMENT else RESIDUAL,
         basis_key=basis_key_for(subject_id=subject.file_id,

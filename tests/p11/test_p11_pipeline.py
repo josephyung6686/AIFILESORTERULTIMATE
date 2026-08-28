@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -1168,3 +1169,144 @@ def test_the_same_placement_onto_an_ordinary_node_is_automatic(skeleton):
     assert decision.two_condition.requires_review is False
     assert decision.privacy.protected is False
     assert decision.review_policy == v.AUTO_ELIGIBLE
+
+
+# --- §8.6: the two ceilings that bound what a scan may SPEND -----------------------
+
+
+def _budgeted_call(conn, request, **kwargs):
+    """`call_placement` reduced to the one step these tests are about.
+
+    `harness.py:425-437` reserves against `deps.scan_budget` before the gate is
+    asked and before any spend, and turns `BudgetExhausted` into a
+    `PreCallAbstention(BUDGET_EXHAUSTED)` which `_pre_call_verdict` returns as an
+    `abstain` verdict carrying that reason. This does the same two lines with
+    P8's own `reserve_call`, so the accounting under test is P8's and not a
+    re-implementation of it. The whole of `run_call` is driven for real against
+    this same pipeline in `tests/integration/test_p11_pipeline_live.py`.
+    """
+    from llm_harness.budgets import BudgetExhausted, reserve_call
+    from llm_harness.vocabulary import ABSTAIN, BUDGET_EXHAUSTED
+
+    deps = kwargs["call_dependencies"]
+    try:
+        reserve_call(conn, deps.scan_budget, estimated_cost=deps.estimated_cost)
+    except BudgetExhausted:
+        return dataclasses.replace(
+            _verdict(), outcome=ABSTAIN, disposition=ABSTAIN,
+            reasons=(BUDGET_EXHAUSTED,), may_propose=False, requires_review=False)
+    return _verdict()
+
+
+def _spend(skeleton, monkeypatch, *, calls_per_1000, cost, attempts=3):
+    """`attempts` model-path placements under P1's two spend ceilings."""
+    import placement.pipeline as pipeline
+
+    set_ceiling(skeleton, CEILINGS["max_llm_calls_per_thousand_files"],
+                calls_per_1000)
+    set_ceiling(skeleton, CEILINGS["max_cost_per_scan"], cost)
+    monkeypatch.setattr(pipeline, "call_placement", _budgeted_call)
+    return [
+        _place(skeleton, inputs=_model_inputs(skeleton),
+               evidence=_evidence(**AMBIGUOUS))
+        for _ in range(attempts)
+    ]
+
+
+def test_p11_puts_p1s_two_spend_ceilings_on_the_budget_p8_reserves_against(
+        skeleton, monkeypatch):
+    """§8.6's `model.max_llm_calls_per_thousand_files` and `model.max_cost_per_scan`.
+
+    `planning/58-SCALE-STRESS.md` item 8: both were read into `PlacementLimits`
+    and referenced by no module in `src/placement/`, so the only thing bounding
+    what a scan spent was whatever number the caller happened to construct. The
+    caller's budget below says four calls per thousand files and a cost of ten;
+    P1 says eight and eight, and eight and eight is what P8 reserves against.
+
+    The scan's own coordinates are NOT overridden. `scan_id` and
+    `corpus_file_count` describe the run and belong to it; P11 knows the ceilings
+    and not how many files the disk holds.
+    """
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _capture(conn, request, **kwargs):
+        seen["budget"] = kwargs["call_dependencies"].scan_budget
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement", _capture)
+    caller = _call_dependencies().scan_budget
+    assert (caller.max_calls_per_1000_files, caller.max_estimated_cost) == (
+        4, Decimal("10"))
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    assert seen["budget"].max_calls_per_1000_files == 8
+    assert seen["budget"].max_estimated_cost == Decimal(8)
+    assert seen["budget"].scan_id == caller.scan_id
+    assert seen["budget"].corpus_file_count == caller.corpus_file_count
+
+
+def test_the_calls_per_thousand_files_ceiling_stops_the_run_and_defers(
+        skeleton, monkeypatch):
+    """§8.6: "If the budget is exhausted, the product should retain extracted
+    evidence, mark the deferred stage, and leave the file or group in review
+    rather than guessing. Cost exhaustion must never turn into lower-quality
+    automatic classification."
+
+    Two calls per thousand files over a thousand-file corpus is two calls. The
+    third placement is a DEFERRAL, not an abstention about evidence: SPEC:280-288
+    keeps the two apart so P2 cannot grade a ceiling-truncated run as though a
+    judgement had been made.
+    """
+    decisions = _spend(skeleton, monkeypatch, calls_per_1000=2, cost=99)
+    assert [d.outcome for d in decisions] == [v.PLACE, v.PLACE, v.ABSTAIN]
+    stopped = decisions[-1]
+    assert stopped.abstention_reason == v.BUDGET_DEFERRED
+    assert stopped.deferred_stage == v.PLACEMENT_SCORING
+    # Never a cheaper placement: the deterministic path had a best candidate and
+    # §8.6 forbids falling back to it.
+    assert stopped.destination is None
+    # And the evidence it gathered is still on the record, which is the "retain
+    # extracted evidence" half of the same sentence.
+    assert stopped.alternatives
+    assert stopped.two_condition is not None
+
+
+def test_a_run_under_the_calls_ceiling_is_untouched(skeleton, monkeypatch):
+    """The negative twin. A ceiling that always fires is as broken as one that
+    never does, and without this the test above would pass against a P11 that
+    deferred every model call."""
+    decisions = _spend(skeleton, monkeypatch, calls_per_1000=8, cost=99)
+    assert [d.outcome for d in decisions] == [v.PLACE] * 3
+    assert all(d.abstention_reason is None for d in decisions)
+    assert all(d.deferred_stage is None for d in decisions)
+    assert all(d.destination.node_id == "n-course-shared" for d in decisions)
+
+
+def test_the_cost_per_scan_ceiling_stops_the_run_and_defers(skeleton, monkeypatch):
+    """The second ceiling, fired on its own.
+
+    The call ceiling is set to ninety-nine here so the deferral cannot be the
+    other one: what runs out is the two units of estimated cost, at one unit a
+    call. Two ceilings tested only together are one ceiling with two names.
+    """
+    decisions = _spend(skeleton, monkeypatch, calls_per_1000=99, cost=2)
+    assert [d.outcome for d in decisions] == [v.PLACE, v.PLACE, v.ABSTAIN]
+    assert decisions[-1].abstention_reason == v.BUDGET_DEFERRED
+    assert decisions[-1].deferred_stage == v.PLACEMENT_SCORING
+
+
+def test_a_model_call_with_no_scan_to_charge_against_is_refused(skeleton,
+                                                                monkeypatch):
+    """§8.6's ceilings are per SCAN. P11 supplies the two numbers; the caller
+    supplies the run they are numbers about, and a request naming no scan would
+    reserve against nothing and spend without a bound."""
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: _verdict())
+    deps = dataclasses.replace(_call_dependencies(), scan_budget=None)
+    with pytest.raises(pipeline.ScanBudgetRequired):
+        _place(skeleton, inputs=_model_inputs(skeleton, call_dependencies=deps),
+               evidence=_evidence(**AMBIGUOUS))

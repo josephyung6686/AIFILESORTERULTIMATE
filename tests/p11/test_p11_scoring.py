@@ -58,7 +58,8 @@ def _graph(node_id="n-course", anchors=1, informative=True):
         subject_ref="file:f1:h1", node_id=node_id, anchors=edges,
         distinct_entities=frozenset({"PHYS1401"}) if anchors else frozenset(),
         high_frequency_entities=frozenset() if informative else frozenset({"PHYS1401"}),
-        neighbourhood_size=anchors, reduced_to_strongest=False,
+        neighbourhood_size=anchors, cluster_size=anchors,
+        reduced_to_strongest=False,
     )
 
 
