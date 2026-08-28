@@ -100,13 +100,81 @@ def test_the_degenerate_case_still_abstains_when_support_is_short():
 
 
 def test_a_low_margin_between_two_candidates_is_unresolved():
-    two = [_candidate(), _candidate(node_id="n-course-alt")]
+    # The runner-up is reached by its accepted group alone (2/7 = 0.2857), which
+    # is BELOW the 0.4 threshold, so it is not a home the evidence supports. What
+    # failed is the margin -- 3/7 - 2/7 = 0.1429, inside the 0.2 band -- and
+    # `low_margin` is the true name for it: the best destination is not clearly
+    # better than a rival that is not itself supported.
+    #
+    # This is the negative twin of `test_two_supported_homes_...` below. A fix
+    # that renamed EVERY margin failure "two homes" would pass that test and
+    # destroy this signal, so the two are read together or neither means anything.
+    two = [_candidate(),
+           _candidate(node_id="n-course-alt", channels=(ACCEPTED_GROUP,),
+                      facts=())]
     result = assess(_retrieval(two),
                     {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
                     policy=POLICY)
-    assert result.two_condition.margin_over_next is not None
+    assert result.two_condition.margin_over_next == pytest.approx(1 / 7)
     assert result.two_condition.meets_margin == v.MARGIN_FALSE
     assert result.two_condition.verdict == "weak"
+    assert result.two_condition.requires_review is True
+    assert result.abstention_reason == v.LOW_MARGIN
+
+
+def test_two_supported_homes_are_named_as_two_homes_not_as_weak_evidence():
+    """The owner's own nuance case: a research paper that is also homework.
+
+    Both destinations are reached by a direct fact on a DIFFERENT field --
+    `subject = PHYS1401` and `project = PVA-RDP` -- so §6.3's suppression
+    correctly suppresses neither, and both score 3/7 = 0.4286, above the 0.4
+    threshold. The margin is exactly 0.0.
+
+    The routing is already right: verdict `weak`, `requires_review` true, nothing
+    moves. What was wrong is the SENTENCE. `low_margin` is a complaint about the
+    quality of the evidence, and a user told that will distrust the extraction.
+    The truth is that this file has two correct homes and the choice is theirs.
+    """
+    two = [_candidate(), _candidate(node_id="n-project")]
+    result = assess(_retrieval(two),
+                    {"n-course": _graph(), "n-project": _graph("n-project")},
+                    policy=POLICY)
+    assert result.scored[0].support_score == result.scored[1].support_score
+    assert result.two_condition.margin_over_next == 0.0
+    assert result.two_condition.meets_margin == v.MARGIN_FALSE
+    # The routing is UNCHANGED. Only the account of it moves.
+    assert result.two_condition.verdict == "weak"
+    assert result.two_condition.requires_review is True
+    assert result.abstention_reason == v.MULTIPLE_SUPPORTED_HOMES
+    assert result.abstention_reason != v.LOW_MARGIN
+
+
+def test_a_third_supported_home_reads_the_same_as_two():
+    # The name is not "two homes" and the count is not two. Three tied direct
+    # matches are the same sentence to a user: several right answers, pick one.
+    three = [_candidate(), _candidate(node_id="n-project"),
+             _candidate(node_id="n-reading")]
+    result = assess(_retrieval(three),
+                    {name: _graph(name)
+                     for name in ("n-course", "n-project", "n-reading")},
+                    policy=POLICY)
+    assert result.abstention_reason == v.MULTIPLE_SUPPORTED_HOMES
+
+
+def test_a_tie_nothing_supports_is_not_two_homes():
+    # The other half of the threshold half. Two candidates tie exactly, and
+    # NEITHER clears the support threshold -- accepted-group evidence alone on
+    # both sides. There are no supported homes here at all, so calling it "two
+    # homes" would promise the user a choice between two destinations the
+    # evidence never backed.
+    two = [_candidate(channels=(ACCEPTED_GROUP,), facts=()),
+           _candidate(node_id="n-course-alt", channels=(ACCEPTED_GROUP,),
+                      facts=())]
+    result = assess(_retrieval(two),
+                    {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
+                    policy=POLICY)
+    assert result.two_condition.meets_threshold is False
+    assert result.two_condition.margin_over_next == 0.0
     assert result.abstention_reason == v.LOW_MARGIN
 
 

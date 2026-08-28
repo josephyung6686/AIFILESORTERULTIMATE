@@ -86,7 +86,8 @@ from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
     CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, FILE,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
-    NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT, PRIVACY_BLOCKED, RESIDUAL,
+    MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
+    PRIVACY_BLOCKED, RESIDUAL,
     RETURN_TO_PLACEMENT, SHARED_MATERIAL, SHARED_MATERIAL_DECISION, WEAK,
 )
 
@@ -494,6 +495,61 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False) -> st
     return "; ".join(parts) + "."
 
 
+def _supported_homes(context: _Context) -> tuple[str, ...]:
+    """The destinations that cleared §6.10's support threshold on their own."""
+    threshold = context.assessment.two_condition.support_threshold
+    return tuple(item.node_id for item in context.assessment.scored
+                 if item.support_score >= threshold)
+
+
+def _abstention_explanation(context: _Context, *, reason: str) -> str:
+    """What the person is told, which is not always what the machine recorded.
+
+    Two abstentions are correct decisions that the default sentence describes
+    falsely, and `planning/59-FINAL-UX-EVALUATION.md` finds both.
+
+    * `multiple_supported_homes` (§3a): two legal destinations DID clear §6.10's
+      support condition. "No legal destination cleared" is simply untrue of this
+      file, and a user told it will distrust the extraction rather than make the
+      choice that is actually theirs to make.
+    * `privacy_blocked` (§3c, finding 9): the product declined to assemble a
+      dossier ON PURPOSE. `00` on this material -- "sensitive personal material
+      is not the same thing as `Numbers.app`" -- and a person told their passport
+      failed to place concludes the product is broken rather than careful.
+
+    Every other reason keeps the sentence it had. A correct abstention over thin
+    evidence IS "no legal destination cleared §6.10's conditions", and giving all
+    of them a reassuring new voice would erase the one honest report of a genuine
+    evidence failure.
+    """
+    if reason == MULTIPLE_SUPPORTED_HOMES:
+        homes = _supported_homes(context)
+        return (
+            f"{', '.join(homes)} each cleared §6.10's support threshold and "
+            "nothing in the evidence separates them, so this file has more than "
+            "one supported home. Nothing moved: which one is its home is a "
+            "choice about your material, not a gap in the evidence."
+        )
+    if reason == PRIVACY_BLOCKED:
+        if context.privacy.protected:
+            return (
+                "This file is protected material (§8.4), so nothing about it was "
+                "assembled for a model and it was left exactly where it is. That "
+                "is a deliberate decision about sensitivity, not a failure to "
+                "find a destination."
+            )
+        return (
+            "Deciding this file needed a model, and §8.4 did not clear this file "
+            "for a model call. Nothing about it left this device and nothing "
+            "moved; the evidence is retained."
+        )
+    return (
+        f"No legal destination cleared §6.10's conditions ({reason}). "
+        "Abstaining is the correct outcome; the evidence is retained and the "
+        "file has not moved."
+    )
+
+
 def _abstention(conn: sqlite3.Connection, context: _Context, *, reason: str,
                 deferred_stage: str | None = None) -> PlacementDecision:
     """§6.10: a correct abstention is a successful outcome, and is recorded as one.
@@ -534,10 +590,7 @@ def _abstention(conn: sqlite3.Connection, context: _Context, *, reason: str,
             two_condition=context.assessment.two_condition, group_support=None,
             unique_direct_match=False, destination_disposition=None,
             automatic_move_permitted=context.automatic_move_permitted),
-        explanation=(
-            f"No legal destination cleared §6.10's conditions ({reason}). "
-            "Abstaining is the correct outcome; the evidence is retained and the "
-            "file has not moved."),
+        explanation=_abstention_explanation(context, reason=reason),
         residual=None,
     )
     return _write(conn, decision, inputs=inputs,

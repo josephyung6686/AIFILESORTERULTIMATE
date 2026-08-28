@@ -247,19 +247,24 @@ def test_two_packets_claim_one_transcript_and_the_shared_branch_ranks_last(p11_c
     assert entry.node_role == pv.SHARED_MATERIAL
 
 
-def test_the_transcript_abstains_but_names_the_wrong_reason_and_asks_nothing(p11_conn):
-    """§6.9's outcome is right; §6.9's account of it is missing.
+def test_the_transcript_names_two_homes_now_but_still_asks_nothing(p11_conn):
+    """§6.9's outcome is right; half of §6.9's account of it has landed.
 
     "It should abstain or ask the user to choose a primary home." It abstains —
     two direct matches tie, the margin fails, and nothing is moved. Good.
 
-    But the record says `low_margin`, and P11 publishes `no_shared_branch`
-    (`placement/vocabulary.py:171`) and `shared-material decision`
-    (`:148`) for exactly this moment. Neither is ever written. A user reading the
-    review queue is told "the two best destinations were too close together",
-    which is a scoring complaint, not the sentence "this file belongs to two of
-    your packets; which is its home?" — and no `Ask` is offered, because nothing
-    in `src/` constructs one.
+    FIXED: the record said `low_margin`, a scoring complaint, on a file with two
+    equally supported homes. It now says `multiple_supported_homes`, which is the
+    sentence "this file belongs to two of your packets" rather than "the two best
+    destinations were too close together". Both destinations cleared the support
+    threshold on their own, and that — not the size of the margin — is what makes
+    the two situations different to the person reading the queue.
+
+    STILL OPEN, and asserted below so the fix is not read as wider than it is:
+    the confidence class is still `abstain: no supported destination` on a file
+    with two supported destinations, `shared-material decision` is written
+    nowhere, `no_shared_branch` is never reached from here, and no `Ask` is
+    offered because nothing in `src/` constructs one.
     """
     tree = _application_tree()
     build_destination_index(p11_conn, tree, component_version="ambiguity",
@@ -277,7 +282,8 @@ def test_the_transcript_abstains_but_names_the_wrong_reason_and_asks_nothing(p11
     assert result.two_condition.requires_review is True
     assert result.unique_direct_match is False
 
-    assert result.abstention_reason == pv.LOW_MARGIN
+    assert result.abstention_reason == pv.MULTIPLE_SUPPORTED_HOMES
+    assert result.abstention_reason != pv.LOW_MARGIN
     assert result.abstention_reason != pv.NO_SHARED_BRANCH
     assert result.confidence_class == pv.ABSTAIN_NO_SUPPORTED_DESTINATION
     assert result.confidence_class != pv.SHARED_MATERIAL_DECISION
@@ -1056,7 +1062,11 @@ def test_two_opposite_side_folders_tie_and_every_such_file_abstains(p11_conn):
     result = assess(retrieval, {}, policy=POLICY)
     assert result.scored[0].support_score == result.scored[1].support_score
     assert result.two_condition.margin_over_next == 0.0
-    assert result.abstention_reason == pv.LOW_MARGIN
+    # The reason is now accurate about the EVIDENCE — both folders are equally
+    # supported, which is exactly the trap the tree laid — and the tree-design
+    # defect this test records is untouched by that: the user still has no field
+    # that says which side, so every invoice still abstains.
+    assert result.abstention_reason == pv.MULTIPLE_SUPPORTED_HOMES
 
 
 # --------------------------------------------------------------------------------

@@ -218,6 +218,19 @@ MEETS_MARGIN_VALUES: tuple[str, ...] = (
 
 NO_SUPPORTED_DESTINATION: str = "no_supported_destination"
 LOW_MARGIN: str = "low_margin"
+
+#: §6.10's margin failure told apart from itself. `low_margin` is a complaint
+#: about EVIDENCE -- the best destination is not clearly better than a rival the
+#: evidence never supported -- and this is the opposite situation: two or more
+#: destinations each cleared the support threshold on their own, and nothing
+#: separates them. A research paper that is also school homework is the case, and
+#: the two sentences ask the user for different things. One says the product is
+#: unsure about the file; this one says the file has more than one right home and
+#: the choice belongs to the person. `scoring._reason` decides which is true and
+#: `tests/p11/test_p11_scoring.py` pins both halves, because a fix that renamed
+#: every margin failure would pass the second and destroy the first.
+MULTIPLE_SUPPORTED_HOMES: str = "multiple_supported_homes"
+
 SEMANTIC_ONLY: str = "semantic_only"
 GENERIC_HUB_ONLY: str = "generic_hub_only"
 CONFLICTING_FACTS: str = "conflicting_facts"
@@ -225,8 +238,9 @@ NO_SHARED_BRANCH: str = "no_shared_branch"
 BUDGET_DEFERRED: str = "budget_deferred"
 PRIVACY_BLOCKED: str = "privacy_blocked"
 ABSTENTION_REASONS: tuple[str, ...] = (
-    NO_SUPPORTED_DESTINATION, LOW_MARGIN, SEMANTIC_ONLY, GENERIC_HUB_ONLY,
-    CONFLICTING_FACTS, NO_SHARED_BRANCH, BUDGET_DEFERRED, PRIVACY_BLOCKED,
+    NO_SUPPORTED_DESTINATION, LOW_MARGIN, MULTIPLE_SUPPORTED_HOMES,
+    SEMANTIC_ONLY, GENERIC_HUB_ONLY, CONFLICTING_FACTS, NO_SHARED_BRANCH,
+    BUDGET_DEFERRED, PRIVACY_BLOCKED,
 )
 
 # --- privacy and review ----------------------------------------------------------

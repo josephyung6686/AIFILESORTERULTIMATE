@@ -273,6 +273,51 @@ def test_a_mathematical_looking_file_never_produces_math_stuff(skeleton):
     assert decision.abstention_reason == v.NO_SUPPORTED_DESTINATION
 
 
+#: A policy whose support threshold two candidates can clear at once. The
+#: fixture's own POLICY sits at 0.50, above every score `FROZEN_TREE` can
+#: produce, so "more than one home cleared it" is unreachable there -- and a
+#: sentence about two homes cannot be tested against a tree where one is
+#: arithmetically impossible.
+TWO_HOMES_POLICY = SupportPolicy(policy_id="two-homes-v1", support_scale_max=1.0,
+                                 minimum_support_threshold=0.25,
+                                 margin_threshold=0.2)
+
+
+def test_a_file_with_two_supported_homes_is_told_it_has_two_homes(skeleton):
+    """§3a of `planning/59-FINAL-UX-EVALUATION.md`, in the sentence the user reads.
+
+    The direct fact reaches `n-course` (3/7) and the accepted group reaches
+    `n-course-shared` (2/7). Both clear 0.25 on their own; the margin between
+    them is 1/7, inside the 0.2 band. Nothing moves -- and the record says why in
+    the person's terms, naming the destinations rather than complaining about the
+    evidence that produced them.
+    """
+    decision = _place(skeleton,
+                      inputs=_inputs(skeleton, policy=TWO_HOMES_POLICY),
+                      evidence=_evidence(group_ids=("g-shared",)))
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.MULTIPLE_SUPPORTED_HOMES
+    assert "n-course" in decision.explanation
+    assert "n-course-shared" in decision.explanation
+    assert "more than one" in decision.explanation
+    # The old sentence is false about this file and must be gone: two legal
+    # destinations DID clear §6.10's support condition.
+    assert "No legal destination cleared" not in decision.explanation
+
+
+def test_an_ordinary_abstention_still_says_no_legal_destination_cleared(skeleton):
+    # The negative twin of the two tests above and below. A file nothing supports
+    # gets the sentence it always got; a fix that gave every abstention a
+    # reassuring new voice would pass those two and erase the one honest report
+    # of a genuine evidence failure.
+    decision = _place(skeleton,
+                      evidence=_evidence(facts=(), semantic_neighbours=()))
+    assert decision.abstention_reason == v.NO_SUPPORTED_DESTINATION
+    assert decision.explanation.startswith("No legal destination cleared")
+    assert "protected" not in decision.explanation
+    assert "more than one" not in decision.explanation
+
+
 def test_a_file_resembling_an_ignored_folder_abstains(skeleton):
     # Done-means 2's concrete case, §5.10: the user left `Old Downloads` alone, so
     # a file that looks like it belongs there is not placed there -- and the node
@@ -506,6 +551,42 @@ def test_a_local_only_file_abstains_before_any_dossier_is_assembled(skeleton,
                       evidence=_evidence(**AMBIGUOUS))
     assert decision.outcome == v.ABSTAIN
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    # `00` on this material: sensitive personal material is not the same thing as
+    # `Numbers.app`. A passport is never a low-confidence extraction; it is
+    # material the product declined to place ON PURPOSE, and the record has to
+    # say that, because a person told their passport "failed to place" concludes
+    # the product is broken rather than careful.
+    assert "protected material" in decision.explanation
+    assert "left exactly where it is" in decision.explanation
+    assert "No legal destination cleared" not in decision.explanation
+
+
+def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
+        skeleton, monkeypatch, tmp_path):
+    """The negative twin of the passport. Same `privacy_blocked`, different cause.
+
+    §8.4's gate closes for two unrelated reasons: this file is protected, or this
+    install may send nothing anywhere. Telling an ordinary spreadsheet that it is
+    "protected material" would be as wrong in the other direction, so the record
+    reads `privacy.protected` and says which of the two happened.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
+                                       name="budget.pdf", body=b"%PDF-1.4 b")
+    _classify(skeleton, file_id=file_id, content_hash=content_hash,
+              protected=False, handling_class="public_low")
+    _policy(skeleton, mode="offline")
+    subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                      group_id=None, member_file_ids=())
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "protected material" not in decision.explanation
+    assert "did not clear this file for a model" in decision.explanation
 
 
 # --- §6.8 and §6.9: the group plan ------------------------------------------------

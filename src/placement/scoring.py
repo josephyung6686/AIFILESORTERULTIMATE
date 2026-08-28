@@ -31,7 +31,8 @@ from placement.vocabulary import (
     ABSTAIN_NO_SUPPORTED_DESTINATION, ABSTAIN_VERDICT, ACCEPT_CONTEXT_SUPPORTED,
     ACCEPT_DIRECT, CONFLICTING_FACTS, CONTEXT_SUPPORTED_GROUP_MATCH,
     EXACT_FACT_MATCH, GENERIC_HUB_ONLY, LOW_MARGIN, MARGIN_FALSE, MARGIN_TRUE,
-    MARGIN_TRUE_VACUOUS, NO_SUPPORTED_DESTINATION, SEMANTIC_ONLY, WEAK,
+    MARGIN_TRUE_VACUOUS, MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION,
+    SEMANTIC_ONLY, WEAK,
 )
 
 #: How much each channel contributes, before normalisation by the policy's scale.
@@ -84,12 +85,29 @@ def score_candidates(retrieval, graphs, *, policy: SupportPolicy) -> tuple[Score
 
 
 def _reason(best: Scored | None, retrieval, meets_threshold: bool,
-            meets_margin: str) -> str | None:
-    """Why this could not become a placement, named from §6.10's own failure modes."""
+            meets_margin: str, *, supported_count: int) -> str | None:
+    """Why this could not become a placement, named from §6.10's own failure modes.
+
+    A failed margin has two different causes and the user needs them told apart.
+
+    `supported_count` is how many candidates cleared the support threshold ON
+    THEIR OWN. When two or more did and nothing separates them, the file has more
+    than one supported home and the sentence the user is owed is "these both fit;
+    which is it?" -- a genuine choice, not a defect. When only the best one did
+    (or none did), the margin failed against a rival the evidence never backed,
+    and `low_margin` is the true name: the evidence is not decisive.
+
+    Calling the first case `low_margin` was the defect `planning/59-FINAL-UX-
+    EVALUATION.md` §3a records -- a research paper that is also school homework,
+    reported as an evidence-quality complaint. Nothing about the ROUTING changes
+    here: both are `weak`, both require review, and neither moves a file. What
+    changes is which of two true sentences the person is told, because one makes
+    them distrust the extraction and the other lets them just pick.
+    """
     if best is None:
         return CONFLICTING_FACTS if retrieval.conflicts else NO_SUPPORTED_DESTINATION
     if meets_margin == MARGIN_FALSE:
-        return LOW_MARGIN
+        return MULTIPLE_SUPPORTED_HOMES if supported_count >= 2 else LOW_MARGIN
     if meets_threshold:
         return None
     if best.semantic_only:
@@ -123,7 +141,16 @@ def assess(retrieval, graphs, *, policy: SupportPolicy) -> Assessment:
             else MARGIN_FALSE
         )
 
-    reason = _reason(best, retrieval, meets_threshold, meets_margin)
+    # Counted over ALL candidates rather than the top two, so three tied homes
+    # read the same as two. `meets_threshold` above is the same predicate asked
+    # of the best one; asking it of each is what tells "two homes" from "one home
+    # and a rival nothing supports".
+    supported_count = sum(
+        1 for item in scored
+        if item.support_score >= policy.minimum_support_threshold
+    )
+    reason = _reason(best, retrieval, meets_threshold, meets_margin,
+                     supported_count=supported_count)
     # §6.6's own words: "If a file's validated facts UNIQUELY MATCH ONE FROZEN
     # PATH, deterministic matching is faster, cheaper, and more stable"
     # (`planning/01-product-design-structured.md:1189-1191`). Uniqueness is a
