@@ -163,24 +163,31 @@ visible diff, never a silently applied change. Not a contradiction, and **not a 
 the build** — but `64`'s overlay must be readable as "what the user asserted" independently of
 whether the plan version carrying it has been adopted. Verify that property when it lands.
 
-### `fix-cli-output` — the readability defects from `65`
+### `fix-cli-output` — DONE, commit `bb898ce`, verified on a live run
 
-**Where it got to:** `src/cli.py` +186 lines, `tests/test_cli.py` +250 lines. Uncommitted.
+All four defects from `65` §3 fixed and confirmed by running the command, not only by the tests:
+names instead of UUIDs, one reason for four files instead of four copies of it, the plan version
+demoted to a self-explaining footnote, the review set folded into the block whose files it covers
+instead of counted twice. 15 CLI tests, up from 5, with the negative twins — a protected group is
+never the one truncated, and a review set covering no decided file still gets its own line.
 
-**What it was fixing,** from judging a real run as a user would:
+The protected block came out stronger than the brief asked. `_protected()` ORs three independent
+sources and states why: *"the cost of treating an ordinary group as protected is a slightly
+longer list and the cost of the reverse is the silent omission the standing rule exists to
+forbid."* `report()` takes `names` as a REQUIRED argument, so the id-only report cannot return
+through a forgotten default.
 
-- files identified by UUID (`74ce335f-110b-42c0-8a50-ecdc8f8734b7`) — you cannot tell which of
-  your files that is
-- the same paragraph printed four times verbatim
-- `Plan version_2` leaking internal versioning into a person's screen
-- `Files: 4 decided, 0 placed` duplicating `For review: Not yet placed (4 files)`
+**Two new findings came out of the second run** — recorded in `65` §4, both open:
 
-**The one instruction that must not be lost:** the protected-containers block is **never**
-summarised away. Marked, counted, explained, never silently omitted — even when tidying output
-is the whole point of the task.
-
-**To resume:** `python3 -m pytest tests/test_cli.py -q -p no:randomly`, then re-run the live
-demo and read the output as a person, not as a developer.
+1. **The refusal blames the step that worked.** It says "nothing has been able to read enough of
+   it," but `file_facts` has 4 direct rows and `classifications` has 0. The file was READ and NOT
+   CLASSIFIED. `66` §4 already forbids this: unclassified and unreadable are two of five states
+   that may never share a message.
+2. **Four files from one course became four groups.** Every group id is keyed on a FILE id under
+   a `strongly-identified-file` strategy, so four files each identifying as `PHYS1401` mint four
+   singletons with the same label instead of one group of four. This is why `Coursework` is
+   proposed and left empty and why all four placements abstain. **North-star defect** — and
+   upstream of Find, which inherits it rather than fixing it.
 
 ---
 
@@ -217,9 +224,10 @@ researcher, and the person who is all three.
 1. **Delete `src/tree_design/freeze.py.tmp.*` if present.**
 2. **Finish `build-edit-durability`** — §3 above. Then verify `66` §17's draft-not-applied
    property against what it built.
-3. **Finish `fix-cli-output`** — §3 above. Protected block stays.
+3. ~~Finish `fix-cli-output`~~ — DONE, `bb898ce`.
 4. **Full suite**, and it must return to zero: `python3 -m pytest tests/ -q --tb=short -p no:randomly`
-5. **Widen the extractor** — the `66` §14 ruling. `_STRUCTURED` in `src/cli.py` is one pattern
+5. **Widen the extractor, AND fix the singleton-grouping** (`65` §4.2) — same class of problem
+   from two sides, per `65` §4.3. Also fix the refusal wording (`65` §4.1). The `66` §14 ruling: `_STRUCTURED` in `src/cli.py` is one pattern
    and a course code with a space defeats it. Read `65` for the sizing evidence and `63` §10 for
    why this is a reading fix and not a question.
 6. **G2's two scale failures.**
@@ -238,4 +246,7 @@ researcher, and the person who is all three.
    §16 should be built until that arrives.**
 3. **What subset of P1–P11 does Find actually need?** §2 above. Find may not need frozen trees
    or placement, in which case it ships earlier than the full gate.
-4. **Grouping cardinality** — four files, one course code, four groups. Not settled by `66`.
+4. ~~**Grouping cardinality**~~ — ANSWERED, `65` §4.2. Group ids are keyed on file ids under a
+   `strongly-identified-file` strategy. The strategy is not wrong in general; the defect is that
+   it does not check whether anything else resolved to the same identity before minting a
+   singleton. Needs a fix, not a decision.
