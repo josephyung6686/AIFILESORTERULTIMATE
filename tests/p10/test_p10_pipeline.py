@@ -409,3 +409,123 @@ def test_the_launch_librarys_academic_rows_reach_the_router_at_all(corpus):
                 for dimension in candidate.resolved_dimensions}
     assert resolved <= {"school", "term", "subject", "work_type"}
     assert resolved, "no shipped academic row resolved a single P6 field"
+
+
+#: The (definition, schema) pairs the shipped library cannot compose, and the
+#: roles whose per-row labels disagree inside each. PINNED, not derived: the test
+#: below fails when this set changes in EITHER direction, which is the point —
+#: a fix has to register as a change rather than as the same green.
+#:
+#: `planning/56-TEMPLATE-CONNECTION-AUDIT.md` §6 has the analysis. In short: a
+#: `RoleBinding.label` is per-AUDIENCE and the audience is what an applicability
+#: row selects, but `evaluate_composition` unions every row of a definition in
+#: the branch and then demands the per-row labels agree. Every collision is
+#: WITHIN one schema; not one is the cross-schema case the field exists for.
+UNCOMPOSABLE_LAUNCH_PAIRS: dict[tuple[str, str], tuple[str, ...]] = {
+    ("def.addressee-packet", "college_applications"):
+        ("addressed_org", "cycle_period"),
+    ("def.capture-time-events", "photos"): ("capture_time", "occasion_anchor"),
+    ("def.capture-time-events.third-party", "photos"): ("capture_time",),
+    ("def.group-scoped-record", "finance"): ("artifact_kind",),
+    ("def.issuer-record", "finance"):
+        ("account_kind", "artifact_kind", "issuing_org"),
+    ("def.research-lineage", "research"):
+        ("artifact_kind", "lifecycle_stage", "subject_anchor"),
+    ("def.subject-work-record", "academic"):
+        ("artifact_kind", "holder_institution", "subject_anchor"),
+}
+
+
+def test_the_shipped_librarys_unroutable_recipes_are_exactly_the_known_set():
+    """The half `..._either_designs_a_tree_or_refuses_by_name` cannot see.
+
+    That test asserts the seam property — a designed tree or a NAMED refusal,
+    never a silent empty one — and it holds today for the wrong reason: the
+    refusal is C4-labelled, which reads as one contested mapping rather than as
+    54% of the launch library being unroutable. A monotone "it refuses cleanly"
+    check stays green whether the number is 1 row or 29.
+
+    So this pins the actual state. Measured over the shipped files: 54
+    applicability rows across 32 (definition, schema) pairs, of which 7 hold more
+    than one row — and ALL SEVEN clash, putting 29 rows (54%) inside a recipe
+    that cannot compose. `def.issuer-record` is the launch set's biggest
+    definition at 11 rows and is among them.
+
+    Not a count, a SET: a new non-clashing row does not move it, and a fix to any
+    one pair does. The message says which way it moved.
+    """
+    catalogue = launch_catalogue()
+    by_pair: dict[tuple[str, str], list] = {}
+    for row in catalogue.applicabilities.values():
+        by_pair.setdefault((row.template_id, row.uses_schema), []).append(row)
+
+    clashing: dict[tuple[str, str], tuple[str, ...]] = {}
+    for pair, rows in by_pair.items():
+        if len(rows) < 2:
+            # One row is one audience, so its labels cannot disagree with
+            # themselves. Every collision below is a UNION the branch did not ask
+            # for, which is why the row count is part of the finding.
+            continue
+        names: dict[tuple[str, str], set[str]] = {}
+        for row in rows:
+            for binding in row.role_bindings:
+                names.setdefault((binding.role_ref, binding.field_ref),
+                                 set()).add(binding.label)
+        roles = tuple(sorted(role for (role, _field), labels in names.items()
+                             if len(labels) > 1))
+        if roles:
+            clashing[pair] = roles
+
+    fixed = sorted(set(UNCOMPOSABLE_LAUNCH_PAIRS) - set(clashing))
+    broken = sorted(set(clashing) - set(UNCOMPOSABLE_LAUNCH_PAIRS))
+    assert clashing == UNCOMPOSABLE_LAUNCH_PAIRS, (
+        f"the launch library's unroutable set moved. Now composable: {fixed}. "
+        f"Newly unroutable: {broken}. Update UNCOMPOSABLE_LAUNCH_PAIRS and say "
+        "which it was in the commit — this set shrinking is the fix landing.")
+
+
+def test_a_single_row_recipe_composes_where_a_multi_row_one_cannot(corpus):
+    """The discriminating twin: C4 is about the UNION, not about the labels.
+
+    If per-audience labels were themselves the problem, a one-row pair would
+    refuse too. They compose — so what breaks the seven is that
+    `evaluate_composition` merges rows the branch's evidence never selected, and
+    `eligible_rows` filters on `uses_schema` alone
+    (`detection_signal_refs`, the field that says which situation a row
+    recognises, has no reader in `src/`). Recorded here because it is the
+    difference between "the label field is wrong" and "the grouping is wrong".
+    """
+    from tree_design.routing import evaluate_composition
+    from tree_design.templates import CompositionConflict
+    from tree_design.upstream import accepted_groups
+    from tree_design.routing import BranchContext
+
+    catalogue = launch_catalogue()
+    by_pair: dict[tuple[str, str], list] = {}
+    for row in catalogue.applicabilities.values():
+        by_pair.setdefault((row.template_id, row.uses_schema), []).append(row)
+    academic = by_pair[("def.subject-work-record", "academic")]
+    assert len(academic) == 5
+
+    groups = accepted_groups(corpus.reader(), plan_version_id=PLAN_0)
+    context = BranchContext(
+        branch_node_id="n_probe", domains=("academic",), accepted_groups=groups,
+        member_file_ids=frozenset(m.file_id for m in groups[0].members),
+        handling_classes=frozenset({ORDINARY_CLASS}))
+    common = dict(privacy_rank=lambda floor: 0,
+                  satisfies_purpose_profile=lambda ref, gs: True)
+
+    with pytest.raises(CompositionConflict) as excinfo:
+        evaluate_composition(corpus.conn, catalogue, context, academic, **common)
+    assert excinfo.value.args[0].startswith("C4")
+
+    # The SAME definition, the SAME schema, the SAME corpus — one row at a time.
+    # `ap.academic.coursework` is the one a student's coursework wants.
+    one_row = [row for row in academic
+               if row.applicability_id == "ap.academic.coursework"]
+    composed = evaluate_composition(corpus.conn, catalogue, context, one_row,
+                                    **common)
+    assert [d.field_ref for d in composed.resolved_dimensions] == [
+        "school", "term", "subject", "work_type"]
+    assert [d.display_label for d in composed.resolved_dimensions] == [
+        "My school", "Semester", "Course", "Kind of work"]

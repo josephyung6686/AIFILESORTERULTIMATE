@@ -367,3 +367,95 @@ branch `build/p6-p7-first-packages` at `3605aa1` plus the working tree of 2026-0
 `catalogue.load_catalogue`, and calls `evaluate_composition` / `route_branch` per
 `(definition, schema)` pair, per row alone, and per multi-domain branch. Nothing was written to
 `src/` and no existing test was touched.
+
+---
+
+## 6. Addendum, 2026-08-28 — the shipped library, after `RoleBinding.label` landed
+
+`connect-p10-p11` reported that `def.subject-work-record` cannot route. **Confirmed, and it is four
+times larger than reported.** Re-run against the library that has since shipped
+(`src/tree_design/library/{fragments,definitions,applicabilities}.json`, 22 / 30 / 54) — not the
+draft transcription §1–§5 used:
+
+| | |
+|---|---:|
+| `(definition, schema)` pairs | 32 |
+| pairs that compose | **25** |
+| pairs that refuse | **7** |
+| **multi-row pairs that compose** | **0 of 7** |
+| applicability rows reachable | **25** |
+| **applicability rows unreachable** | **29 of 54 (54%)** |
+
+**Every multi-row `(definition, schema)` pair in the launch library refuses**, on the label branch of
+C4 (`routing.py:359-370`):
+
+| Definition / schema | Rows | Role that collides |
+|---|---:|---|
+| `def.issuer-record` / finance | **11** | `issuing_org → institution` under 10 names |
+| `def.subject-work-record` / academic | 5 | `holder_institution → school` under 4 names |
+| `def.capture-time-events.third-party` / photos | 4 | `capture_time → capture_year` under 4 names |
+| `def.addressee-packet` / college_applications | 3 | `addressed_org → target_university` under 3 names |
+| `def.capture-time-events` / photos | 2 | `capture_time → capture_year` under 2 names |
+| `def.group-scoped-record` / finance | 2 | `artifact_kind → record_type` under 2 names |
+| `def.research-lineage` / research | 2 | `subject_anchor → project` under 2 names |
+
+The 11-row finance spine — the largest definition in the launch set — is unreachable, as is the
+cross-schema headline. `connect-p10-p11`'s second point is also confirmed: `CompositionOverride`
+carries `role_choices: role → FIELD` and the label block never consults `by_gate`, so no override
+exists that could answer this. The refusal reports `overridable=True` because `C4` is WARN-class,
+and nothing can act on it. **A gate that reports itself resolvable and offers no resolution is worse
+than a refusal.**
+
+### 6.1 Neither proposed fix is the right one
+
+**Splitting the rows onto distinct definitions** would take 29 definitions to roughly 48 and make
+the definition count equal the row count for every multi-row case — collapsing the many-to-many seam
+the record exists for. It removes `def.issuer-record`'s 11-row reuse and `def.subject-work-record`'s
+three-schema reach: the two results the draft was built to demonstrate. That fixes a router
+behaviour by deleting the feature.
+
+**A resolution rule that picks a label** is what `routing.py:360`'s own comment correctly refuses —
+*"Taking the first would make the user-visible name depend on the order the rows were listed in"* —
+which is R2 again, and the instinct is right.
+
+### 6.2 This is R3, not a new defect
+
+`RoleBinding.label`'s docstring states the design plainly: *"one role reads differently per schema…
+which is a statement about the AUDIENCE, and the audience is what a `TemplateApplicability` row
+selects."* The record makes the label **per row**. `evaluate_composition` then unions every row of
+one definition in the branch (`routing.py:361`, `:286`) and demands the per-row labels agree. The
+label is doing exactly what it was designed for; **the grouping is the defect** — the same grouping
+that already discards row-level depth for 16 of 54 rows (R3).
+
+The evidence is in the library itself. Where the label field is used the way its docstring argues
+for — *across* schemas — it works and nothing refuses:
+
+```
+def.subject-work-record   academic  holder_institution -> school  'My school'
+                          research  holder_institution -> lab     'My lab'
+                          academic  artifact_kind -> work_type     'Kind of work'
+                          research  artifact_kind -> artifact_type 'Kind of bench record'
+                          code      subject_anchor -> project      'Experiment'
+```
+
+**All 7 collisions are within a single schema.** Not one is the cross-schema case the field was
+added for.
+
+The real fix is the one neither side named: **stop unioning rows the branch's evidence does not
+select.** `eligible_rows` filters on `uses_schema` alone, and `detection_signal_refs` — the field
+that says which situation a row recognises — has zero readers in `src/` (R7). A student's coursework
+branch should route `ap.academic.coursework`, not coursework + continuing-education + online-course
++ study-abroad + standardized-testing merged into one recipe with four names for `school`. Filtering
+by detection signal closes the label collision, R3's phantom levels and §2.4's Rule A collapse in
+one change, because all three are the same bug.
+
+### 6.3 Interim, if the filter is out of scope
+
+Author **one label per `(definition, schema, role, field)`**. That is 15 keys and 60 individual
+`role_binding` labels across 7 rows-groups, out of 74 keys total — a library data edit, no record
+change. It costs nothing the docstring argues for, because per-audience naming *across* schemas
+survives untouched; only per-row naming *within* one schema is given up, and that is precisely what
+the router cannot represent today.
+
+Ranking: this supersedes **R3** as the highest-severity item after **R1**. R1 makes the recommended
+order unreachable; this makes 54% of the library unreachable.
