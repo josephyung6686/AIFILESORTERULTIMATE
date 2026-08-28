@@ -263,7 +263,7 @@ rather than on those two keys.
 | finance | institution · account_type · tax_year · record_type · account_holder† | 4 |
 | photos | capture_year · event · location · media_type · people† · camera_information† · capture_date† | 4 |
 | code | repository · programming_language† | 1 |
-| career | employer · target_employer · recruiting_cycle · work_type · record_type · job_title† | 5 |
+| career | employer · target_employer · recruiting_cycle · work_type · record_type · job_title | 6 |
 | business_operations | organization† · record_period · project · client · supplier · record_type · issuing_body | 6 |
 | law_practice | project · work_type · client · record_period · our_firm† · subject_of_record† | 4 |
 | creative | project · artifact_type · stage · client · venue | 5 |
@@ -371,3 +371,70 @@ an adjudicated redirect will therefore read as unsigned** — the row signed one
 over-declaration on `logistics` that no reading of the adjudications would have surfaced.
 But its output is "no *spelling* signature", not "no signature", and the two must not be
 confused — the first is a prompt to find the redirect, the second is a defect.
+
+---
+
+## 8. Two corrections and one ruling, all from `51` §4.8
+
+### 8.1 CORRECTED — `job_title` is destination-eligible
+
+§5 marked `career · job_title†` (dest=false). **That is wrong, on two independent grounds.**
+
+- **`00`:70 makes it a folder level in so many words:** *"a Career template may define **company →
+  role** or recruiting cycle → document type."* `role` is the middle level of `00`'s own career
+  template. A key `00` puts in a template order cannot be non-destination.
+- **The row proposed it eligible.** `51` §4.8 records that `career.employment-records` has already
+  proposed `employer` and `role` (→ `job_title`) and that **both are `destination_eligible: true`.**
+
+Career is therefore at **6 destination candidates**, exactly at `00`:48's ceiling under J-4. The
+`†` was mine and it was unsourced.
+
+### 8.2 CORRECTED — the launch set is 30 definitions, not 29
+
+`51` §4.1–§4.7 is D01–D29. **Career's D30 is explicitly outside that count** — `51` states
+*"it is not counted in the 54 and it is not counted in the 29"*, and `56` §1.1 counts 29/29 for
+`sensitivity_policy_ref` while treating D30 separately as *"the one refusal"*. §4.9 authors **no
+definitions at all**: its ten "authored alternatives" are second candidate orders inside D03, D05,
+D06, D08, D10, D12, D15, D17, D18 and D27.
+
+**D30 ships**, because J-3 giving career six fields is meaningless if career cannot produce a
+folder. It is the one definition needing a definition-level `privacy_floor` (it has no fragment)
+and the one needing `relative_order` (all four of its roles are definition-local).
+
+### 8.3 RULED — career's default order is `employer_org` first, and the reason is degradation
+
+`51` §4.8 leaves D30's default **deliberately unset**, deferring to a fragmentation analysis in
+another lane. The record refuses an unset default (`MalformedTemplateRecord`), so one must be
+chosen. This is the question carried as **C5**.
+
+J-WIDE-2 ruled *"build both templates and let the user choose during setup; neither is the
+default"* — and that ruling stands for the **offer**. But a `candidate_orders` list still needs an
+`is_default` for the preview to render before the user has chosen anything, and that is a narrower
+question than J-WIDE-2's.
+
+**The two orders are not two tastes. They serve the two halves of career that J-3 already split:**
+
+| career half | shape | order that fits |
+|---|---|---|
+| the search (résumés, cover letters, portfolio) — `work_type` | many employers, 2–3 files each | `cycle_period` first — *"my 2026 search"* |
+| the tenure (contracts, payslips, reviews) — `record_type` | few employers, many files each | `employer_org` first — *"everything about Stripe"* |
+
+So J-3 and C5 are the same fact seen twice, which is why neither could be settled alone.
+
+**Default: `ord.employer-role-cycle-kind`.** Not because it is better — because it **fails better**,
+and that asymmetry is the only thing that breaks the tie:
+
+- Employer-first applied to a job-seeker yields many small folders. `00` already handles this: the
+  canvas warns about *"a large number of tiny folders"* and offers flatten. A recoverable, visible,
+  already-designed-for outcome.
+- Cycle-first applied to someone with ten years at two employers yields a **cycle level that does
+  not exist**. Someone who has not job-hunted has no recruiting cycle, so the level is empty or
+  invented. There is no warning for that and nothing to flatten — the tree simply asserts a
+  structure the person's life does not have.
+
+A default is what runs before the product knows who it is talking to, so it must be the one whose
+failure is legible. `51`'s own JC 7 resolution reaches the same answer; this records the reason.
+
+**Career's default is `recommendation-pending`, not ratified.** The right long-run fix is doc `59`
+§4.5 — ask the user who they are before designing the tree, at which point this default is never
+consulted. Recorded so the tie-break is not mistaken for evidence it does not have.
