@@ -55,7 +55,8 @@ from grouping.retrieval import RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import memberships_for_group, record_group, record_membership
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, ENGINE, PENDING_REVIEW, USER, USER_EDITED,
+    ACCEPTED, COHERENT, ENGINE, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, USER,
+    USER_EDITED,
 )
 from llm_harness.records import EvidenceItem
 from placement import vocabulary as pv
@@ -276,7 +277,10 @@ def _p1_p7(fields, *, classify=_classify) -> P1P7Authorities:
         classify=classify, source=FilesystemCorpusSource(),
         mime_type_for=lambda path: (
             "application/pdf" if Path(path).suffix == ".pdf" else None),
-        scan_state="scanned", scan_budget_exhausted=lambda: False,
+        # The live composition's own value, imported from the constant P9's
+        # retrieval reads. A literal here diverged from `cli.py` once already and
+        # cost every live run its whole neighbourhood.
+        scan_state=P1_INCLUDED_SCAN_STATE, scan_budget_exhausted=lambda: False,
         detect_format=lambda path: (
             "pdf" if Path(path).suffix == ".pdf" else None),
         # THE real predicate, not a stand-in. P3 writes an exclusion verdict for
@@ -1082,3 +1086,42 @@ def test_an_evaluation_authority_of_the_wrong_type_is_refused(conn, tmp_path):
     with pytest.raises(InvalidCorpusAuthority):
         run_corpus_through(conn, tmp_path,
                            authority_over={"evaluation": {"adapters": {}}})
+
+
+# --- `65` §4.2's cause: the word P1 writes and the word P9 reads -------------------
+
+
+def test_two_files_that_state_one_course_reach_each_others_neighbourhood(result):
+    """The live seam under `65` §4.2, and no unit test could have found it.
+
+    `CORPUS` has two files stating `subject = PHYS1401`. P9's first retrieval
+    channel is the shared validated fact, so each must be in the other's
+    neighbourhood, the group's graph must carry the edge, and `anchor_count` --
+    the SPEC's "number of files that INDEPENDENTLY state the basis value" --
+    must be two.
+
+    It was ONE, and the neighbourhood was empty, because `_corpus` admits only
+    files at `scan_state = 'included'` and the live composition writes `scanned`.
+    P9's own tests write `included`, so all 5,000 of them agreed with a
+    production run that could never form a group of more than one file.
+    """
+    # `seeds_for_file` orders anchor rows by `field_key`, so the seed of a
+    # `Columbia PHYS1401 ...` file is `school=Columbia` -- the identity the two
+    # Columbia files share, and the one whose group must therefore hold both.
+    shared = [item for item in result.grouping
+              if item.group is not None
+              and item.group.proposed_basis == "school=Columbia"]
+    assert shared, [item.group.proposed_basis for item in result.grouping
+                    if item.group is not None]
+
+    # Both files resolved to ONE group -- `65` §4.2's own requirement.
+    assert len({item.group.group_id for item in shared}) == 1
+
+    formed = shared[0]
+    assert formed.neighborhood is not None
+    assert formed.neighborhood.neighbors, (
+        "P9 saw no neighbour for a file another file corroborates")
+    assert formed.graph.edges, "no typed edge for a shared validated fact"
+    anchored = formed.group.anchor_facts[0].file_ids
+    assert len(anchored) == 2, anchored
+    assert formed.group.anchor_count == 2

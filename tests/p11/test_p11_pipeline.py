@@ -1389,3 +1389,40 @@ def test_a_model_call_with_no_scan_to_charge_against_is_refused(skeleton,
     with pytest.raises(pipeline.ScanBudgetRequired):
         _place(skeleton, inputs=_model_inputs(skeleton, call_dependencies=deps),
                evidence=_evidence(**AMBIGUOUS))
+
+
+def test_an_unclassified_file_is_not_told_that_nothing_could_read_it(
+        skeleton, monkeypatch, tmp_path):
+    """`65` §4.1: the refusal described the one step that WORKED.
+
+    On the first real run all four files had a `direct` subject fact in
+    `file_facts` and zero rows in `classifications`. Reading succeeded and
+    classification declined, and the sentence blamed reading -- "nothing has been
+    able to read enough of it". `66` §4 forbids exactly this: "protected",
+    "unreadable", "unsupported format", "still indexing" and "no strong match"
+    are five states that may never share one message, and this was two of them
+    sharing one.
+
+    P11 knows that nothing classified this file. It does NOT know whether the
+    file was readable -- P4's `extraction_runs` is that record (B1) and P11 never
+    reads it. So the sentence claims the first and stops claiming the second.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
+                                       name="syllabus.pdf", body=b"%PDF-1.4 s")
+    subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                      group_id=None, member_file_ids=())
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    # Still says the true thing.
+    assert "has not been classified" in decision.explanation
+    # And no longer says the untrue one, in any of its spellings.
+    assert "read enough" not in decision.explanation
+    assert "unreadable" not in decision.explanation
+    assert "able to read" not in decision.explanation

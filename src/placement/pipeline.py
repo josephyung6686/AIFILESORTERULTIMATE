@@ -567,12 +567,26 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
             # and the evidence never got as far as being weighed. `00` --
             # "sensitive personal material is not the same thing as `Numbers.app`"
             # -- and a file nothing could read is a third thing again.
+            #
+            # It used to end that thought with "nothing has been able to read
+            # enough of it", and `65` §4.1 caught that on a live run: all four
+            # files had a `direct` fact in `file_facts` and zero rows in
+            # `classifications`. Reading is the step that WORKED and it was the
+            # step the sentence blamed. `66` §4 forbids it -- "protected",
+            # "unreadable", "unsupported format", "still indexing" and "no strong
+            # match" may never share one message, and that was two of them
+            # sharing one.
+            #
+            # P11 knows nothing classified this file. Whether it was READABLE is
+            # P4's `extraction_runs` (B1: THE extraction-outcome record for the
+            # whole system), which P11 does not read and must not guess at. So
+            # the sentence names the step that stopped and claims nothing about
+            # the one before it.
             return (
-                "This file has not been classified -- nothing has been able to "
-                "read enough of it to say what kind of material it is -- so it "
-                "was not shown to a model and nothing moved. It is waiting for "
-                "you to say what it is, not marked sensitive and not judged on "
-                "thin evidence."
+                "This file has not been classified -- nothing has yet said what "
+                "kind of material it is -- so it was not shown to a model and "
+                "nothing moved. It is waiting for you to say what it is, not "
+                "marked sensitive and not judged on thin evidence."
             )
         if context.privacy.protected:
             return (

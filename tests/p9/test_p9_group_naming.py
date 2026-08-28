@@ -317,7 +317,13 @@ def test_a_live_p9_run_produces_a_group_p10_can_route(live, tmp_path):
     """
     subjects = _coursework(live, tmp_path)
     made = [_group_subject(live, subject) for subject in subjects]
-    groups = [result.group for result in made if result.group is not None]
+    # DISTINCT groups, and the deduplication is the point rather than tidiness:
+    # since `65` §4.2 a group is addressed by the identity its seed states, so
+    # three coursework files stating one course code are three results holding ONE
+    # group. Accepting per subject would accept the same group three times, which
+    # `one_current_group_acceptance` correctly refuses.
+    groups = list({result.group.group_id: result.group
+                   for result in made if result.group is not None}.values())
     assert groups, "P9 made no group at all, which is a different failure"
     for group in groups:
         _accept(live, group.group_id)
@@ -376,9 +382,13 @@ def test_a_domain_that_did_not_activate_is_still_offered_on_the_canvas(
     from tree_design.candidates import horizontal_candidates
 
     subjects = _coursework(live, tmp_path)
+    # One acceptance per DISTINCT group -- see the note in the test above: one
+    # course code is one group, however many files state it.
+    seen = set()
     for subject in subjects:
         result = _group_subject(live, subject)
-        if result.group is not None:
+        if result.group is not None and result.group.group_id not in seen:
+            seen.add(result.group.group_id)
             _accept(live, result.group.group_id)
     accepted = _accepted_groups(live)
     assert {group.domain for group in accepted} == {"academic"}

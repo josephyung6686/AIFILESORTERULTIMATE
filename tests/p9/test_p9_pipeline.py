@@ -616,3 +616,87 @@ def test_p9_hands_p7_a_model_target_not_an_embedding_identity(
     assert seen, "the pipeline built no request"
     assert isinstance(seen[0].model_call_request.model_target, ModelTarget), (
         seen[0].model_call_request.model_target)
+
+
+# --- `65` §4.2: one course is one group ------------------------------------------
+
+
+def test_four_files_from_one_course_are_one_group_and_not_four(
+        pipeline_conn, tmp_path):
+    """The north-star defect the first real run found, and it is P9's.
+
+    Four coursework files each carried `subject = PHYS1401` at `direct`. The run
+    produced FOUR groups -- `group:{file_id}:strongly-identified-file`, one per
+    file, all four labelled `PHYS1401` -- and a `Coursework` folder proposed and
+    left empty, because a group id keyed on a FILE cannot be the address of an
+    identity that four files share.
+
+    `65` §4.2: "The strategy is not wrong in general: a strongly self-identifying
+    file SHOULD be able to stand alone when nothing else shares its identity. The
+    defect is that the strategy does not check whether anything else resolved to
+    the same identity before minting a singleton for it."
+
+    A person with four files from one course expects one course folder with four
+    files in it. That is the whole test.
+    """
+    subjects = []
+    for index in range(4):
+        subject = _file(pipeline_conn, tmp_path, f"HW{index}.pdf",
+                        body=b"PHYS1401 homework %d" % index)
+        _fact(pipeline_conn, file_id=subject[0], content_hash=subject[1],
+              field="subject", value="PHYS1401", run_id=f"r-hw{index}")
+        subjects.append(subject)
+
+    results = [_run(pipeline_conn, subject) for subject in subjects]
+
+    group_ids = {result.group.group_id for result in results}
+    assert len(group_ids) == 1, sorted(group_ids)
+    # And every file is a member of it, so the folder is not proposed empty.
+    recorded = {row["file_id"] for row in pipeline_conn.execute(
+        "SELECT file_id FROM memberships WHERE group_id = ?",
+        (group_ids.pop(),))}
+    assert recorded == {file_id for file_id, _ in subjects}
+
+
+def test_a_file_whose_identity_nothing_shares_still_stands_alone(
+        pipeline_conn, tmp_path):
+    """The negative twin, and the half of the strategy that was never wrong.
+
+    Two files, two different course codes. Making one identity one group must not
+    collapse two identities into one: the address is the identity, so a file
+    nothing else shares an identity with is still a group of one.
+    """
+    first = _file(pipeline_conn, tmp_path, "Phys.pdf", body=b"PHYS1401 notes")
+    _fact(pipeline_conn, file_id=first[0], content_hash=first[1],
+          field="subject", value="PHYS1401", run_id="r-phys")
+    second = _file(pipeline_conn, tmp_path, "Chem.pdf", body=b"CHEM2100 notes")
+    _fact(pipeline_conn, file_id=second[0], content_hash=second[1],
+          field="subject", value="CHEM2100", run_id="r-chem")
+
+    one, two = _run(pipeline_conn, first), _run(pipeline_conn, second)
+
+    assert one.group.group_id != two.group.group_id
+    assert one.group.display_label == "PHYS1401"
+    assert two.group.display_label == "CHEM2100"
+
+
+def test_the_graph_p9_drew_is_stored_and_not_only_computed(
+        pipeline_conn, subject, tmp_path):
+    """A typed edge is the evidence for a relationship, and it was never written.
+
+    `record_edges` had no caller anywhere in `src/` -- only tests -- so every live
+    run built a graph, decided the group on it, and dropped it. Nothing later
+    could answer "why are these two files related", which is the question `66` §3
+    makes a user-facing state: "Also related to ... Shown as a relationship, not
+    as uncertainty". A relationship whose evidence is not stored cannot be shown
+    as one, and `Support.edge_ref` would point into an empty table.
+    """
+    from grouping.store import edges_for_group
+
+    _corroborating(pipeline_conn, tmp_path, "Lecture 11.pdf", run_id="r-11")
+    result = _run(pipeline_conn, subject)
+
+    assert result.graph.edges, "no edge was drawn, which is a different failure"
+    stored = edges_for_group(pipeline_conn, result.group.group_id)
+    assert {edge.edge_id for edge in stored} == {
+        edge.edge_id for edge in result.graph.edges}

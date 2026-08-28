@@ -354,3 +354,47 @@ def test_file_names_are_read_from_the_database_and_shown_from_the_folder_read():
     assert names["id-1"] == "term one/notes.txt"
     # Outside the folder read: the full path, never a guess and never dropped.
     assert names["id-2"] == "/elsewhere/stray.txt"
+
+
+# ======================================================================================
+# The one pattern that reads a course code, and what it used to miss
+# ======================================================================================
+
+
+def _identifiers(text):
+    """What the deployment's finder claims about a piece of text, as strings."""
+    return [text[found.start:found.end]
+            for found in cli.find_structured_strings(text)]
+
+
+def test_a_course_code_printed_with_a_space_is_the_same_identifier():
+    """`65` §2.1: the first real run found nothing, and the corpus was right.
+
+    The files said `PHYS 1401`. The pattern wanted `PHYS1401`. No match, no fact,
+    no group, no tree -- and `63` §10 ruled that this is a READING failure and is
+    fixed by widening what is read, not by asking the person a question: "No
+    onboarding answer could have recovered that course code."
+
+    A person writes one course code both ways in one term, so the two spellings
+    must arrive as ONE identity or the grouping engine sees two courses.
+    """
+    assert _identifiers("Homework for PHYS 1401, due Friday") == ["PHYS 1401"]
+    assert _identifiers("Homework for PHYS1401, due Friday") == ["PHYS1401"]
+    canonical = cli.DIRECT_SLOTS.slots[0].canonical
+    assert canonical("PHYS 1401") == canonical("PHYS1401")
+
+
+def test_widening_the_pattern_did_not_widen_it_to_ordinary_prose():
+    """The negative twin, and the reason the pattern is one line and not ten.
+
+    `cli.py` states the posture the narrow pattern was chosen for: "A wider
+    pattern would put more of the file's text into P4's observations, and a first
+    run on somebody's disk is not the place to widen what gets read." Widening it
+    to read `PHYS 1401` must not turn it into a reader of sentences, dates,
+    money, or a person's initials followed by a year.
+    """
+    assert _identifiers("Meeting on 14 March 2026 about the 2026 budget") == []
+    assert _identifiers("The total was 1401 dollars") == []
+    assert _identifiers("see Appendix A for the 2026 figures") == []
+    # Two words before the digits is prose, not an identifier token.
+    assert _identifiers("SPRING TERM 1401") == ["TERM 1401"]

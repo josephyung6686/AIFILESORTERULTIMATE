@@ -61,7 +61,7 @@ from grouping.store import (
     stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, PENDING_REVIEW, USER, USER_EDITED,
+    ACCEPTED, COHERENT, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, USER, USER_EDITED,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -169,7 +169,26 @@ COLLECTOR_FIELD_KEYS = frozenset({"authored_by", "organization"})
 #: is §2.2's own "identifiers" class. A wider pattern would put more of the file's
 #: text into P4's observations, and a first run on somebody's disk is not the place
 #: to widen what gets read.
-_STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[0-9]{3,}\b")
+#:
+#: ONE separator was added on 2026-08-29, and no more: a single space or hyphen
+#: between the letters and the digits, so that `PHYS 1401` and `PHYS-1401` read as
+#: the identifier they are. `65` §2.1 is why -- the first run on a real folder
+#: returned `NothingToDesign` because the files said `PHYS 1401` and the pattern
+#: wanted `PHYS1401`. `63` §10 rules that this is a READING failure and is fixed by
+#: reading better, never by asking the person: "No onboarding answer could have
+#: recovered that course code."
+#:
+#: The posture above is unchanged. The letters must still be a single uppercase
+#: token and the digits must still be three or more, so a date, a sum of money, a
+#: page number and a sentence are all still invisible to it.
+_STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b")
+
+#: The same identifier, however it was printed. `PHYS 1401`, `PHYS-1401` and
+#: `PHYS1401` are one course code and must reach P6 as ONE value: `65` §4.2 records
+#: what happens when one identity arrives as several -- four files from one course
+#: became four one-file groups carrying the same label, and the course folder was
+#: proposed and left empty.
+_SEPARATOR = re.compile(r"(?<=[A-Z])[ -](?=[0-9])")
 
 #: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
 #: no default because the slot is the caller's; this deployment reads ONE -- the
@@ -184,7 +203,9 @@ DIRECT_SLOTS = DirectSlots(slots=(
     DirectSlot(
         slot_id="cli.text.identifier", field_key="subject",
         names=lambda locator: locator.startswith(("body#", "heading")),
-        canonical=lambda raw: " ".join(raw.split())),
+        # Whitespace collapsed, THEN the identifier's own separator removed, so
+        # the two spellings of one course code canonicalise to one value.
+        canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),
 ))
 METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
                                  metadata_property_names=())
@@ -367,7 +388,16 @@ def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
         usable_threshold=lambda facts, unresolved: True,
         classify=classifier(detector, now=now),
         source=FilesystemCorpusSource(),
-        mime_type_for=_mime_type_for, scan_state="scanned",
+        # IMPORTED, never respelled -- and the import is the fix. This wrote the
+        # literal `"scanned"`; P9's `_corpus` admits `scan_state = 'included'`
+        # and nothing else, so on every live run the neighbourhood of every file
+        # was EMPTY, no shared-fact edge was ever built, and every group was a
+        # group of one whatever the corpus said. P9's own tests write `included`,
+        # so 5,000 of them agreed with a production path that could not form a
+        # group of two. P3's SPEC Q4 leaves the vocabulary to the caller (
+        # `scan_agent/basic_record.py:50`), which makes this deployment's job to
+        # write the word its readers read, from their constant.
+        mime_type_for=_mime_type_for, scan_state=P1_INCLUDED_SCAN_STATE,
         scan_budget_exhausted=lambda: False, detect_format=_detect_format,
         # THE standing rule, at its first enforcement point. `is_protected_container`
         # is P3's own predicate; P3 writes an exclusion verdict for the container and

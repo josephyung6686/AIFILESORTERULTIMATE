@@ -31,6 +31,7 @@ anchor facts state no value.
 """
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -46,6 +47,7 @@ from grouping.embeddings import (
 )
 from grouping.graph import (
     LocalEvidenceGraph,
+    anchoring_files,
     build_graph,
     evaluate_stop_rules,
     meets_support_bar,
@@ -62,7 +64,13 @@ from grouping.records import (
 )
 from grouping.retrieval import Neighborhood, RetrievalKnowledge, retrieve_neighbors
 from grouping.seeds import Seed, UserSeed, seeds_for_file
-from grouping.store import record_group, record_membership
+from grouping.store import (
+    RecordAbsent,
+    current_group,
+    record_edges,
+    record_group,
+    record_membership,
+)
 from grouping.vocabulary import (
     CANDIDATE,
     DIRECT_ANCHOR,
@@ -213,17 +221,63 @@ def _prepare_embeddings(
         )
 
 
+def group_address(seed: Seed) -> str:
+    """The address of the group this seed starts. An IDENTITY, not a file.
+
+    `store.record_group`: "A group id derived from its seed is an address, so a
+    rerun over unchanged evidence is the same group and not a conflict." It was
+    derived from the seed's FILE -- `group:{file_id}:{seed_kind}` -- and `65` §4.2
+    records what that cost on the first run over a real folder: four coursework
+    files each stating `subject = PHYS1401` minted four one-file groups carrying
+    the same label, the `Coursework` branch was proposed and left empty, and all
+    four placements abstained.
+
+    A fact-backed seed's claim is not about its file. It is `subject = PHYS1401`,
+    and every file that states it is stating the SAME thing, so the address is
+    that claim. `65` §4.2: "The strategy is not wrong in general: a strongly
+    self-identifying file should be able to stand alone when nothing else shares
+    its identity. The defect is that the strategy does not check whether anything
+    else resolved to the same identity before minting a singleton for it."
+
+    A `user-created-starting-point` keeps the file address, and that is not an
+    inconsistency: `seeds.py` -- "user intent enters through `user_seed_for`,
+    where it carries a decision the user actually made about *this group*". The
+    user said THIS FILE starts a group, and two users' two decisions about two
+    files are two groups even when the files look alike.
+
+    The value is digested rather than spelled into the id because a field value is
+    arbitrary user text -- a course code, a client name, a filename with a colon
+    in it -- and an id is parsed by `test_p10_templates` and read in logs. The
+    field key and the seed kind stay in plain sight; `anchor_facts` carries the
+    value itself, which is where a reader should be reading it from anyway.
+    """
+    if not (seed.field_key and seed.value):
+        return f"group:{seed.file_id}:{seed.seed_kind}"
+    digest = hashlib.sha256(
+        "\x1f".join((seed.field_key, seed.value)).encode("utf-8"),
+    ).hexdigest()
+    return f"group:{seed.field_key}:{digest}:{seed.seed_kind}"
+
+
 def _group_for(seed: Seed, *, group_id: str, state: str,
-               conflicts: Sequence[object], created_at: str) -> Group:
+               conflicts: Sequence[object], anchor_file_ids: frozenset[str],
+               created_at: str) -> Group:
+    # Every file the graph says states this value DIRECTLY, not just the seed.
+    # The SPEC's own definition of `anchor_count` is "number of files that
+    # INDEPENDENTLY state the basis value", and a one-tuple of the seed's own file
+    # made that number 1 for a group of four -- understating to P10 and P11 the
+    # very support the group was formed on.
     facts = (
         (AnchorFact(
             field=seed.field_key, value=seed.value,
-            file_ids=(seed.file_id,), reliability_state=seed.reliability_state,
+            file_ids=tuple(sorted(anchor_file_ids or {seed.file_id})),
+            reliability_state=seed.reliability_state,
             observation_key=seed.observation_key),)
         if seed.field_key and seed.value and seed.observation_key
         and seed.reliability_state
         else ()
     )
+    anchor_count = len(facts[0].file_ids) if facts else 0
     return Group(
         group_id=group_id,
         seed_ref=f"{seed.file_id}:{seed.content_hash}",
@@ -233,8 +287,8 @@ def _group_for(seed: Seed, *, group_id: str, state: str,
             else seed.basis or seed.seed_kind
         ),
         anchor_facts=facts,
-        pre_model_signals={"anchor_count": len(facts)},
-        anchor_count=len(facts),
+        pre_model_signals={"anchor_count": anchor_count},
+        anchor_count=anchor_count,
         # Blank on purpose, and blank ONLY here. This builder runs before the stop
         # rules, so it cannot know whether the group is going to form at all, and a
         # verdict written on a group SR4 is about to destroy would be a claim about
@@ -261,9 +315,30 @@ def _group_for(seed: Seed, *, group_id: str, state: str,
     )
 
 
+def _standing_group(conn: sqlite3.Connection, group_id: str) -> Group | None:
+    """The group already recorded at this address, or None.
+
+    `record_group` would answer this too, but only by raising: it refuses a second
+    row under one id whose content differs, and two files that legitimately share
+    an identity DO differ in `seed_ref` -- the group started from whichever one the
+    corpus loop reached first. That difference is not a conflict, it is the join.
+    """
+    try:
+        return current_group(conn, group_id)
+    except RecordAbsent:
+        return None
+
+
 def _self_membership(group: Group, seed: Seed, *,
                      conflicts: Sequence[object], created_at: str) -> Membership:
-    """The group of one. Its own direct fact is what makes it a member."""
+    """This file's own membership. Its own direct fact is what makes it one.
+
+    It was named for the group of one it used to be the only inhabitant of. Since
+    `65` §4.2 a group is addressed by the identity its seed states, so this is the
+    record written once per file that states that identity -- four of them for a
+    course with four files -- and the name now describes whose membership it is
+    rather than how many there are.
+    """
     return Membership(
         membership_id=f"{group.group_id}:{seed.file_id}",
         group_id=group.group_id,
@@ -336,7 +411,7 @@ def group_subject(
         conn, seed=seed, limits=limits, knowledge=knowledge.retrieval,
         embeddings_enabled=isinstance(embeddings, EmbeddingsOn))
 
-    group_id = f"group:{file_id}:{seed.seed_kind}"
+    group_id = group_address(seed)
     graph = build_graph(
         group_id=group_id, neighborhood=neighborhood, limits=limits,
         duplicate_or_version=knowledge.duplicate_or_version,
@@ -359,6 +434,7 @@ def group_subject(
 
     group = _group_for(
         seed, group_id=group_id, created_at=created_at, conflicts=conflicts,
+        anchor_file_ids=anchoring_files(graph, seed_anchors=seed_anchors),
         state=SUPPORTED if meets_support_bar(
             graph, limits=limits, seed_anchors=seed_anchors) else CANDIDATE)
 
@@ -381,8 +457,47 @@ def group_subject(
     # the bar comes back untouched and is recorded with all four fields still
     # blank, which is the SPEC's `deferred` row and an honest thing for a
     # deployment with no model to show.
-    group = engine_proposal(group)
-    record_group(conn, group)
+    # `65` §4.2's other half. A group is addressed by the identity its seed
+    # states, so a second file stating the SAME identity finds the group already
+    # standing and JOINS it -- one course, one group, four memberships -- instead
+    # of minting a second group under a second address.
+    #
+    # The standing group is taken as recorded and is not re-judged here. Its
+    # verdict was written once, from the graph that already contained these files;
+    # re-asking would spend a second dossier and a second model call to answer a
+    # question P9 has answered, and could return a different verdict for the same
+    # material depending on which file the corpus loop reached first. Whether a
+    # LATER member should reopen coherence is §4.5's question and is not this fix.
+    # The graph is EVIDENCE, and it was computed and dropped: `record_edges` had
+    # no caller in `src/` at all. `66` §3 makes "also related to" a state a person
+    # is shown -- "a relationship, not as uncertainty" -- and a relationship whose
+    # typed edge exists only in memory cannot be shown, reviewed or replayed.
+    # Written here, after the stop rules, so a graph belonging to a group that
+    # never formed is not stored as though it did. Edge ids are content-derived
+    # and the writer ignores a repeat, so a join and a rerun add nothing.
+    record_edges(conn, group_id, graph.edges, created_at=created_at)
+
+    standing = _standing_group(conn, group_id)
+    if standing is not None and standing.seed_ref != group.seed_ref:
+        membership = _self_membership(
+            standing, seed, conflicts=conflicts, created_at=created_at)
+        record_membership(conn, membership)
+        return _result(
+            seeds=seeds, neighborhood=neighborhood, graph=graph, group=standing,
+            memberships=(membership,))
+
+    if standing is not None:
+        # A RERUN over the seed's own group, which is a different thing again. The
+        # recorded row is taken as it stands and is not rewritten, because the
+        # anchor set is a fact about the corpus AS SCANNED and scanning more of the
+        # corpus later would otherwise rewrite a group's evidence under it. §8.2
+        # supersedes rather than overwrites, and a supersession needs a new id --
+        # which an address cannot have. Whether a widened anchor set should mint a
+        # superseding group is a real §8.2 question and is NOT answered here.
+        group = standing
+    else:
+        group = engine_proposal(group)
+        record_group(conn, group)
     membership = _self_membership(
         group, seed, conflicts=conflicts, created_at=created_at)
     record_membership(conn, membership)
