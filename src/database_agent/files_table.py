@@ -16,6 +16,7 @@ FILES_COLUMNS: tuple[str, ...] = (
     "directory_position", "volume_id", "content_hash", "hash_algorithm",
     "observed_size", "observed_timestamps", "mime_type", "detected_format",
     "scan_state", "extraction_status_by_tier", "sensitivity_state",
+    "st_dev", "st_ino",
 )
 
 #: OQ1 — P1's own write into `scan_state` when a path's bytes change. Not a
@@ -60,6 +61,159 @@ def _lstat_or_none(recorded: str) -> os.stat_result | None:
         return os.lstat(recorded)
     except OSError:
         return None
+
+
+def _inode_of(path: Path) -> tuple[int | None, int | None]:
+    """`(st_dev, st_ino)` for the row, or `(None, None)` if the path names nothing.
+
+    `lstat`, for the reason `_lstat_or_none` gives: a symlink's own inode, so a link
+    and its target are two rows rather than one. NULL when the path cannot be stat'd,
+    which is the honest value and also the safe one -- SQL equality never matches
+    NULL, so a row with no recorded inode can never be mistaken for the file being
+    observed.
+    """
+    recorded = _lstat_or_none(str(path))
+    return (None, None) if recorded is None else (recorded.st_dev, recorded.st_ino)
+
+
+def _same_inode(recorded: os.stat_result | None,
+                observed: os.stat_result | None) -> bool:
+    return (recorded is not None and observed is not None
+            and (recorded.st_dev, recorded.st_ino)
+            == (observed.st_dev, observed.st_ino))
+
+
+def _home_is_gone(recorded_stat: os.stat_result | None, recorded: str) -> bool:
+    """Is the path a row records no longer there?
+
+    `lstat` failing settles it. A live path settles it too, with one exception the
+    walk already paid for: a symlink can `lstat` and still not `exists()`, and a
+    dangling link is not a home. Guarded by `S_ISLNK` so a regular file never buys
+    the second syscall.
+    """
+    if recorded_stat is None:
+        return True
+    return stat.S_ISLNK(recorded_stat.st_mode) and not Path(recorded).exists()
+
+
+def _path_is_taken(conn: sqlite3.Connection, observed: str) -> bool:
+    """Is some live row already sitting at the path being observed?
+
+    Asked before any row is relocated onto `observed`. Without it a row whose home
+    went missing would be moved on top of a live row recording different bytes at
+    this path, leaving two live rows at one path instead of superseding the one that
+    is there (R3).
+    """
+    return conn.execute(
+        "SELECT 1 FROM files WHERE current_path = ? AND scan_state != ?",
+        (observed, SUPERSEDED_CONTENT),
+    ).fetchone() is not None
+
+
+def _row_for_this_inode(conn: sqlite3.Connection, content_hash: str, observed: str,
+                        observed_stat: os.stat_result) -> sqlite3.Row | None:
+    """The recorded row that IS the file being observed, or None.
+
+    This is the question the old family walk existed to answer, and it answered it by
+    `lstat`ing every member of the duplicate family to find at most one match: O(k)
+    syscalls per file admitted, O(k^2) to admit a family of k. Empty files,
+    `.DS_Store`, stub configs and repeated downloads make families that size on a real
+    disk, so the walk is gone and the same question is asked of an index.
+
+    **A row is a CANDIDATE, never an answer.** `st_dev`/`st_ino` are what the
+    filesystem said when the row last wrote its path, and inodes are recycled: the
+    file that owned that pair may have been deleted and the number handed to another.
+    So every candidate is confirmed against what the filesystem says NOW, and there
+    are exactly two ways a candidate confirms:
+
+    * its recorded path is still there and IS this inode -- one file under two
+      spellings of its name, which is one record; or
+    * its recorded path is GONE. A rename is the whole reason this index exists, and
+      a rename necessarily leaves the old name behind: the row remembers an inode
+      that is no longer reachable by the name the row records. Demanding that the old
+      name still resolve would reject every rename, which is precisely the case the
+      index was built to catch.
+
+    The second is strictly MORE evidence than the walk required. The walk relocated
+    any family member whose path had gone missing, on no inode evidence at all --
+    which of k identical copies had moved was a guess it settled by rowid. Here the
+    filesystem itself says this row's remembered inode is the file now being looked
+    at.
+
+    A candidate whose recorded path is live but is a DIFFERENT inode is rejected, and
+    that is the recycled-inode case: the number has been handed to another file and
+    the row's own home says so
+    (test_a_recycled_inode_is_a_candidate_and_never_an_answer).
+
+    Rowid order, and the first confirmed row wins, because the walk took the first
+    match in rowid order too. The live match is settled across the whole candidate
+    set before any vanished home is used, so the same file under a different spelling
+    can never be mistaken for a move.
+    """
+    vanished: sqlite3.Row | None = None
+    for row in conn.execute(
+        "SELECT file_id, current_path FROM files "
+        "WHERE st_dev = ? AND st_ino = ? AND content_hash = ? AND scan_state != ? "
+        "ORDER BY rowid",
+        (observed_stat.st_dev, observed_stat.st_ino, content_hash,
+         SUPERSEDED_CONTENT),
+    ):
+        recorded_stat = _lstat_or_none(row["current_path"])
+        if _same_inode(recorded_stat, observed_stat):
+            return row
+        if vanished is None and _home_is_gone(recorded_stat, row["current_path"]):
+            vanished = row
+    if vanished is None or _path_is_taken(conn, observed):
+        return None
+    return vanished
+
+
+def _relocated_row(conn: sqlite3.Connection, content_hash: str, observed: str,
+                   observed_stat: os.stat_result | None) -> sqlite3.Row | None:
+    """R2's move: same bytes at a new path where the recorded home is gone.
+
+    Reached only after the inode question above has been answered NO, which keeps the
+    original ordering: same file under a different spelling of its name is the same
+    file version, not a duplicate, and is settled before this so it can never be
+    mistaken for a move.
+
+    A same-volume rename keeps its inode and never gets here. What does is a
+    cross-volume move and a copy-then-delete, where the file that arrives is a
+    genuinely new inode and the only evidence of the move is that a recorded copy of
+    these bytes has gone missing.
+
+    **Deletion leaves nothing in the database**, so no index can answer "is any
+    recorded copy of these bytes missing?" -- only one filesystem call per recorded
+    copy can, which is the O(k^2) this whole change exists to remove. So the question
+    asked here is narrower and answerable in one call: *is the OLDEST recorded home of
+    these bytes gone?* It is the same answer the walk gave whenever the family has one
+    recorded home -- the case §8.2's move rule is written for, and the case where the
+    answer is not a guess -- and whenever the oldest home is the one that went missing.
+
+    Inside a family with several live copies whose oldest member is still live, a
+    cross-volume move is now recorded as a new file rather than as a relocation of an
+    arbitrary member. That is a deliberate narrowing and it errs in the safe
+    direction: it can only ever mint an extra record, never merge two files into one.
+    The walk's answer there was a guess anyway -- which of k identical copies moved is
+    not knowable, and it always named the earliest rowid.
+
+    The oldest home is `lstat`ed rather than trusted, so a stale stored inode cannot
+    hide a file from itself: if the filesystem says that path is the file being
+    observed, it is, whatever the row remembers.
+    """
+    oldest = conn.execute(
+        "SELECT file_id, current_path FROM files "
+        "WHERE content_hash = ? AND scan_state != ? ORDER BY rowid LIMIT 1",
+        (content_hash, SUPERSEDED_CONTENT),
+    ).fetchone()
+    if oldest is None:
+        return None
+    recorded_stat = _lstat_or_none(oldest["current_path"])
+    if _same_inode(recorded_stat, observed_stat):
+        return oldest
+    if not _home_is_gone(recorded_stat, oldest["current_path"]):
+        return None
+    return None if _path_is_taken(conn, observed) else oldest
 
 
 def _require_caller_scan_state(scan_state: str) -> None:
@@ -123,6 +277,7 @@ def record_file(conn: sqlite3.Connection, path: Path, *,
             observed_size, observed_timestamps,
             mime_type, detected_format,
             scan_state, "{}", None,
+            *_inode_of(path),
         ),
     )
     return file_id
@@ -255,48 +410,17 @@ def observe_path(conn: sqlite3.Connection, path: Path, *,
         "AND content_hash = ? AND scan_state != ? ORDER BY rowid LIMIT 1",
         (observed, content_hash, SUPERSEDED_CONTENT),
     ).fetchone()
+    observed_stat: os.stat_result | None = None
     if existing is None:
-        # Only two columns: the family is walked, and materialising sixteen columns
-        # per member to read two of them is the walk's largest term after the
-        # syscalls.
-        same_hash = conn.execute(
-            "SELECT file_id, current_path FROM files "
-            "WHERE content_hash = ? AND scan_state != ? ORDER BY rowid",
-            (content_hash, SUPERSEDED_CONTENT),
-        ).fetchall()
-        try:
-            observed_stat: os.stat_result | None = os.lstat(path)
-        except OSError:
-            observed_stat = None
-        # One pass, not three. Same file under a different spelling of its name is
-        # the same file version, not a duplicate, and is settled before the
-        # dead-path branch so it can never be mistaken for a move — which is why
-        # `dead` is only consulted after the whole family has failed the inode test.
-        dead = None
-        for row in same_hash:
-            recorded_stat = _lstat_or_none(row["current_path"])
-            if recorded_stat is None:
-                # lstat failed, so stat fails too: `Path(...).exists()` is False.
-                if dead is None:
-                    dead = row
-                continue
-            if (observed_stat is not None
-                    and (recorded_stat.st_dev, recorded_stat.st_ino)
-                    == (observed_stat.st_dev, observed_stat.st_ino)):
-                existing = row
-                break
-            # A live non-symlink exists(); only a symlink can lstat and still not,
-            # and only then is the extra syscall the old third pass paid worth it.
-            if (dead is None and stat.S_ISLNK(recorded_stat.st_mode)
-                    and not Path(row["current_path"]).exists()):
-                dead = row
-        if existing is None and dead is not None:
-            path_taken = conn.execute(
-                "SELECT 1 FROM files WHERE current_path = ? AND scan_state != ?",
-                (observed, SUPERSEDED_CONTENT),
-            ).fetchone()
-            if path_taken is None:
-                existing = dead
+        # The family is no longer read at all. Both questions left -- is one of these
+        # rows this very inode, and has the oldest recorded home of these bytes gone
+        # -- are answered without materialising a single duplicate.
+        observed_stat = _lstat_or_none(observed)
+        if observed_stat is not None:
+            existing = _row_for_this_inode(conn, content_hash, observed,
+                                           observed_stat)
+        if existing is None:
+            existing = _relocated_row(conn, content_hash, observed, observed_stat)
 
     if existing is not None:
         if existing["current_path"] != observed:
@@ -307,10 +431,20 @@ def observe_path(conn: sqlite3.Connection, path: Path, *,
                 component_version=component_version, observed_at=now,
                 explanation="same content observed at a new path (R2)",
             )
-            conn.execute(
-                "UPDATE files SET current_path = ? WHERE file_id = ?",
-                (observed, existing["file_id"]),
-            )
+            # The inode moves with the path: a row whose remembered inode belongs
+            # to the path it no longer has is a row the index would answer with.
+            if observed_stat is not None:
+                conn.execute(
+                    "UPDATE files SET current_path = ?, st_dev = ?, st_ino = ? "
+                    "WHERE file_id = ?",
+                    (observed, observed_stat.st_dev, observed_stat.st_ino,
+                     existing["file_id"]),
+                )
+            else:
+                conn.execute(
+                    "UPDATE files SET current_path = ? WHERE file_id = ?",
+                    (observed, existing["file_id"]),
+                )
         return existing["file_id"]
 
     prior = conn.execute(

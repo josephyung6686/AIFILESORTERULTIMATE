@@ -247,3 +247,313 @@ def test_the_superseded_version_carries_its_authors_explanation(conn, tmp_path: 
     ).fetchone()
     assert explaining is not None
     assert explaining["subsystem"] == "P3"
+
+
+# ---------------------------------------------------------------------------
+# Identity resolution inside a duplicate family.
+#
+# `observe_path` used to answer "is one of the rows for these bytes the file I am
+# looking at?" by `lstat`ing every member of the duplicate family: O(k) syscalls to
+# admit one file, O(k^2) to admit a family of k. The family is no longer read; the
+# inode question is asked of an index and the move question is asked of the oldest
+# recorded home. These tests pin what that must NOT have changed, because a syscall
+# count that only falls can be satisfied by an identity resolver that answers wrongly.
+# ---------------------------------------------------------------------------
+
+import os
+
+
+def _family(tmp_path: Path, size: int, *, content=b"IDENTICAL") -> list[Path]:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir(exist_ok=True)
+    members = []
+    for index in range(size):
+        member = corpus / f"copy_{index:03d}.bin"
+        member.write_bytes(content)
+        members.append(member)
+    return members
+
+
+def _admission_syscalls(conn, target: Path) -> int:
+    """Filesystem calls `observe_path` makes admitting `target`, and nothing else.
+
+    The R2 record is computed first and outside the count: deriving it is P3's job
+    and P3's stat is not what is being measured here.
+    """
+    fields = _observed(target)
+    calls = [0]
+    real_lstat, real_stat = os.lstat, os.stat
+
+    def counted_lstat(t, *a, _r=real_lstat, **k):
+        calls[0] += 1
+        return _r(t, *a, **k)
+
+    def counted_stat(t, *a, _r=real_stat, **k):
+        calls[0] += 1
+        return _r(t, *a, **k)
+
+    os.lstat, os.stat = counted_lstat, counted_stat
+    try:
+        observe_path(conn, target, **fields)
+    finally:
+        os.lstat, os.stat = real_lstat, real_stat
+    return calls[0]
+
+
+def test_admitting_a_duplicate_costs_the_same_in_a_big_family_as_in_a_small_one(
+        conn, tmp_path: Path):
+    """The in-suite twin of `test_identity_resolution_does_not_stat_the_whole_
+    duplicate_family`, which is gated behind SCALE_STRESS=1 and takes a minute.
+
+    Empty files, `.DS_Store`, stub configs and repeated downloads form families in
+    the tens of thousands on a real disk, so a per-file cost that rises with family
+    size is a scan that never finishes.
+    """
+    create_schema(conn)
+    members = _family(tmp_path, 60)
+    costs: dict[int, int] = {}
+    for position, member in enumerate(members, start=1):
+        cost = _admission_syscalls(conn, member)
+        if position in (20, 60):
+            costs[position] = cost
+
+    assert costs[60] == costs[20], (
+        f"admitting the 20th member of a duplicate family cost {costs[20]} filesystem "
+        f"calls and the 60th cost {costs[60]}. Per-file cost that rises with family "
+        "size means the family costs O(k^2) to admit."
+    )
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 60
+
+
+def test_every_live_copy_in_a_family_keeps_its_own_record(conn, tmp_path: Path):
+    """I1, at family scale: two live copies are two records, and so are sixty.
+
+    The negative twin of the syscall guard above. Not reading the family is only a
+    fix if the file admitted is still recorded as a copy rather than resolved onto
+    one of its twins.
+    """
+    create_schema(conn)
+    members = _family(tmp_path, 60)
+    ids = [observe_path(conn, member, **_observed(member)) for member in members]
+
+    assert len(set(ids)) == 60
+    rows = conn.execute("SELECT file_id, current_path, content_hash FROM files").fetchall()
+    assert len(rows) == 60
+    assert len({r["content_hash"] for r in rows}) == 1
+    assert {r["current_path"] for r in rows} == {str(m) for m in members}
+
+
+def test_a_rename_inside_a_duplicate_family_keeps_the_renamed_copys_identity(
+        conn, tmp_path: Path):
+    """The case the inode index exists for, and the one a naive "don't read the
+    family" fix silently breaks.
+
+    A rename on the same volume keeps the inode, so the observed file and its own
+    row are the same file even though the path is new and fifty-nine identical
+    twins share its bytes. Resolving this by content alone would hand the renamed
+    file whichever twin came first; not resolving it at all would mint a second row
+    for a file that only changed its name.
+    """
+    create_schema(conn)
+    members = _family(tmp_path, 60)
+    ids = {member: observe_path(conn, member, **_observed(member))
+           for member in members}
+
+    renamed_from = members[42]
+    renamed_to = renamed_from.with_name("renamed.bin")
+    renamed_from.rename(renamed_to)
+
+    again = observe_path(conn, renamed_to, **_observed(renamed_to))
+
+    assert again == ids[renamed_from], "the renamed copy became a different file"
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 60
+    assert get_file(conn, again)["current_path"] == str(renamed_to)
+    assert [r["path"] for r in file_path_history(conn, again)] == [
+        str(renamed_from), str(renamed_to)]
+
+
+def test_a_deleted_twin_does_not_steal_a_live_copys_identity_in_a_family(
+        conn, tmp_path: Path):
+    """`test_deleting_one_of_two_live_copies_does_not_hijack_the_survivor` at family
+    scale, and against the new resolution path: the deleted member is now the OLDEST
+    recorded home, which is the one row the move branch looks at."""
+    create_schema(conn)
+    members = _family(tmp_path, 20)
+    ids = {member: observe_path(conn, member, **_observed(member))
+           for member in members}
+    members[0].unlink()
+
+    for member in members[1:]:
+        assert observe_path(conn, member, **_observed(member)) == ids[member], (
+            f"{member.name} was resolved onto the deleted oldest copy")
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 20
+
+
+def test_a_recycled_inode_is_a_candidate_and_never_an_answer(conn, tmp_path: Path):
+    """Inodes are recycled. `st_dev`/`st_ino` are what the filesystem said when the
+    row last wrote its path, so a stored pair can name a file that no longer exists
+    and a number since handed to a different file — which is why an index hit is
+    confirmed by `lstat`ing the recorded path before it is believed.
+
+    The recycling is forced rather than waited for: which inode a filesystem reissues
+    is not something a test can arrange, and the failure it would cause — two
+    unrelated files resolved onto one record — is too expensive to leave to luck.
+    """
+    create_schema(conn)
+    recorded = tmp_path / "recorded.bin"
+    recorded.write_bytes(b"identical bytes")
+    recorded_id = observe_path(conn, recorded, **_observed(recorded))
+
+    newcomer = tmp_path / "newcomer.bin"
+    newcomer.write_bytes(b"identical bytes")
+    reissued = os.lstat(newcomer)
+    conn.execute("UPDATE files SET st_dev = ?, st_ino = ? WHERE file_id = ?",
+                 (reissued.st_dev, reissued.st_ino, recorded_id))
+
+    newcomer_id = observe_path(conn, newcomer, **_observed(newcomer))
+
+    assert newcomer_id != recorded_id, (
+        "a row whose remembered inode had been reissued to another file claimed that "
+        "file's identity; the index hit was believed instead of confirmed"
+    )
+    assert get_file(conn, recorded_id)["current_path"] == str(recorded)
+    assert get_file(conn, newcomer_id)["current_path"] == str(newcomer)
+
+
+def test_a_move_is_recognised_when_the_oldest_recorded_home_is_the_one_that_went(
+        conn, tmp_path: Path):
+    """R2's move, with twins present. A cross-volume move and a copy-then-delete
+    arrive as a genuinely new inode, so the only evidence of the move is that a
+    recorded copy of these bytes has gone missing — and the missing one here is the
+    oldest recorded home, which is the row the move branch asks about."""
+    create_schema(conn)
+    gone = tmp_path / "gone.bin"
+    twin = tmp_path / "twin.bin"
+    gone.write_bytes(b"identical bytes")
+    twin.write_bytes(b"identical bytes")
+    gone_id = observe_path(conn, gone, **_observed(gone))
+    twin_id = observe_path(conn, twin, **_observed(twin))
+
+    arrived = tmp_path / "elsewhere" / "arrived.bin"
+    arrived.parent.mkdir()
+    arrived.write_bytes(b"identical bytes")     # a new inode: a copy, not a rename
+    gone.unlink()
+
+    assert observe_path(conn, arrived, **_observed(arrived)) == gone_id
+    assert get_file(conn, twin_id)["current_path"] == str(twin)
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 2
+
+
+def test_a_move_inside_a_live_family_now_mints_its_own_record(conn, tmp_path: Path):
+    """CHARACTERISES the one deliberate narrowing, so it is visible in the diff.
+
+    Deletion leaves nothing in the database, so "is any recorded copy of these bytes
+    missing?" cannot be answered by an index — only by one filesystem call per
+    recorded copy, which is the O(k^2) the family walk was. The move branch therefore
+    asks the narrower question the oldest recorded home can answer in one call.
+
+    Here the oldest home is still live and a LATER member is the one that went, so
+    the walk would have relocated that member's record onto the arriving file and
+    this does not: the arriving file gets its own record.
+
+    The walk's answer was a guess. Which of k identical copies moved is not knowable
+    from the bytes, and it always named the earliest rowid — so with `first` live and
+    `second` gone it would have been right, and with `second` live and `first` gone it
+    would have named the wrong one. What is not a guess is the direction of the error:
+    this can only ever mint an extra record, never merge two files into one.
+    """
+    create_schema(conn)
+    first = tmp_path / "first.bin"
+    second = tmp_path / "second.bin"
+    first.write_bytes(b"identical bytes")
+    second.write_bytes(b"identical bytes")
+    first_id = observe_path(conn, first, **_observed(first))
+    second_id = observe_path(conn, second, **_observed(second))
+
+    arrived = tmp_path / "elsewhere" / "arrived.bin"
+    arrived.parent.mkdir()
+    arrived.write_bytes(b"identical bytes")
+    second.unlink()
+
+    arrived_id = observe_path(conn, arrived, **_observed(arrived))
+
+    assert arrived_id not in (first_id, second_id)
+    assert get_file(conn, first_id)["current_path"] == str(first), (
+        "the still-live oldest copy kept its own path — nothing was merged")
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 3
+
+
+def test_a_rename_is_told_apart_from_a_twin_that_was_deleted(conn, tmp_path: Path):
+    """The negative twin of the rename above, and the one that pins WHICH row the
+    rename resolves onto rather than merely that it resolved onto one.
+
+    The family walk answered "which of these rows is the file I am looking at?" with
+    "the first one whose path has gone missing" — no inode evidence at all. With one
+    missing member that guess is right by luck, so a family holding exactly one dead
+    path cannot tell a correct resolver from a lucky one.
+
+    Here two members are gone at once: the OLDEST was deleted outright, and a later
+    one was renamed. The oldest is also the single row `_relocated_row` inspects, so
+    both the walk's rule and the move branch's rule name it — and both are wrong. The
+    renamed file must come back as itself, which only its own remembered inode can
+    say. The deleted twin's record must be left where it is: relocating it onto the
+    renamed file would merge two people's files into one record, which is the failure
+    this whole resolver is written to avoid.
+    """
+    create_schema(conn)
+    members = _family(tmp_path, 20)
+    ids = {member: observe_path(conn, member, **_observed(member)) for member in members}
+
+    deleted = members[0]
+    renamed_from = members[13]
+    renamed_to = renamed_from.with_name("renamed.bin")
+    deleted.unlink()
+    renamed_from.rename(renamed_to)
+
+    again = observe_path(conn, renamed_to, **_observed(renamed_to))
+
+    assert again == ids[renamed_from], (
+        "the renamed copy was resolved onto a twin that had merely been deleted; "
+        "identity came from 'some family member is missing', not from the inode"
+    )
+    assert get_file(conn, ids[deleted])["current_path"] == str(deleted), (
+        "the deleted twin's record was dragged onto the renamed file")
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 20
+    assert [r["path"] for r in file_path_history(conn, again)] == [
+        str(renamed_from), str(renamed_to)]
+
+
+def test_a_reissued_inode_whose_recorded_home_is_gone_is_indistinguishable_from_a_move(
+        conn, tmp_path: Path):
+    """CHARACTERISES the single point where a candidate is believed without its
+    recorded path agreeing, so the boundary is visible in the diff rather than
+    discovered later.
+
+    `test_a_recycled_inode_is_a_candidate_and_never_an_answer` covers the case the
+    row can settle: its recorded path is still there and is a DIFFERENT file, so the
+    row's own home refutes the index hit. Here the home is GONE, and what is left is
+    a row remembering this exact inode, these exact bytes, and no path — which is
+    precisely what a rename looks like, because a rename is exactly that. Nothing in
+    the database separates the two, and demanding more would reject every rename
+    (test_a_rename_inside_a_duplicate_family_keeps_the_renamed_copys_identity).
+
+    This is not a loosening. The walk this replaced relocated ANY family member whose
+    path had gone missing, choosing between k of them by rowid and consulting no
+    inode at all; it merged here too, on strictly less evidence.
+    """
+    create_schema(conn)
+    gone = tmp_path / "gone.bin"
+    gone.write_bytes(b"identical bytes")
+    gone_id = observe_path(conn, gone, **_observed(gone))
+    gone.unlink()
+
+    newcomer = tmp_path / "newcomer.bin"
+    newcomer.write_bytes(b"identical bytes")
+    reissued = os.lstat(newcomer)
+    conn.execute("UPDATE files SET st_dev = ?, st_ino = ? WHERE file_id = ?",
+                 (reissued.st_dev, reissued.st_ino, gone_id))
+
+    assert observe_path(conn, newcomer, **_observed(newcomer)) == gone_id, (
+        "read as a move, which is what the evidence says and what the walk said too"
+    )
+    assert conn.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 1

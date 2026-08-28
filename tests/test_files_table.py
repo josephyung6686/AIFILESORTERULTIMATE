@@ -153,3 +153,143 @@ def test_p1_appends_no_event_of_its_own_for_a_classification(conn, sample_file):
     set_sensitivity_state(conn, file_id, state={"handling_class": "local_only"},
                           author="P7", component_version="1.0")
     assert conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == before
+
+
+# ---------------------------------------------------------------------------
+# The `files` row grew `st_dev`/`st_ino` so identity resolution could stop reading
+# the whole duplicate family. `create_schema` is `CREATE TABLE IF NOT EXISTS`, so a
+# column added to the DDL reaches a NEW database and no other.
+# ---------------------------------------------------------------------------
+
+#: `files` exactly as it stood before the identity columns were added. Written out
+#: rather than derived, because a migration test that builds the old table from the
+#: new DDL tests nothing.
+_FILES_DDL_BEFORE_THE_IDENTITY_COLUMNS = """
+CREATE TABLE files (
+    file_id                   TEXT PRIMARY KEY,
+    current_path              TEXT NOT NULL,
+    filename                  TEXT NOT NULL,
+    normalized_filename       TEXT NOT NULL,
+    extension                 TEXT NOT NULL,
+    directory_position        TEXT,
+    volume_id                 TEXT,
+    content_hash              TEXT NOT NULL,
+    hash_algorithm            TEXT NOT NULL,
+    observed_size             INTEGER NOT NULL,
+    observed_timestamps       TEXT NOT NULL,
+    mime_type                 TEXT,
+    detected_format           TEXT,
+    scan_state                TEXT NOT NULL,
+    extraction_status_by_tier TEXT NOT NULL DEFAULT '{}',
+    sensitivity_state         TEXT
+);
+CREATE INDEX files_content_hash ON files (content_hash);
+CREATE INDEX files_current_path ON files (current_path);
+"""
+
+
+def _database_written_before_the_identity_columns(tmp_path: Path, recorded: Path):
+    import sqlite3
+
+    from database_agent.identity import HASH_ALGORITHM, hash_file
+
+    path = tmp_path / "before.sqlite"
+    raw = sqlite3.connect(path)
+    raw.executescript(_FILES_DDL_BEFORE_THE_IDENTITY_COLUMNS)
+    raw.execute(
+        "INSERT INTO files (file_id, current_path, filename, normalized_filename, "
+        "extension, content_hash, hash_algorithm, observed_size, "
+        "observed_timestamps, scan_state) VALUES (?,?,?,?,?,?,?,?,'{}','scanned')",
+        ("legacy-1", str(recorded), recorded.name, recorded.name, recorded.suffix,
+         hash_file(recorded, materialized=True), HASH_ALGORITHM,
+         recorded.stat().st_size),
+    )
+    raw.commit()
+    raw.close()
+    return path
+
+
+def test_a_database_written_before_the_identity_columns_gains_them(tmp_path: Path):
+    from database_agent.db import FILES_ADDED_COLUMNS, open_database
+
+    recorded = tmp_path / "recorded.bin"
+    recorded.write_bytes(b"identical bytes")
+    conn = open_database(_database_written_before_the_identity_columns(
+        tmp_path, recorded))
+    try:
+        columns = tuple(r["name"] for r in conn.execute("PRAGMA table_info(files)"))
+        # Same order as a database created today: P7 pins that equality, and
+        # ALTER TABLE ADD COLUMN appends, so the two agree only if the DDL declares
+        # the added columns last and in this order.
+        assert columns == FILES_COLUMNS
+        assert columns[-len(FILES_ADDED_COLUMNS):] == tuple(
+            name for name, _ in FILES_ADDED_COLUMNS)
+        legacy = get_file(conn, "legacy-1")
+        assert legacy["st_dev"] is None and legacy["st_ino"] is None
+        assert legacy["current_path"] == str(recorded)
+    finally:
+        conn.close()
+
+
+def test_a_row_migrated_without_an_inode_claims_no_other_file(tmp_path: Path):
+    """A migrated row remembers no inode, and SQL equality never matches NULL — so
+    it can never be handed another file's identity by the index. It still answers
+    for its own path, and it is still the row a move relocates."""
+    from database_agent.db import open_database
+    from database_agent.files_table import observe_path
+    from p1_contract import p3_basic_record
+
+    recorded = tmp_path / "recorded.bin"
+    recorded.write_bytes(b"identical bytes")
+    conn = open_database(_database_written_before_the_identity_columns(
+        tmp_path, recorded))
+    try:
+        def observe(target):
+            return observe_path(conn, target, author="P3",
+                                component_version="p3-fixture",
+                                parent_folder_context=None, mime_type=None,
+                                detected_format=None, scan_state="scanned",
+                                materialized=True, **p3_basic_record(target))
+
+        assert observe(recorded) == "legacy-1"          # its own path, unchanged
+
+        twin = tmp_path / "twin.bin"
+        twin.write_bytes(b"identical bytes")
+        twin_id = observe(twin)
+        assert twin_id != "legacy-1", "a NULL inode matched another file"
+
+        moved = tmp_path / "moved.bin"
+        moved.write_bytes(b"identical bytes")
+        recorded.unlink()
+        assert observe(moved) == "legacy-1", (
+            "the migrated row stopped answering for its own bytes once its recorded "
+            "path was gone")
+    finally:
+        conn.close()
+
+
+def test_identity_resolution_reaches_its_rows_by_index_and_never_by_scan(
+        tmp_path: Path):
+    """The two questions `observe_path` asks when the exact path misses. Both must
+    SEARCH, and the oldest-home probe must reach the first row in rowid order without
+    sorting — a temp b-tree there would materialise the whole duplicate family to
+    return one row, which is the cost the family walk was removed to avoid.
+    """
+    from database_agent.db import open_database
+
+    conn = open_database(tmp_path / "agent.sqlite")
+    try:
+        for sql, arguments in (
+            ("SELECT file_id, current_path FROM files WHERE st_dev = ? AND "
+             "st_ino = ? AND content_hash = ? AND scan_state != ? ORDER BY rowid",
+             (1, 2, "h", "superseded_content")),
+            ("SELECT file_id, current_path FROM files WHERE content_hash = ? AND "
+             "scan_state != ? ORDER BY rowid LIMIT 1", ("h", "superseded_content")),
+        ):
+            steps = [r["detail"] for r in
+                     conn.execute("EXPLAIN QUERY PLAN " + sql, arguments)]
+            assert any(s.startswith("SEARCH files") for s in steps), (sql, steps)
+            assert not any("SCAN files" in s for s in steps), (sql, steps)
+            assert not any("TEMP B-TREE" in s.upper() for s in steps), (sql, steps)
+    finally:
+        conn.close()

@@ -1147,8 +1147,14 @@ def test_a_symlink_and_its_target_are_recorded_as_two_file_versions(db, tmp_path
 
     P1 has no symlink handling: `hash_file` and `stat()` both follow links, so a
     symlink and its target become two `files` rows with one content hash, one size,
-    and nothing recorded that distinguishes a link from a copy — no `st_ino`, no
-    realpath, no flag.
+    and nothing recorded that distinguishes a link from a copy — no realpath, no flag.
+
+    `files` gained `st_dev`/`st_ino` when the duplicate-family quadratic was fixed, so
+    the two rows now differ in one more column. It does not settle this: the columns
+    hold what `lstat` said about each row's OWN path, so the link's row carries the
+    link's inode and the target's row carries the target's, exactly as two unrelated
+    copies would. Nothing in the row says one of these paths points at the other, and
+    a reader still cannot tell a link from a copy.
 
     Whose defect this is, is genuinely unsettled in the SPEC. Contract in gives P3
     "a path, its stat result, ... its bytes to hash" and P3 owns scan traversal
@@ -1174,8 +1180,12 @@ def test_a_symlink_and_its_target_are_recorded_as_two_file_versions(db, tmp_path
     assert rows[target_id]["content_hash"] == rows[link_id]["content_hash"]
     assert rows[target_id]["observed_size"] == rows[link_id]["observed_size"]
     columns = {r["name"] for r in db.execute("PRAGMA table_info(files)")}
-    assert not {"inode", "st_ino", "real_path", "is_symlink"} & columns, (
+    assert not {"real_path", "is_symlink", "link_target"} & columns, (
         "no column distinguishes a link from a copy; see the SPEC ambiguity above"
+    )
+    assert rows[target_id]["st_ino"] != rows[link_id]["st_ino"], (
+        "the identity columns hold each row's own inode, which is what makes them two "
+        "rows here; they say nothing about one path pointing at the other"
     )
 
 

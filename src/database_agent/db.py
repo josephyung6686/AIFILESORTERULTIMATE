@@ -7,7 +7,9 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+#: 2 added `st_dev`/`st_ino` to `files` (see FILES_DDL). `create_schema` migrates
+#: an existing database in place, so the bump records the change rather than gating it.
+SCHEMA_VERSION = 2
 
 
 class DatabaseInsideCorpus(Exception):
@@ -117,7 +119,18 @@ CREATE TABLE IF NOT EXISTS files (
     detected_format           TEXT,
     scan_state                TEXT NOT NULL,
     extraction_status_by_tier TEXT NOT NULL DEFAULT '{}',
-    sensitivity_state         TEXT
+    sensitivity_state         TEXT,
+    -- The inode of `current_path` as `lstat` reported it when this row last wrote
+    -- the path, or NULL if the path could not be stat'd. NOT a second identity:
+    -- R1 keeps the content hash as the identity of a file version and nothing
+    -- reads these two columns except `observe_path`'s identity resolution, which
+    -- treats a match as a CANDIDATE and confirms it against the filesystem before
+    -- believing it. Inodes are recycled, so a stored pair can name a file that no
+    -- longer exists; only `lstat` of the recorded path can say otherwise.
+    -- `lstat`, never `stat`: a symlink's own inode, so a link and its target stay
+    -- two rows (test_a_symlink_and_its_target_are_recorded_as_two_file_versions).
+    st_dev                    INTEGER,
+    st_ino                    INTEGER
 );
 CREATE INDEX IF NOT EXISTS files_content_hash ON files (content_hash);
 -- `observe_path` asks `WHERE current_path = ?` twice for every file it
@@ -127,6 +140,37 @@ CREATE INDEX IF NOT EXISTS files_content_hash ON files (content_hash);
 -- (R3) keeps its path while the new version records the same one.
 CREATE INDEX IF NOT EXISTS files_current_path ON files (current_path);
 """
+
+#: Added after the columns exist, because a database created before SCHEMA_VERSION 2
+#: reaches `create_schema` without them and `CREATE INDEX` on a missing column errors.
+#:
+#: `st_dev, st_ino` leads and `content_hash` trails deliberately. `observe_path` asks
+#: this index one question -- "is any row for these bytes the inode I am looking at?"
+#: -- with all three columns fixed, so column order costs it nothing; but a leading
+#: `content_hash` would make this index a candidate for the `WHERE content_hash = ?
+#: ORDER BY rowid` probe as well, and SQLite would then sort the whole duplicate
+#: family to answer a query that `files_content_hash` already answers in rowid order.
+FILES_INODE_DDL = """
+CREATE INDEX IF NOT EXISTS files_inode ON files (st_dev, st_ino, content_hash);
+"""
+
+
+#: (column, type) pairs added to `files` after its first release. `CREATE TABLE IF NOT
+#: EXISTS` is a no-op on a database that already has the table, so a column added to
+#: FILES_DDL never reaches an existing database; these do, and ALTER TABLE ADD COLUMN
+#: appends in declaration order, so a migrated table has the same column order as a
+#: fresh one (P7 pins that equality against FILES_COLUMNS).
+FILES_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("st_dev", "INTEGER"),
+    ("st_ino", "INTEGER"),
+)
+
+
+def _migrate_files(conn: sqlite3.Connection) -> None:
+    present = {row["name"] for row in conn.execute("PRAGMA table_info(files)")}
+    for column, column_type in FILES_ADDED_COLUMNS:
+        if column not in present:
+            conn.execute(f"ALTER TABLE files ADD COLUMN {column} {column_type}")
 
 
 EVENTS_DDL = """
@@ -243,6 +287,8 @@ CREATE TABLE IF NOT EXISTS learning_resets (
 def create_schema(conn: sqlite3.Connection) -> None:
     """Create every P1-owned table. Idempotent."""
     conn.executescript(FILES_DDL)
+    _migrate_files(conn)
+    conn.executescript(FILES_INODE_DDL)
     conn.executescript(EVENTS_DDL)
     conn.executescript(LEARNING_DDL)
     conn.executescript(BUDGET_DDL)
