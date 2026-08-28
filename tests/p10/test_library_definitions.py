@@ -394,6 +394,14 @@ def test_career_authors_the_relative_order_its_definition_local_roles_need():
     nothing else. Without them — and with no tiebreak supplied — the merge
     refuses BY NAME rather than sorting four roles to the leaf with ties, which
     is the failure the amendment removed.
+
+    The edges are belt-and-braces on the ROUTED path and load-bearing off it.
+    `route_branch` groups eligible rows by `(template_id, template_version)`
+    before each `evaluate_composition`, so a routed composition always sees one
+    definition and always gets its default order as `preferred_order` — the tie
+    is broken there with or without these edges. They are what makes D30
+    composable when `evaluate_composition` is called directly, and what makes the
+    recipe STATE its own nesting rather than inherit it from a recommendation.
     """
     catalogue = _catalogue()
     career = catalogue.definitions[("def.career-search-and-tenure", 1)]
@@ -534,6 +542,14 @@ def test_family_as_default_order_is_what_orders_cycle_against_subject():
     school -> term -> course -> work type. Nobody wrote that order into a
     fragment; three independently-argued pairwise constraints plus the
     definition's own recommendation produce it (§3.4c).
+
+    The refusal half is the DIRECT-call path, and saying so matters: a routed
+    branch never hits it, because `route_branch` hands `evaluate_composition` one
+    definition's rows at a time and `_recommended_order` therefore always finds
+    the default sequence to pass down. What this test guards is that the
+    recommendation is doing the ordering work — if the missing edge is ever
+    welded into `frag.affiliation-prefix-to-cycle@1`, this half fails loudly
+    instead of quietly going redundant.
     """
     catalogue = _catalogue()
     academic_order = ("holder_institution", "cycle_period", "subject_anchor",
