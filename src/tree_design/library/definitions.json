@@ -2240,13 +2240,13 @@
       "template_version": 1,
       "origin_kind": "built-in",
       "scope_kind": "domain-focused",
-      "publication_state": "draft",
+      "publication_state": "published",
       "fragment_refs": [],
       "candidate_orders": [
         {
           "order_id": "ord.employer-role-cycle-kind",
           "is_default": true,
-          "rationale": "00 verbatim, first half: 'a Career template may define company -> role or recruiting cycle -> document type'; career.json: 'company first, because a document type such as an offer letter is unintelligible without the employer'. NOTE: 51 §4.8 marks this recipe's default DELIBERATELY UNSET under J-WIDE-2's 'neither is the default'. The record requires exactly one default, so 51 takes reading (a) of Judgment Call 7: is_default is the recipe's PREVIEW seed and the setup flow may still present both orders unweighted. The evidence that decides the real recommendation is owed by the career fragmentation lane.",
+          "rationale": "00 verbatim, first half: 'a Career template may define company -> role or recruiting cycle -> document type'; career.json: 'company first, because a document type such as an offer letter is unintelligible without the employer'. DEFAULT RULED BY 60 §8.3, AND THE REASON IS DEGRADATION, NOT PREFERENCE. The two orders serve the two halves J-3 already split: the search half (work_type — résumés, cover letters, portfolio) is many employers at two or three files each and wants the cycle first; the tenure half (record_type — contracts, payslips, reviews) is few employers at many files each and wants the employer first. Employer-first is the default because it FAILS BETTER, which is the only thing that breaks the tie: employer-first applied to a job-seeker yields many small folders, and 00 already handles that — the canvas warns about 'a large number of tiny folders' and offers flatten. Cycle-first applied to someone with ten years at two employers asserts a recruiting cycle THAT DOES NOT EXIST; there is no warning for that and nothing to flatten, because the level is not wrong, it is empty. A default runs before the product knows who it is talking to, so it must be the one whose failure is legible. THIS DEFAULT IS RECOMMENDATION-PENDING, NOT RATIFIED: the right long-run fix is 59 §4.5 — ask the user who they are before designing the tree, at which point this default is never consulted. Recorded so the tie-break is not mistaken for evidence it does not have.",
           "dimensions": [
             {
               "role_ref": "employer_org",
@@ -2260,7 +2260,7 @@
               "order_index": 1,
               "requirement": "optional",
               "metadata_only": false,
-              "retrieval_rationale": "00 writes the middle level as a disjunction — 'role or recruiting cycle' — and those are not one field: one company running two processes needs role."
+              "retrieval_rationale": "00:70 makes the role a folder level in so many words — 'a Career template may define company -> ROLE or recruiting cycle -> document type' — and 00 writes that middle level as a disjunction, so role and cycle are not one field: one company running two processes needs role."
             },
             {
               "role_ref": "cycle_period",
@@ -2319,7 +2319,7 @@
       "validation_constraints": [
         "employer_org must never bind a key that means the employer the holder WORKS FOR and the employer the holder APPLIED TO at the same time; 60 J-2 and the mint list keep employer and target_employer apart, and 00 governs: 'The system must separate roles that happen to contain the same entity type.'",
         "artifact_kind must not become a fourth spelling of a concept the product already names beside work_type, record_type and application_document_type: 'minting a fourth spelling for one concept is the 574's exact fragmentation failure'",
-        "60 J-3 declares career's fields as employer, target_employer, recruiting_cycle, work_type, record_type and job_title (job_title is destination-ineligible), which supersedes 51 §4.8's 'zero fields'",
+        "60 J-3 declares career's fields as employer, target_employer, recruiting_cycle, work_type, record_type and job_title, which supersedes 51 §4.8's 'zero fields'; per 60 §8.1 job_title is destination-ELIGIBLE, so role_title binds a real folder level and career sits at six destination candidates, exactly at 00:48's ceiling under J-4",
         "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the recommended nesting its own candidate orders describe"
       ],
       "example_label_chains": [],

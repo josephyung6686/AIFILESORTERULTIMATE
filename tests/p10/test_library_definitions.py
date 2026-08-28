@@ -419,21 +419,65 @@ def test_career_authors_the_relative_order_its_definition_local_roles_need():
     assert "unordered relative to each other" in str(raised.value)
 
 
-def test_career_ships_as_a_draft_because_its_recommendation_is_pending():
-    """`51` §4.8 marks D30 "DEFAULT DELIBERATELY UNSET": the fragmentation
-    analysis that decides between employer-first and cycle-first is owed by
-    another lane. The record requires exactly one default, so §4.8 takes reading
-    (a) of Judgment Call 7 — `is_default` seeds a PREVIEW — and the publication
-    state is what carries the fact that the recommendation is not yet ratified.
+def test_career_defaults_to_the_order_that_fails_legibly():
+    """`51` §4.8 left D30's default deliberately unset, deferring to another lane;
+    the record refuses an unset default, so `60` §8.3 rules it.
+
+    The ruling is `employer_org` first, and the reason is DEGRADATION rather than
+    preference — which is why it is asserted here rather than left to the field
+    value alone. Employer-first applied to a job-seeker yields many small folders
+    and `00` already handles that: the canvas warns about "a large number of tiny
+    folders" and offers flatten. Cycle-first applied to someone with ten years at
+    two employers asserts a recruiting cycle THAT DOES NOT EXIST — nothing to warn
+    about and nothing to flatten, because the level is not wrong, it is empty. A
+    default runs before the product knows who it is talking to, so it must be the
+    one whose failure is legible.
+
+    The record must also say the tie-break is not evidence it does not have.
     """
     catalogue = _catalogue()
     career = catalogue.definitions[("def.career-search-and-tenure", 1)]
-    assert career.publication_state == "draft"
-    assert [record.template_id for record in catalogue.definitions.values()
-            if record.publication_state != "published"] == [
-        "def.career-search-and-tenure"]
     assert {o.order_id for o in career.candidate_orders} == {
         "ord.employer-role-cycle-kind", "ord.cycle-kind-employer-role"}
+    assert career.default_order.order_id == "ord.employer-role-cycle-kind"
+    assert "RECOMMENDATION-PENDING" in career.default_order.rationale, (
+        "60 §8.3 rules the default and rules it unratified in the same breath; a "
+        "record carrying the choice without the caveat turns a tie-break into a "
+        "finding")
+
+
+def test_career_ships_published_because_j3_gave_it_fields_to_bind():
+    """`51` §4.8 marks D30 "DRAFTED, NOT BINDABLE" for one reason — career
+    declared no field. `60` J-3 declares six and §8.1 makes `job_title`
+    destination-eligible, so `role_title` binds a real level and both halves of
+    that reason are gone. §8.2: D30 ships, because J-3 is meaningless if career
+    cannot produce a folder.
+
+    A `draft` state would mean the opposite: a saved definition that is NOT
+    activated. Career has no applicability row yet, so nothing selects it — that
+    is the honest brake, and it lives on the rows rather than on this record.
+    """
+    catalogue = _catalogue()
+    assert [record.template_id for record in catalogue.definitions.values()
+            if record.publication_state != "published"] == []
+
+
+def test_career_binds_the_role_as_a_folder_level_because_00_does():
+    """`60` §8.1 corrects §5's unsourced `job_title†`. `00`:70 puts the role in a
+    template order in so many words — "a Career template may define company ->
+    ROLE or recruiting cycle -> document type" — and a key `00` puts in a template
+    order cannot be non-destination. So `role_title` is a DIMENSION here, in both
+    candidate orders, and not a search fact."""
+    catalogue = _catalogue()
+    career = catalogue.definitions[("def.career-search-and-tenure", 1)]
+    for candidate in career.candidate_orders:
+        assert "role_title" in candidate.role_set(), candidate.order_id
+    role = next(d for d in career.default_order.dimensions
+                if d.role_ref == "role_title")
+    assert role.order_index == 1, "00's own career order puts the role SECOND"
+    assert not role.metadata_only
+    assert not any("destination-ineligible" in constraint
+                   for constraint in career.validation_constraints)
 
 
 # --- the recipes compose, and compose into what they recommend -----------------
@@ -475,6 +519,43 @@ def test_the_composer_derives_the_nesting_each_recipe_recommends():
             assert list(merged.ordered_roles) == [*recommended, "capture_kind"]
             continue
         assert list(merged.ordered_roles) == recommended, record.template_id
+
+
+def test_family_as_default_order_is_what_orders_cycle_against_subject():
+    """The Family-A recipes' own recommendation is load-bearing, not decoration.
+
+    `frag.affiliation-prefix-to-cycle@1` ships `holder_institution ->
+    cycle_period` and nothing else, so across D01/D02/D03's four fragments
+    `cycle_period` and `subject_anchor` are unconstrained relative to each other.
+    With no recommendation supplied the merge REFUSES them by name rather than
+    letting Kahn's queue discipline pick — the fix `56` §4.2 found missing.
+
+    Supply the recipe's default and it derives `00`'s Academic order exactly:
+    school -> term -> course -> work type. Nobody wrote that order into a
+    fragment; three independently-argued pairwise constraints plus the
+    definition's own recommendation produce it (§3.4c).
+    """
+    catalogue = _catalogue()
+    academic_order = ("holder_institution", "cycle_period", "subject_anchor",
+                      "artifact_kind")
+    for template_id in ("def.subject-work-record",
+                       "def.subject-work-record.third-party",
+                       "def.subject-work-record.household"):
+        record = catalogue.definitions[(template_id, 1)]
+        fragments = [catalogue.fragment(ref) for ref in record.fragment_refs]
+        recommended = [d.role_ref for d in sorted(record.default_order.dimensions,
+                                                  key=lambda d: d.order_index)]
+        assert tuple(recommended) == academic_order, template_id
+
+        with pytest.raises(CompositionConflict) as raised:
+            merge_fragment_constraints(
+                fragments, privacy_rank=RANK, definition=record)
+        assert "cycle_period, subject_anchor unordered" in str(raised.value)
+
+        merged = merge_fragment_constraints(
+            fragments, privacy_rank=RANK, preferred_order=recommended,
+            definition=record)
+        assert merged.ordered_roles == academic_order, template_id
 
 
 def test_no_example_label_chain_is_a_path():
