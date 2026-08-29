@@ -135,6 +135,104 @@ the document's words can reach the detector **without becoming folder names**.
 
 The thing the project was afraid to widen is not the thing that needs widening.
 
+### Cause C — the templates need a hierarchy the deployment cannot fill
+
+The classification chain is only half the story. The tree has its own collapse, and it is the same
+shape.
+
+Priya's corpus: four files, two courses, `PHYS1401` and `PHYS2801`, both known to the engine. The
+picker was offered a split and here is what it said:
+
+```
+BRANCH: Coursework
+   opt_0          children=0   ACCEPTED
+   opt_no_split   children=0   no report
+   -> chose opt_no_split
+```
+
+The split **passed validation** — it is a legal, accepted option — and was discarded anyway,
+because it reports **zero child branches**. Asked what it contains:
+
+```
+summary      : This option would create 0 school, 0 term, 2 subject, and 0 work_type.
+               4 file(s) would stay unresolved and visible.
+child counts : {'school': 0, 'term': 0, 'subject': 2, 'work_type': 0}
+children     : 0
+```
+
+The option knows there are **two subjects**. It produces no folders and leaves all four files
+unresolved, because the `academic.coursework` template is four levels — school → term → subject →
+work_type — and the deployment can fill exactly one of them. A level with no settled value truncates
+everything beneath it, which is correct and deliberate and has a test named after it. The
+consequence on a real disk is that the level the product COULD fill is never proposed, because a
+level above it is empty.
+
+**The machine is not broken; it is starved.** The integration suite supplies four fields and the
+same code builds `Columbia / Fall2026 / PHYS1401 / Syllabus`, four levels deep. The shipped
+deployment supplies one:
+
+```
+direct slots: [('cli.text.identifier', 'subject')]
+```
+
+Every template in the 208-row catalogue whose first dimension is not `subject` therefore cannot
+produce a folder on this deployment, ever.
+
+**This corrects `68` F3.** That finding blamed the one-folder tree on the review step merging every
+group into one. The merge is real and it does move where structure would appear — but it is not the
+main reason. Even with the merge, the split was offered and ACCEPTED; it died on the missing levels.
+A person would still get one folder with the merge removed.
+
+### Cause D — the folders the person already made are read, then discarded
+
+From the audit in `71-diagnosis/audit-existing-folders.md`, measured on a corpus with four levels of
+real nested structure:
+
+| | nested corpus | flat control |
+|---|---|---|
+| directories on disk | 8 | 1 |
+| existing folders P3 recorded | 8 | 1 |
+| branch candidates derived from them | 8 | 1 |
+| **branch candidates chosen** | **0** | **0** |
+| nodes in the proposed tree | 1 | 1 |
+
+**The two proposed trees are identical.** Flattening a four-level hierarchy into one directory
+changed the proposal not at all. The library reads the person's folders and offers every one as a
+branch card; the shipped command discards all of them one line later, and no code in `src/` can
+write a node of type `existing` in any case — so even a chosen folder would enter as a fresh
+proposal wearing the folder's name.
+
+For a person who has already organised half their disk, the product currently cannot see that they
+did.
+
+### And one independent defect worth its own line
+
+From `71-diagnosis/audit-override-and-multivalue.md`: `preferred_fact` counts **rows**, not distinct
+values. So when the product's own two producers write the same fact and **agree**, the slot resolves
+to "unresolvable" and the file's folder level is deleted. Agreement causing failure is the least
+intuitive bug in the codebase. The `preferred` column that would distinguish an override from a
+genuine multi-relationship is inert — its only writer has zero callers — and `fields.multiplicity`,
+the declared home for "may this field hold two values at once", is NULL on all 56 catalogue rows.
+
+---
+
+## 2a. The root cause, stated once
+
+Four symptoms, one cause:
+
+> **The shipped deployment feeds the machine one fact from one regular expression and observes no
+> body text, while every consumer downstream of it was built for a rich fact set.**
+
+| symptom | consumer | what it was built for | what it gets |
+|---|---|---|---|
+| nothing is classified | the detector, 8,907 authored terms | words from documents | one identifier + a filename |
+| still nothing, after that | the handling policy | a class per schema | four of twenty-three |
+| no folders are proposed | the 208-row template catalogue | school, term, subject, work_type | `subject` |
+| your own folders ignored | the branch picker | existing folders as candidates | offered, then discarded |
+
+This is why the product's behaviour is identical for a litigator, a student, a parent and a person
+who is all three: **none of the differences between them survive the front door.**
+
 ---
 
 ## 3. Why the test suite never caught any of this
@@ -177,55 +275,87 @@ found by the suite. That is the single most reusable fact in this document.
 
 ---
 
-## 5. What to do, in order
+## 5. What to do, in order — and why it is small
 
-Ordered by what unblocks the most for a person, not by what is most interesting.
+**The anti-overbuilding argument, first.** Four symptoms, one cause, means this is **one change of
+shape at the composition root**, not four projects. Nothing below adds a part, a table, a threshold
+or an abstraction. Every fix is the deployment supplying something the parts already ask for and
+already know how to consume. The parts are not touched.
 
-### Step 1 — give the detector the words (small, safe, unblocks everything)
+### Step 1 — let the product see the words in the document
 
-Emit the document's readable text as observations under a locator the deployment's direct slot does
-not claim. **Verified above to reach the detector without becoming folder names.** This is a change
-to what the composition root supplies, not to any part's contract.
+Emit the readable text of a file as observations. Verified above: the locator is `body:field=prose`,
+the deployment's direct slot returns `False` for it, so **this does not widen what a folder can be
+named after.** Cost: one reader change. Effect: recognition starts working on every file.
 
-Guardrails that must come with it, or it is a privacy regression:
+Guardrails that ship with it, or it is a privacy regression:
 - the observation stays local, exactly as filename and path observations already do;
-- the direct slot's `names` predicate stays narrow, and a test pins that a prose observation does
-  not become a `subject` fact;
-- protected containers are unaffected — nothing inside one is read, and that is enforced by path
-  before any of this.
+- a test pins that a prose observation does **not** become a `subject` fact;
+- protected containers are untouched — nothing inside one is read, enforced by path before this.
 
 ### Step 2 — give the ordinary schemas a handling class
 
-`SAFETY_DOMAIN_HANDLING` covers the four safety domains and marks them protected. The other
-nineteen need an ordinary class so that a recognised file can be classified at all. **This is a
-deployment policy and a mechanism, so it wants Joseph's approval rather than an agent's invention** —
-but it is one small table, and the recognition side is already correct.
+One table. `SAFETY_DOMAIN_HANDLING` covers four safety schemas and marks them protected, correctly.
+The other nineteen need an ordinary class so a recognised file can be classified at all.
 
-### Step 3 — re-run the personas
+**This unlocks step 3 for free**, which is the part worth noticing: while the schema has no class,
+`explain()` returns an `Abstention` and the term matches it computed are **not published**. Once a
+class exists it returns a `Recognition`, which carries `matches` — each with the term and the
+observation key that evidences it. So step 2 turns already-computed work into usable output.
 
-`68`'s four corpora, re-run after steps 1 and 2. This is the measurement that says whether the
-product now does its job, and it costs minutes.
+**Joseph's ruling needed:** which class ordinary material gets. It is a mechanism.
 
-### Step 4 — the review screen, which is the next wall
+### Step 3 — get a second folder level from work already done, not from a new extractor
 
-Even with classification working, `68` F3 stands: the shipped command **merges every group into one**
-because there is nobody at the screen to review them, so the tree is one folder deep. That is P13,
-and it is planned but unbuilt.
+The tree needs more than one dimension or every template collapses. The tempting fix is to author
+more extractor slots — more regexes, more fields, more decisions about what to read. **Do not.**
 
-### Step 5 — the two safety findings from `70`
+The recognition pass **already** matches authored `work_type` terms per schema (96 for `academic`
+alone: `syllabus`, `assignment`, `transcript`, `certificate`) and already returns, per match, the
+term and the observation that carries it. That is a `work_type` fact with its evidence attached,
+computed on every run today and thrown away.
 
-The standing rule protects one file extension (`.app`), and five of nine `completeness` values are
-unreachable so a file that could not be read is recorded as read-and-empty. Both are one-line
-changes once the values are chosen, and both choices are Joseph's.
+Wire recognition's matches into P6 as facts, at a reliability the evidence supports. Result:
+`subject` + `work_type` → two settled levels → `Coursework / PHYS1401 / Syllabus`. No new extractor,
+no new vocabulary, no new threshold.
 
-### Step 6 — split the planning corpus
+### Step 4 — stop discarding the folders the person already made
 
-Adopt the FileGraph critique's first fix, which lands here: one **frozen decisions** table that
-states the current answer once, with a pointer to the document that earned it, and the numbered
-documents kept as the evidence appendix. `69` and `70` are already close to this; the missing piece
-is a single index that says, per subsystem, what the current answer is.
+The branch picker is offered every existing folder and chooses none, and no code can write a node of
+type `existing`. Two things are needed and only the first is code: a selection path that can keep an
+existing folder, and a ruling on when it should. **Joseph's ruling needed:** does an existing folder
+the person made outrank a proposal, always, or only when it holds enough files?
 
----
+### Step 5 — re-run the four personas
+
+`68`'s corpora, re-run after steps 1–3. Minutes, and it is the only measurement that says whether a
+person is now served. **Do not skip it and do not replace it with the test suite** — every defect in
+this document was invisible to 5,234 passing tests.
+
+### Step 6 — the three defects that stand on their own
+
+Not caused by the root cause, each small, each already located:
+- `preferred_fact` counts rows rather than distinct values, so **two producers that agree delete the
+  file's folder level**;
+- the standing protection rule covers one file extension (`.app`) and the deployment supplies no
+  widening predicate — **Joseph's ruling needed** on the list;
+- five of nine `completeness` values are unreachable, so a file that could not be read is recorded
+  as read-and-empty — **Joseph's ruling needed** on which value a text-less document gets.
+
+### Step 7 — then, and only then, the review screen
+
+With classification and two levels working, `68`'s remaining finding is real: the shipped command
+merges every group because there is nobody at the screen. That is P13, planned and unbuilt. It is
+step 7 and not step 1 because a review screen showing today's output would show one folder and four
+unclassified files.
+
+### What is deliberately NOT on this list
+
+- No new part, table, threshold or abstraction.
+- No widening of what becomes a folder name beyond the one dimension step 3 adds.
+- No changes to P1–P11 contracts.
+- No work on Find, filing or onboarding — `66` §22 sequences those after this, and none of them
+  improves while the front door starves the machine.
 
 ## 6. The structural gap: work with no owner
 
