@@ -8,35 +8,53 @@
 
 **Tech Stack:** Python 3.12, stdlib SQLite core, optional `readers` extra (pdfminer.six, pyobjc Vision), pytest with `-p no:randomly` when thinc/spaCy is importable, existing `llm_harness` / `privacy.Gate` / `facts` seams.
 
-**Spec:** `planning/00-database-agent-product-design.md` (canonical). Part SPECs under `planning/parts/`. Evidence: `.planning/codebase/CONCERNS.md`, wiring audit of `cli.py`, design-fidelity audit 2026-08-29.
+**Spec (authority order — every task reads these before coding):**
+
+1. `planning/00-database-agent-product-design.md` — product truth; quote only after `grep -F`
+2. Part **SPEC.md** for the wave (table below) — Contract in/out + **Done means** are the acceptance tests
+3. Part PLAN.md / sibling restore plans — how to build; SPEC wins on conflict
+4. Live `src/` signatures — win over stale plan line numbers
+5. Audits / `.planning/codebase/*` — evidence of drift only; not authority to invent behaviour
+
+| Wave | Primary SPEC(s) an implementer must open |
+|------|------------------------------------------|
+| 1 | `planning/parts/P5-extractors/SPEC.md` (esp. Done means 1, 5–10; Contract out on readers / OCR / routing) |
+| 2 | `planning/parts/P6-facts-facets/SPEC.md` (Done means 4, 8, 11, 17) · `planning/parts/P7-privacy-consent-gate/SPEC.md` (Done means 3, 7, 12, 13) · `planning/parts/P8-llm-harness-validator/SPEC.md` (Done means 1, 5, 10, 13) · `planning/parts/P9-grouping/SPEC.md` (Contract out on P8 seam; Done means that require harness fixtures) |
+| 3 | `planning/parts/P6-facts-facets/SPEC.md` (§3.11 / Deferred launch set) · `planning/parts/P10-tree-design-freeze/SPEC.md` (Contract out §3 template schema; Deferred: dimensions beyond five §5.4 names; Done means on freeze closed set) |
+| 4 | `planning/parts/P10-tree-design-freeze/SPEC.md` (Contract out §6 residual nine names; Deferred residual slot *contents*) · `planning/parts/P11-placement-residual/SPEC.md` (residual workflow ownership) |
+| 5 | `planning/parts/P12-apply-undo/SPEC.md` + plan `docs/superpowers/plans/2026-08-29-p12-apply-undo.md` |
+| 6 | `planning/parts/P13-review-approval-surface/SPEC.md` + plan `docs/superpowers/plans/2026-08-29-p13-review-approval-surface.md` |
+| 7–8 | P11 + P12 + P13 SPECs together; re-audit cites SPEC Done means numbers, not package presence |
+
+**Rule:** A task is not done because CLI behaviour “looks better.” It is done when the cited SPEC **Done means** (or an explicitly scoped subset for a deployment profile) are green *on the live CLI path*, or the task documents which Done means remain package-only and why (with SPEC open-question id).
 
 ## Global Constraints
 
-- **`00` wins.** Grep-verify every quotation from `00` before writing it. Never fabricate.
+- **`00` wins; SPECs operationalize `00`.** Grep-verify every `00` quotation. Do not invent SPEC behaviour that is listed under **Deferred** or **Open questions** — inject or leave open.
 - **`python3`, not `python`.** Full-suite: `python3 -m pytest tests/ -p no:randomly` (or `-p randomly --randomly-dont-reset-seed` per `pyproject.toml`).
 - **Explicit pathspec commits only.** Never `git add -A` / wildcards over `planning/domains/nodes/`.
-- **Composition invents no domain defaults.** Thresholds, catalogues, readers, `normalize`/`contradicts`, consent scopes: injected from CLI/deployment profiles.
-- **P7 before any model content.** `NeedsConsent` is returned unchanged — never coerced to abstain/deny.
-- **C-5:** `facts` must not publish `normalize(` / `contradicts(`. Deployment supplies them into P8 `validation_dependencies`.
-- **After freeze:** no invented destinations. P11 places or abstains; only P12 mutates the filesystem.
-- **Protected material:** marked and counted, never opened.
-- **Launch-domain default:** academic, applications, research, career, photos, code — plus safety detect/protect for finance/identity/medical/legal. Other schemas/templates stay loadable only behind an explicit flag.
-- **Do not re-open ratified decisions** (D1–D6, J-IND, J-DEPTH). Do not close open NEEDS-JOSEPH items.
-- **Sibling plans (do not rewrite):** `docs/superpowers/plans/2026-08-29-p12-apply-undo.md`, `docs/superpowers/plans/2026-08-29-p13-review-approval-surface.md`.
+- **Composition invents no domain defaults.** Thresholds, catalogues, readers, `normalize`/`contradicts`, consent scopes: injected from CLI/deployment profiles (P5/P6/P7/P8 SPECs: Deferred / no defaults).
+- **P7 before any model content.** P7 Done means 7 / P8 Done means 13: `NeedsConsent` unchanged — never coerced to abstain/deny.
+- **C-5:** P6 SPEC / `facts.llm_seam` — `facts` must not publish `normalize(` / `contradicts(`. P8 SPEC Deferred table files domain oracles to injection. Deployment supplies them into P8 `validation_dependencies`.
+- **After freeze:** P10/P11 SPECs — no invented destinations. P11 places or abstains; only P12 mutates the filesystem (P12 SPEC Purpose / Contract out).
+- **Protected material:** P7 Done means 9–10; P12/P13 SPECs — marked and counted, never opened.
+- **Launch-domain default:** P6 SPEC §3.11 / Deferred and P10 Deferred (five §5.4 template dimensions): academic, applications, research, career, photos, code as destination; finance/identity/medical/legal as **safety** first (P7), not freeze destinations until explicitly enabled.
+- **Do not re-open ratified decisions** (D1–D6, J-IND, J-DEPTH; P6 D6 `subject`). Do not close open NEEDS-JOSEPH / SPEC Open questions.
+- **Sibling plans (do not rewrite):** `docs/superpowers/plans/2026-08-29-p12-apply-undo.md`, `docs/superpowers/plans/2026-08-29-p13-review-approval-surface.md` — those plans already bind to P12/P13 SPECs.
 
 ## Program waves (ship independently)
 
-| Wave | Outcome | Depends on |
-|------|---------|------------|
-| **0** | Docs/audits match HEAD | — |
-| **1** | Extraction fidelity on CLI | 0 |
-| **2** | Hybrid facts + P8 on CLI (offline-safe) | 1 |
-| **3** | Launch-domain catalogue gate | 1 |
-| **4** | Minimal residual library enabled | 3 |
-| **5** | P12 apply/undo green | 0 (parallel after 0) |
-| **6** | P13 review surface green | 5 partial OK; prefer after 5 Task that publishes move plans |
-| **7** | CLI prints plan then applies with journal | 2, 4, 5, 6 |
-| **8** | Fresh `00` conformance audit | 7 |
+| Wave | Outcome | SPEC acceptance focus | Depends on |
+|------|---------|----------------------|------------|
+| **0** | Docs/audits match HEAD | — | — |
+| **1** | Extraction fidelity on CLI | P5 Done means 1, 5–10 on deployed readers | 0 |
+| **2** | Hybrid facts + P8 on CLI (offline-safe) | P6 DM 4/8/11/17 · P7 DM 3/7/12/13 · P8 DM 1/5/10/13 | 1 |
+| **3** | Launch-domain catalogue gate | P6 §3.11 launch set · P10 freeze closed set | 1 |
+| **4** | Minimal residual library enabled | P10 Contract out §6 names; slot *contents* stay Deferred | 3 |
+| **5** | P12 apply/undo green | Entire P12 SPEC Done means via sibling plan | 0 |
+| **6** | P13 review surface green | Entire P13 SPEC Done means via sibling plan | 5 preferred |
+| **7** | CLI apply path | P11 + P12 + P7 `may_move_automatically` | 2, 4, 5, 6 |
+| **8** | Fresh conformance audit | Trace each claim to SPEC Done means # | 7 |
 
 ---
 
@@ -81,11 +99,11 @@ Replace the false “No application code in this repo yet.” paragraph with:
 
 ```markdown
 **Status (2026-08-29):** Runtime packages **P1–P11** live under `src/` on
-`build/p6-p7-first-packages`. The design authority remains
-[`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md).
-P12 (apply/undo) and P13 (review surface) have SPECs/PLANs but are not yet in `src/`.
-The shipped CLI (`src/cli.py`) currently runs a **deterministic** slice (direct facts,
-no P8, PDF/text readers) and does not move files — see
+`build/p6-p7-first-packages`. Authority order:
+[`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md)
+→ part SPECs under [`planning/parts/`](planning/parts/) → plans → live `src/`.
+P12/P13 have SPECs + plans but are not yet in `src/`. The shipped CLI currently
+under-wires SPEC Done means (deterministic slice; no apply) — see
 `docs/superpowers/plans/2026-08-29-restore-00-fidelity.md`.
 ```
 
@@ -144,6 +162,8 @@ EOF
 
 ### Task 1.1: Configurable Vision languages + fail-loud missing readers flag
 
+**SPEC:** `planning/parts/P5-extractors/SPEC.md` — Design slice OCR / §2.7; Done means **9** (OCR persists §2.7 fields; languages are configuration folded into cache key). Do **not** invent DPI/recognition defaults beyond what SPEC + `00` already name; languages list is deployment configuration (SPEC Deferred / Open questions on exact language packs — CJK required by `00` §2.7 when corpus needs it).
+
 **Files:**
 - Modify: `src/readers/deployment.py`
 - Create: `tests/readers/test_deployment_languages.py`
@@ -152,6 +172,10 @@ EOF
 **Interfaces:**
 - Consumes: `VISION_CONFIG` shape `{"languages": list[str], "dpi": int, "recognition_level": str}`
 - Produces: `macos_readers(..., languages: Sequence[str] | None = None) -> Readers`; `LAUNCH_OCR_LANGUAGES: tuple[str, ...] = ("en-US", "zh-Hans", "zh-Hant", "ja-JP", "ko-KR")`
+
+**Done-means (this task):**
+- Changing `languages` changes `ocr_config` on the `Readers` object and is the value stored/used for OCR cache identity (P5 DM 9 / §2.7 cache-key intent).
+- Launch profile languages include CJK codes; en-US alone is insufficient for the launch chooser.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -226,14 +250,20 @@ EOF
 
 ### Task 1.2: Ship a real DOCX reader (unsupported → actual text)
 
+**SPEC:** `planning/parts/P5-extractors/SPEC.md` — Done means **1** (`unsupported` ≠ empty complete), **2** (P4 shape, no per-format consumer branch), **6** (DOCX table cells and heading zones distinguishable from body). Contract out: deployment may omit a library → `unsupported`; once a reader ships, outcomes must be real observations, not silent empty docs (`00` / SPEC §2.4).
+
 **Files:**
 - Create: `src/readers/docx_zipxml.py`
 - Modify: `src/readers/deployment.py` (bind `read_docx`)
 - Create: `tests/readers/test_docx_zipxml.py`
 
 **Interfaces:**
-- Consumes: `extractors.structured_text.TextDocument`
-- Produces: `read_docx(path: Path) -> TextDocument | None` (None only if not a zip/docx)
+- Consumes: `extractors.structured_text.TextDocument` (live signature)
+- Produces: `read_docx(path: Path) -> TextDocument | None` (None only if not a zip/docx → P5 `unsupported`)
+
+**Done-means (this task):**
+- Minimal docx fixture yields observations readable through P4 shape (P5 DM 2).
+- Heading vs body distinguishable when XML carries both (P5 DM 6) — if minimal fixture cannot express tables yet, add a second fixture before claiming DM 6 complete; otherwise mark DM 6 partial in the commit message and finish in a follow-up step of this same task.
 
 - [ ] **Step 1: Write failing test with a minimal docx zip fixture**
 
@@ -301,6 +331,8 @@ EOF
 
 ### Task 1.3: Image metadata reader + archive manifest reader
 
+**SPEC:** `planning/parts/P5-extractors/SPEC.md` — Done means **7** (no archive byte written outside process; bomb/protected/nested terminate marked), **8** (HEIC extracts; §2.6 traps abstain — no invented photo/screenshot conclusion in E5), **10** (routing signature over extension on disagree fixture; each family has handler or explicit `unsupported`).
+
 **Files:**
 - Create: `src/readers/image_exif.py`
 - Create: `src/readers/archive_manifest.py`
@@ -309,8 +341,13 @@ EOF
 - Create: `tests/readers/test_image_and_archive_readers.py`
 
 **Interfaces:**
-- Produces: `read_image(path) -> Mapping | None` matching P5 image reader contract (inspect `extractors.dispatch.Readers` / image extractor expected keys — EXIF datetime, dimensions; no pixel OCR here)
+- Produces: `read_image(path) -> Mapping | None` matching P5 image reader contract (inspect live extractor)
 - Produces: `read_manifest(path) -> Mapping | None` listing member names/sizes without extracting payloads to disk
+
+**Done-means (this task):**
+- Archive fixture: zero files written under `tmp_path` outside the input archive (P5 DM 7).
+- HEIC: either real extract or explicit `unsupported`/`unreadable` — never empty-as-success (P5 DM 1, 8).
+- CLI format map expanded so router can select families; disagree fixture still prefers signature when P5 path is used (P5 DM 10) — do not weaken `extractors.router`.
 
 - [ ] **Step 1: Inspect live reader contracts**
 
@@ -343,14 +380,21 @@ EOF
 
 ### Task 1.4: Real `usable_threshold` so targeted OCR can fire
 
+**SPEC:** `planning/parts/P5-extractors/SPEC.md` — Done means **5** (two text-layer states behave differently; no global language-quality check). Targeted OCR after failed usable facts is `00` §2.7 / P5 Contract sequencing with P6 — orchestrator already sequences; CLI must not hard-wire “always usable.” Do **not** invent a numeric language-quality score (SPEC forbids global language-quality check).
+
 **Files:**
 - Create: `src/deployment/usable.py`
 - Modify: `src/cli.py` (replace `lambda facts, unresolved: True`)
 - Create: `tests/deployment/test_usable_threshold.py`
 
 **Interfaces:**
-- Consumes: P6 facts iterable + unresolved iterable (same objects CLI already passes)
-- Produces: `usable_threshold(facts, unresolved) -> bool` — **True** means “usable enough; skip targeted OCR”; **False** means “trigger targeted OCR path”
+- Consumes: P6 facts iterable + unresolved iterable (same objects CLI already passes into `P1P7Authorities.usable_threshold`)
+- Produces: `usable_threshold(facts, unresolved) -> bool` — **True** = skip targeted OCR; **False** = allow targeted OCR path
+
+**Done-means (this task):**
+- Broken-text fixture with unresolved / no direct|validated facts returns False (P5 DM 5 path can fire).
+- File with direct/validated fact returns True.
+- No module under `src/deployment/` or `src/cli.py` introduces a “language quality” score API.
 
 - [ ] **Step 1: Failing tests**
 
@@ -393,6 +437,8 @@ EOF
 
 ### Task 2.1: Academic §3.5 rules injected on the CLI resolver
 
+**SPEC:** `planning/parts/P6-facts-facets/SPEC.md` — Done means **4** (syllabus fixture → `subject`/term/work type with evidence), **8** (no academic context → no `subject`; capital-S Syllabus → yes), **17** (items 4–10 work with P8 absent). Contract: context terms for academic are exactly the five in `facts.rules.ACADEMIC_CONTEXT_TERMS`; field key is **`subject`** (D6). Pattern regex is **injected** (Deferred catalogue) — deployment may author the launch regex; `facts.rules` must not grow a sixth context term.
+
 **Files:**
 - Create: `src/deployment/academic_rules.py`
 - Modify: `src/cli.py` (`_resolver` stages)
@@ -402,6 +448,10 @@ EOF
 **Interfaces:**
 - Consumes: `facts.rules.Rule`, `facts.rules.ACADEMIC_CONTEXT_TERMS`, field key `subject` (D6)
 - Produces: `ACADEMIC_SUBJECT_RULES: tuple[Rule, ...]` and a `rule` stage callable for `FactResolver`
+
+**Done-means (this task):**
+- P6 DM 8 positive + negative cases pass through CLI/`FactResolver` with `llm=None` (supports DM 17).
+- Stored key is `subject`, never `course`.
 
 - [ ] **Step 1: Inspect `rules` stage entrypoint**
 
@@ -438,20 +488,20 @@ EOF
 
 ### Task 2.2: Close C-5 at deployment — inject `normalize` and `contradicts`
 
+**SPEC:** `planning/parts/P6-facts-facets/SPEC.md` Done means **11** (LLM proposal absent citation / out-of-schema / contradicted by stronger fact → no fact). `planning/parts/P8-llm-harness-validator/SPEC.md` Contract out Site A four checks; **Deferred** table: domain `normalize` / `contradicts` are **not** authored by P8 — injected. `src/facts/llm_seam.py` documents C-5: P6 publishes **neither** function.
+
 **Files:**
 - Create: `src/deployment/validation_oracles.py`
 - Create: `tests/deployment/test_validation_oracles.py`
 - Modify: none under `src/facts/` (guard must keep failing if someone publishes normalize there)
 
 **Interfaces:**
-- Produces:
+- Produces: `normalize` / `contradicts` matching exact types expected by `llm_harness.fact_validation` / `ValidationDependencies` (inspect live)
 
-```python
-def normalize(field_key: str, raw_value: str) -> str | object:  # value or not_normalizable sentinel
-def contradicts(claim: Mapping, existing_fact: Mapping) -> bool
-```
-
-Match exact sentinel / types expected by `llm_harness.fact_validation` (inspect `ValidationDependencies` / Site A).
+**Done-means (this task):**
+- P8 Site A can run with injected oracles without `ValidationUnavailable` solely due to missing callbacks.
+- `import facts; hasattr(facts, "normalize")` is False (C-5 / llm_seam guard).
+- Fixture: altered citation / missing field / contradicting direct fact → reject or no active fact (P6 DM 11 / P8 DM 3–4).
 
 - [ ] **Step 1: Read live P8 dependency type**
 
@@ -488,15 +538,23 @@ EOF
 
 ### Task 2.3: Wire offline-safe P8 `run_call` into grouping + placement authorities
 
+**SPEC:** `planning/parts/P7-privacy-consent-gate/SPEC.md` Done means **3** (one egress; only `Released`), **7** (`NeedsConsent` not converted), **12** (local-first default offline|local_model), **13** (gate installed; offline deliberate call Denied). `planning/parts/P8-llm-harness-validator/SPEC.md` Done means **1**, **5** (`unknown`→abstain), **10** (refusals are abstentions, NeedsConsent not in that list), **13**. `planning/parts/P9-grouping/SPEC.md` Contract in: P8 seam for model coherence — `p8_run_call` must match live signature (see `tests/integration/test_live_path.py`).
+
 **Files:**
-- Modify: `src/cli.py` (build `Gate`, `ModelClient` local/offline stub or real local client, `p8_run_call`, `p8_authorities`)
+- Modify: `src/cli.py` (build `Gate`, offline `ModelClient`, `p8_run_call`, `p8_authorities`)
 - Create: `src/deployment/p8_bindings.py`
 - Create: `tests/integration/test_cli_p8_offline.py`
 - Reference pattern: `tests/integration/test_live_path.py` (`_WiredRunCall`)
 
 **Interfaces:**
-- Consumes: `privacy.gate.Gate`, `llm_harness.harness.run_call`, deployment oracles
-- Produces: `p8_run_call` matching `production.CorpusAuthorities` / grouping signature; `OPERATION_MODE` remains `"offline"` unless user opts in
+- Consumes: `privacy.gate.Gate`, `llm_harness.harness.run_call`, deployment oracles (Task 2.2)
+- Produces: `p8_run_call` / `p8_authorities` pair required by `production` (both None or both set)
+
+**Done-means (this task):**
+- Static/runtime: model transport still single-egress with `Released` only (P7 DM 3 / P8 DM 1).
+- `NeedsConsent` fixture returns consent branch, no abstain metric (P7 DM 7 / P8 DM 13).
+- Shipped CLI default mode is `offline` or `local_model` (P7 DM 12) — already `OPERATION_MODE="offline"`; do not regress.
+- Grouping no longer records `not_implemented_reason=no_model_call_configured` when profile enables P8.
 
 - [ ] **Step 1: Copy the live-path wiring pattern into `deployment/p8_bindings.py`**
 
@@ -535,13 +593,19 @@ EOF
 
 ### Task 2.4: Enable LLM fact stage behind Gate (optional path)
 
+**SPEC:** `planning/parts/P6-facts-facets/SPEC.md` Done means **3** (no runtime field mint), **11**, **12** (`possible` not proposal-eligible). `planning/parts/P8-llm-harness-validator/SPEC.md` Done means **5–6** (`unknown`→abstain; `may_propose: false` holds).
+
 **Files:**
 - Modify: `src/cli.py` / `src/deployment/` fact stage binder
 - Create: `tests/integration/test_cli_llm_facts_unknown.py`
 
 **Interfaces:**
-- Consumes: `facts.llm_seam` proposal/apply APIs + P8 Site A
-- Produces: `stages["llm"]` callable that abstains to `unknown` safely when client returns unknown
+- Consumes: `facts.llm_seam` + P8 Site A + Task 2.2 oracles
+- Produces: `stages["llm"]` callable
+
+**Done-means (this task):**
+- Ambiguous file: `unknown` or unresolved — **no** invented schema field (P6 DM 3, 11).
+- No `may_propose: false` verdict appears in proposal-eligible reads (P8 DM 6 / P6 DM 12).
 
 - [ ] **Step 1: Wire `llm` stage** using existing `facts.llm_seam` + P8 Site A validators with injected oracles from Task 2.2.
 
@@ -562,6 +626,8 @@ EOF
 
 ### Task 3.1: Gate non-launch destination schemas/templates by default
 
+**SPEC:** `planning/parts/P6-facts-facets/SPEC.md` — §3.11 / Deferred: launch domains and safety domains; do not treat the full professional schema roster as the freeze catalogue by default. `planning/parts/P10-tree-design-freeze/SPEC.md` — Contract out §3 (template schema); Deferred: dimensions beyond five §5.4 names (Academic/Applications/Research/Career/Photos); Code + Finance have fact schemas but **no design-stated dimensions** until Open questions close. `planning/parts/P7-privacy-consent-gate/SPEC.md` — finance/identity/medical/legal as **safety** handling before automated placement.
+
 **Files:**
 - Modify: `src/deployment/launch_profile.py`
 - Modify: `src/cli.py` / catalogue load path
@@ -569,8 +635,12 @@ EOF
 - Create: `tests/deployment/test_launch_catalogue_gate.py`
 
 **Interfaces:**
-- Produces: `filter_catalogue_for_launch(catalogue) -> catalogue` keeping only templates whose schema_id ∈ `LAUNCH_DESTINATION_SCHEMA_IDS`
-- Finance/identity/medical/legal: remain in **recognition safety** handling map; **strip destination eligibility** from freeze catalogue unless `--all-schemas` flag
+- Produces: `filter_catalogue_for_launch(catalogue) -> catalogue` keeping templates whose schema_id ∈ `LAUNCH_DESTINATION_SCHEMA_IDS`
+- Finance/identity/medical/legal: stay in recognition **safety** map; **absent** from default freeze destination catalogue unless `--all-schemas`
+
+**Done-means (this task):**
+- Default freeze legal set ⊆ launch destination schemas (P10 freeze closed-set intent).
+- Safety domains still classifiable via P7 path (P7 DM 2) without becoming destination templates by default.
 
 - [ ] **Step 1: Failing test** — default catalogue used by CLI contains no `law_practice` / `manufacturing` template applicability for freeze.
 
@@ -592,6 +662,8 @@ EOF
 
 ### Task 4.1: Minimal residual library (Review Later + Independent Records)
 
+**SPEC:** `planning/parts/P10-tree-design-freeze/SPEC.md` — Contract out §6: **nine** residual template **names** are fixed; **slot contents** (evidence patterns, types, sensitivity, depth, default parents) are **Deferred** — do not invent full §7.2 attribute packs. Ship the smallest enablement that unblocks projection (names + enablement model already in SPEC). `planning/parts/P11-placement-residual/SPEC.md` owns residual workflow after freeze.
+
 **Files:**
 - Create: `src/deployment/residual_library.py`
 - Modify: `src/cli.py` (`RESIDUAL_LIBRARY = {}` → load launch residual)
@@ -599,6 +671,11 @@ EOF
 
 **Interfaces:**
 - Produces: non-empty mapping accepted by `tree_design.pipeline.design_tree(..., residual_library=...)`
+
+**Done-means (this task):**
+- With library present, `design_tree` no longer early-returns solely because residual library is empty (P10 residual projection path).
+- No invented residual names outside SPEC’s nine (grep library keys ⊆ Contract out §6 names).
+- Slot fields left empty/Deferred-safe rather than fabricated patterns.
 
 - [ ] **Step 1: Inspect required residual library shape**
 
@@ -626,36 +703,47 @@ EOF
 
 ### Task 5.1: Execute P12 plan (apply/undo)
 
-**Files:** as listed in `docs/superpowers/plans/2026-08-29-p12-apply-undo.md` (`src/mutation/`, `tests/p12/`, …)
+**SPEC:** `planning/parts/P12-apply-undo/SPEC.md` (entire Done means list). **Plan:** `docs/superpowers/plans/2026-08-29-p12-apply-undo.md` (already binds A1–A9 to that SPEC — do not fork).
 
-**Interfaces:** exactly those ratified in the P12 plan (A1–A9).
+**Files:** as listed in the P12 plan (`src/mutation/`, `tests/p12/`, …)
 
-- [ ] **Step 1:** Open `docs/superpowers/plans/2026-08-29-p12-apply-undo.md`.
-- [ ] **Step 2:** Execute **Task 1 through Done** of that plan with subagent-driven-development (or inline executing-plans). Do not edit P1–P11 sources (P12 A5).
-- [ ] **Step 3:** Stop when P12’s own suite is green: `PYTHONPATH=src python3 -m pytest tests/p12/ -p no:randomly`
-- [ ] **Step 4:** Record completion in `planning/27-dispatch-run-log.md` with HEAD sha (explicit path commit).
+**Interfaces:** exactly those ratified in the P12 plan / P12 SPEC Contract out.
+
+- [ ] **Step 1:** Open SPEC + plan; confirm Done means numbering still matches plan tasks.
+- [ ] **Step 2:** Execute **Task 1 through Done** of the P12 plan with subagent-driven-development (or inline executing-plans). Do not edit P1–P11 sources (P12 plan A5 / SPEC ownership).
+- [ ] **Step 3:** Stop when P12’s suite is green: `PYTHONPATH=src python3 -m pytest tests/p12/ -p no:randomly`
+- [ ] **Step 4:** Record completion in `planning/27-dispatch-run-log.md` with HEAD sha + which SPEC Done means were asserted (explicit path commit).
 
 ---
 
 ### Task 6.1: Execute P13 plan (review surface)
 
-**Files:** as listed in `docs/superpowers/plans/2026-08-29-p13-review-approval-surface.md` (`src/review_surface/`, …)
+**SPEC:** `planning/parts/P13-review-approval-surface/SPEC.md` (entire Done means list). **Plan:** `docs/superpowers/plans/2026-08-29-p13-review-approval-surface.md` (binds B2/B3/M8/M14 to SPEC — do not fork).
 
-- [ ] **Step 1:** Execute that plan task-by-task.
-- [ ] **Step 2:** Green: `PYTHONPATH=src python3 -m pytest tests/p13/ -p no:randomly` (or path the P13 plan names).
-- [ ] **Step 3:** Log completion.
+**Files:** as listed in the P13 plan (`src/review_surface/`, …)
+
+- [ ] **Step 1:** Execute that plan task-by-task against the SPEC Done means.
+- [ ] **Step 2:** Green: path named in the P13 plan (`tests/p13/` or equivalent).
+- [ ] **Step 3:** Log completion with SPEC Done means coverage notes.
 
 ---
 
 ### Task 7.1: CLI apply path — plan then mutate
+
+**SPEC:** `planning/parts/P11-placement-residual/SPEC.md` — placement decides; **moves nothing**. `planning/parts/P12-apply-undo/SPEC.md` — sole mutator; Contract out move plan + refusal classes. `planning/parts/P7-privacy-consent-gate/SPEC.md` Done means **9** (`may_move_automatically` consumed, not re-derived).
 
 **Files:**
 - Modify: `src/cli.py` (replace terminal “Nothing was moved.” with optional `--apply` that calls P12)
 - Create: `tests/integration/test_cli_apply_undo.py`
 
 **Interfaces:**
-- Consumes: P11 placement decisions + P10 `frozen_tree` + P12 apply transaction API (live names from P12 plan)
+- Consumes: P11 placement decisions + P10 `frozen_tree` + P12 apply API (live names from P12)
 - Produces: journaled moves; default remains preview-only
+
+**Done-means (this task):**
+- Without `--apply`: zero filesystem mutations (P11 “moves nothing”).
+- With `--apply`: P12 preconditions + journal; never silent overwrite (P12 SPEC / `00` §8.3).
+- Protected files: `may_move_automatically` false ⇒ refuse (P7 DM 9).
 
 - [ ] **Step 1: Default behavior unchanged** — without `--apply`, still prints preview and does not move.
 
@@ -676,26 +764,32 @@ EOF
 
 ---
 
-### Task 7.2: End-to-end 00 fidelity acceptance test
+### Task 7.2: End-to-end 00 + SPEC fidelity acceptance test
+
+**SPEC cross-check (must cite numbers in test docstrings):**
+- P5 DM 1, 11 (outcome + REUSE determinism)
+- P6 DM 4 or 8 (academic subject path)
+- P10 freeze closed set / P11 abstain-not-invent
+- P12 journal when `--apply` (or skip apply assertions if Wave 5 incomplete — fail clearly)
 
 **Files:**
 - Create: `tests/integration/test_cli_00_fidelity.py`
 
 **Done-means (all must pass on a tiny fixture corpus):**
-1. DOCX or PDF text yields stored P4 observations reused on second run (REUSE).
-2. Academic syllabus text yields rule-validated `subject` **or** explicit unresolved — never silent empty success.
-3. Freeze legal set ⊆ launch destination schemas (unless `--all-schemas`).
-4. Placement abstains rather than inventing a node id.
-5. Without `--apply`, zero filesystem moves; with `--apply`, journal exists and source/dest hashes verify.
+1. DOCX or PDF text yields stored P4 observations reused on second run (P5 DM 11).
+2. Academic syllabus text yields rule-validated `subject` **or** explicit unresolved — never silent empty success (P6 DM 4/8).
+3. Freeze legal set ⊆ launch destination schemas (unless `--all-schemas`) (P10 + Task 3.1).
+4. Placement abstains rather than inventing a node id (P11 SPEC).
+5. Without `--apply`, zero filesystem moves; with `--apply`, journal exists and hashes verify (P11/P12).
 
-- [ ] **Step 1: Write the test module** exercising `cli.main` against `tmp_path` corpus.
+- [ ] **Step 1: Write the test module** exercising `cli.main` against `tmp_path` corpus; each test names SPEC Done means in its docstring.
 - [ ] **Step 2: Run until green.**
 - [ ] **Step 3: Commit**
 
 ```bash
 git add tests/integration/test_cli_00_fidelity.py
 git commit -m "$(cat <<'EOF'
-test: end-to-end 00 fidelity acceptance for launch CLI path
+test: end-to-end 00/SPEC fidelity acceptance for launch CLI path
 
 EOF
 )"
@@ -704,6 +798,8 @@ EOF
 ---
 
 ### Task 8.1: Write replacement conformance audit
+
+**SPEC:** Re-audit format must map **every** Wave 1–7 claim to a SPEC Done means id (or Deferred/Open question id). Do not claim “P8 exists” as conformance — claim P8 DM 1/5/13 on the CLI path.
 
 **Files:**
 - Create: `planning/43-00-fidelity-conformance-audit.md`
@@ -716,14 +812,14 @@ PYTHONPATH=src python3 -m pytest tests/integration/test_cli_00_fidelity.py \
   -p no:randomly --tb=no -q
 ```
 
-- [ ] **Step 2: For each Wave 1–7 Done-means**, cite `00` grep-verified quote + code path + pass/fail.
-- [ ] **Step 3: Explicit remaining gaps** (embeddings still off by default is OK if documented; long-tail formats; catalogue R1c; NEEDS-JOSEPH).
+- [ ] **Step 2: For each Wave 1–7 Done-means**, cite `00` grep-verified quote **and** SPEC Done means # + code path + pass/fail.
+- [ ] **Step 3: Explicit remaining gaps** (embeddings off; long-tail formats; catalogue R1c; SPEC Open questions; Deferred residual slots).
 - [ ] **Step 4: Commit**
 
 ```bash
 git add planning/43-00-fidelity-conformance-audit.md
 git commit -m "$(cat <<'EOF'
-docs: 00 fidelity conformance audit after restore program
+docs: 00/SPEC fidelity conformance audit after restore program
 
 EOF
 )"
@@ -733,24 +829,25 @@ EOF
 
 ## Self-review (author)
 
-| Drift from audits | Task coverage |
-|-------------------|---------------|
-| Stale README / audit 28 / continue-here | 0.1 |
-| OCR languages en-US only | 1.1 |
-| DOCX/image/archive unwired | 1.2, 1.3 |
-| `usable_threshold` always True | 1.4 |
-| `rule`/`llm` None on CLI | 2.1, 2.4 |
-| C-5 ValidationUnavailable | 2.2 |
-| P8 unwired (`no_model_call_configured`) | 2.3 |
-| 23 schemas vs six launch domains | 3.1 |
-| Empty residual library | 4.1 |
-| No APPLY / P12 | 5.1, 7.1 |
-| No P13 review surface | 6.1 |
-| End-to-end proof | 7.2, 8.1 |
-| Finance safety vs destination | 3.1 (destination stripped; safety retained) |
-| Invented CLI evidence spans | addressed indirectly by using real P4 locators in P8 bindings — if still present after 2.3, file a follow-up task in Wave 8 gaps rather than silently leaving `cli.py` `evidence_for` inventing `location="heading"` |
+| Drift from audits | Task coverage | SPEC Done means |
+|-------------------|---------------|-----------------|
+| Stale README / audit 28 / continue-here | 0.1 | docs |
+| OCR languages en-US only | 1.1 | P5 DM 9 |
+| DOCX/image/archive unwired | 1.2, 1.3 | P5 DM 1,6,7,8,10 |
+| `usable_threshold` always True | 1.4 | P5 DM 5 |
+| `rule`/`llm` None on CLI | 2.1, 2.4 | P6 DM 4,8,11,17 |
+| C-5 ValidationUnavailable | 2.2 | P6 DM 11 · P8 Site A Deferred |
+| P8 unwired | 2.3 | P7 DM 3,7,12,13 · P8 DM 1,5,10,13 |
+| 23 schemas vs six launch domains | 3.1 | P6 §3.11 · P10 Deferred §5.4 |
+| Empty residual library | 4.1 | P10 Contract out §6 |
+| No APPLY / P12 | 5.1, 7.1 | P12 SPEC · P11 moves nothing |
+| No P13 review surface | 6.1 | P13 SPEC |
+| End-to-end proof | 7.2, 8.1 | cross-SPEC |
+| Finance safety vs destination | 3.1 | P7 safety · P10 no Finance dimensions |
 
-**Out of scope (do not smuggle in):** domain catalogue R1c edge reciprocity; nonprofit anchor politics; closing NEEDS-JOSEPH; Graphify dangling-endpoint cleanup; rewriting P6/P7 SPECs.
+**Out of scope (do not smuggle in):** domain catalogue R1c; nonprofit anchor politics; closing SPEC Open questions / NEEDS-JOSEPH; inventing Deferred residual slot contents; rewriting P6/P7 SPECs.
+
+**Placeholder scan:** none intentional — P12/P13 point at complete sibling plans that already contain full TDD steps bound to SPECs.
 
 ---
 
