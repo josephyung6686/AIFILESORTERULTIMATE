@@ -347,6 +347,58 @@ def test_history_spans_every_content_hash_the_file_has_had(scanned, p6_conn):
                 old_version, current}
 
 
+def test_two_producers_that_agree_are_one_answer_not_a_conflict(scanned, p6_conn):
+    """§8.6 runs the producers in order, and two of them concluding the SAME thing is
+    agreement, not multiplicity.
+
+    OQ6 asks which of several simultaneous VALUES is preferred. A slot whose live
+    rows all name one value never poses that question: there is one value, cited
+    twice. Counting rows instead of values turned the degradation ladder against
+    itself — the extractor's `direct` reading and a rule's `validated` reading of one
+    subject made the slot unresolvable, and P10 then deleted the file's folder level
+    (`planning/71-diagnosis/audit-override-and-multivalue.md`, F1).
+
+    Which of the two rows comes back is decided by §3.13's ladder, for the reason
+    `user_confirmed` already wins outright above: the value is identical either way,
+    so the only thing left to choose is which evidence a reader is shown, and §3.13
+    is the repo's one ranking of that.
+    """
+    file_id, content_hash, first, second = scanned
+    extractor = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+                      field_key="subject", value="Columbia University", key=first,
+                      state="direct", cache_key="sha256:extractor")
+    rule = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+                 field_key="subject", value="Columbia University", key=second,
+                 state="validated", cache_key="sha256:rule")
+    assert extractor != rule                   # two rows, one value
+    row = preferred_fact(p6_conn, file_id=file_id, field_key="subject")
+    assert row is not None
+    assert row["canonical_value"] == "Columbia University"
+    assert row["fact_id"] == extractor         # `direct` outranks `validated`
+    # And neither row was retired to get there: agreement is not supersession.
+    assert len(fact_history(p6_conn, file_id=file_id, field_key="subject")) == 2
+
+
+def test_two_producers_that_disagree_are_still_unresolvable(scanned, p6_conn):
+    """The falsifying twin of the test above: the same two producers, one different
+    value, and the slot must go back to `None`.
+
+    Written because agreement is only safe to resolve if it is keyed on the VALUE. A
+    reader that instead returned the strongest live row, or one row per producer,
+    would pass the agreement test and quietly pick a winner here — OQ6 answered by
+    accident, which is exactly what `test_several_live_rows_have_no_preferred_row`
+    below forbids.
+    """
+    file_id, content_hash, first, second = scanned
+    _fact(p6_conn, file_id=file_id, content_hash=content_hash, field_key="subject",
+          value="Columbia University", key=first, state="direct",
+          cache_key="sha256:extractor")
+    _fact(p6_conn, file_id=file_id, content_hash=content_hash, field_key="subject",
+          value="Columbia College", key=second, state="validated",
+          cache_key="sha256:rule")
+    assert preferred_fact(p6_conn, file_id=file_id, field_key="subject") is None
+
+
 def test_several_live_rows_have_no_preferred_row(scanned, p6_conn):
     # OQ6 — multiplicity — is open and the SPEC carries `multiplicity` as an
     # UNANSWERED column. "Which of several simultaneous values is preferred" IS that

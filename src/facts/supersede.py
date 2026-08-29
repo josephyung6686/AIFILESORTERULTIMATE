@@ -51,7 +51,7 @@ import sqlite3
 from database_agent.supersede import chain, mark_superseded
 
 from facts.file_facts import facts_for_file
-from facts.states import USER_CONFIRMED
+from facts.states import REJECTED, USER_CONFIRMED, strength
 
 #: The table P1's `mark_superseded` and `chain` are addressed by. Task 4 owns the DDL,
 #: including the VIRTUAL `record_id` projection of `fact_id` that P1 requires and the
@@ -177,6 +177,28 @@ def supersede_fact(conn: sqlite3.Connection, *, old_fact_id: str,
                  (new_fact_id,))
 
 
+def _best_cited(rows: list[sqlite3.Row]) -> sqlite3.Row:
+    """Of several rows that all name ONE value, the one to show a reader.
+
+    Not a choice between answers -- the answer is already settled, because every row
+    here carries the same `value_id`. What is left is which row's evidence, origin and
+    state a reader inspecting the conclusion is shown, and §3.13's ladder is the
+    repo's one ranking of that, the same ordering `preferred_fact` already applies
+    when it lets a `user_confirmed` row win outright. Ties fall to the first row,
+    which `_slot` returns in `fact_id` order, so the read is deterministic.
+
+    `rejected` is skipped rather than ranked: §3.13 makes it an exclusion, not the
+    bottom of the ladder, and `strength` raises for it. A slot whose live rows are ALL
+    rejected still returns one -- filtering by state here would be a second rule for
+    the pointer, and which states may become a folder proposal is the read surface's
+    question (`src/facts/read_surface.py:143-152`), asked by the caller after this.
+    """
+    ranked = [row for row in rows if row["reliability_state"] != REJECTED]
+    if not ranked:
+        return rows[0]
+    return max(ranked, key=lambda row: strength(row["reliability_state"]))
+
+
 def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
                    field_key: str) -> sqlite3.Row | None:
     """The row a reader should show for this slot, or `None`.
@@ -185,14 +207,26 @@ def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
 
     * a `user_confirmed` live row wins outright -- §3.13's ordering is not
       negotiable and the SPEC names this case;
-    * a single live row is the answer even though `preferred` was never set on it,
-      because the column is set ONLY on supersession;
-    * among several live rows, exactly one carrying `preferred` is the pointer.
+    * live rows that all name ONE value are that value, however many rows there are:
+      a single row is the obvious instance, and so is §8.6's ladder running two
+      producers that reach the same conclusion;
+    * among live rows naming SEVERAL values, exactly one carrying `preferred` is the
+      pointer.
 
     Anything else returns `None`. OQ6 -- multiplicity -- is open and the SPEC carries
     `multiplicity` as an unanswered column, so "which of several simultaneous values
     is preferred" is that question and a reader that picked one would close it by
     accident.
+
+    **Agreement is counted by value, not by row.** This function used to count rows,
+    so §8.6's own degradation ladder -- extractor, then rule, then model, each writing
+    its conclusion as a fact -- made a slot UNRESOLVABLE by agreeing with itself, and
+    P10 then dropped the file's folder level for want of a value it had twice
+    (`planning/71-diagnosis/audit-override-and-multivalue.md`, F1). Two rows naming
+    one `value_id` are one answer with two citations; OQ6 is not reached, because
+    there are not several values to choose between. `value_id` is content-addressed
+    over `(field_key, canonical_value)` (`src/facts/values.py:122-153`), so equal ids
+    and equal canonical values are the same statement.
 
     Live means not superseded. `active` is a different axis and is Task 4's: §8.2's
     mechanism for the pointer is supersession, and reading a second column here would
@@ -203,8 +237,8 @@ def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
     confirmed = [row for row in live if row["reliability_state"] == USER_CONFIRMED]
     if confirmed:
         live = confirmed
-    if len(live) == 1:
-        return live[0]
+    if len({row["value_id"] for row in live}) == 1:
+        return _best_cited(live)
     pointed = [row for row in live if row["preferred"]]
     return pointed[0] if len(pointed) == 1 else None
 

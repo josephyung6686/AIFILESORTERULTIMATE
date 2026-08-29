@@ -549,7 +549,7 @@ def test_the_report_says_the_folders_the_person_already_made_were_not_used():
     keeps only candidates whose `subject_id` is in `branch_group_ids`. A folder
     candidate's `subject_id` is a directory path (`candidates.py:304`); what
     `cli.py` puts in `branch_group_ids` is the one synthetic id `review_and_accept`
-    mints from `--label` (`cli.py:498, 535, 745`). No folder can ever match, so
+    mints from `--label` (`cli.py:506, 543, 759`). No folder can ever match, so
     every folder card is dropped unread.
 
     Measured on a corpus with four levels of the person's own structure and on a
