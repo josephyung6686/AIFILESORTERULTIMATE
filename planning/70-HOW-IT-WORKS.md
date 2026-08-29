@@ -183,6 +183,19 @@ it" is not a claim that it works.**
 refusals, and declines rather than guessing. The failures found so far have almost all been at the
 boundary between two parts that each behaved correctly in its own vocabulary.
 
+**The single finding to read first.** The standing rule — protected material is marked and
+counted, never opened — is enforced by one predicate, and that predicate protects **one file
+extension**: `PROTECTED_BUNDLE_SUFFIXES = (".app",)` (`scan_agent/exclusion.py:66`). The design
+anticipated this and left a caller-supplied `extra` predicate "for the members the design does not
+name" (`:79-81`), which can only ADD, never un-protect. **The shipped deployment supplies no
+`extra`** (`cli.py:410`). So on a real person's disk, a `.photoslibrary`, a `.rtfd`, a `.pages`
+bundle, a mail store, `Library/`, `.git` and `node_modules` are all ordinary folders to be walked
+into. The subtree logic above it is correct and was itself the fix for an earlier version that
+protected the bundle and admitted its contents; the list it consults is the part that never grew.
+Section 1 has the full account. Naming the members is a deployment decision and a mechanism, so it
+wants a person's approval rather than an agent's catalogue — but nothing else in this document
+matters as much.
+
 **The product's current terminal state is the same for everybody.** Four personas — a litigator, a
 student who also teaches, a two-child household, and one person who is all three — were run through
 the shipped command on 2026-08-29. All four ended identically: **zero files ready to file, a
