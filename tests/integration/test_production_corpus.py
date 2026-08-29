@@ -1173,3 +1173,63 @@ def test_the_command_can_be_run_twice_over_the_same_folder(tmp_path, capsys):
 
     for report in (first, second):
         assert "Files: 2 decided" in report, report
+
+
+def test_the_documents_own_text_is_read_here_and_can_leave_by_no_route(
+        conn, tmp_path):
+    """The whole-text observation is evidence for THIS DEVICE and nothing else.
+
+    `71` established that reading the document and naming a folder after it are
+    two different knobs, and the whole-text observation deliberately turns only
+    the first. This pins BOTH consequences of that, because they are one property
+    and a future direct slot would break them together:
+
+    * it is not a FACT, so no folder can be named after it;
+    * it is therefore cited by no fact, so it can never become a dossier excerpt --
+      and an excerpt is the only thing that travels to a model.
+
+    The second half is not obvious and two independent audits worried about it.
+    `p8_seam.py` builds a `ReleaseExcerpt` with `span=None` when the observation
+    has none, and `span=None` legally means "the whole citation" -- so a span-less
+    observation that DID reach a dossier would request the entire document. It
+    cannot reach one: `dossier.py` builds excerpts from
+    `[fact.observation_key for fact in facts]`, and this observation is nobody's
+    fact.
+
+    The chain, stated once: an observation becomes a fact only if a deployment's
+    slot claims its locator; only a fact-cited observation becomes an excerpt;
+    only an excerpt travels. Not a fact means not a folder name AND not egress.
+    """
+    import sqlite3
+
+    from evidence_shape.store import observations_for_file
+    from facts.read_surface import facts_for
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    body = "Course syllabus for PHYS1401. Office hours Tuesday, credits 4.\n"
+    (corpus / "syllabus.txt").write_text(body)
+    (corpus / "homework.txt").write_text("PHYS1401 problem set 3. Due Friday.\n")
+
+    import cli
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")]) == 0
+
+    plan = sqlite3.connect(tmp_path / "plan.sqlite")
+    plan.row_factory = sqlite3.Row
+    row = plan.execute(
+        "SELECT file_id, content_hash FROM files WHERE filename = 'syllabus.txt'"
+    ).fetchone()
+
+    whole = [o for o in observations_for_file(plan, row["file_id"])
+             if o.raw_value == body]
+    assert len(whole) == 1, "the document's own text is not being read at all"
+
+    # It is nobody's fact, so nothing can be named after it and nothing cites it.
+    cited = {ref for fact in facts_for(plan, file_id=row["file_id"],
+                                       content_hash=row["content_hash"])
+             for ref in json.loads(fact["evidence_refs"])}
+    assert whole[0].observation_key not in cited, (
+        "a slot claimed the whole-text observation; it is now a folder name and "
+        "an unbounded model excerpt at the same time")
