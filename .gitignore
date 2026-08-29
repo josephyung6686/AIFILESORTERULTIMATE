@@ -13,3 +13,8 @@ venv/
 
 # graphify build artifacts — regenerable, rebuilt by `graphify update .`
 graphify-out/
+
+# SQLite write-ahead log companions to the ignored `*.sqlite` plan database.
+# They appear whenever a run is interrupted and are regenerated on the next open.
+*.sqlite-wal
+*.sqlite-shm

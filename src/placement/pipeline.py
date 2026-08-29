@@ -85,7 +85,7 @@ from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
-    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, FILE,
+    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, EXISTING, FILE,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     PRIVACY_BLOCKED, RESIDUAL,
@@ -152,6 +152,67 @@ def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval
                 superseded.add(cursor)
             cursor = entry_for(conn, plan_version=plan_version,
                                node_id=cursor).parent_node_id
+    if not superseded:
+        return retrieval
+
+    return Retrieval(
+        subject_ref=retrieval.subject_ref,
+        plan_version=retrieval.plan_version,
+        candidates=tuple(candidate for candidate in retrieval.candidates
+                         if candidate.node_id not in superseded),
+        conflicts=retrieval.conflicts,
+        semantic_only_node_ids=retrieval.semantic_only_node_ids,
+    )
+
+
+def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval,
+                                  *, plan_version: str) -> Retrieval:
+    """Step 6's second half: a vaguer COPY of the person's folder is not a rival.
+
+    `00`:100 says a folder the person made "should be treated as a strong
+    expression of user intent". Once those folders are adopted, the engine's own
+    proposal for the same material stands beside them -- `Uni/CHEM1500` and
+    `Coursework/CHEM1500`, the same name twice on one screen -- and the two tie at
+    every file. §6.10 sends a tie to a model, offline mode forbids the call, and
+    the file abstains `privacy_blocked`. Measured: six files that had been placing
+    fine went back to abstaining the day folders were adopted.
+
+    This is not P11 picking between two homes. The rule is the ancestor rule's
+    own -- superseded by a more specific form of itself -- and the specificity is
+    measured, not assumed: the proposal is dropped only when the person's folder
+    expects EVERYTHING it expects. `Uni/CHEM1500`'s files agree on the term as
+    well as the subject, so it is strictly the better-supported destination, and
+    the proposal is a vaguer copy of a folder that already exists.
+
+    **Three refusals hold the rule to that.**
+
+    * A proposal expecting NOTHING is never dropped. An empty set is a subset of
+      everything, so without this any adopted folder would supersede every
+      unexpectant proposal in the tree -- the person's `Downloads` swallowing a
+      branch it has no relationship with.
+    * The person's folder must expect a SUPERSET, not merely overlap. Two folders
+      that share one field and differ on another are genuinely two homes, and
+      §6.10's ambiguity is what the model call exists for.
+    * Only a PROPOSAL is dropped. Two of the person's own folders competing is
+      their business, and resolving it here would be the product overruling one
+      of their decisions with another.
+    """
+    entries = {candidate.node_id: entry_for(conn, plan_version=plan_version,
+                                            node_id=candidate.node_id)
+               for candidate in retrieval.candidates}
+    if len(entries) < 2:
+        return retrieval
+
+    adopted = [entry for entry in entries.values()
+               if entry.node_type == EXISTING]
+    if not adopted:
+        return retrieval
+
+    superseded = {
+        node_id for node_id, entry in entries.items()
+        if entry.node_type != EXISTING and entry.expected_values
+        and any(set(entry.expected_values) <= set(folder.expected_values)
+                for folder in adopted)}
     if not superseded:
         return retrieval
 
@@ -414,6 +475,10 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # Step 6, both halves. `identify_child_parent_fallback_or_none` names the
     # first one and it had no implementation until 2026-08-29.
     retrieval = _without_superseded_ancestors(
+        conn, retrieval, plan_version=inputs.plan_version)
+    # And the same collapse across branches, where the rival is the engine's own
+    # vaguer copy of a folder the person already made (`00`:100).
+    retrieval = _without_duplicated_proposals(
         conn, retrieval, plan_version=inputs.plan_version)
     graphs = {node_id: graph for node_id, graph in graphs.items()
               if node_id in {c.node_id for c in retrieval.candidates}}

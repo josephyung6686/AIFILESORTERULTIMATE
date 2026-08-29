@@ -61,6 +61,15 @@ FRAGMENT_COMPOSITION: str = "fragment-composition"
 #: can show the folder without claiming the user curated it.
 _CURATED = "curated"
 
+#: The two sources that mean "the person made this folder and the scan read it".
+#: Named because `pipeline._top_level_node` has to tell an adopted folder from a
+#: proposal to decide the node's TYPE, and a string literal repeated in two
+#: modules is how the curated/undetermined split silently loses a member.
+EXISTING_FOLDER: str = "existing-folder"
+EXISTING_FOLDER_UNDETERMINED: str = "existing-folder-undetermined"
+EXISTING_FOLDER_SOURCES: tuple[str, ...] = (
+    EXISTING_FOLDER, EXISTING_FOLDER_UNDETERMINED)
+
 _BRANCH_ACTIONS: tuple[str, ...] = (
     ACCEPT, RENAME, MERGE, MOVE_UNDER_ROOT, DEFER, CREATE_MANUALLY,
     DRAG_GROUP_INTO_BRANCH, IGNORE,
@@ -244,8 +253,15 @@ def horizontal_candidates(
         return branch_basis_key(
             parent_node_id=None, dimension_or_label=label) in suppressed
 
-    folders_by_label = {
-        _folder_label(folder.directory_path): folder for folder in existing_folders
+    # Keyed by PATH, which is unique, and not by the last path segment, which is
+    # not. A person with `Uni/PHYS1401` and `Physics/PHYS1401` -- two real
+    # folders, in two places, holding different files -- had one of them
+    # overwritten in this dict and dropped with nothing recording it anywhere,
+    # which is the one outcome the owner's standing rule forbids without
+    # exception. The label is still what the CARD shows; it was never a
+    # workable identity.
+    folders_by_path = {
+        folder.directory_path: folder for folder in existing_folders
     }
 
     for group in accepted:
@@ -265,9 +281,9 @@ def horizontal_candidates(
         # the group is still offered and the card says what the engine found.
         inactive = group.domain is not None and group.domain not in active_domains
         resembling = tuple(
-            folder.directory_path for label, folder in folders_by_label.items()
-            if label.lower() in group.label.lower()
-            or group.label.lower() in label.lower()
+            path for path, folder in folders_by_path.items()
+            if _folder_label(path).lower() in group.label.lower()
+            or group.label.lower() in _folder_label(path).lower()
         )
         sensitive = group.group_id in sensitive_group_ids
         detail = (
@@ -296,7 +312,8 @@ def horizontal_candidates(
             available_actions=_BRANCH_ACTIONS,
         ))
 
-    for label, folder in folders_by_label.items():
+    for path, folder in folders_by_path.items():
+        label = _folder_label(path)
         if suppressed_label(label):
             continue
         curated = folder.curation_signal == _CURATED
@@ -316,7 +333,7 @@ def horizontal_candidates(
             representative_group_labels=(),
             resembling_existing_folders=(folder.directory_path,),
             sensitive_content_present=False,
-            source="existing-folder" if curated else "existing-folder-undetermined",
+            source=EXISTING_FOLDER if curated else EXISTING_FOLDER_UNDETERMINED,
             available_actions=_BRANCH_ACTIONS,
         ))
 

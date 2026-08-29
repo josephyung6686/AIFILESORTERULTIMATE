@@ -104,7 +104,10 @@ from tree_design.pipeline import (
 )
 from tree_design.store import ReviewActionRefused
 from tree_design.templates import CompositionConflict
-from tree_design.upstream import UpstreamUnavailable, handling_class_for
+from scan_agent.selection import selection_candidate_roots
+from tree_design.upstream import (
+    UpstreamUnavailable, existing_folders, handling_class_for, protected_areas,
+)
 from tree_design.schema import create_tree_schema
 from tree_design.vocabulary import (
     MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
@@ -854,9 +857,56 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             mint_node_id=lambda: f"node_{run_token}_{next(ids)}",
             mint_version_id=lambda: f"version_{run_token}_{next(ids)}")
 
+    def adopted_folders() -> tuple[str, ...]:
+        """The person's own folders, offered to the design as branches (`00`:100).
+
+        `00`:67 builds the top level "out of the accepted groups, domain
+        memberships, existing curated folders, and user-approved labels". This
+        command used to supply exactly one of the four, and the consequence was
+        not that folders were ranked low -- it was that every one of them was
+        read, built into a card, and dropped, because the selection filter
+        matches on `subject_id` and a folder's is its directory PATH. Eight
+        directories in, eight cards built, none chosen, and a tree byte-identical
+        to the one the same files produce with no folders at all.
+
+        Every folder is offered, not only the curated ones, because P3 returns
+        `undetermined` for every directory today -- §1.1 gives one worked case and
+        no threshold -- so a curated-only filter would adopt nothing at all and
+        look like a working feature. The card itself says which signal it carries,
+        which is §8.6's "leave it in review rather than guess".
+
+        **Protected containers are excluded by path, and that is not belt and
+        braces.** `represent_protected_areas` already puts them in the tree as
+        `protected` nodes that accept no placement; adopting the same directory a
+        second time as an `existing` node would mint a node over the same bytes
+        that DOES accept placement, turning "marked and counted, never opened"
+        into a legal destination inside a sealed bundle. The area is still shown
+        and still counted -- it is simply not a folder anything may be filed into.
+        """
+        sealed = tuple(area.path for area in protected_areas(
+            conn, scan_run_id=scan_run_id[0]))
+
+        def inside_a_protected_area(path: str) -> bool:
+            return any(path == area or path.startswith(area.rstrip("/\\") + "/")
+                       or path.startswith(area.rstrip("/\\") + "\\")
+                       for area in sealed)
+
+        return tuple(
+            folder.directory_path
+            for folder in existing_folders(conn, scan_run_id=scan_run_id[0])
+            # A scan ROOT is not one of the person's folders inside the picture;
+            # it is the ground the picture stands on. P3 marks it by recording no
+            # parent directory ("NULL at a scan root: the top of the observed
+            # landscape"), and adopting it put the scanned folder inside its own
+            # proposal -- a node called `organised` holding `Uni` and `Inbox`,
+            # which is the whole corpus wearing a folder's clothes.
+            if folder.parent_directory is not None
+            and not inside_a_protected_area(folder.directory_path))
+
     def design_decisions(accepted: Sequence[str]) -> TreeDesignDecisions:
         return TreeDesignDecisions(
-            from_plan_version=PLAN_VERSION, branch_group_ids=tuple(accepted),
+            from_plan_version=PLAN_VERSION,
+            branch_group_ids=tuple(accepted) + adopted_folders(),
             choose_option=choose_option, refinement_for=refinement_for,
             residual_library=RESIDUAL_LIBRARY, residual_choices=(),
             residual_configuration={},
@@ -923,6 +973,44 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             set_at=clock), component_version=COMPONENT_VERSION, user_id=user_id,
             reason="offline run from the command line")
 
+    def _folders_this_file_is_already_in(file_id: str) -> tuple[str, ...]:
+        """The names of the folders the person has ALREADY put this file inside.
+
+        §6.2's `CURATED_FOLDER` channel is `00`:100 in the scoring -- "a folder
+        that has been deliberately curated should be treated as a strong
+        expression of user intent" -- and this command fed it an empty tuple, so
+        the channel existed and never once fired. The consequence was measurable
+        the moment folders were adopted: the person's own `Uni/CHEM1500` scored
+        3/7 against a 0.5 threshold and every file in it abstained
+        `no_supported_destination`, because a folder that belongs to no accepted
+        group cannot reach the threshold on facts alone.
+
+        Nothing is inferred. The file is IN these folders right now, which is the
+        strongest statement of intent available about it and the one piece of
+        evidence that costs nothing to read. Ancestors are included as well as
+        the immediate parent, because `Uni` is also a folder the person chose to
+        put this file under -- retrieval matches on label, so a folder that is
+        not in the tree simply matches nothing.
+
+        The scan root is excluded: it is the folder being organised, not a
+        statement about any file inside it, and every file would carry it.
+        """
+        row = conn.execute(
+            "SELECT current_path FROM files WHERE file_id = ?", (file_id,)
+        ).fetchone()
+        if row is None:
+            return ()
+        roots = {str(path).rstrip("/\\")
+                 for path in selection_candidate_roots(conn, selection_id)}
+        labels: list[str] = []
+        cursor = str(row["current_path"]).rstrip("/\\")
+        while "/" in cursor:
+            cursor = cursor.rsplit("/", 1)[0]
+            if not cursor or cursor in roots:
+                break
+            labels.append(cursor.rsplit("/", 1)[-1])
+        return tuple(labels)
+
     def evidence_for(file_id: str) -> dict:
         """§6.3's evidence for one file: the facts P6 actually settled about it."""
         facts, items = [], []
@@ -946,7 +1034,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 reliability_state="direct", basis="direct-anchor"))
         return dict(
             facts=tuple(facts), evidence_items=tuple(items),
-            group_ids=tuple(accepted_ids), curated_folder_labels=(),
+            group_ids=tuple(accepted_ids),
+            curated_folder_labels=_folders_this_file_is_already_in(file_id),
             semantic_neighbours=(), related_files=(),
             # §6.5's generic-entity suppression. A value seen in more files than
             # this is treated as a hub rather than as a discriminator. Both numbers
@@ -1153,6 +1242,22 @@ PLACEMENT_WORDS: dict[str, str] = {
 #: the report stops describing a no-op as an action. The fact is one the run
 #: already holds: the file's immediate parent is named what the destination is
 #: named.
+#: When the destination IS the folder the file is sitting in -- the same folder,
+#: not another one wearing its name. Only reachable since the person's own folders
+#: are adopted as `existing` nodes carrying their real path, and worth its own
+#: wording because "the plan would put it in the one it proposes" describes a move
+#: out of a folder and back into it.
+SAME_FOLDER: dict[str, str] = {
+    pv.AUTO_ELIGIBLE: "Already in {where} -- nothing to do",
+    pv.REVIEW_REQUIRED: (
+        "Already in {where}; the plan agrees it belongs there and is waiting on "
+        "your review"),
+    pv.BLOCKED_PENDING_USER: (
+        "Already in {where}, and waiting on you to say what these are"),
+}
+
+#: When the file sits in a folder of the same NAME somewhere else -- a real move
+#: between two folders a person would have to tell apart.
 ALREADY_THERE: dict[str, str] = {
     pv.AUTO_ELIGIBLE: "Already in a folder called {where} -- nothing to do",
     pv.REVIEW_REQUIRED: (
@@ -1176,6 +1281,24 @@ def _already_in(name: str, where: str | None) -> bool:
         return False
     parts = PurePosixPath(name).parts
     return len(parts) > 1 and parts[-2].casefold() == where.casefold()
+
+
+def _is_the_same_folder(name: str, existing_path: str | None) -> bool:
+    """Whether the destination is THE folder this file is in, not one like it.
+
+    `name` is the path relative to the corpus root and `existing_path` is what P3
+    recorded, absolute. The whole relative parent is compared against the tail of
+    the real path -- not the last segment -- so `Uni/PHYS1401` and
+    `Downloads/PHYS1401` cannot be mistaken for one another, which is the case
+    that made the name comparison too weak to carry this sentence.
+    """
+    if not existing_path:
+        return False
+    parent = str(PurePosixPath(name).parent)
+    if parent in ("", "."):
+        return False
+    real = existing_path.replace("\\", "/").rstrip("/")
+    return real == parent or real.endswith("/" + parent)
 
 OUTCOME_WORDS: dict[str, str] = {
     pv.PLACE: "Ready to file",
@@ -1214,31 +1337,29 @@ OUTCOME_WORDS: dict[str, str] = {
 DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
     # First, because §5.3 builds the top level "out of the accepted groups,
     # domain memberships, existing curated folders, and user-approved labels"
-    # (`00:67`) and this command supplies exactly one of the four. `_upstream`
-    # really does read the person's folders and `horizontal_candidates` really
-    # does build each one a branch card; the selection filter then keeps only
-    # candidates whose `subject_id` appears in `branch_group_ids`, and what this
-    # command puts there is the single synthetic id minted from `--label`. A
-    # folder candidate's `subject_id` is its directory path, so not one of them
-    # can ever match. Measured: eight directories in, eight cards built, none
+    # (`00:67`) and for most of this command's life it supplied exactly one of
+    # the four. The folders were read and offered and then dropped, because the
+    # selection filter matches on `subject_id` and a folder candidate's is a
+    # directory PATH while this command passed one synthetic id minted from
+    # `--label`. Measured then: eight directories in, eight cards built, none
     # chosen, and a tree byte-identical to the one the same ten files produce
     # when flattened into a single directory.
     #
-    # This line adopts nothing. `00:102` makes `existing` a node type carrying
-    # the folder's real path and `00:100` gives the person six gestures over
-    # their own folders -- attach beneath, merge into, rename to match, leave
-    # untouched -- and none of the six has a consumer, so a folder chosen today
-    # would enter as a fresh proposal wearing the folder's name, which `00:100`
-    # forbids in the same breath. Until a writer and that choice exist, the only
-    # thing owed to someone who has already organised half their disk is to be
-    # told plainly that the proposal was built without any of it.
-    ("What to do with the folders you have already made",
-     "nothing. Every folder under the one you scanned was read and offered as a "
-     "possible top-level branch, and none was adopted -- so this proposal is "
-     "built from scratch and does not contain, keep, or rename any folder of "
-     "yours. Nothing of yours was moved or altered; your structure is simply "
-     "not in this picture, and a file already sitting where it belongs is "
-     "described here as though it were not."),
+    # They are adopted now, as `00:102`'s `existing` nodes carrying the real
+    # path, nested under whichever of their own parent directories was adopted
+    # too. What is still decided on the person's behalf is WHICH -- `00:100`
+    # gives them six gestures over their own folders (attach beneath, merge into,
+    # rename to match, leave untouched among them) and none of the six has a
+    # consumer, so this command takes the only one it can defend with nobody at
+    # the screen: keep every folder exactly where it is and change none of them.
+    ("Which of the folders you have already made to keep",
+     "all of them, exactly where they are. Every folder under the one you "
+     "scanned is in this proposal as your folder -- its real path is recorded "
+     "and its parent folder is still its parent -- so nothing of yours is "
+     "moved, renamed or merged, and a file already sitting where it belongs is "
+     "described here as staying put. Nobody was asked whether to attach one of "
+     "your folders beneath another, merge two that overlap, or leave one out "
+     "of the picture, so none of that was done."),
     ("Which nesting to use, out of the ones your files support",
      "the first one that passed every check and actually splits the folder. A "
      "person looking at the counts and warnings would reasonably pick another."),
@@ -1360,7 +1481,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     tree = result.tree.tree
     places = len(result.destinations)
-    print(f"\nProposed folders: {len(tree.nodes)}. {places} of them "
+    # `00`:100 -- "the canvas should make the difference between existing
+    # structure and proposed structure visually clear". The person's own folders
+    # are in this tree now, and counting them as PROPOSALS would tell someone who
+    # has already organised half their disk that the product intends to build
+    # seven new folders when it intends to build three.
+    yours = sum(1 for node in tree.nodes if getattr(node, "existing_path", None))
+    proposed = len(tree.nodes) - yours
+    print(f"\nFolders in this plan: {len(tree.nodes)}. {proposed} proposed, "
+          f"{yours} yours already. {places} of them "
           f"{'is' if places == 1 else 'are'} somewhere a file can go.", file=out)
     by_parent: dict[str | None, list] = {}
     for node in tree.nodes:
@@ -1369,12 +1498,20 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     def draw(parent, depth):
         for node in by_parent.get(parent, ()):
             mark = "" if node.accepts_placement else "   [marked, not a destination]"
+            # A terminal has no two styles, so the difference `00`:100 asks for
+            # is carried in words. Only an `existing` node has a real path.
+            if getattr(node, "existing_path", None):
+                mark = f"   [yours already]{mark}"
             print(f"  {'  ' * depth}{node.display_label}{mark}", file=out)
             draw(node.node_id, depth + 1)
 
     draw(None, 0)
 
     labels = {node.node_id: node.display_label for node in tree.nodes}
+    # Only an `existing` node has one; `Node` refuses the field on every other
+    # type, so this is exactly the set of destinations that are already folders.
+    existing_paths = {node.node_id: getattr(node, "existing_path", None)
+                      for node in tree.nodes}
     decisions = result.placement.decisions
     def _is_move(decision) -> bool:
         """A placement that would actually MOVE something.
@@ -1422,6 +1559,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # heading: four files moving and one staying put is two facts.
         settled = all(_already_in(names.get(file_id, file_id), where)
                       for file_id in _files_of(decision))
+        # And the stronger claim: not merely a folder of that name, but this one.
+        real_path = (existing_paths.get(decision.destination.node_id)
+                     if decision.destination else None)
+        same_folder = bool(real_path) and all(
+            _is_the_same_folder(names.get(file_id, file_id), real_path)
+            for file_id in _files_of(decision))
         # A placement's folder is its whole answer; every other outcome owes the
         # person the sentence saying why it stopped.
         reason = "" if decision.outcome == pv.PLACE else decision.explanation
@@ -1429,7 +1572,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                        for item in sets)
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled)
+               settled, same_folder)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or _protected(decision, sets)
 
@@ -1440,14 +1583,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file", file=out)
     for key in ordered:
-        outcome, where, reason, review, policy, settled = key
+        outcome, where, reason, review, policy, settled, same_folder = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
         # falls back to the outcome's word rather than to silence, for the same
         # reason `OUTCOME_WORDS` prints an unknown outcome's own name: a gap in
         # this deployment's vocabulary must never become a file that vanished.
-        words = ALREADY_THERE if settled else PLACEMENT_WORDS
+        words = (SAME_FOLDER if same_folder
+                 else ALREADY_THERE if settled else PLACEMENT_WORDS)
         sentence = words.get(policy) if outcome == pv.PLACE else None
         if sentence is not None and where:
             heading = sentence.format(where=where)

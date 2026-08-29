@@ -42,7 +42,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 from tree_design.candidates import (
-    BranchCandidate, VerticalOption, horizontal_candidates, vertical_options,
+    EXISTING_FOLDER_SOURCES, BranchCandidate, VerticalOption,
+    horizontal_candidates, vertical_options,
 )
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FrozenTree, freeze, frozen_tree, represent_protected_areas
@@ -51,7 +52,9 @@ from tree_design.materialise import (
     project_branch_nodes, project_branch_preview,
 )
 from tree_design.profiles import build_profiles
-from tree_design.records import Node, PlanVersion, derive_accepts_placement
+from tree_design.records import (
+    ExpectedValue, Node, PlanVersion, derive_accepts_placement,
+)
 from tree_design.residuals import ResidualChoice, ResidualTemplate, project_residual_nodes
 from tree_design.routing import BranchContext, CompositionCandidate, RoutingReport, route_branch
 from tree_design.store import (
@@ -61,11 +64,12 @@ from tree_design.templates import CompositionConflict
 from tree_design.user_edits import UserLevelEdit, user_level_edits
 from tree_design.upstream import (
     AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
-    accepted_groups, cross_folder_moves, existing_folders, protected_areas,
+    accepted_groups, cross_folder_moves, existing_folders,
+    file_ids_in_directory, protected_areas, settled_values_in_directory,
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
-    ACCEPT, ADD_SCOPED_GENERAL, ORDINARY, PROPOSED, REVIEW_SURFACES,
+    ACCEPT, ADD_SCOPED_GENERAL, EXISTING, ORDINARY, PROPOSED, REVIEW_SURFACES,
     SET_SHARED_MATERIAL_POLICY, check,
 )
 
@@ -479,16 +483,53 @@ def _with_refinement(node: Node, refinement_for) -> Node:
 
 def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
                     authorities: TreeDesignAuthorities,
-                    member_classes: frozenset[str]) -> Node:
+                    member_classes: frozenset[str],
+                    parent_node_id: str | None = None,
+                    expected_values: tuple[ExpectedValue, ...] = (),
+                    associated_groups: tuple[str, ...] = ()) -> Node:
+    """The node one accepted card becomes -- proposed, or the person's own.
+
+    §5.3 builds the top level "out of the accepted groups, domain memberships,
+    existing CURATED FOLDERS, and user-approved labels", and until this function
+    read the card's SOURCE it made all four the same thing: a `proposed` node,
+    which is a folder that does not exist yet. For the two sources that name a
+    directory the scan actually read, that was a false claim in the one place the
+    user is most likely to check -- `00`:100 gives them six gestures over their
+    own folders and every one of them presumes the product knows which folders
+    are theirs.
+
+    So an adopted card is written as `00`:102's `existing` node, carrying the
+    real `existing_path`. The difference is not cosmetic. A `proposed` node
+    labelled `PHYS1401` at the root is an offer to MOVE `Uni/PHYS1401/lab.txt`
+    out of the folder it is already in, and doing that to every folder at once
+    flattens the hierarchy in the name of honouring it.
+
+    `parent_node_id` is how the rest of that promise is kept: an adopted folder
+    whose own parent was also adopted hangs beneath it, so the shape the person
+    built survives adoption. It stays `None` for a proposal, which has no place
+    on disk to inherit one from.
+    """
     node_id = authorities.mint_node_id()
+    adopted = candidate.source in EXISTING_FOLDER_SOURCES
     return Node(
-        node_id=node_id, plan_version_id=plan_version_id, node_type=PROPOSED,
-        display_label=candidate.display_label, parent_node_id=None,
+        node_id=node_id, plan_version_id=plan_version_id,
+        node_type=EXISTING if adopted else PROPOSED,
+        # An observed fact about the corpus, never a composition -- which is why
+        # `Node.__post_init__` refuses it on any other type. The candidate's
+        # `subject_id` IS the directory path for these two sources.
+        existing_path=candidate.subject_id if adopted else None,
+        display_label=candidate.display_label, parent_node_id=parent_node_id,
+        # What the folder's own contents already agree on (§6.2). Empty for a
+        # proposal, whose expectations are composed by `_project` from the
+        # branch's evidence rather than observed from a directory that does not
+        # exist yet.
+        expected_values=expected_values,
         root_anchor=authorities.root_anchor, ordinal=0,
-        associated_group_ids=candidate.accepted_group_ids,
+        associated_group_ids=candidate.accepted_group_ids or associated_groups,
         explanation=candidate.why_suggested, node_role=ORDINARY,
         accepts_placement=derive_accepts_placement(
-            PROPOSED, protected_movement_permitted=False),
+            EXISTING if adopted else PROPOSED,
+            protected_movement_permitted=False),
         # The classes the branch's own members carry, collapsed by the injected
         # authority. P7 publishes `HANDLING_CLASSES` as a set and no ordering, so
         # a rank chosen here could give the branch a weaker floor than one of its
@@ -497,6 +538,108 @@ def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
         # and the authority answers for that too.
         handling_class=authorities.collapse_handling_classes(member_classes),
         origin_node_id=node_id)
+
+
+def _adopt_parents_first(chosen: tuple[BranchCandidate, ...],
+                         ) -> tuple[BranchCandidate, ...]:
+    """Shallower adopted folders before deeper ones, and nothing else moved.
+
+    An adopted folder finds its parent by looking for the node that parent
+    directory ALREADY became, so a child designed first would find nothing and
+    silently land at the root -- the flattening this whole path exists to avoid.
+
+    Only the adopted cards are reordered, and they are spliced back into the very
+    positions they occupied. §5.3 lists four sources for the top level and states
+    no order among them; `branches[0]` is the default parent for a scoped General
+    and for the shared-material policy, so a sort that reshuffled the whole
+    sequence would quietly re-home two things nobody asked to move.
+    """
+    positions = [index for index, candidate in enumerate(chosen)
+                 if candidate.source in EXISTING_FOLDER_SOURCES]
+    # Separator counting is an ORDERING heuristic and carries no authority: the
+    # parent link itself comes from P3's `parent_directory` below. Both
+    # separators are counted because `upstream._folder_name` reads both.
+    in_depth_order = sorted(
+        (chosen[index] for index in positions),
+        key=lambda candidate: (candidate.subject_id.count("/")
+                               + candidate.subject_id.count("\\")))
+    ordered = list(chosen)
+    for index, candidate in zip(positions, in_depth_order):
+        ordered[index] = candidate
+    return tuple(ordered)
+
+
+def _adopted_expectations(conn: sqlite3.Connection,
+                          candidate: BranchCandidate,
+                          ) -> tuple[ExpectedValue, ...]:
+    """§6.2's expectations for an adopted folder, read off its own contents.
+
+    A proposal gets none here on purpose: its expectations are COMPOSED by
+    `_project` out of the branch's evidence, and a folder that does not exist yet
+    has no contents to be asked about.
+    """
+    if candidate.source not in EXISTING_FOLDER_SOURCES:
+        return ()
+    return tuple(
+        ExpectedValue(field=value.field_ref, value=value.canonical_value)
+        for value in settled_values_in_directory(
+            conn, directory_path=candidate.subject_id))
+
+
+def _groups_already_held(conn: sqlite3.Connection, candidate: BranchCandidate, *,
+                         groups: Sequence[AcceptedGroup]) -> tuple[str, ...]:
+    """The accepted groups whose files are ALREADY IN this folder (`00`:100).
+
+    `00`:100 lists this among what the person should see about a folder of their
+    own -- "which extracted facts and accepted groups overlap with it" -- and it
+    is also what makes an adopted folder reachable at all. §6.3 scores over four
+    weighted channels and `ACCEPTED_GROUP` is two of the seven points; a folder
+    the person made is not built FROM a group, so without this it carries
+    `DIRECT_FACT` alone, 3/7 against a 0.5 threshold, and everything in it
+    abstains `no_supported_destination`.
+
+    Overlap is READ. A folder holding none of a group's files claims none of it,
+    which is what stops every adopted folder inheriting every group in the corpus
+    and scoring as though it held the whole collection.
+
+    Immediate children only, for the reason `settled_values_in_directory` gives
+    at length: a file in `Uni/PHYS1401` is evidence about `PHYS1401`, and letting
+    it count for `Uni` as well would put the person's own tree in competition
+    with itself at every level.
+    """
+    if candidate.source not in EXISTING_FOLDER_SOURCES:
+        return ()
+    here = file_ids_in_directory(conn, directory_path=candidate.subject_id)
+    if not here:
+        return ()
+    return tuple(
+        group.group_id for group in groups
+        if any(member.file_id in here for member in group.members))
+
+
+def _adopted_parent_id(conn: sqlite3.Connection, candidate: BranchCandidate, *,
+                       parent_of: Mapping[str, str | None],
+                       version: str) -> str | None:
+    """The node this folder's own parent directory became, if it became one.
+
+    Looked up in the CURRENT version rather than remembered from an earlier one.
+    Every accepted decision re-mints a `node_id` for every node it copies (§8.8),
+    so an id captured before a branch split would name a node this version does
+    not contain -- and a dangling parent is a tree `validate_for_freeze` refuses
+    whole, arriving from a folder the person merely happened to own.
+
+    `None` when the parent directory was not adopted, which is the honest answer:
+    §5.3 builds the top level out of what the user approved, and inventing the
+    ancestors above an adopted folder would put folders in their tree that they
+    did not choose.
+    """
+    if candidate.source not in EXISTING_FOLDER_SOURCES:
+        return None
+    parent_path = parent_of.get(candidate.subject_id)
+    if parent_path is None:
+        return None
+    return next((node.node_id for node in nodes_for_version(conn, version)
+                 if node.existing_path == parent_path), None)
 
 
 # --- the chain ----------------------------------------------------------------------
@@ -537,6 +680,14 @@ def design_tree(conn: sqlite3.Connection, *,
             "a tree with no branch is not a design the user approved"
         )
 
+    # P3's own record of which directory sits inside which. Derived here rather
+    # than by splitting the path, because the scan observed the relationship and
+    # a separator rule invented in this module would be a second, rival answer.
+    parent_of = {folder.directory_path: folder.parent_directory
+                 for folder in folders}
+    groups_all = tuple(groups)
+    chosen = _adopt_parents_first(chosen)
+
     version = _open_first_draft(conn, authorities, decisions, moves)
     versions = [version]
     branches: list[BranchDesign] = []
@@ -550,7 +701,12 @@ def design_tree(conn: sqlite3.Connection, *,
             conn, authorities, decisions, candidate=candidate,
             groups=tuple(by_id[group_id]
                          for group_id in candidate.accepted_group_ids),
-            version=version, user_edits=edits)
+            version=version, user_edits=edits,
+            parent_node_id=_adopted_parent_id(
+                conn, candidate, parent_of=parent_of, version=version),
+            expected_values=_adopted_expectations(conn, candidate),
+            associated_groups=_groups_already_held(
+                conn, candidate, groups=groups_all))
         versions.append(version)
         branches.append(design)
 
@@ -640,6 +796,9 @@ def _open_first_draft(conn, authorities, decisions, cross_folder: bool) -> str:
 def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
                        version: str,
                        user_edits: Sequence[UserLevelEdit] = (),
+                       parent_node_id: str | None = None,
+                       expected_values: tuple[ExpectedValue, ...] = (),
+                       associated_groups: tuple[str, ...] = (),
                        ) -> tuple[str, BranchDesign]:
     """One branch: written, routed, materialised, judged, split.
 
@@ -661,7 +820,10 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
                         authorities=authorities,
                         member_classes=frozenset(
                             authorities.handling_class_for_member(member)
-                            for member in members)),
+                            for member in members),
+                        parent_node_id=parent_node_id,
+                        expected_values=expected_values,
+                        associated_groups=associated_groups),
         decisions.refinement_for)
     write_node(conn, parent)
 

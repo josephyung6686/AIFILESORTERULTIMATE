@@ -24,7 +24,9 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from facts.fields import get_field
-from facts.read_surface import PROPOSAL_ELIGIBLE_STATES, is_destination_eligible
+from facts.read_surface import (
+    PROPOSAL_ELIGIBLE_STATES, facts_for, is_destination_eligible,
+)
 from facts.supersede import preferred_fact
 from grouping.vocabulary import (
     ACCEPTED,
@@ -398,3 +400,145 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
         canonical_value=row["canonical_value"],
         display_label=row["display_label"] or row["canonical_value"],
     )
+
+
+def settled_values_in_directory(conn: sqlite3.Connection, *,
+                                directory_path: str) -> tuple[FieldValue, ...]:
+    """What the files ALREADY IN one of the person's folders agree about.
+
+    `00`:100 asks that a folder the person made be "treated as a strong
+    expression of user intent", and `00`:102 puts it in the tree as an `existing`
+    node. Neither is worth anything while the node cannot be CHOSEN, and §6.2
+    scores a destination on its expected values: a node carrying none competes
+    for nothing. Measured before this existed, on a corpus with the person's own
+    `Uni/CHEM1500`: their folder carried no expectation, the engine's own
+    `Coursework/CHEM1500` carried `subject=CHEM1500`, and the product offered to
+    move a file out of the right folder into a duplicate of its own, with both
+    folders showing the same name. Adoption without this is worse than none.
+
+    **Nothing here is composed.** §5.4 is explicit that the product "does not
+    invent PHYS1401, UChicago, Spring 2026" and that "those names emerge from
+    validated facts", so the answer comes entirely from `preferred_value_for` --
+    P6's own settled reading, under P6's own proposal-eligible states -- and this
+    function only reports where those readings AGREE.
+
+    Three rules, each of which is a refusal:
+
+    * **Unanimity, not majority.** A folder holding two courses is not a folder
+      about either of them. A majority rule would let the product claim an
+      expectation the person's own filing contradicts, and would turn a mixed
+      folder into a magnet for half its own contents.
+    * **Immediate children only.** A file in `Uni/PHYS1401` is evidence about
+      `PHYS1401`, not about `Uni`. Counting it for both would give every ancestor
+      its deepest descendant's expectations and put the person's whole tree in
+      competition with itself.
+    * **`is_destination_eligible` decides which fields may count**, because §3.8
+      rules out authorship as a destination dimension and P6 owns that answer.
+      Asking here would be P10 authoring a second, rival one.
+
+    A file with no settled value at a field is not a disagreement -- it is
+    silent, and §5.11 permits a tree "even if some files remain unresolved". A
+    field where NOBODY settled a value yields nothing, so an empty folder and a
+    folder of unreadable files both expect nothing, which is the honest answer
+    for each.
+    """
+    here = _rows_directly_inside(conn, directory_path)
+    if not here:
+        return ()
+
+    fields: list[str] = []
+    for row in here:
+        for fact in facts_for(conn, file_id=row["file_id"],
+                              content_hash=row["content_hash"]):
+            key = fact["field_key"]
+            if key not in fields and is_destination_eligible(
+                    conn, field_key=key):
+                fields.append(key)
+
+    settled: list[FieldValue] = []
+    for field_ref in fields:
+        readings = [preferred_value_for(conn, file_id=row["file_id"],
+                                        field_ref=field_ref)
+                    for row in here]
+        present = [reading for reading in readings if reading is not None]
+        if not present:
+            continue
+        if len({reading.canonical_value for reading in present}) != 1:
+            continue
+        if not _divides_the_corpus(conn, field_ref=field_ref,
+                                   value=present[0].canonical_value,
+                                   inside={row["file_id"] for row in here}):
+            continue
+        settled.append(present[0])
+    return tuple(settled)
+
+
+def _divides_the_corpus(conn: sqlite3.Connection, *, field_ref: str, value: str,
+                        inside: set[str]) -> bool:
+    """Does anything OUTSIDE this folder disagree? If not, the claim says nothing.
+
+    **The fourth appearance of one mistake, and the reason to name it as a class.**
+    V5 failed a whole candidate for one level's fault, V2 failed a whole tree for
+    one level's, `_project` truncated a whole branch for one level's -- and an
+    expectation the entire corpus satisfies is the same error again: a statement
+    that divides nothing, treated as though it distinguished something.
+
+    Measured. Every file in one person's corpus was Columbia's and in the same
+    term, so all four of their adopted folders expected `term=Spring2026`. Each
+    then matched every file, §6.10 called that multiple supported homes, and six
+    files that had been placing fine abstained to a model that offline mode
+    forbids. The folders were not wrong about the term. It simply was not news.
+
+    This is V2's own test -- "a level your files do not divide is measured and not
+    built" -- applied to a folder instead of a level, and it needs no threshold:
+    either some file disagrees or none does.
+    """
+    for row in conn.execute("SELECT file_id FROM files"):
+        if row["file_id"] in inside:
+            continue
+        other = preferred_value_for(conn, file_id=row["file_id"],
+                                    field_ref=field_ref)
+        if other is not None and other.canonical_value != value:
+            return True
+    return False
+
+
+def _normalised(path: str) -> str:
+    """One spelling for one directory, so a trailing separator is not a folder.
+
+    P3 records a scan root as the user typed it and a parent directory as the
+    walk produced it, and `Uni/` and `Uni` are the same folder in every sense the
+    person has.
+    """
+    cleaned = path.rstrip("/\\")
+    return cleaned or path
+
+
+def _parent_directory_of(path: str) -> str:
+    """The directory a file sits DIRECTLY in. Never an ancestor of it."""
+    cleaned = _normalised(path)
+    for separator in ("/", "\\"):
+        if separator in cleaned:
+            return _normalised(cleaned.rsplit(separator, 1)[0])
+    return ""
+
+
+def _rows_directly_inside(conn: sqlite3.Connection, directory_path: str):
+    """The file rows sitting DIRECTLY in one directory. Never in a descendant."""
+    return [row for row in conn.execute(
+        "SELECT file_id, content_hash, current_path FROM files").fetchall()
+        if _parent_directory_of(row["current_path"]) == _normalised(
+            directory_path)]
+
+
+def file_ids_in_directory(conn: sqlite3.Connection, *,
+                          directory_path: str) -> frozenset[str]:
+    """Which files the person has already put directly in one of their folders.
+
+    `00`:100 asks that the canvas show "which extracted facts and accepted groups
+    overlap with" an existing folder, and an overlap is a set of files. Immediate
+    children only, for the reason `settled_values_in_directory` gives: a file in
+    `Uni/PHYS1401` is evidence about `PHYS1401`, not about `Uni`.
+    """
+    return frozenset(row["file_id"] for row in _rows_directly_inside(
+        conn, directory_path))

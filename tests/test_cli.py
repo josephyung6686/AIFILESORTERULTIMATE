@@ -538,68 +538,165 @@ def test_each_decision_made_for_the_person_says_what_was_taken():
         assert fragment in printed, f"{fragment!r} missing from:\n{printed}"
 
 
-def test_the_report_says_the_folders_the_person_already_made_were_not_used():
-    """The command reads every folder under the one it scanned, builds each a
-    top-level branch card, and adopts none of them -- and said nothing about it.
+def test_the_report_says_the_persons_own_folders_are_in_the_proposal():
+    """`00`:100 -- a folder the person made "should be treated as a strong
+    expression of user intent" -- reaching the report.
 
-    `_upstream` (`tree_design/pipeline.py:279`) reads P3's directory inventory,
-    `horizontal_candidates` (`candidates.py:299-321`) turns each folder into a
-    `BranchCandidate` carrying its file count and the sentence "An existing
-    folder holding N file(s)", and the selection filter at `pipeline.py:518-519`
-    keeps only candidates whose `subject_id` is in `branch_group_ids`. A folder
-    candidate's `subject_id` is a directory path (`candidates.py:304`); what
-    `cli.py` puts in `branch_group_ids` is the one synthetic id `review_and_accept`
-    mints from `--label` (`cli.py:506, 543, 759`). No folder can ever match, so
-    every folder card is dropped unread.
+    For most of this command's life the opposite was true and the report said so.
+    `_upstream` read P3's directory inventory, `horizontal_candidates` turned each
+    folder into a `BranchCandidate`, and the selection filter at `pipeline.py`
+    kept only candidates whose `subject_id` appeared in `branch_group_ids`. A
+    folder candidate's `subject_id` is a directory path; what `cli.py` passed was
+    one synthetic id minted from `--label`. No folder could ever match, so every
+    folder card was dropped unread -- measured on a corpus with four levels of a
+    person's own structure and on a flat copy of the same ten files, the frozen
+    trees were identical.
 
-    Measured on a corpus with four levels of the person's own structure and on a
-    flat copy of the same ten files, the frozen trees are identical: eight
-    directories in, eight cards built, zero chosen, zero nodes of type
-    `existing`. `00:100` says a curated folder "should be treated as a strong
-    expression of user intent" and `00:102` makes `existing` a node type in the
-    tree; neither is reachable, because nothing in `src/` writes one.
-
-    This does not adopt anybody's folder -- that needs the writer `00:102` names
-    and the choice `00:100` gives the person, and both are the owner's. It stops
-    the report implying the proposal was built with the person's work in view
-    when it was built without it. Same reason as the five decisions above: an
-    answer taken silently is one the person cannot disagree with.
+    What the person is told now is what is now true: their folders are in the
+    proposal, and the thing still decided for them is WHICH, not whether.
     """
     run, names = _coursework()
     printed = " ".join(_printed(run, names).split())
 
     assert "folders you have already made" in printed, printed
-    assert "none was adopted" in printed, printed
+    assert "all of them, exactly where they are" in printed, printed
+    # The half that is still the person's to decide is still named as such.
+    assert "merge two that overlap" in printed, printed
 
 
-def test_the_report_does_not_claim_to_have_kept_a_folder_it_did_not_keep():
-    """The negative twin, and the one that retires the line above.
+def test_an_adopted_folder_enters_as_the_persons_folder_not_as_a_proposal(tmp_path):
+    """The negative twin, and the one that keeps the sentence above honest.
 
-    The sentence is only honest while the tree genuinely holds no folder of the
-    person's. `Node` refuses `existing_path` on any type but `existing`
-    (`records.py:209-211`) and the table refuses it too (`schema.py:66`), so the
-    day a writer for `00:102`'s `existing` node lands, this goes red and points
-    at a report line that has become false. It must be rewritten then, not
-    deleted -- a person who IS having folders adopted needs to be told which.
+    Saying "your folders are in this proposal" is only true if the nodes are
+    `00`:102's `existing` type carrying the real path. A `proposed` node wearing
+    the folder's name is the OPPOSITE claim -- an offer to move the files out of
+    the folder they are already in and into a new one that happens to share its
+    label -- and `00`:100 forbids it in the same breath as it asks for adoption.
+    That is why the tempting version of this feature (put the folder paths in
+    `branch_group_ids` and change nothing else) was rejected: it would have
+    flattened the person's hierarchy in the name of honouring it.
+
+    So this reads the frozen tree rather than the prose, over a real run on a
+    real nested corpus: the folders are `existing`, they carry their paths, and
+    the child hangs off the parent instead of standing beside it at the root.
     """
-    from tree_design.vocabulary import EXISTING
+    import sqlite3
 
-    run, names = _coursework()
-    printed = " ".join(_printed(run, names).split())
+    corpus = tmp_path / "corpus"
+    (corpus / "Uni" / "PHYS1401").mkdir(parents=True)
+    for name in ("a.txt", "b.txt"):
+        (corpus / "Uni" / "PHYS1401" / name).write_text("PHYS1401\n")
+    database = tmp_path / "plan.sqlite"
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=io.StringIO())
 
-    # The claim is "not used", so the report may not also read as "used".
-    for overclaim in ("adopted your", "kept your folder", "your existing structure was used"):
-        assert overclaim not in printed, printed
-    # And the state it describes is the one the chain can actually produce: no
-    # production writer anywhere in `src/` emits this node type.
-    import tree_design.fixtures  # noqa: F401  -- the ONLY module that does
-    sources = list(pathlib.Path("src").rglob("*.py"))
-    writers = [path for path in sources
-               if "node_type=EXISTING" in path.read_text().replace(" ", "")
-               and path.name != "fixtures.py"]
-    assert writers == [], (
-        f"{[str(p) for p in writers]} now writes a {EXISTING!r} node -- the "
-        "report line about folders never being adopted is no longer true")
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    rows = [dict(r) for r in conn.execute(
+        "SELECT node_id, node_type, display_label, existing_path, parent_node_id "
+        "FROM tree_nodes WHERE node_type = 'existing'")]
+    conn.close()
+
+    assert rows, ("no folder of the person's is in any version of the tree; "
+                  "every directory the scan read was dropped again")
+    assert all(row["existing_path"] for row in rows), (
+        "an adopted node with no path is a proposal wearing a folder's name")
+
+    by_path = {row["existing_path"]: row for row in rows}
+    child = next((row for path, row in by_path.items()
+                  if path.endswith("PHYS1401")), None)
+    parent = next((row for path, row in by_path.items()
+                   if path.endswith("Uni")), None)
+    assert child is not None and parent is not None, sorted(by_path)
+    assert child["parent_node_id"] == parent["node_id"], (
+        "the person's own nesting was flattened: PHYS1401 was adopted as a "
+        "sibling of Uni rather than as its child")
+
+
+def test_a_file_is_not_offered_a_move_into_a_duplicate_of_its_own_folder(tmp_path):
+    """`00`:100 -- the person's folder is "a strong expression of user intent" --
+    against the engine's own proposal for the same material.
+
+    Adopting folders created this problem, and it is worth stating plainly
+    because it was measured: once `Uni/CHEM1500` was in the tree, the engine's
+    `Coursework/CHEM1500` was still there too, both named CHEM1500 on screen, and
+    the two tied at every file. §6.10 sent the tie to a model, offline mode
+    forbids the call, and SIX files that had been placing fine went back to
+    `privacy_blocked` -- the identical failure the ancestor collapse was written
+    for, arriving from a different direction.
+
+    The rule that resolves it is the ancestor rule's own: a candidate superseded
+    by a MORE SPECIFIC form of itself is not a rival. The person's folder expects
+    everything the proposal expects and one thing more (its files agree on the
+    term as well as the subject), so the proposal is not a second home -- it is a
+    vaguer copy of the home the person already built.
+    """
+    import sqlite3
+
+    # TWO courses, because one is not a duplicate of anything: V2 skips a level
+    # its files do not actually divide, so a single-course corpus never builds
+    # the proposed `CHEM1500` this test is about.
+    corpus = tmp_path / "corpus"
+    for course, names in (("CHEM1500", ("Lab Report.txt", "Syllabus.txt")),
+                          ("PHYS1401", ("Problem Set 2.txt", "Lecture Notes.txt"))):
+        (corpus / "Uni" / course).mkdir(parents=True)
+        for name in names:
+            (corpus / "Uni" / course / name).write_text(
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=out)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    chosen = [dict(r) for r in conn.execute(
+        "SELECT d.subject_ref, d.outcome, n.node_type, n.existing_path "
+        "FROM placement_decisions d JOIN tree_nodes n ON n.node_id = d.node_id "
+        "WHERE d.node_id IS NOT NULL AND d.superseded_by IS NULL")]
+    conn.close()
+
+    assert chosen, (
+        "every file abstained; the person's own folder and the engine's "
+        f"duplicate of it tied and the tie went nowhere:\n{out.getvalue()}")
+    # And what they were placed into is the person's folder, not the copy.
+    assert all(row["node_type"] == "existing" for row in chosen), chosen
+
+
+def test_a_file_staying_in_its_own_folder_is_not_described_as_a_move(tmp_path):
+    """Three truths, where the report had words for two.
+
+    "Already in a folder CALLED CHEM1500; the plan would put it in the one it
+    proposes" was written when a destination could only ever be a folder the
+    engine had invented, so matching NAMES was the strongest thing that could be
+    said. Once the person's own folder is adopted and wins the placement, that
+    sentence describes a move out of a folder and back into it, which is not what
+    the plan says and not something anybody would want to read.
+
+    The destination now carries `existing_path`, so the report can say the true
+    thing: this is that folder. The middle case is still real -- a file in
+    `Downloads/PHYS1401` placed into a proposed `Coursework/PHYS1401` genuinely
+    is a move between two folders of one name -- and keeps its own sentence.
+    """
+    corpus = tmp_path / "corpus"
+    for course, names in (("CHEM1500", ("Lab Report.txt", "Syllabus.txt")),
+                          ("PHYS1401", ("Problem Set 2.txt", "Lecture Notes.txt"))):
+        (corpus / "Uni" / course).mkdir(parents=True)
+        for name in names:
+            (corpus / "Uni" / course / name).write_text(
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=out)
+    printed = " ".join(out.getvalue().split())
+
+    assert "would put it in the one it proposes" not in printed, printed
+    assert "Already in CHEM1500" in printed or "Already in PHYS1401" in printed, (
+        printed)
 
 
 # ======================================================================================
@@ -790,7 +887,7 @@ def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
     # be "present, not silently absent". What must never happen is the value
     # becoming a destination: a folder name is written to the filesystem and
     # travels in every prompt that names a place to put something.
-    folders = printed.split("Proposed folders:", 1)[1].split("Files:", 1)[0]
+    folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
     assert "X12345678" not in folders, (
         f"a passport number is printed as a destination:\n{folders}")
     assert "CV20261234" in labels, (
@@ -1016,3 +1113,33 @@ def test_a_file_loose_in_the_scanned_folder_is_a_move_not_a_no_op():
     printed = _printed(run, names)
 
     assert "Ready to file into PHYS1401" in printed, printed
+
+
+def test_the_tree_shows_which_folders_are_already_yours(tmp_path):
+    """`00`:100 in the last place it can still be lost -- on the screen.
+
+    "The canvas should make the difference between existing structure and
+    proposed structure visually clear, for example by showing existing nodes in
+    one style and uncommitted suggestions in another." A terminal has no styles,
+    so it says so in words; what it must not do is print the person's four
+    folders and the engine's three under one heading reading "Proposed folders",
+    which is a count of seven proposals where three were proposed and four are
+    already on their disk.
+    """
+    corpus = tmp_path / "corpus"
+    for course, names in (("CHEM1500", ("Lab Report.txt", "Syllabus.txt")),
+                          ("PHYS1401", ("Problem Set 2.txt", "Lecture Notes.txt"))):
+        (corpus / "Uni" / course).mkdir(parents=True)
+        for name in names:
+            (corpus / "Uni" / course / name).write_text(
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    printed = out.getvalue()
+
+    assert "yours already" in printed, printed
+    # The headline counts the two kinds separately rather than calling them all
+    # proposals.
+    assert "Folders in this plan:" in printed, printed

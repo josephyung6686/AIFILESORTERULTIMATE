@@ -27,7 +27,9 @@ from dataclasses import asdict, dataclass, fields as _dataclass_fields
 from database_agent.db import transaction
 
 from placement import events as placement_events
-from placement.vocabulary import DISPOSITIONS, NODE_ROLES, RESIDUAL_ROLE, check
+from placement.vocabulary import (
+    DISPOSITIONS, NODE_ROLES, PROPOSED, RESIDUAL_ROLE, check,
+)
 
 
 class FrozenTreeRequired(RuntimeError):
@@ -69,6 +71,16 @@ class IndexEntry:
     user_edits: tuple[str, ...]
     handling_class: str
     refinement_disposition: str
+    #: P10's `Node.node_type`, carried verbatim -- §6 has to be able to tell one
+    #: of the person's own folders from one the engine proposes, and P10 owns
+    #: that distinction.
+    #:
+    #: The TYPE and not the path, deliberately. §7.11 and B3 keep every composed
+    #: path out of P11 entirely -- "P11 names a node and P12 resolves a path" --
+    #: and `Node.existing_path` is the one field in the tree that holds one.
+    #: Carrying it here would have put a filesystem path in a published P11
+    #: record to answer a question the enum already answers.
+    node_type: str = PROPOSED
 
 
 def _ancestry(node, by_id) -> tuple[int, tuple[str, ...]]:
@@ -119,6 +131,7 @@ def _entry(node, profile, by_id) -> IndexEntry:
         node_role=node.node_role, disposition=node.disposition,
         display_label=node.display_label, parent_node_id=node.parent_node_id,
         root_anchor=node.root_anchor, depth=depth, ancestor_labels=ancestors,
+        node_type=node.node_type,
         template_fields=tuple(profile.template_fields),
         # `ExpectedValue` is P10's frozen dataclass, not a mapping: `item["field"]`
         # would raise `TypeError` on the first real node.
