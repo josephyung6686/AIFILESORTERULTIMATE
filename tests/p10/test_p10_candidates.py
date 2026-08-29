@@ -389,6 +389,18 @@ def test_a_level_that_would_produce_one_child_warns_before_the_choice(conn):
     the user opens a folder to find a folder to find the files, and neither level
     separated anything. That is §5.7's "MEANINGLESS one-child level". The twin
     below is the same warning on `00`:78's own shape, where it must stay silent.
+
+    **What changed, and why this now asserts the opposite.** A level that divides
+    nothing is no longer BUILT -- `LevelEvidence.divides` is False and `_project`
+    skips it, exactly as it skips a metadata-only level. `00`:99 asks the product
+    to "warn when a level produces only one child"; no level here produces one,
+    because none is produced at all, so there is nothing left to warn about. The
+    fault is prevented rather than reported, which is the stronger of the two.
+
+    This is not the warning going quiet on a bad tree. It is the bad tree not
+    being offered. The person is still told: `cli.py`'s "Decisions made for you"
+    block names levels their files did not divide. The twin below still matters
+    and still passes -- it is what proves a level that DOES divide is untouched.
     """
     from tree_design.vocabulary import WARN_ONE_CHILD
 
@@ -396,8 +408,11 @@ def test_a_level_that_would_produce_one_child_warns_before_the_choice(conn):
         _level("school", "school", 0, {"Columbia": {"f1", "f2", "f3"}}),
         _level("term", "term", 1, {"2026": {"f1", "f2", "f3"}}))
     option = _options(conn, evidence, "school", "term")[0]
-    assert WARN_ONE_CHILD in {w.kind for w in option.warnings}
-    assert any(w.evidence for w in option.warnings)
+    assert WARN_ONE_CHILD not in {w.kind for w in option.warnings}, (
+        "a level that divides nothing was built and then warned about; it should "
+        "not have been built")
+    assert option.total_child_branches == 0, (
+        "the levels that separate nothing were materialised anyway")
 
 
 def test_a_one_child_level_that_makes_a_real_split_readable_stays_silent(conn):
@@ -707,9 +722,14 @@ def test_a_file_that_reaches_no_folder_is_reported_as_unresolved(conn):
     """`00`:99 requires the picker to show "unresolved files". The call feeding
     §5.9 hard-wired `unresolved_by_node={}`, so a file that two branches both
     wanted, or that settled no value, vanished with no trace on screen."""
-    evidence = _evidence(_level("subject", "subject", 0, {"PHYS1401": {"f1"}}))
+    # TWO values, so the level actually divides and is built. With one value it
+    # divides nothing, is not built, and `f1` would be reported unresolved too --
+    # true, but it would stop this test saying anything about the file that DID
+    # reach a folder.
+    evidence = _evidence(_level("subject", "subject", 0,
+                                {"PHYS1401": {"f1"}, "CHEM1101": {"f2"}}))
     evidence = dataclasses.replace(
-        evidence, member_file_ids=frozenset({"f1", "orphan"}))
+        evidence, member_file_ids=frozenset({"f1", "f2", "orphan"}))
     option = _options(conn, evidence, "subject")[0]
     assert "orphan" in option.unresolved_file_ids
     assert "f1" not in option.unresolved_file_ids
@@ -740,9 +760,12 @@ def test_the_branch_counts_carry_the_unresolved_files_for_the_branch_node(conn):
     The unresolved files belong to the BRANCH being split, which is the node the
     user is looking at when they read the number.
     """
-    evidence = _evidence(_level("subject", "subject", 0, {"PHYS1401": {"f1"}}))
+    # Two values, so the level divides and is built at all; with one it is not,
+    # and every file would read as unresolved for a reason this test is not about.
+    evidence = _evidence(_level("subject", "subject", 0,
+                                {"PHYS1401": {"f1"}, "CHEM1101": {"f2"}}))
     evidence = dataclasses.replace(
-        evidence, member_file_ids=frozenset({"f1", "orphan"}))
+        evidence, member_file_ids=frozenset({"f1", "f2", "orphan"}))
     built = _preview_binding()(None, evidence)
     counts = _branch_counts_for(built, evidence)
     branch = counts[built.parent.node_id]

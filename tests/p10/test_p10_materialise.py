@@ -170,12 +170,19 @@ def test_the_projection_nests_by_shared_files_and_never_multiplies(seeded):
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
         template_context_for=NO_CONTEXT)
     by_label = {n.display_label: n for n in nodes}
-    assert set(by_label) == {"Columbia", "BUSIB 4300", "PHYS1401",
-                             "Syllabus", "Homework"}
+    # No `Columbia`: all three files are at one school, so the `school` level
+    # DIVIDES NOTHING and is measured rather than built (`LevelEvidence.divides`).
+    # It used to be built, and V2 then refused the whole candidate for producing
+    # a one-child level -- so this shape was unreachable in a real run and only a
+    # unit test ever saw it. What this test pins is unchanged: nesting is by
+    # SHARED FILES and never a product.
+    assert set(by_label) == {"BUSIB 4300", "PHYS1401", "Syllabus", "Homework"}
     # PHYS1401's only file has no work_type, so PHYS1401 gets no children at all.
     assert [n.display_label for n in nodes
             if n.parent_node_id == by_label["PHYS1401"].node_id] == []
-    # Syllabus and Homework hang under BUSIB 4300, not under Columbia.
+    # Syllabus and Homework hang under BUSIB 4300 -- the intersection, not the
+    # product: a Syllabus node under PHYS1401 would be the multiplication this
+    # test is named for.
     assert by_label["Syllabus"].parent_node_id == by_label["BUSIB 4300"].node_id
     assert by_label["Homework"].parent_node_id == by_label["BUSIB 4300"].node_id
 
@@ -195,12 +202,17 @@ def test_every_node_carries_the_ancestor_chain_as_expected_values(seeded):
         template_context_for=NO_CONTEXT)
     homework = next(n for n in nodes if n.display_label == "Homework")
     assert homework.expected_values == (
-        ExpectedValue(field="school", value="Columbia"),
         ExpectedValue(field="subject", value="BUSIB 4300"),
         ExpectedValue(field="work_type", value="Homework"),
     )
     # §6.1's worked example is exactly this shape: the Homework node's expected
     # values are the whole chain, not its own level alone.
+    #
+    # The chain no longer opens with `school = Columbia`, and that is the point
+    # rather than a loss: all three files are at one school, so the level divides
+    # nothing, is not built, and a node may not claim an ancestor that does not
+    # exist. An expected value for a level the tree does not contain would make
+    # P11 match files against a folder nobody proposed.
 
 
 def test_every_node_explains_itself_from_counted_evidence_and_shows_no_score(seeded):
@@ -308,16 +320,22 @@ def test_the_class_p7_actually_produces_today_reaches_the_node(seeded):
     unclassified = lambda member: "unreadable_unclassified"
     _, evidence = materialise_branch(
         conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
-        members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+        # Two subjects, not one: a level with a single value divides nothing, is
+        # not built, and this test would then assert over an empty node list --
+        # passing without ever carrying a class to a node.
+        members=seeded.members("syllabus", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=unclassified,
         protected_handling_classes=PROTECTED_CLASSES)
     assert evidence.levels[0].handling_classes_by_value == {
-        "BUSIB 4300": frozenset({"unreadable_unclassified"})}
+        "BUSIB 4300": frozenset({"unreadable_unclassified"}),
+        "PHYS1401": frozenset({"unreadable_unclassified"})}
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=lambda c: sorted(c)[0],
         template_context_for=NO_CONTEXT)
-    assert [n.handling_class for n in nodes] == ["unreadable_unclassified"]
+    assert nodes, "no node was built, so no class could reach one"
+    assert {n.handling_class for n in nodes} == {"unreadable_unclassified"}
 
 
 def test_a_projected_node_is_its_own_lineage_origin(seeded):
@@ -387,7 +405,11 @@ def test_a_template_local_level_contributes_no_expected_value(seeded):
     """
     _candidate_obj, evidence = materialise_branch(
         seeded.conn, _local_candidate(), branch_node_id="n_academics",
-        members=seeded.members("syllabus", "hw3"),
+        # `lab` as well, so the `subject` level really has two values and is
+        # BUILT. With two files of one course it divides nothing, is not
+        # built, and the assertion below would pass on an empty chain --
+        # proving nothing about what a template-local level contributes.
+        members=seeded.members("syllabus", "hw3", "lab"),
         ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=ONE_CLASS,
         protected_handling_classes=PROTECTED_CLASSES,

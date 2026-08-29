@@ -90,11 +90,52 @@ def test_v1_also_catches_a_repeat_within_the_candidate_itself(limits):
     assert [f.check for f in report.failures] == ["V1"]
 
 
-def test_v2_a_level_producing_exactly_one_child_is_meaningless(limits):
+def test_v2_a_level_that_would_produce_one_child_is_not_built_and_not_refused(
+        limits):
+    """V2's judgement was right and its REMEDY was wrong.
+
+    "A level with a single child is a folder the user opens to find one folder"
+    -- true. But V2 failed the WHOLE candidate for it, so a household whose files
+    carry one term and two subjects got no tree at all rather than a tree without
+    the redundant term level. That is the third instance of one mistake in this
+    package: V5 refused a whole composition over one disclosing value, and
+    `_project` truncated a whole branch over one empty level. Both are fixed;
+    this is the third.
+
+    `00`:97 lists "create meaningless one-child levels" among the structural
+    faults a template must not have. Not BUILDING the level satisfies that
+    sentence exactly; refusing the tree was never what it asked for. So the level
+    now reports `divides = False`, `_project` skips it as it skips a
+    metadata-only one, and the candidate passes with the levels that remain.
+    """
     candidate = _candidate([_level("subject", "subject", 0, ("PHYS1401",))])
     report = run_checks(candidate, report_id="vr_1", limits=limits, **CHECK_ARGS)
-    assert [f.check for f in report.failures] == ["V2"]
-    assert "PHYS1401" in report.failures[0].reason
+
+    assert report.accepted, [f.check for f in report.failures]
+    assert candidate.levels[0].divides is False
+
+
+def test_a_validated_candidate_never_contains_a_built_one_child_level(limits):
+    """The invariant that replaced V2's refusal, stated as a test.
+
+    V2 no longer fails anything, and that is not the check going quiet -- it is
+    the fault becoming impossible to construct. `divides` is derived from the
+    level's own values, so "a level that divides and yet has one value" cannot
+    exist, and `_project` builds no level that does not divide. What a reader
+    needs to be able to check is the property those two facts add up to: nothing
+    a candidate passes validation with will produce a folder holding one folder.
+    """
+    single = _level("term", "term", 0, ("Spring2026",))
+    several = _level("subject", "subject", 1, ("PHYS1401", "BUSIB 4300"))
+    candidate = _candidate([single, several])
+    report = run_checks(candidate, report_id="vr_1", limits=limits, **CHECK_ARGS)
+
+    assert report.accepted, [f.check for f in report.failures]
+    assert single.divides is False, "the redundant level claims it divides"
+    assert several.divides is True, "the real level was written off as redundant"
+    # And no level both divides and offers one child -- the shape V2 named.
+    assert not [level for level in candidate.levels
+                if level.divides and len(level.values) == 1]
 
 
 def test_v3_depth_is_measured_against_configuration_never_a_constant(limits):
@@ -208,8 +249,20 @@ def test_internal_heterogeneity_alone_is_never_a_rejection(limits):
 
 
 def test_every_failure_names_its_evidence_and_carries_no_score(limits):
-    candidate = _candidate([_level("subject", "subject", 0, ("PHYS1401",))])
+    """Any failure will do; this one is V1's repeated dimension.
+
+    It used to be V2's one-child level, which was simply the shortest way to
+    make the checks fail. V2 no longer refuses that -- the level is not built
+    instead -- so the test needs a fault that still exists. What it pins is
+    unchanged and is about EVERY failure: it names the evidence behind it and
+    states no score, because §5.7's refusals are judgements a person can check.
+    """
+    candidate = _candidate([
+        _level("subject", "subject", 0, ("PHYS1401", "BUSIB 4300")),
+        _level("subject_again", "subject", 1, ("PHYS1401", "BUSIB 4300")),
+    ])
     report = run_checks(candidate, report_id="vr_1", limits=limits, **CHECK_ARGS)
+    assert report.failures, "no check failed, so there is no evidence to name"
     failure = report.failures[0]
     assert failure.reason and failure.affected
     assert not any(

@@ -34,6 +34,14 @@ class MaterialisedLevel:
     members_by_value: Mapping[str, int]
     handling_classes_by_value: Mapping[str, frozenset[str]]
 
+    @property
+    def divides(self) -> bool:
+        """Whether building this level would separate anything. See
+        `materialise.LevelEvidence.divides`, which must answer identically -- the
+        validator and the builder seeing different shapes is what this module's
+        sibling docstring calls passing "a tree that cannot be built"."""
+        return len(self.values) > 1
+
 
 @dataclass(frozen=True)
 class MaterialisedCandidate:
@@ -104,7 +112,23 @@ def _v1(candidate: MaterialisedCandidate) -> CheckFailure | None:
 def _v2(candidate: MaterialisedCandidate) -> CheckFailure | None:
     """Creates meaningless one-child levels."""
     for level in candidate.levels:
-        if level.metadata_only:
+        # Skipped for the same reason a metadata-only level is: neither becomes a
+        # folder, so neither can produce the one-child folder this check is about.
+        #
+        # V2's JUDGEMENT was right -- "a folder the user opens to find one folder"
+        # -- and its REMEDY was wrong. It failed the WHOLE candidate, so a
+        # household whose files carry one term and two subjects got no tree at all
+        # rather than a tree without the redundant term level. That is the third
+        # instance of one mistake in this package: V5 refused a whole composition
+        # over one disclosing value, `_project` truncated a whole branch over one
+        # empty level, and this was the third. `00`:97 asks that a template not
+        # CREATE a meaningless one-child level; not building it satisfies that
+        # sentence, and refusing the tree never did.
+        #
+        # The check is kept rather than deleted so the rule stays written down
+        # where a reader looks for it, and so a level that starts dividing and
+        # stops -- by a route this function does not control -- still meets it.
+        if level.metadata_only or not level.divides:
             continue
         if len(level.values) == 1:
             only = level.values[0]

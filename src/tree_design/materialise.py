@@ -88,6 +88,34 @@ class LevelEvidence:
     def values(self) -> tuple[str, ...]:
         return tuple(sorted(self.members_by_value))
 
+    @property
+    def divides(self) -> bool:
+        """Whether building this level would actually separate anything.
+
+        A level with one value produces "a folder the user opens to find one
+        folder" -- V2's own words, and they are right. What was wrong is what V2
+        DID about it: it failed the WHOLE candidate, so a household whose files
+        carry one term and two subjects got no tree at all rather than a tree
+        without the redundant term level. That is the third instance of one
+        mistake -- V5 and `_project`'s truncation were the other two -- where a
+        fault about ONE LEVEL is applied to a whole composition. `00`:97 asks only
+        that a template not CREATE a meaningless one-child level; not building it
+        satisfies that, and refusing the tree never did.
+
+        Computed rather than stored, and kept SEPARATE from `metadata_only`: that
+        flag means the TEMPLATE said this dimension is measured and never built,
+        which is a fact about the recipe. This is a fact about the corpus in front
+        of us, and a reader must be able to tell "the design says this is
+        metadata" from "your files only had one of these".
+
+        Counted over the level's own values, exactly as V2 counts them, and not
+        over the members reaching one parent: a level that really does divide the
+        corpus routinely offers one child under a particular parent -- `Columbia`
+        with a single course under it is `00`:78's own tree -- and skipping those
+        would flatten every branch that happens to be narrow.
+        """
+        return len(self.values) > 1
+
 
 @dataclass(frozen=True)
 class BranchEvidence:
@@ -414,7 +442,7 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
     if level_index >= len(evidence.levels):
         return
     level = evidence.levels[level_index]
-    if level.metadata_only:
+    if level.metadata_only or not level.divides:
         # §5.4: a metadata-only dimension is measured and never becomes a folder.
         _project(evidence, level_index=level_index + 1, parent=parent,
                  eligible=eligible, chain=chain, plan_version_id=plan_version_id,

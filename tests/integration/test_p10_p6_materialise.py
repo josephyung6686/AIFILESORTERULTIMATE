@@ -123,7 +123,11 @@ def test_accepting_a_branch_drives_the_real_projection_into_the_store(conn, tmp_
 
     stored = nodes_for_version(conn, new_version)
     by_label = {node.display_label: node for node in stored}
-    assert {"Columbia", "BUSIB 4300", "PHYS1401", "Syllabus", "Homework"} <= set(by_label)
+    # No `Columbia`: every file in this corpus is at one school, so the `school`
+    # level divides nothing and is measured rather than built. It used to be
+    # built and V2 then refused the whole candidate for the one-child folder it
+    # made, so this shape never reached a real run.
+    assert {"BUSIB 4300", "PHYS1401", "Syllabus", "Homework"} <= set(by_label)
 
     # Every stored node's parent exists in the SAME version. This is the assertion
     # that fails if the projection is handed a pre-draft parent.
@@ -139,7 +143,8 @@ def test_accepting_a_branch_drives_the_real_projection_into_the_store(conn, tmp_
 
     entries = diff_versions(conn, before="plan_1", after=new_version)
     added = {e.origin_node_id for e in entries if e.kind == DIFF_ADDED}
-    assert {by_label[label].origin_node_id for label in ("Columbia", "Homework")} <= added
+    assert {by_label[label].origin_node_id
+            for label in ("BUSIB 4300", "Homework")} <= added
     assert not [e for e in entries if e.kind == DIFF_REPARENTED]
 
     row = conn.execute(

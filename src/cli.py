@@ -107,7 +107,7 @@ from tree_design.templates import CompositionConflict
 from tree_design.upstream import UpstreamUnavailable, handling_class_for
 from tree_design.schema import create_tree_schema
 from tree_design.vocabulary import (
-    MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE,
+    MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
 # ======================================================================================
@@ -833,6 +833,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                        "decision, one file at a time.",
                 display_label="Shared Material", policy_scope=None),
             scoped_general=(),
+            # P13's canvas and its plan-version list are the two surfaces the
+            # design names, and this command draws NEITHER: it keeps every branch
+            # by rule and freezes by rule, with nobody at the screen. Saying
+            # `canvas` here put a screen that does not exist into §8.2's
+            # permanent log, next to the login name `--user` supplied -- the same
+            # overclaim the group records above were repaired for. The third
+            # surface exists so the log can say what actually happened.
+            surface=SURFACE_UNATTENDED,
             created_at=clock, user_id=user_id,
             component_version=COMPONENT_VERSION)
 
@@ -1198,6 +1206,11 @@ DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
     ("Whether to add a catch-all folder for things the branch does not cover",
      "not added. An unasked question answered by default is a folder nobody "
      "wanted."),
+    ("Which levels to leave out",
+     "any level your files did not actually divide. If every file names the same "
+     "term, a folder for it would hold all of them and you would open it to find "
+     "one folder -- so it is measured and not built. A level your files DO divide "
+     "is always built."),
     ("What to call the top-level folder, and what kind of material this is",
      "taken from `--label` and `--situation` exactly as you typed them, and "
      "applied to EVERY file in the folder -- including any that are something "

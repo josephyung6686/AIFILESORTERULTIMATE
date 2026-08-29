@@ -76,7 +76,9 @@ from tree_design.pipeline import (
 )
 from tree_design.upstream import handling_class_for
 from tree_design.schema import create_tree_schema
-from tree_design.vocabulary import MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE
+from tree_design.vocabulary import (
+    MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
+)
 
 from cli import AcceptedGroupEnumeration
 from production import (
@@ -439,7 +441,10 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
                 reason="Nobody was at the screen, so it stays the user's call.",
                 display_label="Shared Material", policy_scope=None),
             scoped_general=(), created_at=CLOCK, user_id="jy",
-            component_version=COMPONENT)
+            component_version=COMPONENT,
+            # This harness stands in for `src/cli.py`, which shows nobody
+            # anything -- the `reason` two lines above already says so.
+            surface=SURFACE_UNATTENDED)
 
     def accept(db, results):
         ids = _review(db, results)
@@ -1548,17 +1553,6 @@ def test_an_uncovered_file_does_not_hang_off_the_covered_ones(conn, tmp_path):
         assert by_id[node.parent_node_id].display_label != "Spring2026"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "V2 fails the WHOLE candidate when any level has one child, so a household "
-    "whose files carry one term and two subjects gets NO tree rather than a tree "
-    "without the redundant term level. This is V5's mistake in a third place -- a "
-    "per-LEVEL fault rejecting a whole composition -- and `00`:97 asks only that a "
-    "template not CREATE a meaningless one-child level, which skipping it "
-    "satisfies. The fix is a P10 contract decision and not a deployment's: it "
-    "changes what V1-V6 mean, 16 P10 tests pin the current behaviour deliberately, "
-    "and expressing it needs a numeric literal that `test_p10_no_invention` "
-    "forbids a part to hold -- which is exactly the guard that should stop an "
-    "implementation inventing this threshold on the owner's behalf."))
 def test_a_level_with_one_value_is_skipped_and_the_levels_below_it_survive(
         conn, tmp_path):
     """A level that distinguishes nothing says nothing, exactly like an empty one.
