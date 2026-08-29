@@ -533,3 +533,57 @@ def test_the_phrase_scan_stops_where_no_authored_term_continues(db, tmp_path):
     words = "alpha beta gamma delta epsilon zeta eta theta iota kappa".split()
     list(noted._terms_in(" ".join(words)))
     assert Counting.lookups == len(words), Counting.lookups
+
+
+def test_a_no_corroboration_abstention_names_every_reading_it_could_not_choose(
+        db, tmp_path):
+    """One term each from two schemas is a TIE, and the record must say so.
+
+    `leaders` is `sorted(...)`, so reporting `leaders[0]` picks ALPHABETICALLY and
+    silently drops the rest. On a real file reading "Passport number X12345678.
+    Client identity document." the readings are `creative` (from 'client') and
+    `identity` (from 'passport'). `identity` is one of `00`'s four SAFETY
+    DOMAINS, and it lost a coin toss to alphabetical order -- so the file's most
+    alarming reading was present in the evidence and thrown away before anything
+    downstream could see it.
+
+    This changes no classification. The detector still abstains, for the same
+    reason, with the same arity rule. It stops the abstention being a LOSSY
+    record of what was found. `tied_schema_ids` already exists for exactly this
+    and the `ambiguous` branch already populates it.
+    """
+    rules = rule_set(
+        schema_entry("creative", context=("client",)),
+        schema_entry("identity", context=("passport",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Client Passport.pdf",
+        body="Passport number X12345678. Client identity document.")
+
+    outcome = detector(rules).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+    assert outcome.reason == "no_corroboration"
+    assert set(outcome.tied_schema_ids) == {"creative", "identity"}, (
+        f"the tie was recorded as {outcome.tied_schema_ids!r} and the reading "
+        f"reported was {outcome.schema_id!r}; a safety domain was dropped by "
+        "alphabetical order")
+
+
+def test_a_single_unambiguous_reading_still_records_no_tie(db, tmp_path):
+    """The negative twin. Filling `tied_schema_ids` unconditionally would make
+    every one-term abstention look contested -- a different false record, in the
+    other direction, and one that would make the field useless for the safety
+    reading it exists to preserve."""
+    rules = rule_set(
+        schema_entry("creative", context=("client",)),
+        schema_entry("identity", context=("passport",)))
+    file_id, content_hash = a_file(db, tmp_path, "Passport.pdf",
+                                   body="Passport number X12345678.")
+
+    outcome = detector(rules).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+    assert outcome.reason == "no_corroboration"
+    assert outcome.schema_id == "identity"
+    assert outcome.tied_schema_ids == (), (
+        "one reading is not a tie and must not be recorded as one")

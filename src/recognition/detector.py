@@ -330,11 +330,33 @@ class Detector:
         # never activates a schema, whichever schema it is.
         if best < 2:
             schema_id = leaders[0]
+            # `leaders` is SORTED, so `leaders[0]` is the alphabetically first of
+            # however many readings tied -- and reporting it alone threw the rest
+            # away. On a file reading "Passport number X12345678. Client identity
+            # document." the readings are `creative` (from 'client') and
+            # `identity` (from 'passport'); `identity` is one of `00`'s four
+            # safety domains and it lost a coin toss to alphabetical order. The
+            # file's most alarming reading was in the evidence and no consumer
+            # could ever see it.
+            #
+            # Nothing about the DECISION changes: still an abstention, still
+            # `never_alone`, still the same arity. What changes is that the record
+            # stops being lossy. `tied_schema_ids` is the field that already
+            # exists for this and the `ambiguous` branch below already fills it;
+            # a tie is a tie whether it happens at one term or at five.
+            #
+            # Left empty when there is only one reading, because one reading is
+            # not a tie -- and a field filled unconditionally would be useless for
+            # telling the two apart.
             return Abstention(
                 "no_corroboration", schema_id,
                 f"{schema_id} matched one authored term "
                 f"({by_schema[schema_id][0].term!r}) and every node row carries a "
-                "`never_alone` rule; one signal does not activate a schema",
+                "`never_alone` rule; one signal does not activate a schema"
+                + (f". {len(leaders)} readings matched one term each and none "
+                   f"outranks another ({', '.join(leaders)})"
+                   if len(leaders) > 1 else ""),
+                tied_schema_ids=tuple(leaders) if len(leaders) > 1 else (),
                 deferred_readings=self._readings(schema_id))
 
         plausible = [schema_id for schema_id in leaders
