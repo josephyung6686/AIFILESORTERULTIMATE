@@ -499,7 +499,10 @@ def _detect_format(path: Path) -> str | None:
     decided by PATH (`is_protected_container`) before any format question is asked.
     """
     return {".pdf": "pdf", ".txt": "txt", ".md": "md",
-            ".docx": "docx"}.get(path.suffix.lower())
+            ".docx": "docx",
+            # `router` maps "zip" to the `archive` family, which yields the
+            # manifest without extracting anything (§2.5).
+            ".zip": "zip"}.get(path.suffix.lower())
 
 
 def classifier(detector, *, now):
@@ -585,14 +588,30 @@ def review_and_accept(conn: sqlite3.Connection,
                       situation: str, label: str, created_at: str) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named group.
 
-    Two things happen here that P9 cannot do for itself, and both are the user's:
+    **The justification this docstring used to give was false, and correcting it
+    matters more than it looks.** It said `src/grouping/pipeline.py` writes
+    `display_label=None` on every group and that `--label` is therefore the only
+    name available. `pipeline.py` does write `None` -- but `naming.engine_proposal`
+    runs after the stop rules and fills in `display_label`, `group_category` and a
+    coherence verdict from the group's own anchor facts. Measured on a four-role
+    corpus: P9 produced four groups named `PHYS1401`, `PHYS2801`, `CV20261234` and
+    `Spring2026`, every one `label_source='engine'` and `coherent`, and this
+    function merged them into one called `Coursework`.
 
-    * a NAME. `src/grouping/pipeline.py` writes `display_label=None` on every
-      group it makes, and `apply_p8_verdict` never sets one either, so
-      `tree_design.upstream` refuses an unlabelled group by name. `--label` is it.
-    * a CATEGORY. `group_category` is `None` for the same reason, and an accepted
-      group with no category is eligible for no applicability row at all -- C3
-      refuses the branch outright. `--situation` is it.
+    **It still merges, and that is the right call today.** The names are not lost:
+    the vertical pass rebuilds them from the subject dimension, so the tree really
+    does read `Coursework/PHYS1401`. Accepting the four separately would put four
+    course codes at the ROOT and destroy the nesting -- a worse tree, arriving
+    from a fix aimed at a real defect.
+
+    What `--label` and `--situation` genuinely supply is the TOP-LEVEL branch's
+    name and the category that makes it routable at all: an accepted group with no
+    category is eligible for no applicability row and C3 refuses the branch
+    outright. What they also do, and should not, is flatten four categories into
+    one -- a legal matter number filed under "Coursework". That is `66` §13's
+    structural-versus-contextual split at corpus scale, it is the largest thing
+    still wrong with this command for a person with more than one life, and it
+    needs a per-group answer that only P15 or a review surface can collect.
 
     Recorded as a supersession through P9's own writers rather than as an edit, so
     what P9 proposed and what the user answered are both still on disk.

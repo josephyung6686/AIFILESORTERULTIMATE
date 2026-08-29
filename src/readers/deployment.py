@@ -26,6 +26,7 @@ from typing import Any, Callable
 from extractors.dispatch import Readers
 from extractors.structured_text import TextDocument
 
+from readers.archive_zipfile import zipfile_reader
 from readers.docx_python_docx import python_docx_reader
 from readers.ocr_vision import vision_ocr
 from readers.pdf_pdfminer import pdfminer_reader
@@ -71,14 +72,23 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         "ocr_engine": vision_ocr(),
         "ocr_config": dict(VISION_CONFIG),
         "read_docx": python_docx_reader(),
+        # §2.5's manifest, from the standard library. No ceiling: how many members
+        # are worth listing is a deployment budget, and this deployment would
+        # rather carry a long manifest than a truncated one it has to explain.
+        "read_manifest": zipfile_reader(),
         # No library shipped for these yet -- `None` is §2.4's `unsupported`.
         "read_long_tail": _no_reader,
-        "read_manifest": _no_reader,
         "read_image": _no_reader,
-        # Reached only after their own reader returned a record, which cannot happen
-        # while these formats are unwired. They are the honest "no signal" answer and
-        # must be replaced along with the reader they belong to.
+        # REACHED NOW, and still empty -- for a reason that has changed. It used to
+        # be unreachable because `read_manifest` was unwired. It is now reached on
+        # every archive and answers `()` because §2.5's marker set is DEFERRED in
+        # P5's SPEC ("Archive recognizable markers beyond the above | The marker
+        # set"): which filenames count as a source-code manifest is unsettled, and
+        # a list invented here would be this deployment authoring the open half of
+        # somebody else's section. The member paths themselves are already recorded
+        # by `extract_archive`, so nothing is lost but the labelling.
         "recognize_markers": lambda names: (),
+        # Still unreachable: both belong to `read_image`, which ships no library.
         "dimension_signal": lambda width, height: None,
         "filename_pattern": lambda name: None,
         "find_structured_strings": find_structured_strings,
