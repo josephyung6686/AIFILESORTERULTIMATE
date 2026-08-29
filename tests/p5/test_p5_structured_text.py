@@ -174,3 +174,55 @@ def test_a_dataless_file_is_never_read():
             read_text_document=lambda path: pytest.fail("the reader was reached"),
             find_structured_strings=lambda text: (), now=FIXED_CLOCK,
             context_window=20)
+
+
+def test_the_readable_text_is_an_observation_the_recogniser_can_scan(sink):
+    """`00`:35 -- text documents "should yield full text ... and structural
+    information" -- and until now the full text reached `text_units` and NOTHING
+    else.
+
+    That is not an academic gap. The shipped recogniser holds 8,907 authored
+    terms (`syllabus`, `problem set`, `office hours`) and reads OBSERVATIONS
+    only, deliberately: `detector._matches` -- "a detector that pulled whole text
+    units would be a second materialisation locus". So on every live run it saw
+    the filename, the path, the extension, the MIME type and one identifier, and
+    abstained on every file with `no_corroboration` -- it had matched one term
+    from the FILENAME and its own rule is that one signal never activates a
+    schema. The corroborating words were in the document, stored, and unreachable.
+
+    The document's own words are evidence. This makes them evidence.
+    """
+    run_id = sink.write(run_it())
+    text = HEADING + "\n" + BODY
+    body = [o for o in sink.observations
+            if o["raw_value"] == text
+            and o["location"]["zone"] == "body"
+            and o["location"]["container_path"] == ()]
+    assert len(body) == 1, [o["raw_value"] for o in sink.observations]
+
+
+def test_the_readable_text_does_not_become_a_folder_name(sink):
+    """The other half, and the reason the first half is safe to do.
+
+    A deployment turns observations into FACTS by claiming a locator, and a fact
+    is what a folder gets named after. `65` §2.2 recorded widening extraction as
+    a privacy trade-off for exactly this reason -- but it is two knobs, not one:
+    what the product SEES and what the product ASSERTS.
+
+    The whole-text observation is addressed `body` with no container, and the
+    shipped deployment's one direct slot claims `body#...` and `heading...`. So
+    the recogniser can read the document while nothing in it can name a folder.
+    A future slot that claimed this locator would be choosing otherwise, and this
+    test is what tells it that it did.
+    """
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "src"))
+    import cli
+
+    run_id = sink.write(run_it())
+    text = HEADING + "\n" + BODY
+    body = [o for o in sink.observations if o["raw_value"] == text][0]
+    locator = locator_for(body["location"])
+    assert not locator.startswith("body#")
+    assert not cli.DIRECT_SLOTS.slots[0].names(locator), locator

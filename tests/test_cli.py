@@ -398,3 +398,48 @@ def test_widening_the_pattern_did_not_widen_it_to_ordinary_prose():
     assert _identifiers("see Appendix A for the 2026 figures") == []
     # Two words before the digits is prose, not an identifier token.
     assert _identifiers("SPRING TERM 1401") == ["TERM 1401"]
+
+
+# ======================================================================================
+# The handling policy: recognition is not classification
+# ======================================================================================
+
+
+def test_every_schema_the_product_recognises_has_a_class_to_be_given():
+    """`71` cause B. Recognition worked and classification still failed.
+
+    `SAFETY_DOMAIN_HANDLING` names a class for the four SAFETY schemas and marks
+    them protected, which is the job it was written for and it does it correctly.
+    It was never a general classification policy, and nothing else was supplied --
+    so a coursework file, recognised perfectly from its own words, came back
+    `Abstention(reason='unassigned_handling', ... "recognition is not
+    classification")` and the run ended with every file unclassified.
+
+    A deployment that recognises 23 schemas and can classify 4 of them is not
+    making a privacy decision; it is dropping 19 answers it already computed.
+    """
+    from facts.domains import SCHEMA_IDS
+
+    policy = cli.HANDLING_POLICY
+    missing = sorted(set(SCHEMA_IDS) - set(policy))
+    assert missing == [], missing
+
+
+def test_the_safety_schemas_keep_their_protection_and_the_others_do_not_get_it():
+    """The negative twin, and the one that matters.
+
+    Widening the policy must not widen PROTECTION -- that would mark a person's
+    coursework as sensitive and refuse to file it, which is the over-protection
+    `cli.classifier` already records as a collapse: "an unreadable scan and a
+    passport identical in P7's store". The four safety schemas keep exactly the
+    handling they had; everything else gets the ordinary class this deployment
+    already names for an ordinary file.
+    """
+    from recognition.vocabulary import SAFETY_DOMAIN_IDS
+
+    policy = cli.HANDLING_POLICY
+    for schema_id in SAFETY_DOMAIN_IDS:
+        assert policy[schema_id].protected is True, schema_id
+    for schema_id in set(policy) - set(SAFETY_DOMAIN_IDS):
+        assert policy[schema_id].protected is False, schema_id
+        assert policy[schema_id].handling_class == cli.ORDINARY_CLASS, schema_id

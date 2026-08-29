@@ -52,6 +52,15 @@ ANALYSIS_TIER = "native"
 #: router sends to `text.structured` are section 2.9's and live in long_tail.py.
 STRUCTURED_TEXT_SOURCE_TYPES: tuple[str, ...] = ("text_document", "code_structured")
 
+#: Of the two, the one whose text is written to be READ. The whole-text observation
+#: below is emitted for this family and not for code -- §2.4's own distinction.
+PROSE_SOURCE_TYPE: str = "text_document"
+
+#: What the whole-text observation is addressed AS. Not cosmetic: it keeps the
+#: locator out of the `body#...` space a deployment's direct slot claims, so the
+#: document can be read without the document becoming a folder name.
+PROSE_FIELD: str = "prose"
+
 #: Section 2.4's four classes of "structural indicators", in section 2.4's words.
 #: WHICH FILES ARE MEMBERS of each class is Deferred - the SPEC's Deferred table says
 #: section 1.1's four are P3's and "Everything else" is unsettled - so no member name
@@ -133,6 +142,51 @@ def extract_structured_text(
             context_before=before, context_after=after, context_truncated=truncated,
             observed_at=now, reliability=reliability,
         ))
+
+    # §2.4 and `00`:35 -- a text document "should yield full text, headings,
+    # metadata, links, and structural information". The full text reached
+    # `text_units` and nothing else, which meant the words in the document were
+    # stored and unreachable by anything that reads EVIDENCE.
+    #
+    # The recogniser is the reader that matters. It holds 8,907 authored terms and
+    # scans observations only, on purpose (`recognition/detector.py`: "a detector
+    # that pulled whole text units would be a second materialisation locus"). So on
+    # every live run it saw a filename, a path, an extension, a MIME type and one
+    # identifier, matched one term from the FILENAME, and abstained under its own
+    # `never_alone` rule -- one signal never activates a schema. The corroboration
+    # it needed was in the file the whole time.
+    #
+    # Addressed `body` with NO container, which is what keeps this safe: a
+    # deployment turns an observation into a FACT by claiming its locator, and a
+    # fact is what a folder is named after. The shipped slot claims `body#...` and
+    # `heading...`, so the product can now READ the document without gaining the
+    # power to NAME a folder after it. That is the distinction `65` §2.2 missed
+    # when it recorded this as one privacy trade-off instead of two knobs.
+    #
+    # PROSE ONLY, and the exclusion is §2.4's own: code yields structural evidence
+    # "rather than forcing semantic analysis to infer a project from arbitrary code
+    # text". A syllabus is prose that says what it is; a Python file is not, and
+    # `test_e3_reads_no_code_and_infers_no_project` is the guard that says so.
+    if document.text and source_type == PROSE_SOURCE_TYPE:
+        # Addressed `body`, with no span, and BOTH halves of that are load-bearing.
+        #
+        # No container, because P4 rule 10 anchors a span-carrying observation to a
+        # text unit at exactly its path, and the whole text is a unit at the empty
+        # path. Giving it a container to hide in would mean duplicating the entire
+        # document as a second unit.
+        #
+        # No span, because a span serialises INTO the locator: `body#0-60` starts
+        # with `body#`, which is the space the shipped deployment's direct slot
+        # claims -- and the whole document would have become a `subject` fact, which
+        # is to say a FOLDER NAME. `test_the_readable_text_does_not_become_a_folder_name`
+        # caught precisely that before it shipped.
+        #
+        # The cost is real and is the right one to pay: a span-less observation is
+        # not model-releasable (P7 will not release an excerpt it cannot locate).
+        # This observation exists to be READ BY THE RECOGNISER ON THIS DEVICE, and
+        # the language and marker observations beside it carry no span either.
+        emit(zone="body", raw=document.text, container_path=(), span=None,
+             unit_text=None, reliability="possible")
 
     if document.language:
         emit(zone="metadata", raw=document.language,
