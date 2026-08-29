@@ -16,7 +16,7 @@ produced roughly seventy distinct findings; this table is the only place they ar
 | **STALE** | the audit was right when written and the finding no longer reproduces |
 | **REJECTED** | verified and found not to be a defect; the reason is given |
 
-Suite at time of writing: **5316 passed, 19 skipped, 1 xfailed**, fixed and randomised order.
+Suite at time of writing: **5324 passed, 19 skipped, 2 xfailed**, fixed and randomised order.
 
 ---
 
@@ -53,7 +53,7 @@ launch set — **OWNER**, same question as R4. #4 = R2. #5 P9 purpose fixture mi
 | A | The document's words never reach the detector | **FIXED** | `36764b0`. |
 | B | No handling class for ordinary schemas | **FIXED** | `36764b0` — all 23 schemas, safety four unchanged. |
 | C | Templates need a hierarchy the deployment cannot fill | **FIXED**, and this was the keystone | `689566f`. A level nobody answered COLLAPSED every level beneath it; it is now skipped. Trees nest. |
-| D | The folders the person already made are read, then discarded | **OPEN** | Already pinned by a test that states the mechanism: `cli.py` puts one synthetic id in `branch_group_ids`, a folder candidate's `subject_id` is a directory path, so no folder can ever match and every folder card is dropped unread. |
+| D | The folders the person already made are read, then discarded | **OWNER**, and it got WORSE before it got honest | Traced to one line: `pipeline.py:518` keeps candidates whose `subject_id` is in `branch_group_ids`; a folder candidate's `subject_id` is a directory PATH and `cli.py` passes one synthetic id, so no folder can ever match and eight cards are dropped unread with nothing recording it. `node_type='existing'` is DESIGNED AND ABSENT — storage, validation and a live consumer in `residuals.py` all exist, the only writer is a test fixture, so that consumer is dead by construction. **The tempting fix is actively harmful** and was rejected: putting folder paths into `branch_group_ids` mints top-level *proposed* nodes at the root, so the product would propose moving `Uni/PHYS1401/lab.txt` into a NEW `PHYS1401` — flattening the hierarchy in the name of honouring it, which `00`:100 forbids by name. Shipped instead: disclosure, plus the report no longer calling an already-filed file a move. |
 | — | `preferred_fact` counts rows, not distinct values, so two producers that AGREE delete the file's folder level | **FIXED** | Counted by `value_id` now. OQ6 untouched: two values still return `None`, and the falsifying twin pins it. |
 | — | Protection covers one extension (`.app`) | **OWNER** | The suffix list is Joseph's ruling. |
 | — | Five of nine `completeness` values unreachable | **OWNER** | Which value a text-less document gets is Joseph's ruling. |
@@ -91,7 +91,8 @@ name, on a surface that does not exist: **OWNER**. `REVIEW_SURFACES` is a closed
 P13's, and there is no member meaning "nothing was shown to anyone". `user_level_edits` has no
 writer: **OPEN**. The `residual_configuration` freeze check is vacuous over `{}`: **OPEN**.
 
-**diag-surface** — never reported. Re-briefed against the changed product; outstanding.
+**diag-surface** — never reported, twice asked. Its brief is covered by the report work in
+sections 4 and 7; the outstanding half is a fresh read of the CURRENT output as a user.
 
 ---
 
@@ -153,3 +154,35 @@ Both are Joseph's, both are cheap to answer, and both block work that is otherwi
 all took a fault about ONE LEVEL and applied it to the WHOLE composition or the whole
 branch. Two are fixed; V2 is the third and is the owner's. It is worth stating as a
 class, because the next check written in `validation.py` will face the same choice.
+
+
+---
+
+## 8. The owner questions, collected
+
+Every OWNER row above reduces to one of these six. They are listed together because
+each one blocks work that is otherwise ready, and none needs more investigation.
+
+1. **May V2 skip a level instead of failing the tree?** Blocks the term dimension,
+   which is written and unshipped. Three instances of one mistake now: V5 and
+   `_project` fixed, V2 outstanding.
+2. **May a closed vocabulary gain a member when it cannot express what happened?**
+   `REVIEW_SURFACES` has no "no surface", so the audit log names a canvas that does
+   not exist under a real login name; §8.2 has no event type for a move REFUSED
+   before it was attempted.
+3. **When a person's existing folder and a proposed branch claim the same files,
+   which wins — per folder or per run?** `00`:100 gives six gestures and states no
+   default. And when a folder IS adopted, is a file placed into its own folder — or
+   does this need the sixth product state, "already where it belongs", which `00`
+   implies at :102 and :104 but never names? `LEAVE_UNTOUCHED` and `PRESERVE` are
+   the vocabulary; neither has a consumer.
+4. **Six launch domains or 208 situations?** R4, drift #3 and the residual library
+   all reduce to this.
+5. **Which suffixes are protected containers?** The list is `(".app",)`.
+6. **Which `completeness` value does a text-less document get?** Five of nine are
+   unreachable, so a file that could not be read is recorded as read-and-empty.
+
+**And one that is not a question but a permission:** wiring a LOCAL model needs no
+mode change — P7 defines `offline` as "only local rules and local models may run",
+and `ollama` is on this machine. What it needs is R7's oracles and a prompt, and a
+prompt is a "template and mechanism", which house rules say is approved manually.
