@@ -42,8 +42,8 @@ import sqlite3
 
 from database_agent.db import transaction
 
-from grouping.records import GroupAcceptance
-from grouping.store import RecordAbsent, current_group
+from grouping.records import GroupAcceptance, MalformedGroupRecord
+from grouping.store import RecordAbsent, _same_derivation, current_group
 from grouping.vocabulary import (
     ACCEPTED,
     PENDING_REVIEW,
@@ -65,6 +65,23 @@ def _link(conn: sqlite3.Connection, record: GroupAcceptance) -> None:
         "WHERE acceptance_id = ?",
         (record.acceptance_id, record.supersede_reason, record.supersedes),
     )
+
+
+def _from_row(row) -> GroupAcceptance:
+    """One stored opinion, as the record it was written from."""
+    import json
+
+    return GroupAcceptance(
+        acceptance_id=row["acceptance_id"],
+        plan_version_id=row["plan_version_id"], group_id=row["group_id"],
+        membership_id=row["membership_id"], acceptance=row["acceptance"],
+        review_state=row["review_state"],
+        user_edited_label=row["user_edited_label"],
+        aliases=tuple(json.loads(row["aliases"] or "[]")),
+        review_decision_ref=row["review_decision_ref"],
+        decided_by=row["decided_by"], created_at=row["created_at"],
+        supersedes=row["supersedes"], superseded_by=row["superseded_by"],
+        supersede_reason=row["supersede_reason"])
 
 
 def record_acceptance(conn: sqlite3.Connection, record: GroupAcceptance) -> str:
@@ -90,6 +107,31 @@ def record_acceptance(conn: sqlite3.Connection, record: GroupAcceptance) -> str:
                 f"{record.supersedes!r} is not recorded; a revision of an opinion "
                 "that does not exist supersedes nothing"
             )
+    existing = conn.execute(
+        "SELECT * FROM group_acceptance WHERE acceptance_id = ?",
+        (record.acceptance_id,),
+    ).fetchone()
+    if existing is not None:
+        # The same opinion, recorded again. `record_group` and `record_membership`
+        # both answer this by returning the id, and this row is the third of the
+        # three P9 writes under a derived address: the review step re-running over
+        # unchanged evidence re-derives the same acceptance id, and appending a
+        # second row for it would be two current answers to one question -- the
+        # thing the unique index exists to prevent. Refusing it instead crashed
+        # the shipped command on its second invocation.
+        #
+        # `_same_derivation` decides "the same opinion": everything but when it
+        # was first recorded and what superseded it afterwards, neither of which a
+        # re-derivation asserts. A row that differs in the ACCEPTANCE, the review
+        # state, the label or the decider is a genuinely different opinion and
+        # still has to supersede this one by name.
+        stored = _from_row(existing)
+        if _same_derivation(stored, record):
+            return record.acceptance_id
+        raise MalformedGroupRecord(
+            f"acceptance {record.acceptance_id} is already recorded with a "
+            "different opinion; a revision supersedes rather than replaces"
+        )
     with transaction(conn):
         # Supersede first. The unique index is over unsuperseded rows, so linking
         # after the insert would mean two current opinions existed for the length

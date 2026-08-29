@@ -568,7 +568,23 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def design_authorities(release: TemplateCatalogue,
                            accepted: Sequence[str]) -> TreeDesignAuthorities:
-        ids = count()
+        # The counter starts PAST what this database already holds, so a second
+        # run over the same folder mints `version_3` rather than colliding with
+        # the `version_0` the first run wrote. It restarted at zero, and
+        # `plan_versions.plan_version_id` is unique, so the second invocation of
+        # the shipped command died on an `IntegrityError` -- a traceback, in the
+        # one command whose whole report is an argument that a refusal should be
+        # a sentence. §8.8 makes a second design a NEW plan version; it was
+        # minting the FIRST one's name again.
+        #
+        # Counting rows rather than parsing the largest suffix: the ids are
+        # opaque (§5.12 -- a node is never a path), the count only has to be an
+        # upper bound on what exists, and a parser over a format nobody promised
+        # is how the next spelling of an id becomes a crash.
+        minted = sum(
+            conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("plan_versions", "tree_nodes"))
+        ids = count(minted)
         return TreeDesignAuthorities(
             catalogue=release, group_reader=AcceptedGroupEnumeration(conn),
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,

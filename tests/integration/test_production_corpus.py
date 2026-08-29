@@ -1125,3 +1125,51 @@ def test_two_files_that_state_one_course_reach_each_others_neighbourhood(result)
     anchored = formed.group.anchor_facts[0].file_ids
     assert len(anchored) == 2, anchored
     assert formed.group.anchor_count == 2
+
+
+def test_the_command_can_be_run_twice_over_the_same_folder(tmp_path, capsys):
+    """The shipped command crashed on its own SECOND invocation, with a traceback.
+
+    Nothing about the corpus changes between the two runs. The database path
+    defaults to the working directory (`cli.py`), so running the command twice is
+    the ordinary thing a person does -- and the second one ended in
+    `MalformedGroupRecord: ... a revision supersedes rather than replaces`,
+    escaping the named-refusal handler whose own comment says "A traceback here
+    would turn an answer the design worked hard to give into a crash."
+
+    Two things differed between the stored record and the re-derived one, and
+    NEITHER is a claim about the file:
+
+    * `created_at`, which is this deployment's `now()` and is a fresh value every
+      run;
+    * `superseded_by` and `supersede_reason`, which the review merge stamped onto
+      the membership AFTER it was written.
+
+    A re-derivation asserts CONTENT. It does not re-assert when the conclusion was
+    first reached, and it knows nothing about what happened to the record
+    afterwards. So the stored row stands and the rerun is not a conflict -- which
+    is what `record_group` always said it wanted: "a rerun over unchanged evidence
+    is the same group and not a conflict."
+
+    Every existing rerun test passed a FIXED clock, which is how five thousand of
+    them agreed with a command that could not be run twice.
+    """
+    import cli
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text("PHYS1401 Syllabus\nColumbia, Fall 2026.\n")
+    (corpus / "homework.txt").write_text("PHYS1401 Homework 3\nColumbia.\n")
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    assert cli.main(argv) == 0, capsys.readouterr().out
+    first = capsys.readouterr().out
+
+    # The same folder, the same flags, a later clock. This raised.
+    assert cli.main(argv) == 0, capsys.readouterr().out
+    second = capsys.readouterr().out
+
+    for report in (first, second):
+        assert "Files: 2 decided" in report, report

@@ -128,6 +128,47 @@ def _link(conn: sqlite3.Connection, table: str, key: str, record) -> None:
     )
 
 
+#: What a re-derivation does NOT assert. `created_at` is when the conclusion was
+#: FIRST reached, and a replay re-confirms it rather than reaching it again. The
+#: two supersession fields are stamped onto a record by whatever superseded it
+#: LATER -- they are its history, not its content, and the part re-deriving it
+#: knows nothing about them. `supersedes` is deliberately absent from this tuple:
+#: the predecessor a record names IS a claim it makes.
+_NOT_RE_DERIVED: tuple[str, ...] = ("created_at", "superseded_by",
+                                    "supersede_reason")
+
+
+def _same_derivation(stored, incoming) -> bool:
+    """Whether a re-derived record differs from the stored one only in its history.
+
+    `record_group` states the rule this serves: "A group id derived from its seed
+    is an address, so a rerun over unchanged evidence is the same group and not a
+    conflict." Two things defeated it, and neither is a claim about the file.
+
+    The clock: `created_at` is the deployment's `now()`, a fresh value on every
+    run, so a re-derived record differed from the stored one in that one field and
+    was refused as a revision that superseded nothing.
+
+    And supersession: the review step supersedes a membership when it carries it
+    onto the group the user confirmed, stamping `superseded_by` and
+    `supersede_reason` onto the ORIGINAL row. The next run re-derives that
+    original -- correctly, from unchanged evidence -- with both fields empty,
+    because P9 does not know what P10's review did afterwards.
+
+    The consequence was that the shipped command crashed on its own SECOND
+    invocation against the default database, with a traceback rather than a named
+    refusal.
+
+    The stored row stands, and this widens nothing else: a record differing in any
+    field outside `_NOT_RE_DERIVED` is still refused exactly as before.
+    """
+    import dataclasses
+
+    return dataclasses.replace(
+        incoming, **{name: getattr(stored, name) for name in _NOT_RE_DERIVED},
+    ) == stored
+
+
 def record_group(conn: sqlite3.Connection, group: Group) -> str:
     """Insert one group, or return the id when the same one is already recorded.
 
@@ -140,7 +181,8 @@ def record_group(conn: sqlite3.Connection, group: Group) -> str:
     existing = conn.execute(
         "SELECT * FROM groups WHERE group_id = ?", (group.group_id,)).fetchone()
     if existing is not None:
-        if current_group(conn, group.group_id) != group:
+        stored = current_group(conn, group.group_id)
+        if stored != group and not _same_derivation(stored, group):
             raise MalformedGroupRecord(
                 f"group {group.group_id} is already recorded with different "
                 "content; a revision supersedes rather than replaces"
@@ -206,7 +248,8 @@ def record_membership(conn: sqlite3.Connection, membership: Membership) -> str:
         "SELECT * FROM memberships WHERE membership_id = ?",
         (membership.membership_id,)).fetchone()
     if existing is not None:
-        if _membership_from(existing) != membership:
+        stored = _membership_from(existing)
+        if stored != membership and not _same_derivation(stored, membership):
             raise MalformedGroupRecord(
                 f"membership {membership.membership_id} is already recorded with "
                 "different content; a revision supersedes rather than replaces"

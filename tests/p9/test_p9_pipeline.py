@@ -700,3 +700,36 @@ def test_the_graph_p9_drew_is_stored_and_not_only_computed(
     stored = edges_for_group(pipeline_conn, result.group.group_id)
     assert {edge.edge_id for edge in stored} == {
         edge.edge_id for edge in result.graph.edges}
+
+
+def test_a_second_run_on_a_later_clock_is_a_rerun_and_not_a_conflict(
+        pipeline_conn, subject):
+    """The shipped command crashed on its own second invocation.
+
+    `record_group` states the intent: "A group id derived from its seed is an
+    address, so a rerun over unchanged evidence is the same group and not a
+    conflict." The clock defeated it. `created_at` comes from the deployment's
+    `now()`, which is a fresh value every run, so the re-derived record differed
+    from the stored one in exactly one field -- the timestamp -- and the store
+    refused it as a revision that had not superseded anything.
+
+    Nothing about the corpus changed between the two runs. The database path
+    defaults to the working directory, so this was the DEFAULT second run of the
+    command, and it escaped the named-refusal handler as a traceback -- the
+    outcome `cli.py` says it exists to prevent: "A traceback here would turn an
+    answer the design worked hard to give into a crash."
+
+    Every test that reruns passed a fixed clock, which is why 5,000 of them
+    agreed with a command that could not be run twice.
+    """
+    first = _run(pipeline_conn, subject)
+    assert first.group is not None
+
+    later = _run(pipeline_conn, subject, created_at="2026-08-28T00:00:01Z")
+
+    assert later.group is not None
+    assert later.group.group_id == first.group.group_id
+    # The FIRST run's record stands. A rerun re-derives; it does not restamp.
+    assert later.group.created_at == first.group.created_at
+    assert [m.membership_id for m in later.memberships] == [
+        m.membership_id for m in first.memberships]
