@@ -515,7 +515,27 @@ TEMPLATE_ELIGIBILITY_REASONS: tuple[str, ...] = TEMPLATE_ELIGIBILITY
 #: with P13's import.
 SURFACE_CANVAS: str = "canvas"
 SURFACE_PLAN_VERSION: str = "plan_version"
-REVIEW_SURFACES: tuple[str, ...] = (SURFACE_CANVAS, SURFACE_PLAN_VERSION)
+
+#: The third surface, which is no surface: nobody was shown anything.
+#:
+#: Both of P13's surfaces assume a person looking at a screen, and P13 is
+#: unbuilt. `src/cli.py` runs the whole chain non-interactively -- it keeps every
+#: branch by rule and freezes the version by rule -- so every edit it recorded
+#: went into §8.2's permanent log under `canvas`, naming a canvas this
+#: deployment does not draw, beside the real login name `--user` supplied. The
+#: closed set could not say what had actually happened, and a value that cannot
+#: say that forces the log to say something else.
+#:
+#: Added with the owner's approval (Joseph, 2026-08-29), which is how a member
+#: joins a closed set here: a value a deployment can invent is a value that
+#: acquires a meaning nobody designed. `unattended` and not `none`, because
+#: `none` reads as "not filled in yet" -- the ambiguity this member exists to
+#: remove -- while `unattended` states the fact. The sentences it governs live in
+#: `provenance.actor_phrase` and `provenance.surface_phrase`.
+SURFACE_UNATTENDED: str = "unattended"
+
+REVIEW_SURFACES: tuple[str, ...] = (SURFACE_CANVAS, SURFACE_PLAN_VERSION,
+                                    SURFACE_UNATTENDED)
 
 # --- the registry ---------------------------------------------------------------
 

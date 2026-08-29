@@ -29,6 +29,7 @@ from tree_design.config import TreeLimits
 from tree_design.schema import create_tree_schema
 from tree_design.vocabulary import (
     REFINED, REVIEW_LATER, REVIEW_ONLY, SHALLOW_BY_CHOICE, SHARED_BRANCH,
+    SURFACE_CANVAS,
 )
 
 from p10.seam_corpus import (
@@ -132,6 +133,8 @@ def decisions(**over):
                              "§7.2 caps a residual template's depth."),
         residual_handling_class=lambda name: ORDINARY_CLASS,
         created_at=T0, user_id="jy", component_version="p10-pipeline",
+        # A person at the canvas, which is what every decision above stands for.
+        surface=SURFACE_CANVAS,
     )
     values.update(over)
     return TreeDesignDecisions(**values)

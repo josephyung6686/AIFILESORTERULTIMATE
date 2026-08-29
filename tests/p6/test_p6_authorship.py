@@ -21,9 +21,13 @@ def test_the_two_event_names_are_8_2s_own_and_carry_a_space():
 
 def test_both_names_are_already_reserved_so_p6_registers_nothing():
     # P1 Contract out §3, rule 4: registration is a spec-level act. Both names are
-    # in P1's frozen table of nineteen; P6 declares neither.
+    # in P1's frozen table; P6 declares neither. The table holds twenty, not nineteen: the owner (Joseph) approved `refused move` on
+    # 2026-08-29 so P12 can record a move refused BEFORE it was attempted, which
+    # `failed move` (a move attempted and broken) cannot say.
+    # P6 is unaffected either way -- the point of the count here is that P6 did
+    # not grow it.
     assert set(AUTHORED_EVENT_TYPES) <= set(RESERVED_EVENT_TYPES)
-    assert len(RESERVED_EVENT_TYPES) == 19
+    assert len(RESERVED_EVENT_TYPES) == 20
 
 
 def test_facts_publishes_no_registration_call():

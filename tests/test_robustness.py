@@ -54,15 +54,20 @@ def test_a_specialization_of_a_non_reserved_base_is_an_import_error(tmp_path: Pa
         )
 
 
-def test_the_nineteen_are_exactly_the_8_2_names():
-    # Guards against a typo silently shrinking the reserved set.
+def test_the_reserved_set_is_exactly_the_8_2_names_and_the_approved_twentieth():
+    # Guards against a typo silently shrinking the reserved set -- and, now,
+    # against one silently growing it. Nineteen of these are §8.2's list verbatim.
+    # `refused move` is the twentieth: the owner (Joseph) approved it on
+    # 2026-08-29 because §8.2 reserved `failed move` for a move that was tried and
+    # broke and reserved nothing for a move refused before it was tried, and P12
+    # cannot record what it mostly does without saying which happened.
     assert RESERVED_EVENT_TYPES == frozenset({
         "discovery", "stat observation", "hashing", "extraction", "OCR",
         "fact creation", "fact rejection", "graph-edge creation",
         "group membership proposal", "user group decision", "template application",
         "destination-tree edit", "placement recommendation",
         "filename-collision resolution", "planned move", "executed move",
-        "failed move", "external modification detection", "undo",
+        "failed move", "refused move", "external modification detection", "undo",
     })
 
 

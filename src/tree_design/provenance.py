@@ -23,6 +23,8 @@ from evidence_shape.canonical import canonical_json
 from tree_design.vocabulary import (
     CORRECTION_SCOPES,
     DESTINATION_TREE_EDIT,
+    REVIEW_SURFACES,
+    SURFACE_UNATTENDED,
     TEMPLATE_APPLICATION,
     TREE_EDIT_ACTIONS,
     VERSION_ACTIONS,
@@ -55,6 +57,39 @@ REJECT_POLARITY: str = "reject"
 #: §8.7's two polarities. P1 stores the value and derives nothing from it, so the
 #: closed set has to be enforced by the acting part — here.
 POLARITIES: tuple[str, ...] = (ACCEPT_POLARITY, REJECT_POLARITY)
+
+
+def actor_phrase(surface: str) -> str:
+    """Who the record may say did this: "The user", or "The rules".
+
+    Every §8.2 sentence P10 writes opened with "The user", because until P13
+    ships there was no way to say otherwise. On `SURFACE_UNATTENDED` that is
+    false — nobody was shown the tree and nobody approved anything — and the
+    sentence goes into a permanent log beside the real login name `--user`
+    supplied. "The rules" is what actually decided, and it is the word the group
+    records already use for the same situation (`DECIDED_BY`, `CREATED_BY`).
+
+    The event is still written, and still says what happened. A log that dropped
+    the row to avoid overstating it would lose the fact that a branch was
+    accepted and a version was frozen, which is the worse of the two failures.
+    """
+    check(surface, REVIEW_SURFACES, name="review surface")
+    return "The rules" if surface == SURFACE_UNATTENDED else "The user"
+
+
+def surface_phrase(surface: str) -> str:
+    """Where it happened, as a clause that follows the subject.
+
+    Returned WITH its leading space and without a full stop, so a caller writes
+    one f-string and the two cases differ in wording only. On a real surface this
+    is the clause the sentences already carried; on `SURFACE_UNATTENDED` it names
+    the absence rather than dropping it silently, because "accepted" with no
+    "where" reads as an omission and invites the reader to assume a screen.
+    """
+    check(surface, REVIEW_SURFACES, name="review surface")
+    if surface == SURFACE_UNATTENDED:
+        return " with nobody at the screen"
+    return f" on the {surface} surface"
 
 
 def _explanation(sentence: str, payload: dict) -> str:

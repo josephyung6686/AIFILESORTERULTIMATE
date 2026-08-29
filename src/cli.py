@@ -255,6 +255,15 @@ _STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b")
 #: parser: §2.2's classes are "URLs, email addresses, DOI values, citations,
 #: identifiers", a free date is none of them, and a pattern that matched every
 #: number pair would put page numbers and sums of money into the tree.
+def _is_term(raw: str) -> bool:
+    """Whether a reading is a TERM rather than an identifier.
+
+    Asked of the READING, which is the only place the two can be told apart: they
+    sit in the same body text and share every locator prefix.
+    """
+    return _TERM.fullmatch(raw.strip()) is not None
+
+
 _TERM = re.compile(
     r"\b(?:(?:Fall|Spring|Summer|Winter)[ -]?[0-9]{4}"
     r"|[0-9]{4}[ -]?(?:Fall|Spring|Summer|Winter))\b", re.IGNORECASE)
@@ -289,9 +298,25 @@ DIRECT_SLOTS = DirectSlots(slots=(
     DirectSlot(
         slot_id="cli.text.identifier", field_key="subject",
         names=lambda locator: locator.startswith(("body#", "heading")),
+        # Everything the term slot does not claim. Without this the two slots
+        # would each take the other's readings -- they share every locator there
+        # is -- which is why only one of them could ship before `DirectSlot`
+        # gained a predicate over the reading itself.
+        matches=lambda raw: not _is_term(raw),
         # Whitespace collapsed, THEN the identifier's own separator removed, so
         # the two spellings of one course code canonicalise to one value.
         canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),
+    DirectSlot(
+        slot_id="cli.text.term", field_key="term",
+        names=lambda locator: locator.startswith(("body#", "heading")),
+        matches=lambda raw: _is_term(raw),
+        # ONE spelling for `Spring 2026`, `Spring-2026` and `SPRING2026`. The
+        # course codes taught this lesson already: `65` §4.2 records four files
+        # of one course becoming four one-file groups because one identity
+        # arrived as several spellings. `2026-Spring` keeps its own ORDER --
+        # which of the two a corpus uses is the corpus's, and reordering it would
+        # be inventing a label §5.4 says must emerge from the facts.
+        canonical=lambda raw: "".join(raw.split()).replace("-", "").title()),
 ))
 
 #: THE SECOND DIMENSION, WRITTEN AND NOT SHIPPED. `00`:78's recommended tree is
@@ -406,9 +431,30 @@ class AcceptedGroupEnumeration:
 
 
 def find_structured_strings(text: str) -> tuple[StructuredString, ...]:
-    return tuple(
-        StructuredString(kind="identifier", start=match.start(), end=match.end())
-        for match in _STRUCTURED.finditer(text))
+    """Both patterns this deployment ships, as §2.2 `identifier` readings.
+
+    ONE `kind` for both. §2.2's classes are "URLs, email addresses, DOI values,
+    citations, identifiers" -- a closed list with no member for a term, and
+    `ZONE_BY_STRUCTURED_KIND` maps a kind to a P4 ZONE. Inventing a kind here
+    would be this file adding to P4's vocabulary, and calling a term a `citation`
+    to borrow its zone would be worse. So both arrive as identifiers and
+    `DIRECT_SLOTS` tells them apart by VALUE through `matches`.
+
+    The term pattern runs FIRST and its spans are taken: `SPRING2026` matches both
+    patterns, and two observations of one span would become two facts about one
+    reading -- a term and a course code, from the same characters.
+    """
+    found: list[StructuredString] = []
+    taken: set[int] = set()
+    for pattern in (_TERM, _STRUCTURED):
+        for match in pattern.finditer(text):
+            span = range(match.start(), match.end())
+            if any(position in taken for position in span):
+                continue
+            taken.update(span)
+            found.append(StructuredString(
+                kind="identifier", start=match.start(), end=match.end()))
+    return tuple(sorted(found, key=lambda one: one.start))
 
 
 def _direct_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:

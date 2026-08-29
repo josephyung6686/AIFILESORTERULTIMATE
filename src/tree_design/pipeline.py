@@ -65,7 +65,8 @@ from tree_design.upstream import (
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
-    ACCEPT, ADD_SCOPED_GENERAL, ORDINARY, PROPOSED, SET_SHARED_MATERIAL_POLICY,
+    ACCEPT, ADD_SCOPED_GENERAL, ORDINARY, PROPOSED, REVIEW_SURFACES,
+    SET_SHARED_MATERIAL_POLICY, check,
 )
 
 #: §5's chain, in §5's order, plus §6.1 and §8.8. Named so the shape is checkable
@@ -219,14 +220,25 @@ class TreeDesignDecisions:
     created_at: str
     user_id: str
     component_version: str
+    #: Which of P13's review surfaces these decisions were collected on -- or
+    #: `SURFACE_UNATTENDED`, when they were collected on none of them because
+    #: nobody was at the screen. The chain stamps it on every review action it
+    #: builds and on the freeze, and §8.2's sentences read it to decide whether
+    #: they may say a person acted. Required, and deliberately not defaulted: a
+    #: default would be this dataclass asserting somebody was watching.
+    surface: str
     shared_material: SharedMaterialAnswer | None = None
     scoped_general: tuple[ScopedGeneralAnswer, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("from_plan_version", "created_at", "user_id",
-                     "component_version"):
+                     "component_version", "surface"):
             if not getattr(self, name):
                 raise ConfigurationRequired(f"{name} is required on a design run")
+        # A surface outside the closed set would be interpolated into the audit
+        # log verbatim, and a surface a deployment invented is a surface whose
+        # meaning nobody designed.
+        check(self.surface, REVIEW_SURFACES, name="review surface")
         for name in ("choose_option", "refinement_for", "residual_handling_class"):
             if not callable(getattr(self, name)):
                 raise ConfigurationRequired(
@@ -546,7 +558,7 @@ def design_tree(conn: sqlite3.Connection, *,
     for answer in decisions.scoped_general:
         version = _apply(conn, authorities, decisions, action=_Action(
             review_action_id=f"ra_general_{answer.parent_origin_id or default_parent}",
-            surface="canvas",
+            surface=decisions.surface,
             subject_ref=answer.parent_origin_id or default_parent,
             plan_version=version, action=ADD_SCOPED_GENERAL,
             correction_scope="node",
@@ -559,7 +571,7 @@ def design_tree(conn: sqlite3.Connection, *,
         answer = decisions.shared_material
         parent = answer.parent_origin_id or default_parent
         version = _apply(conn, authorities, decisions, action=_Action(
-            review_action_id=f"ra_shared_{parent}", surface="canvas",
+            review_action_id=f"ra_shared_{parent}", surface=decisions.surface,
             subject_ref=parent, plan_version=version,
             action=SET_SHARED_MATERIAL_POLICY, correction_scope="corpus",
             presented_state_ref=f"ps_{parent}", user_id=decisions.user_id,
@@ -582,7 +594,7 @@ def design_tree(conn: sqlite3.Connection, *,
         user_edits_by_node={}, node_scoped_rejections={})
     freeze(
         conn, plan_version_id=version, created_at=decisions.created_at,
-        user_id=decisions.user_id,
+        user_id=decisions.user_id, surface=decisions.surface,
         component_version=decisions.component_version,
         residual_configuration=decisions.residual_configuration,
         # The branches the user approved, which in this chain is exactly the
@@ -696,7 +708,8 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
             "nodes nothing supports (§5.4)")
 
     new_version = _apply(conn, authorities, decisions, action=_Action(
-        review_action_id=f"ra_accept_{parent.origin_node_id}", surface="canvas",
+        review_action_id=f"ra_accept_{parent.origin_node_id}",
+        surface=decisions.surface,
         subject_ref=parent.origin_node_id, plan_version=version, action=ACCEPT,
         correction_scope="node", presented_state_ref=f"ps_{option_id}",
         user_id=decisions.user_id, observed_at=decisions.created_at,

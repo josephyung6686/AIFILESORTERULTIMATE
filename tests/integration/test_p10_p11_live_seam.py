@@ -996,6 +996,7 @@ def _re_version(corpus, result, *, new_label: str | None = None,
     from tree_design.freeze import freeze, frozen_tree
     from tree_design.profiles import build_profiles
     from tree_design.store import apply_review_action, nodes_for_version
+    from tree_design.vocabulary import SURFACE_CANVAS
     from tree_design.upstream import accepted_groups
 
     from p10 import p13_fixtures
@@ -1025,7 +1026,8 @@ def _re_version(corpus, result, *, new_label: str | None = None,
         document_types_by_node={}, anchor_excerpts_by_node={},
         user_edits_by_node={}, node_scoped_rejections={})
     freeze(corpus.conn, plan_version_id=new_version, created_at=T0, user_id="jy",
-           component_version="seam", residual_configuration={},
+           component_version="seam", surface=SURFACE_CANVAS,
+           residual_configuration={},
            approved_branch_ids=tuple(
                n.node_id for n in nodes_for_version(corpus.conn, new_version)
                if n.accepts_placement),

@@ -72,10 +72,15 @@ def test_all_eight_are_already_registered_in_p1_with_no_base():
         assert REGISTERED_EVENT_TYPES[name] is None, name
 
 
-def test_none_of_the_eight_collides_with_8_2s_nineteen():
+def test_none_of_the_eight_collides_with_the_reserved_names():
     # §8.2's list is reserved and may not be redefined by any part. P1 checks this at
     # IMPORT, so a collision is an ImportError; this asserts the property P1 checked.
-    assert len(RESERVED_EVENT_TYPES) == 19
+    # The reserved table holds twenty, not nineteen: the owner (Joseph) approved `refused move` on
+    # 2026-08-29 so P12 can record a move refused BEFORE it was attempted, which
+    # `failed move` (a move attempted and broken) cannot say.
+    # P7's eight are disjoint from it before and after, which is what this test
+    # is for; the count is pinned so P7 cannot grow the table by accident.
+    assert len(RESERVED_EVENT_TYPES) == 20
     assert set(P7_EVENT_TYPES).isdisjoint(RESERVED_EVENT_TYPES)
 
 

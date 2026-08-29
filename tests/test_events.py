@@ -67,10 +67,20 @@ from database_agent.events import (
 )
 
 
-def test_the_nineteen_reserved_names_are_present():
-    assert len(RESERVED_EVENT_TYPES) == 19
+def test_the_reserved_names_are_8_2s_nineteen_plus_the_one_approved_twentieth():
+    """The count is pinned so a name cannot arrive without a decision.
+
+    It was nineteen -- §8.2's list, verbatim. It is twenty because the owner
+    (Joseph) approved `refused move` on 2026-08-29: §8.2 had `failed move` for a
+    move that was attempted and broke, and nothing for a move refused before it
+    was attempted, so P12 had no honest name for the commonest thing it will do.
+    A twenty-first arriving without this number changing is a name somebody
+    minted rather than a name somebody reserved.
+    """
+    assert len(RESERVED_EVENT_TYPES) == 20
     for name in ("discovery", "stat observation", "hashing", "extraction", "OCR",
-                 "undo", "external modification detection", "planned move"):
+                 "undo", "external modification detection", "planned move",
+                 "refused move"):
         assert name in RESERVED_EVENT_TYPES
 
 
@@ -95,8 +105,10 @@ def test_the_registered_table_matches_the_declaring_specs():
            "placement_review_decision"}
     assert len(p7) == 8 and len(p8) == 5 and len(p13) == 3 and len(p11) == 9
     assert set(REGISTERED_EVENT_TYPES) == p7 | p8 | p13 | p11
-    # 19 + 8 + 5 + 3 + 9.
-    assert len(EVENT_TYPES) == 44
+    # 20 + 8 + 5 + 3 + 9. Twenty reserved, not nineteen, since `refused move`
+    # was approved; the registered table below is unchanged by that -- rule 1
+    # still forbids any part from registering a name the reserved set holds.
+    assert len(EVENT_TYPES) == 45
 
 
 def test_the_table_cannot_be_mutated_at_run_time():
@@ -188,3 +200,33 @@ def test_two_parts_may_author_the_same_reserved_type(conn):
         "SELECT subsystem FROM events WHERE event_type = 'external modification detection'"
     ).fetchall()
     assert sorted(r["subsystem"] for r in rows) == ["P12", "P3"]
+
+
+def test_a_move_refused_before_it_was_tried_is_not_a_failed_move(conn):
+    """§8.2 grew a twentieth name, and this is the distinction it buys.
+
+    `failed move` is a move that was ATTEMPTED and did not complete -- the disk
+    was full, the destination vanished mid-write. A move P12 refuses or pauses
+    BEFORE attempting it is a different event: nothing was touched, and the
+    reason is a rule rather than an error. Folding the two into one name would
+    make "the plan was stopped from running" and "the run broke" the same row,
+    which is the distinction this project already keeps between a file it could
+    not READ and a file it read and could not CLASSIFY.
+
+    `planning/69-HANDOFF.md` §3a records the gap; the owner approved the
+    addition on the grounds that a closed set which cannot express what actually
+    happened is a design gap, not a discipline. P12 does not exist yet, so the
+    name has no writer -- which is why this test appends it directly.
+    """
+    create_schema(conn)
+    assert "refused move" in RESERVED_EVENT_TYPES
+    assert "failed move" in RESERVED_EVENT_TYPES
+    for name in ("refused move", "failed move"):
+        append_event(conn, **_minimal(event_type=name, subsystem="P12"))
+    rows = conn.execute(
+        "SELECT event_type, base_event_type FROM events ORDER BY event_id"
+    ).fetchall()
+    assert [r["event_type"] for r in rows] == ["refused move", "failed move"]
+    # Reserved, not a typed specialization: a refused move is its own §8.2 name
+    # and rolls up to nothing.
+    assert {r["base_event_type"] for r in rows} == {None}

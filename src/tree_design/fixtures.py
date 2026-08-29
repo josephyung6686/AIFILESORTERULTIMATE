@@ -69,6 +69,7 @@ from tree_design.vocabulary import (
     RESIDUAL_TEMPLATE_NAMES,
     REVIEW_LATER,
     REVIEW_ONLY,
+    SURFACE_CANVAS,
     TEMPORARY_SCREENSHOTS,
     TREATMENT_RETAINED,
     SHALLOW_BY_CHOICE,
@@ -449,6 +450,10 @@ def store_fixture_tree(conn: sqlite3.Connection) -> FrozenTree:
         created_at=CREATED_AT,
         user_id="fixture-user",
         component_version="p10-fixture",
+        # The fixture stands for a tree a person adopted, which is the state P11
+        # reads. `SURFACE_UNATTENDED` would make it stand for the shipped
+        # command's run instead, and P11's tests are not about that run.
+        surface=SURFACE_CANVAS,
         residual_configuration=dict(RESIDUAL_CONFIGURATION),
         approved_branch_ids=tuple(
             node.node_id for node in nodes

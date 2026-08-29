@@ -58,7 +58,7 @@ def _seed_a_real_frozen_p10_tree(conn):
         write_plan_version,
     )
     from tree_design.upstream import ProtectedArea
-    from tree_design.vocabulary import PRIMARY_HOME
+    from tree_design.vocabulary import PRIMARY_HOME, SURFACE_CANVAS
 
     create_tree_schema(conn)
     write_plan_version(conn, PlanVersion(
@@ -103,7 +103,8 @@ def _seed_a_real_frozen_p10_tree(conn):
     freeze(
         conn, plan_version_id="plan-1", created_at="2026-01-01T00:00:00Z",
         user_id="jy", component_version="P10-integration",
-        residual_configuration={}, approved_branch_ids=("n-academics", "n-course"),
+        # A tree a person adopted, which is the state P11 reads.
+        surface=SURFACE_CANVAS, residual_configuration={}, approved_branch_ids=("n-academics", "n-course"),
         protected_areas=(area,),
         profiles=build_profiles(
             conn, plan_version_id="plan-1", groups_by_id={},
@@ -177,11 +178,13 @@ def test_freeze_and_the_index_refuse_the_same_missing_policy(p11_conn):
     assert "shared-material policy" in str(index_refusal.value)
 
     # ...and freeze refuses a version in that state before it can ever get there.
+    from tree_design.vocabulary import SURFACE_CANVAS
+
     _seed_second_version_without_a_policy(p11_conn)
     with pytest.raises(FreezeRefused) as freeze_refusal:
         freeze(p11_conn, plan_version_id="plan-2", created_at="2026-01-01T00:00:00Z",
                user_id="jy", component_version="P10-agreement",
-               residual_configuration={}, approved_branch_ids=("n2-academics",),
+               surface=SURFACE_CANVAS, residual_configuration={}, approved_branch_ids=("n2-academics",),
                profiles=build_profiles(
                    p11_conn, plan_version_id="plan-2", groups_by_id={},
                    document_types_by_node={}, anchor_excerpts_by_node={},

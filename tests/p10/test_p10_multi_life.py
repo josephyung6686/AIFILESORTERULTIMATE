@@ -27,6 +27,7 @@ from tree_design.config import TreeLimits
 from tree_design.schema import create_tree_schema
 from tree_design.vocabulary import (
     PRIMARY_HOME, REFINED, REVIEW_LATER, REVIEW_ONLY, SHALLOW_BY_CHOICE,
+    SURFACE_CANVAS,
 )
 
 from p10.multi_life_corpus import (
@@ -127,6 +128,10 @@ def decisions(**over):
                              "§7.2 caps a residual template's depth."),
         residual_handling_class=lambda name: ORDINARY_CLASS,
         created_at=T0, user_id="jy", component_version="p10-multi-life",
+        # These tests stand for a person working the canvas: they choose options,
+        # rename levels and answer §6.9. `SURFACE_UNATTENDED` is the OTHER run --
+        # `src/cli.py`'s -- and `tests/test_cli.py` is where it is exercised.
+        surface=SURFACE_CANVAS,
     )
     values.update(over)
     return TreeDesignDecisions(**values)
@@ -574,6 +579,7 @@ def test_a_marked_area_that_reached_no_node_is_refused_at_freeze(corpus):
     with pytest.raises(FreezeRefused) as excinfo:
         freeze(corpus.conn, plan_version_id=result.tree.plan_version_id,
                created_at=T0, user_id="jy", component_version="p10-multi-life",
+               surface=SURFACE_CANVAS,
                residual_configuration={REVIEW_LATER: REVIEW_ONLY},
                approved_branch_ids=(), profiles=result.tree.profiles,
                protected_areas=result.protected_areas + (

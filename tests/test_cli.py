@@ -691,6 +691,50 @@ def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
     assert any(r["user_edited_label"] == "Coursework" for r in edited), edited
 
 
+def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
+    """The same overclaim as the group record above, one part further downstream.
+
+    P13 -- the review and approval surface -- is unbuilt, so this command draws
+    no canvas and shows no plan-version list. It accepted every branch by rule
+    and froze the version by rule. Written under `canvas`, §8.8's audit log said
+    "The user accepted ... on the canvas surface" and "The user adopted plan
+    version ...", under the login `--user` supplied, about a screen that does not
+    exist.
+
+    `SURFACE_UNATTENDED` is the third review surface, added with the owner's
+    approval because a closed set that cannot say "nobody was shown anything"
+    forces the log to say something untrue. What must NOT change is that the
+    events survive: a branch was accepted and a version was frozen, and a log
+    that lost those rows would be worse than one that overstated them.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    for name in ("a.txt", "b.txt"):
+        (corpus / name).write_text("PHYS1401\n")
+    database = tmp_path / "plan.sqlite"
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=io.StringIO())
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    edits = [r["explanation"] for r in conn.execute(
+        "SELECT explanation FROM events WHERE event_type = 'destination-tree edit'")]
+    conn.close()
+
+    assert edits, "the run recorded no tree edit at all"
+    sentences = [e.splitlines()[0] for e in edits]
+    for sentence in sentences:
+        assert "surface" not in sentence, sentence
+        assert not sentence.startswith("The user"), sentence
+    # The two things that did happen are still on the record, with their detail.
+    assert any("mandatory-review" in s for s in sentences), sentences
+    assert any("adopted plan version" in s and "node(s)" in s
+               for s in sentences), sentences
+
+
 def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
     """§5.11's V5, with the input it needs. A folder name is public.
 

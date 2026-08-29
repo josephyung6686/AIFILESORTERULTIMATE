@@ -41,6 +41,7 @@ from tree_design.vocabulary import (
     DIFF_REPARENTED,
     DIFF_TYPE_CHANGED,
     PRIMARY_HOME,
+    SURFACE_UNATTENDED,
 )
 
 T0 = "2026-08-27T00:00:00Z"
@@ -768,3 +769,83 @@ def test_setting_a_new_69_policy_on_a_draft_replaces_the_carried_one(seeded):
     assert rows[0]["policy"] == SHARED_BRANCH
     # The frozen predecessor is untouched: §8.8 makes it immutable.
     assert _global_policies(seeded, "plan_1")[0]["policy"] == PRIMARY_HOME
+
+
+def _first_line(conn, subject):
+    row = conn.execute(
+        "SELECT explanation FROM events WHERE correction_subject = ? "
+        "ORDER BY event_id DESC", (subject,)).fetchone()
+    assert row is not None, f"no event was written for {subject!r}"
+    # `_explanation` writes the human sentence, a newline, then the payload. The
+    # sentence is what a person reads, and it is the sentence that overclaimed.
+    return row["explanation"].splitlines()[0]
+
+
+def test_an_unattended_accept_says_the_rules_accepted_it_and_names_no_surface(seeded):
+    """The log must not put a person in front of a screen that was never drawn.
+
+    `SURFACE_UNATTENDED` is in force whenever the run had nobody to show the tree
+    to, which is every run of the shipped command. What it may NOT change is that
+    the event exists and says what happened: the branch really was accepted and
+    really did become nodes, and a log that dropped the event to avoid
+    overstating it would be worse than the overstatement.
+    """
+    action = dataclasses.replace(
+        p13_fixtures.accept("cand_academics", plan_version="plan_1"),
+        surface=SURFACE_UNATTENDED)
+
+    def project(_action, plan_version_id):
+        return (_node("n_columbia", "Columbia", version=plan_version_id),)
+
+    apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids(), component_version="p10-1", project=project)
+
+    sentence = _first_line(seeded, "cand_academics")
+    assert "The user" not in sentence, sentence
+    assert "surface" not in sentence, sentence
+    # Still says what did happen, with the subject and the count intact.
+    assert "cand_academics" in sentence and "1 node" in sentence, sentence
+    assert "nobody at the screen" in sentence, sentence
+
+
+def test_an_attended_accept_still_names_the_person_and_the_surface(seeded):
+    """The negative twin. The day P13 ships, a real click on a real canvas is a
+    person's decision and the record should keep saying so -- a fix that scrubbed
+    the user from every sentence would lose the thing the log is for."""
+    action = p13_fixtures.accept("cand_academics", plan_version="plan_1")
+    apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids(), component_version="p10-1",
+        project=lambda _a, v: (_node("n_columbia", "Columbia", version=v),))
+    sentence = _first_line(seeded, "cand_academics")
+    assert sentence.startswith("The user accepted 'cand_academics' on the canvas "
+                               "surface"), sentence
+
+
+def test_an_unattended_rename_claims_no_person_either(seeded):
+    """The second sentence that named `{action.surface}`. Same rule, same reason:
+    an edit applied by rule is not an edit somebody made."""
+    action = dataclasses.replace(
+        p13_fixtures.rename("n_root", plan_version="plan_1", new_label="School work"),
+        surface=SURFACE_UNATTENDED)
+    apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids("n2"), component_version="p10-1")
+    sentence = _first_line(seeded, "n_root")
+    assert "The user" not in sentence, sentence
+    assert "surface" not in sentence, sentence
+    assert "'rename'" in sentence and "Academics" in sentence, sentence
+
+
+def test_a_surface_outside_the_closed_set_is_refused_rather_than_printed(seeded):
+    """A surface name P10 does not define would be interpolated into the audit
+    sentence verbatim -- "on the whatever surface" -- which is a value a
+    deployment invented acquiring a meaning nobody designed."""
+    action = dataclasses.replace(
+        p13_fixtures.rename("n_root", plan_version="plan_1", new_label="x"),
+        surface="whiteboard")
+    with pytest.raises(OutOfVocabulary):
+        apply_review_action(
+            seeded, action, new_version_id="plan_2", created_at=T1,
+            mint_node_id=_ids("n2"), component_version="p10-1")

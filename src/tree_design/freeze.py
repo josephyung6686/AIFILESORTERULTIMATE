@@ -36,7 +36,11 @@ from tree_design.profiles import (
     NodeContext,
     Restrictions,
 )
-from tree_design.provenance import record_plan_version_adoption
+from tree_design.provenance import (
+    actor_phrase,
+    record_plan_version_adoption,
+    surface_phrase,
+)
 from tree_design.records import ExpectedValue, Node
 from tree_design.upstream import ProtectedArea
 from tree_design.store import (
@@ -419,6 +423,11 @@ def freeze(
     created_at: str,
     user_id: str,
     component_version: str,
+    #: Which of P13's review surfaces the adoption happened on -- or
+    #: `SURFACE_UNATTENDED`, when it happened on none of them. Required and not
+    #: defaulted: a default here would be this function deciding, on every
+    #: caller's behalf, that somebody was watching.
+    surface: str,
     residual_configuration: Mapping[str, str],
     approved_branch_ids: Sequence[str],
     profiles: Sequence[DestinationProfile],
@@ -491,8 +500,14 @@ def freeze(
         freeze_version(conn, plan_version_id)
         record_plan_version_adoption(
             conn, plan_version_id=plan_version_id, action=ADOPT_VERSION,
+            # §8.8's adoption sentence, and the one place P10 records that a
+            # person accepted this whole tree. On `SURFACE_UNATTENDED` nobody
+            # did: `src/cli.py` freezes by rule with no screen to show. The
+            # counts stay either way, because the version really was frozen and
+            # really is the one P11 will place into.
             explanation=(
-                f"The user adopted plan version {plan_version_id!r}: "
+                f"{actor_phrase(surface)} adopted plan version "
+                f"{plan_version_id!r}{surface_phrase(surface)}: "
                 f"{len(nodes)} node(s), {len(record.legal_destination_ids)} of "
                 "them legal destinations."),
             observed_at=created_at, user_id=user_id,

@@ -26,14 +26,31 @@ _WRITABLE = (*EVENT_FIELDS, *CORRECTION_FIELDS, "base_event_type")
 
 from types import MappingProxyType
 
-#: §8.2's nineteen, verbatim. Reserved: no part may redefine, narrow, or reuse one.
+#: §8.2's nineteen, verbatim, plus ONE the owner approved. Reserved: no part may
+#: redefine, narrow, or reuse one.
+#:
+#: `refused move` is the twentieth. §8.2 gives P12 `failed move` for a move that
+#: was ATTEMPTED and did not complete -- the disk filled, the destination vanished
+#: mid-write -- and gives it nothing for a move refused or paused BEFORE it was
+#: attempted, where nothing was touched and the cause is a rule rather than an
+#: error. `planning/69-HANDOFF.md` §3a records the gap. Reading the two as one
+#: name would make "the plan was stopped from running" and "the run broke" the
+#: same row, which is exactly the distinction this product already keeps between
+#: a file it could not READ and a file it read and could not CLASSIFY.
+#:
+#: Adding to a closed set is normally refused here and it was not decided in
+#: code: the owner (Joseph) approved it on 2026-08-29, on the grounds that a
+#: closed set which cannot express what actually happened is a design gap rather
+#: than a discipline. P12 is unbuilt, so the name has NO WRITER yet -- that is
+#: expected, and inventing a caller for it would be P10 or P11 authoring P12's
+#: event.
 RESERVED_EVENT_TYPES: frozenset[str] = frozenset({
     "discovery", "stat observation", "hashing", "extraction", "OCR",
     "fact creation", "fact rejection", "graph-edge creation",
     "group membership proposal", "user group decision", "template application",
     "destination-tree edit", "placement recommendation",
     "filename-collision resolution", "planned move", "executed move",
-    "failed move", "external modification detection", "undo",
+    "failed move", "refused move", "external modification detection", "undo",
 })
 
 # Registration is a spec-level act (rule 4), so this table is compiled from the
@@ -131,7 +148,7 @@ def append_event(conn: sqlite3.Connection, **fields) -> int:
     event_type = fields["event_type"]
     if event_type not in EVENT_TYPES:
         raise UnregisteredEventType(
-            f"{event_type!r} is neither one of §8.2's nineteen reserved names nor "
+            f"{event_type!r} is neither one of §8.2's reserved names nor "
             "declared by a part's SPEC; registration is a spec-level act (rule 4)"
         )
     scope = fields.get("correction_scope")

@@ -26,7 +26,12 @@ from tree_design.records import (
     SharedMaterialPolicy,
     TemplateContext,
 )
-from tree_design.provenance import record_plan_version_adoption, record_tree_edit
+from tree_design.provenance import (
+    actor_phrase,
+    record_plan_version_adoption,
+    record_tree_edit,
+    surface_phrase,
+)
 from tree_design.vocabulary import (
     ACCEPT,
     ADD_SCOPED_GENERAL,
@@ -368,7 +373,7 @@ def _write_overlap_answer(conn: sqlite3.Connection, action, *, draft: PlanVersio
     if action.action == ADD_SCOPED_GENERAL:
         role, label = SCOPED_GENERAL, action.payload.get("display_label", "General")
         explanation = (
-            f"The user added a scoped {label!r} inside "
+            f"{actor_phrase(action.surface)} added a scoped {label!r} inside "
             f"{parent.display_label!r} for files that belong to this branch but "
             "settle no value at the level below it."
         )
@@ -408,16 +413,18 @@ def _write_overlap_answer(conn: sqlite3.Connection, action, *, draft: PlanVersio
                                  label=parent.display_label,
                                  component_version=component_version,
                                  explanation=(
-                                     f"The user set §6.9's {policy!r} policy, "
-                                     "which sends shared material to review "
-                                     "rather than to a branch."))
+                                     f"{actor_phrase(action.surface)} set "
+                                     f"§6.9's {policy!r} policy, which sends "
+                                     "shared material to review rather than to "
+                                     "a branch."))
             return draft.plan_version_id
         role = SHARED_MATERIAL
         label = action.payload.get("display_label", "Shared Material")
         explanation = (
-            f"The user set §6.9's {policy!r} policy and this branch is where "
-            f"material belonging to more than one home under "
-            f"{parent.display_label!r} goes, so no single home is chosen for it."
+            f"{actor_phrase(action.surface)} set §6.9's {policy!r} policy and "
+            f"this branch is where material belonging to more than one home "
+            f"under {parent.display_label!r} goes, so no single home is chosen "
+            "for it."
         )
 
     node_id = mint_node_id()
@@ -549,9 +556,11 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
                 after={"display_label": projected[0].display_label,
                        "node_count": len(projected)},
                 explanation=(
-                    f"The user accepted {action.subject_ref!r} on the "
-                    f"{action.surface} surface; it became {len(projected)} "
-                    "node(s) built from facts P6 had already settled."),
+                    f"{actor_phrase(action.surface)} accepted "
+                    f"{action.subject_ref!r}"
+                    f"{surface_phrase(action.surface)}; it became "
+                    f"{len(projected)} node(s) built from facts P6 had already "
+                    "settled."),
                 observed_at=action.observed_at, user_id=action.user_id,
                 component_version=component_version,
                 correction_scope=action.correction_scope,
@@ -593,8 +602,9 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
             after={"display_label": edited.display_label,
                    "node_type": edited.node_type},
             explanation=(
-                f"The user applied {action.action!r} to "
-                f"{before['display_label']!r} on the {action.surface} surface."),
+                f"{actor_phrase(action.surface)} applied {action.action!r} to "
+                f"{before['display_label']!r}"
+                f"{surface_phrase(action.surface)}."),
             observed_at=action.observed_at, user_id=action.user_id,
             component_version=component_version,
             correction_scope=action.correction_scope,

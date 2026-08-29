@@ -173,3 +173,27 @@ def test_no_module_outside_the_vocabulary_spells_a_closed_value():
             if isinstance(node, ast.Constant) and node.value in guarded:
                 offenders.append(f"{path.name}:{node.lineno} {node.value!r}")
     assert offenders == []
+
+
+def test_the_review_surfaces_include_the_one_where_nobody_was_shown_anything():
+    """Three surfaces, not two, and the third is the one the product ships on.
+
+    §5 and §8.8 give P13 two places a tree edit can be collected -- the canvas and
+    the plan-version list -- and both assume a person looking at a screen. The
+    command in `src/cli.py` runs non-interactively: it accepts every branch by
+    rule and freezes the version without showing anyone anything. Written under
+    `canvas`, the audit log named a surface this deployment does not draw, under
+    the user's real login name from `--user`.
+
+    So the closed set grew by one, approved by the owner (Joseph) on the grounds
+    that a closed set which cannot express what actually happened is a design gap
+    rather than a discipline. The count is pinned here for the same reason it was
+    pinned before: a fourth member arriving without this test changing is a value
+    somebody invented.
+    """
+    assert v.REVIEW_SURFACES == (v.SURFACE_CANVAS, v.SURFACE_PLAN_VERSION,
+                                 v.SURFACE_UNATTENDED)
+    # `unattended` rather than `none`: `none` reads as "not filled in yet", which
+    # is the ambiguity this member exists to remove. The value says what was true
+    # -- nobody was at the screen.
+    assert v.SURFACE_UNATTENDED == "unattended"

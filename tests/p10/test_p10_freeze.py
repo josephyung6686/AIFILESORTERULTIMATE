@@ -36,7 +36,13 @@ from tree_design.records import (
 from tree_design.schema import create_tree_schema
 from tree_design.store import set_shared_material_policy, write_node, write_plan_version
 from tree_design.upstream import AcceptedGroup, GroupMember
-from tree_design.vocabulary import PRIMARY_HOME, RESIDUAL, REVIEW_ONLY
+from tree_design.vocabulary import (
+    PRIMARY_HOME,
+    RESIDUAL,
+    REVIEW_ONLY,
+    SURFACE_CANVAS,
+    SURFACE_UNATTENDED,
+)
 
 T0 = "2026-08-27T00:00:00Z"
 T1 = "2026-08-27T01:00:00Z"
@@ -91,9 +97,15 @@ def _profiles(conn):
 
 
 def _freeze(conn, **over):
+    # `surface` is defaulted HERE and nowhere in `src/`. These tests are about a
+    # tree a person adopted, so the helper says `canvas`; the two tests below
+    # that are about a run nobody watched pass `SURFACE_UNATTENDED` explicitly.
+    # `freeze` itself takes it as a required argument, so no caller can adopt a
+    # tree on a surface it never named.
     kwargs = dict(
         plan_version_id="plan_1", created_at=T1, user_id="jy",
-        component_version="p10-1", residual_configuration={"Review Later": "enabled"},
+        component_version="p10-1", surface=SURFACE_CANVAS,
+        residual_configuration={"Review Later": "enabled"},
         approved_branch_ids=("n_root", "n_course"), profiles=_profiles(conn))
     kwargs.update(over)
     return freeze(conn, **kwargs)
@@ -358,8 +370,9 @@ def test_a_version_with_no_shared_material_policy_refuses_at_freeze(conn):
     assert any("6.9" in reason or "shared" in reason for reason in reasons)
     with pytest.raises(FreezeRefused):
         freeze(conn, plan_version_id="plan_x", created_at=T1, user_id="jy",
-               component_version="p10-1", residual_configuration={},
-               approved_branch_ids=("n_only",), profiles=())
+               component_version="p10-1", surface=SURFACE_CANVAS,
+               residual_configuration={}, approved_branch_ids=("n_only",),
+               profiles=())
 
 
 def test_the_seeded_version_with_a_policy_freezes_cleanly(seeded):
@@ -425,3 +438,31 @@ def test_the_freeze_gate_and_p11s_index_state_one_precondition_between_them(seed
                                       observed_at=T1)
     assert {e.node_id for e in entries} == set(tree.freeze_record.legal_destination_ids)
     assert all(e.refinement_disposition for e in entries)
+
+
+def test_an_unattended_freeze_records_the_adoption_without_claiming_a_person(seeded):
+    """§8.8's adoption record, written by a run nobody was watching.
+
+    The freeze really happened and the version really is the one P11 will place
+    into, so the event stays and keeps its counts. What goes is "The user adopted
+    ...", which put a person's login against a decision they were never shown.
+    """
+    _freeze(seeded, surface=SURFACE_UNATTENDED)
+    row = seeded.execute(
+        "SELECT explanation FROM events WHERE correction_subject = 'plan_1' "
+        "ORDER BY event_id DESC").fetchone()
+    assert row is not None, "the adoption event was dropped, not merely reworded"
+    sentence = row["explanation"].splitlines()[0]
+    assert "The user" not in sentence, sentence
+    # Still states what happened: this version was frozen, with its counts.
+    assert "plan_1" in sentence and "node(s)" in sentence, sentence
+    assert "nobody at the screen" in sentence, sentence
+
+
+def test_an_attended_freeze_still_says_the_user_adopted_it(seeded):
+    """The negative twin: on a real surface the adoption IS the person's."""
+    _freeze(seeded, surface=SURFACE_CANVAS)
+    row = seeded.execute(
+        "SELECT explanation FROM events WHERE correction_subject = 'plan_1' "
+        "ORDER BY event_id DESC").fetchone()
+    assert row["explanation"].startswith("The user adopted plan version 'plan_1'")

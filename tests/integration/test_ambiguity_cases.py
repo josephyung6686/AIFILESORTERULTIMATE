@@ -398,12 +398,14 @@ def test_a_tree_with_no_shared_material_policy_refuses_at_freeze_not_later(
     refusal names §6.9's four answers rather than demanding a particular one.
     """
     from tree_design.freeze import FreezeRefused, freeze
+    from tree_design.vocabulary import SURFACE_CANVAS
 
     _seed_plan(full_conn, with_policy=False)
     with pytest.raises(FreezeRefused) as excinfo:
         freeze(
             full_conn, plan_version_id="plan_1", created_at=CLOCK, user_id="u1",
-            component_version="ambiguity", residual_configuration={},
+            component_version="ambiguity", surface=SURFACE_CANVAS,
+            residual_configuration={},
             approved_branch_ids=("n_course",),
             profiles=_plan_profiles(full_conn))
     assert any("shared-material" in reason for reason in excinfo.value.reasons)
@@ -433,9 +435,12 @@ def test_the_policy_survives_freeze_and_stops_at_the_index(full_conn):
 
     assert len(SHARED_MATERIAL_POLICIES) == 4
     _seed_plan(full_conn, with_policy=True)
+    from tree_design.vocabulary import SURFACE_CANVAS
+
     bundle = freeze(
         full_conn, plan_version_id="plan_1", created_at=CLOCK, user_id="u1",
-        component_version="ambiguity", residual_configuration={},
+        component_version="ambiguity", surface=SURFACE_CANVAS,
+        residual_configuration={},
         approved_branch_ids=("n_course",), profiles=_plan_profiles(full_conn))
     assert bundle.shared_material_policy == "primary-home"
 
@@ -560,7 +565,13 @@ def test_a_file_pulled_two_ways_gets_no_branch_and_the_screen_says_so(
     members = corpus.members("syllabus", "hw3", "lab")
     lab = corpus.file_id("lab")
 
-    candidate = _candidate(("subject", "subject"))
+    # TWO levels. `subject` alone leaves one settled value -- BUSIB 4300, since
+    # `lab`'s two values settle nothing -- and a level that divides nothing is no
+    # longer built, so every file would read as unresolved and this test would
+    # stop distinguishing the ambiguous one from the other two. `work_type` does
+    # divide (Syllabus, Homework), so the branch builds and `lab`, which settles
+    # neither, is the only file reaching no node.
+    candidate = _candidate(("subject", "subject"), ("work_type", "work_type"))
     materialised, evidence = materialise_branch(
         p10_conn, candidate, branch_node_id="n_academics", members=members,
         ancestor_field_refs=(), ancestor_depth=0,
