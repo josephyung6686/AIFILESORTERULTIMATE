@@ -478,3 +478,84 @@ def test_facts_direct_holds_no_date_knowledge():
     assert not [literal for literal in _code_strings(direct_module)
                 if any(left.isdigit() and right.isdigit()
                        for left, right in zip(literal, literal[1:]))]
+
+
+# --- §3.5's slots are plural, and two of them may share a locator -----------------
+
+
+def test_two_slots_can_read_one_locator_and_claim_different_readings(
+        p6_conn, tmp_path):
+    """`names` alone cannot tell a course code from a term, and that is why the
+    shipped deployment could only ever declare ONE slot.
+
+    §3.5 speaks of slots in the plural, and `00`:78's own recommended tree is
+    `Academics/Columbia/2026-Spring/PHYS1401/Homework` -- four dimensions, so at
+    least two of them have to be read out of the same document text. But `names`
+    is a predicate over the LOCATOR, and a course code and a term sitting in the
+    same body share every locator prefix there is. A deployment that declared both
+    slots would have each claim the other's readings, and every file would carry a
+    term called PHYS1401 and a subject called 2026-Spring.
+
+    So `matches` is added beside it: a predicate over the RAW READING, defaulting
+    to None, which claims everything exactly as before. It is the smallest thing
+    that makes §3.5's plural true, and it invents no pattern -- the predicate is
+    the caller's, like `names` and `canonical` either side of it.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="Syllabus.pdf",
+                                  body=b"syllabus")
+    for raw in ("PHYS1401", "2026-Spring"):
+        _observe(p6_conn, run_id=f"run-{raw}", file_id=file_id,
+                 content_hash=content_hash, raw=raw, zone="body",
+                 extractor="text.structured", source_type="text_document")
+
+    subject = DirectSlot(
+        slot_id="text.subject", field_key="subject",
+        names=lambda locator: True,
+        matches=lambda raw: raw[0].isalpha(),
+        canonical=lambda raw: raw)
+    term = DirectSlot(
+        slot_id="text.term", field_key="term",
+        names=lambda locator: True,
+        matches=lambda raw: raw[0].isdigit(),
+        canonical=lambda raw: raw)
+
+    direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
+                 slots=DirectSlots(slots=(subject, term)), screen=NO_CATALOGUE)
+
+    by_field = {}
+    for fact in facts_for_file(p6_conn, file_id, content_hash):
+        by_field.setdefault(fact["field_key"], set()).add(
+            values_by_id(p6_conn)[fact["value_id"]])
+
+    assert by_field.get("subject") == {"PHYS1401"}, by_field
+    assert by_field.get("term") == {"2026-Spring"}, by_field
+
+
+def test_a_slot_with_no_reading_predicate_still_claims_every_reading(
+        p6_conn, tmp_path):
+    """The negative twin, and the compatibility guarantee. `matches` defaults to
+    None, and None must mean "claims everything" exactly as before -- not
+    "claims nothing", which would silently empty every existing deployment."""
+    file_id, content_hash = _file(p6_conn, tmp_path, name="Syllabus.pdf",
+                                  body=b"syllabus")
+    for raw in ("PHYS1401", "2026-Spring"):
+        _observe(p6_conn, run_id=f"run2-{raw}", file_id=file_id,
+                 content_hash=content_hash, raw=raw, zone="body",
+                 extractor="text.structured", source_type="text_document")
+
+    everything = DirectSlot(
+        slot_id="text.subject", field_key="subject",
+        names=lambda locator: True, canonical=lambda raw: raw)
+
+    direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
+                 slots=DirectSlots(slots=(everything,)), screen=NO_CATALOGUE)
+
+    values = {values_by_id(p6_conn)[fact["value_id"]]
+              for fact in facts_for_file(p6_conn, file_id, content_hash)
+              if fact["field_key"] == "subject"}
+    assert values == {"PHYS1401", "2026-Spring"}
+
+
+def values_by_id(conn):
+    return {row["value_id"]: row["canonical_value"]
+            for row in conn.execute('SELECT value_id, canonical_value FROM "values"')}

@@ -36,6 +36,7 @@ import json
 import re
 import sqlite3
 import sys
+import uuid
 import textwrap
 from itertools import count
 from pathlib import Path
@@ -242,6 +243,32 @@ COLLECTOR_FIELD_KEYS = frozenset({"authored_by", "organization"})
 #: page number and a sentence are all still invisible to it.
 _STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b")
 
+#: THE SECOND DIMENSION. A term or period, in the two spellings people write:
+#: `Fall 2026`, `Spring2026`, and `2026-Spring`. `00`:78's own recommended tree is
+#: `Academics/Columbia/2026-Spring/PHYS1401/Homework`, so a term is one of the four
+#: levels the design asks for by name -- and until now the pattern above swallowed
+#: it: `SPRING2026` is letters-then-digits, so a SEMESTER was read as a course
+#: code, and a household's report cards were proposed a folder named after a term
+#: pretending to be a subject.
+#:
+#: Four seasons and a four-digit year, and nothing else. Not a general date
+#: parser: §2.2's classes are "URLs, email addresses, DOI values, citations,
+#: identifiers", a free date is none of them, and a pattern that matched every
+#: number pair would put page numbers and sums of money into the tree.
+_TERM = re.compile(
+    r"\b(?:(?:Fall|Spring|Summer|Winter)[ -]?[0-9]{4}"
+    r"|[0-9]{4}[ -]?(?:Fall|Spring|Summer|Winter))\b", re.IGNORECASE)
+
+
+def _is_term(raw: str) -> bool:
+    """Whether a reading is a term rather than an identifier.
+
+    Asked of the READING, which is the only place the two can be told apart: they
+    sit in the same body text and share every locator prefix, so `names` alone
+    cannot separate them and a deployment could ship only one text slot.
+    """
+    return _TERM.fullmatch(raw.strip()) is not None
+
 #: The same identifier, however it was printed. `PHYS 1401`, `PHYS-1401` and
 #: `PHYS1401` are one course code and must reach P6 as ONE value: `65` §4.2 records
 #: what happens when one identity arrives as several -- four files from one course
@@ -266,6 +293,28 @@ DIRECT_SLOTS = DirectSlots(slots=(
         # the two spellings of one course code canonicalise to one value.
         canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),
 ))
+
+#: THE SECOND DIMENSION, WRITTEN AND NOT SHIPPED. `00`:78's recommended tree is
+#: `Academics/Columbia/2026-Spring/PHYS1401/Homework`, so a term is one of the four
+#: levels the design asks for by name -- and `_STRUCTURED` swallows it, because
+#: `SPRING2026` is letters-then-digits and a SEMESTER therefore reads as a course
+#: code. A household's report cards are proposed a folder named after a term
+#: pretending to be a subject.
+#:
+#: Shipping it makes two of four personas WORSE, and the reason is not this
+#: pattern. A term level with one value trips V2, which fails the WHOLE candidate
+#: rather than skipping the redundant level, so the four-role corpus went from
+#: five folders to one. That is V5's mistake in a third place and it is a P10
+#: contract decision -- `tests/integration/test_production_corpus.py` carries the
+#: strict xfail that states it.
+#:
+#: This stays here, unwired and named, because the next person to reach for it
+#: should find the blocker rather than the idea. P6 already carries the other half
+#: (`DirectSlot.matches`), which is what makes two text slots possible at all.
+_TERM = re.compile(
+    r"\b(?:(?:Fall|Spring|Summer|Winter)[ -]?[0-9]{4}"
+    r"|[0-9]{4}[ -]?(?:Fall|Spring|Summer|Winter))\b", re.IGNORECASE)
+
 METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
                                  metadata_property_names=())
 
@@ -675,23 +724,28 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def design_authorities(release: TemplateCatalogue,
                            accepted: Sequence[str]) -> TreeDesignAuthorities:
-        # The counter starts PAST what this database already holds, so a second
-        # run over the same folder mints `version_3` rather than colliding with
-        # the `version_0` the first run wrote. It restarted at zero, and
-        # `plan_versions.plan_version_id` is unique, so the second invocation of
-        # the shipped command died on an `IntegrityError` -- a traceback, in the
-        # one command whose whole report is an argument that a refusal should be
-        # a sentence. §8.8 makes a second design a NEW plan version; it was
-        # minting the FIRST one's name again.
+        # UNIQUE BY CONSTRUCTION, not by counting. This used to seed a counter
+        # at `COUNT(plan_versions) + COUNT(tree_nodes)`, on the argument that the
+        # count "only has to be an upper bound on what exists". It is not one:
+        # `project_branch_preview` mints node ids for every OPTION it previews,
+        # and an option the user does not take is never written. So the highest
+        # id minted runs ahead of the rows that exist, and a second run over the
+        # same folder re-mints an id the first one already used --
+        # `IntegrityError: UNIQUE constraint failed: plan_versions.plan_version_id`,
+        # a traceback in the one command whose whole report argues that a refusal
+        # should be a sentence.
         #
-        # Counting rows rather than parsing the largest suffix: the ids are
-        # opaque (§5.12 -- a node is never a path), the count only has to be an
-        # upper bound on what exists, and a parser over a format nobody promised
-        # is how the next spelling of an id becomes a crash.
-        minted = sum(
-            conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-            for table in ("plan_versions", "tree_nodes"))
-        ids = count(minted)
+        # It stayed hidden while every tree was one node deep: with one level
+        # there were almost no previews to lose ids to. It appeared the moment a
+        # second dimension made the option set real.
+        #
+        # A per-run token rather than a parser over the id format: §5.12 makes a
+        # node id opaque, `00` never promises it is a number, and parsing what
+        # this file itself spells is how the next spelling becomes a crash. The
+        # sequence still reads in mint order within a run, which is what makes a
+        # log legible.
+        run_token = uuid.uuid4().hex[:8]
+        ids = count()
         return TreeDesignAuthorities(
             catalogue=release, group_reader=AcceptedGroupEnumeration(conn),
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,
@@ -751,8 +805,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # domain, and why nothing needs to be answered here.
             value_discloses_protected_material=lambda field_ref, value: False,
             template_context_for=lambda field_ref, order_index: None,
-            mint_node_id=lambda: f"node_{next(ids)}",
-            mint_version_id=lambda: f"version_{next(ids)}")
+            mint_node_id=lambda: f"node_{run_token}_{next(ids)}",
+            mint_version_id=lambda: f"version_{run_token}_{next(ids)}")
 
     def design_decisions(accepted: Sequence[str]) -> TreeDesignDecisions:
         return TreeDesignDecisions(

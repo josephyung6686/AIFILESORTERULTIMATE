@@ -91,6 +91,24 @@ class DirectSlot:
     field_key: str
     names: Callable[[str], bool]
     canonical: Callable[[str], str]
+    #: An optional predicate over the RAW READING, beside `names`'s predicate over
+    #: the locator. `None` claims every reading `names` matched, which is what
+    #: every existing caller gets and what the parameter's absence has always
+    #: meant.
+    #:
+    #: It exists because §3.5 speaks of slots in the PLURAL and `names` alone
+    #: cannot make that true. `00`:78's own recommended tree is
+    #: `Academics/Columbia/2026-Spring/PHYS1401/Homework`, so at least two of its
+    #: dimensions are read out of the same document text -- and a course code and
+    #: a term sitting in one body share every locator prefix there is. Two slots
+    #: declared over them would each claim the other's readings, and every file
+    #: would carry a term called PHYS1401. A deployment could therefore only ever
+    #: ship ONE text slot, which is exactly what the shipped one does.
+    #:
+    #: The predicate is the CALLER'S, like `names` above and `canonical` below.
+    #: P6 authors no pattern here and gains no opinion about what a term looks
+    #: like; it gains only the ability to be told.
+    matches: Callable[[str], bool] | None = None
 
 
 @dataclass(frozen=True)
@@ -127,6 +145,8 @@ def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     for slot in slots.slots:
         for one in _observations_for_version(conn, file_id, content_hash):
             if not slot.names(one.locator):
+                continue
+            if slot.matches is not None and not slot.matches(one.raw_value):
                 continue
             if not field_permitted(
                     one, slot.field_key,

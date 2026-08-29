@@ -1500,3 +1500,102 @@ def test_a_value_only_protected_files_carry_never_mints_a_folder(conn, tmp_path)
     decided = {d.subject.file_id for d in result.placement.decisions}
     assert len(decided) == 3, (
         f"a protected file fell out of the run entirely: {len(decided)} of 3")
+
+
+def test_files_a_level_does_not_cover_still_reach_the_levels_below_it(
+        conn, tmp_path):
+    """The other half of the truncation fix, and the same mistake in a new place.
+
+    `_project` recursed only INSIDE the per-value loop, so a level that covers
+    SOME of a branch's files carried only those files downward and the rest fell
+    out of every level beneath. A real household corpus makes this visible: two
+    report cards carry a term and no subject, a lease and an insurance claim carry
+    a subject and no term, and the term level runs first. The two report cards got
+    their folder; the lease and the claim reached nothing.
+
+    An uncovered file is not an unmatched file. The level simply says nothing
+    about it, exactly as an EMPTY level says nothing about any file -- and the fix
+    is the same one, applied to the members a level leaves behind rather than to
+    the level as a whole.
+    """
+    result = run_corpus_through(
+        conn, tmp_path, fields=("term", "subject"),
+        names=("Spring2026 Ada Report Card.pdf", "Spring2026 Sam Report Card.pdf",
+               "PR20264410 Lease.pdf", "CLM88213 Insurance Claim.pdf"))
+    labels = {node.display_label for node in result.tree.tree.nodes}
+
+    assert "Spring2026" in labels, f"the covered files lost their level too: {labels}"
+    assert {"PR20264410", "CLM88213"} <= labels, (
+        f"the files the term level said nothing about reached no level at all: "
+        f"{labels}")
+
+
+def test_an_uncovered_file_does_not_hang_off_the_covered_ones(conn, tmp_path):
+    """The discriminating twin. Carrying uncovered members downward must not put
+    them UNDER a value they do not have -- that would be worse than dropping them,
+    because a person would find their lease inside a school term."""
+    result = run_corpus_through(
+        conn, tmp_path, fields=("term", "subject"),
+        names=("Spring2026 Ada Report Card.pdf", "Spring2026 Sam Report Card.pdf",
+               "PR20264410 Lease.pdf", "CLM88213 Insurance Claim.pdf"))
+    by_id = {node.node_id: node for node in result.tree.tree.nodes}
+    term = next(n for n in result.tree.tree.nodes if n.display_label == "Spring2026")
+
+    for label in ("PR20264410", "CLM88213"):
+        node = next(n for n in result.tree.tree.nodes if n.display_label == label)
+        assert node.parent_node_id != term.node_id, (
+            f"{label} was filed under a term its files never carried")
+        assert by_id[node.parent_node_id].display_label != "Spring2026"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "V2 fails the WHOLE candidate when any level has one child, so a household "
+    "whose files carry one term and two subjects gets NO tree rather than a tree "
+    "without the redundant term level. This is V5's mistake in a third place -- a "
+    "per-LEVEL fault rejecting a whole composition -- and `00`:97 asks only that a "
+    "template not CREATE a meaningless one-child level, which skipping it "
+    "satisfies. The fix is a P10 contract decision and not a deployment's: it "
+    "changes what V1-V6 mean, 16 P10 tests pin the current behaviour deliberately, "
+    "and expressing it needs a numeric literal that `test_p10_no_invention` "
+    "forbids a part to hold -- which is exactly the guard that should stop an "
+    "implementation inventing this threshold on the owner's behalf."))
+def test_a_level_with_one_value_is_skipped_and_the_levels_below_it_survive(
+        conn, tmp_path):
+    """A level that distinguishes nothing says nothing, exactly like an empty one.
+
+    V2's own words: "a level with a single child is a folder the user opens to
+    find one folder". True -- and it failed the WHOLE candidate for it, so a
+    household whose files carry one term and two subjects got NO tree at all
+    rather than a tree without the redundant term folder. That is V5's mistake in
+    a third place: a per-LEVEL fault used to reject a whole composition.
+
+    `00`:97 lists "create meaningless one-child levels" among the structural
+    faults a template must not have. Skipping the level means it does not create
+    one; rejecting the tree means the person gets nothing, which the sentence
+    never asked for.
+    """
+    result = run_corpus_through(
+        conn, tmp_path, fields=("term", "subject"),
+        names=("Spring2026 Ada Report Card.pdf", "Spring2026 Sam Report Card.pdf",
+               "Spring2026 PR20264410 Lease.pdf",
+               "Spring2026 CLM88213 Insurance Claim.pdf"))
+    labels = {node.display_label for node in result.tree.tree.nodes}
+
+    assert "Spring2026" not in labels, (
+        f"the single-term level was materialised anyway: {labels}")
+    assert {"PR20264410", "CLM88213"} <= labels, (
+        f"one redundant level took the whole tree with it: {labels}")
+
+
+def test_a_level_that_really_does_divide_the_files_is_kept(conn, tmp_path):
+    """The negative twin. Skipping a level that distinguishes nothing must not
+    become skipping levels, or the tree flattens and the fix is worse than the
+    defect."""
+    result = run_corpus_through(
+        conn, tmp_path, fields=("term", "subject"),
+        names=("Fall2026 PHYS1401 Syllabus.pdf", "Fall2026 PHYS1401 Homework.pdf",
+               "Spring2026 PHYS2801 Notes.pdf", "Spring2026 PHYS2801 Set.pdf"))
+    labels = {node.display_label for node in result.tree.tree.nodes}
+
+    assert {"Fall2026", "Spring2026"} <= labels, (
+        f"two real terms were skipped as if they distinguished nothing: {labels}")
