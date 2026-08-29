@@ -1143,3 +1143,26 @@ def test_the_tree_shows_which_folders_are_already_yours(tmp_path):
     # The headline counts the two kinds separately rather than calling them all
     # proposals.
     assert "Folders in this plan:" in printed, printed
+
+
+def test_a_file_whose_deterministic_pass_settled_nothing_gets_the_second_look():
+    """R3. §3.6's usability verdict answered `True` unconditionally, so targeted
+    OCR was unreachable and a scanned page with a broken text layer never got its
+    second pass.
+
+    The threshold itself is Deferred by name -- "the `no_usable_facts` threshold,
+    M11, P5 OQ1" -- and this does not choose one. It answers the one case that
+    needs no threshold to decide: a pass that produced NO fact and left NOTHING
+    unresolved settled nothing at all, and "usable" is not a defensible word for
+    it. Every other corpus keeps the deferred answer.
+
+    The twin is what keeps it safe. A file that yielded even one fact is usable,
+    so no text-bearing document is ever sent through Apple Vision on the strength
+    of a number nobody authored -- which is the failure the unconditional `True`
+    was protecting against, and it is still protected against.
+    """
+    assert cli._usable((), ()) is False
+    assert cli._usable(({"field_key": "subject"},), ()) is True
+    # An attempted field that ended in a recorded refusal is evidence too: the
+    # pass ran and reached a conclusion, so it is not the empty case.
+    assert cli._usable((), ({"field_key": "subject"},)) is True

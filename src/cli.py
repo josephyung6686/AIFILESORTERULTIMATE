@@ -534,6 +534,36 @@ def classifier(detector, *, now):
     return classify
 
 
+def _usable(facts, unresolved) -> bool:
+    """§3.6's usability verdict: are the stored facts worth keeping as they are?
+
+    This answered `True` unconditionally, which made targeted OCR unreachable --
+    so a scanned page whose text layer is broken was read once, yielded nothing,
+    and was never looked at again. That was the honest answer at the time, and
+    the alternative it was avoiding is real: answering `False` would send every
+    text-bearing PDF through Apple Vision on the strength of a threshold nobody
+    chose. The `no_usable_facts` threshold is Deferred by name (M11, P5 OQ1) and
+    nothing here chooses it.
+
+    **The empty case needs no threshold.** A deterministic pass that produced no
+    fact AND recorded nothing unresolved settled nothing whatsoever, and "usable"
+    is not a defensible word for it. That is a boundary, not a bar: it asks
+    whether there is anything at all, never how much is enough.
+
+    `unresolved` counts as evidence FOR usability here, exactly as
+    `no_usable_facts_for` says it should -- "a version whose every attempted field
+    ended in a recorded refusal is a version whose evidence yielded nothing, and
+    that is a stronger statement than an empty fact list". A refusal means the
+    pass ran and reached a conclusion about that field; re-reading the bytes with
+    a different engine is not what such a file needs.
+
+    So the second look is offered to exactly one kind of file: the one the read
+    produced nothing about. Every other corpus keeps the deferred answer, and no
+    document that yielded so much as one fact is ever re-read.
+    """
+    return bool(facts) or bool(unresolved)
+
+
 def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
     return P1P7Authorities(
         native_resolver=_resolver(tiers=frozenset(("filesystem", "native")),
@@ -541,12 +571,7 @@ def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
         ocr_resolver=_resolver(
             tiers=frozenset(("filesystem", "native", "ocr")),
             cache_key="cli-ocr-v1"),
-        # §3.6's usability verdict. This deployment answers "usable" always, which
-        # means targeted OCR is never triggered -- the honest state for a run with
-        # no authored per-field usability bar, and the alternative (answering
-        # `False`) would send every text-bearing PDF through Apple Vision on the
-        # strength of a threshold nobody chose.
-        usable_threshold=lambda facts, unresolved: True,
+        usable_threshold=_usable,
         classify=classifier(detector, now=now),
         source=FilesystemCorpusSource(),
         # IMPORTED, never respelled -- and the import is the fix. This wrote the
