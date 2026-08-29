@@ -133,8 +133,33 @@ def test_the_pdf_title_metadata_reaches_the_evidence_table(db, corpus):
 
 
 def test_a_format_with_no_library_is_unsupported_not_failed(db, tmp_path):
-    """The deployment ships no DOCX reader. §2.4 says that file is `unsupported`;
-    calling it `failed` would report a missing library as a corrupt document."""
+    """§2.4's first half. No image library ships, so those bytes were never looked
+    at; calling that `failed` would report a missing library as a corrupt document.
+
+    This test used to make the same point with a `.docx`, and stopped being able
+    to on 2026-08-29 when `python-docx` was wired: the premise "the deployment
+    ships no DOCX reader" became false. It moved to a format that genuinely has no
+    reader rather than being deleted -- the PROPERTY is the point and it still has
+    to hold somewhere. Its twin below now covers what a `.docx` proves instead.
+    """
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "scan.heic").write_bytes(b"\x00\x00\x00\x18ftypheic not really an image")
+
+    go(db, root)
+    states = {row["extractor_name"]: row["completeness"] for row in db.execute(
+        "SELECT extractor_name, completeness FROM extraction_runs")}
+    assert states.get("image.metadata") == "unsupported", states
+
+
+def test_a_reader_that_ran_and_raised_is_failed_not_unsupported(db, tmp_path):
+    """§2.4's other half, and the half that could not be reached until a DOCX
+    reader existed: `failed` means a reader RAN and raised.
+
+    The two states ask the user for different things -- one says "this product
+    cannot open this kind of file", the other says "this file is damaged" -- and a
+    deployment with no reader at all can only ever produce the first.
+    """
     root = tmp_path / "Documents"
     root.mkdir()
     (root / "letter.docx").write_bytes(b"PK\x03\x04 not really a docx")
@@ -142,7 +167,42 @@ def test_a_format_with_no_library_is_unsupported_not_failed(db, tmp_path):
     go(db, root)
     states = {row["extractor_name"]: row["completeness"] for row in db.execute(
         "SELECT extractor_name, completeness FROM extraction_runs")}
-    assert states.get("docx.structure") == "unsupported", states
+    assert states.get("docx.structure") == "failed", states
+
+
+def test_a_real_docx_becomes_evidence_with_the_zone_word_recorded(db, tmp_path):
+    """The sentence this reader exists to make true, on bytes Word itself wrote.
+
+    `43`'s R2: the deployment wired `read_docx = _no_reader`, so every `.docx` on
+    a person's disk recorded `unsupported` -- "no reader exists and the bytes were
+    never looked at" -- and every count downstream agreed those files carried
+    nothing. On a real human's disk that is most of the writing they have ever
+    done.
+    """
+    import json
+
+    docx_lib = pytest.importorskip("docx")
+    root = tmp_path / "Documents"
+    root.mkdir()
+    document = docx_lib.Document()
+    document.add_heading("BUSIB 4300 Syllabus", level=1)
+    document.add_paragraph("Readings for the term.")
+    document.save(root / "syllabus.docx")
+
+    go(db, root)
+    rows = [dict(row) for row in db.execute(
+        "SELECT raw_value, location FROM evidence "
+        "WHERE extractor_name = 'docx.structure'")]
+    assert rows, "a real .docx produced no evidence at all"
+    # Verbatim, not canonicalised: collapsing `BUSIB 4300` to one token is
+    # `cli.py`'s DIRECT_SLOTS doing P6's work, and an extractor that did it here
+    # would be interpreting what it saw.
+    assert any(row["raw_value"] == "BUSIB 4300" for row in rows), (
+        f"the course code in the heading never became evidence: "
+        f"{[row['raw_value'] for row in rows]}")
+    zones = {json.loads(row["location"])["zone"] for row in rows}
+    assert "heading" in zones, (
+        f"Word's own heading style was not reported as P4's heading zone; {zones}")
 
 
 def test_every_run_is_complete_and_the_status_column_agrees(db, corpus):
@@ -291,3 +351,4 @@ def test_a_real_vision_box_survives_to_a_parsed_p4_region(db, tmp_path):
         assert isinstance(region, Region)
         assert region.unit == "norm"
         assert all(0.0 <= v <= 1.0 for v in (region.x, region.y, region.w, region.h))
+

@@ -379,7 +379,8 @@ def _detect_format(path: Path) -> str | None:
     opening the file, and the one class of file this command must never open is
     decided by PATH (`is_protected_container`) before any format question is asked.
     """
-    return {".pdf": "pdf", ".txt": "txt", ".md": "md"}.get(path.suffix.lower())
+    return {".pdf": "pdf", ".txt": "txt", ".md": "md",
+            ".docx": "docx"}.get(path.suffix.lower())
 
 
 def classifier(detector, *, now):

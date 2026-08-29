@@ -26,6 +26,7 @@ from typing import Any, Callable
 from extractors.dispatch import Readers
 from extractors.structured_text import TextDocument
 
+from readers.docx_python_docx import python_docx_reader
 from readers.ocr_vision import vision_ocr
 from readers.pdf_pdfminer import pdfminer_reader
 
@@ -69,8 +70,8 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         "read_text_document": read_text_file,
         "ocr_engine": vision_ocr(),
         "ocr_config": dict(VISION_CONFIG),
+        "read_docx": python_docx_reader(),
         # No library shipped for these yet -- `None` is §2.4's `unsupported`.
-        "read_docx": _no_reader,
         "read_long_tail": _no_reader,
         "read_manifest": _no_reader,
         "read_image": _no_reader,
