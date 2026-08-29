@@ -871,6 +871,50 @@ OUTCOME_WORDS: dict[str, str] = {
     pv.ABSTAIN: "Waiting for you to say what these are",
 }
 
+#: THE QUESTIONS THE FREEZE DEMANDS, AND THE ANSWERS THIS COMMAND GAVE.
+#:
+#: `66`'s onboarding question registry is not built. What IS built is a P10 that
+#: refuses to freeze until these are answered -- `TreeDesignDecisions` documents
+#: every one of them as the USER's, and `validate_for_freeze` rejects any legal
+#: destination carrying no refinement disposition. Run non-interactively there is
+#: nobody to ask, so this file answers them, and until now it said nothing about
+#: having done so.
+#:
+#: That silence was not neutral. A frozen tree is PERMANENT, and it records
+#: `shallow-by-choice` -- a value that literally means the user chose it -- with a
+#: reason written in their voice: "This branch holds few enough files that
+#: splitting it further would not help you find anything." Nobody said that. P13
+#: will show it back to them as their own words unless something says otherwise.
+#:
+#: This is not the registry and does not pretend to be: no question has an id, no
+#: answer is persisted, nothing is asked. It is the smaller thing the registry
+#: cannot be built without -- the list of what was decided on the person's behalf,
+#: in the words of the question rather than the field.
+#:
+#: Each entry is (the question, the answer taken). The answers restate what
+#: `choose_option`, `refinement_for` and `design_decisions` below actually do; a
+#: line here that drifts from them is a lie, so they are written next to the
+#: reasons that produced them and are checked by `tests/test_cli.py`.
+DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
+    ("Which nesting to use, out of the ones your files support",
+     "the first one that passed every check and actually splits the folder. A "
+     "person looking at the counts and warnings would reasonably pick another."),
+    ("How deep each folder goes",
+     "the top-level folder is treated as fully refined, and everything under it "
+     "as deliberately shallow. Nobody was asked whether a branch is short "
+     "on purpose or just unfinished."),
+    ("Where material that belongs to two folders goes",
+     "kept as your decision, file by file, rather than sent to one of them. It "
+     "is the only answer a command with nobody to ask may make for you."),
+    ("Whether to add a catch-all folder for things the branch does not cover",
+     "not added. An unasked question answered by default is a folder nobody "
+     "wanted."),
+    ("What to call the top-level folder, and what kind of material this is",
+     "taken from `--label` and `--situation` exactly as you typed them, and "
+     "applied to EVERY file in the folder -- including any that are something "
+     "else entirely."),
+)
+
 #: How many files of one kind are named before the rest are counted instead.
 #: `src/tree_design/health.py` shortens its warning list for the same reason --
 #: a list longer than the thing it describes is not a summary of anything -- and
@@ -905,8 +949,11 @@ def file_names(conn: sqlite3.Connection, root: Path) -> dict[str, str]:
     return names
 
 
-def _wrapped(text: str, *, indent: str) -> str:
-    return textwrap.fill(text, width=78, initial_indent=indent,
+def _wrapped(text: str, *, indent: str, first: str | None = None) -> str:
+    """`first` differs from `indent` only for a bullet, whose marker belongs on
+    the first line and whose continuation lines must line up past it."""
+    return textwrap.fill(text, width=78,
+                         initial_indent=indent if first is None else first,
                          subsequent_indent=indent)
 
 
@@ -1063,6 +1110,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
             print(f"\n  Held for review as \"{item.label}\" -- "
                   f"{item.file_count} file(s), none of them decided here", file=out)
             print(_wrapped(item.reason_not_placed, indent="    "), file=out)
+
+    print("\nDecisions made for you, because nobody was at the screen to ask:",
+          file=out)
+    for question, answer in DEFAULTED_DECISIONS:
+        print(_wrapped(f"{question} -- {answer}", indent="    ", first="  - "),
+              file=out)
 
     print(f"\nNothing was moved.\nPlan version: {tree.plan_version_id}  "
           f"(the name this proposal is saved under)", file=out)

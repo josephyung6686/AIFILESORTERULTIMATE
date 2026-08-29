@@ -492,3 +492,46 @@ def test_a_placement_the_person_may_approve_reads_differently_from_both():
     assert "approve" in printed, printed
     assert "Ready to file into" not in printed
     assert "0 ready to file" in printed
+
+
+# ======================================================================================
+# The questions the freeze demands, and who actually answered them
+# ======================================================================================
+
+
+def test_the_report_names_the_decisions_nobody_was_asked_about():
+    """`66`'s question registry is not built. What IS built is a freeze that
+    REFUSES without five answers -- and a command that makes all five itself.
+
+    `TreeDesignDecisions` requires `choose_option`, `refinement_for`,
+    `shared_material`, `scoped_general` and the residual answers, each documented
+    as the user's; `validate_for_freeze` refuses any legal destination with no
+    refinement disposition. Run non-interactively there is nobody to ask, so
+    `cli.py` answers all five -- and said nothing about having done so.
+
+    The frozen tree then records `shallow-by-choice` with the reason "This branch
+    holds few enough files that splitting it further would not help you find
+    anything", in the user's own voice, on a branch nobody was asked about.
+    `shallow-by-choice` LITERALLY MEANS the user chose it. A frozen tree is
+    permanent and P13 will show that sentence back to them as their own.
+
+    This does not build the registry. It stops the record being silently false.
+    """
+    run, names = _coursework()
+    printed = _printed(run, names)
+
+    assert "Decisions made for you" in printed, printed
+    assert "nobody was at the screen" in " ".join(printed.split()), printed
+
+
+def test_each_decision_made_for_the_person_says_what_was_taken():
+    """A count is not an answer. The person has to be able to disagree with a
+    specific choice, which means each one is named with the answer taken."""
+    run, names = _coursework()
+    printed = " ".join(_printed(run, names).split())
+
+    for fragment in (
+            "How deep each folder goes",
+            "Where material that belongs to two folders goes",
+            "Which nesting to use"):
+        assert fragment in printed, f"{fragment!r} missing from:\n{printed}"
