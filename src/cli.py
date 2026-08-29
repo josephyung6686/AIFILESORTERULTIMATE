@@ -841,6 +841,26 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 #: gap in this deployment's vocabulary must never become a file that vanished.
 #: The order is the order these are printed in -- what is settled first, what
 #: needs the person last.
+#: WHAT A PLACEMENT IS ACTUALLY CALLED, which is not decided by the outcome
+#: alone. `place` is P11's answer about WHERE a file belongs; it is not
+#: permission to move it. Three review policies ride alongside it and the report
+#: keyed its headline on the outcome only, so on the four-role persona EIGHT
+#: files of ten printed under "Ready to file into X" when nothing had classified
+#: them, and a file carrying protected material printed there too. A person
+#: reading that would have believed the product was ready to move a passport.
+#:
+#: The destination is kept in the headline in all three cases. Not being ready is
+#: not a reason to withhold the answer -- the person still wants to know where
+#: the file WOULD go and what is being waited on, and `00`'s standing rule is
+#: that nothing is silently omitted.
+#: `{where}` is the destination and is always present, so the three read as one
+#: sentence each rather than as a word with a folder appended.
+PLACEMENT_WORDS: dict[str, str] = {
+    pv.AUTO_ELIGIBLE: "Ready to file into {where}",
+    pv.REVIEW_REQUIRED: "Ready for you to approve, then file into {where}",
+    pv.BLOCKED_PENDING_USER: "Would go into {where}, once you say what these are",
+}
+
 OUTCOME_WORDS: dict[str, str] = {
     pv.PLACE: "Ready to file",
     pv.LEAVE_IN_PLACE: "Staying exactly where they are",
@@ -955,7 +975,13 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
 
     labels = {node.node_id: node.display_label for node in tree.nodes}
     decisions = result.placement.decisions
-    placed = sum(1 for d in decisions if d.outcome == pv.PLACE)
+    # "Ready to file" counts the files something may actually be DONE with, which
+    # is the placements the review policy clears. Counting every `place` here put
+    # ten on this line for the four-role persona when eight of them were waiting
+    # on the person -- the same overstatement `PLACEMENT_WORDS` above fixes in
+    # the headlines, and the two must not disagree.
+    placed = sum(1 for d in decisions
+                 if d.outcome == pv.PLACE and d.review_policy == pv.AUTO_ELIGIBLE)
     sets_by_file: dict[str, list] = {}
     for item in result.placement.residual_sets:
         for file_id in item.member_file_ids:
@@ -983,7 +1009,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
         reason = "" if decision.outcome == pv.PLACE else decision.explanation
         review = tuple(f'Held for review as "{item.label}": {item.reason_not_placed}'
                        for item in sets)
-        key = (decision.outcome, where, reason, review)
+        key = (decision.outcome, where, reason, review,
+               decision.review_policy if decision.outcome == pv.PLACE else None)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or _protected(decision, sets)
 
@@ -994,11 +1021,20 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
 
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file", file=out)
     for key in ordered:
-        outcome, where, reason, review = key
+        outcome, where, reason, review, policy = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
-        heading = OUTCOME_WORDS.get(outcome, outcome)
-        if where:
-            heading = f"{heading} into {where}"
+        # A placement's headline comes from its REVIEW POLICY, because that is
+        # what says whether anything may happen to the file. An unknown policy
+        # falls back to the outcome's word rather than to silence, for the same
+        # reason `OUTCOME_WORDS` prints an unknown outcome's own name: a gap in
+        # this deployment's vocabulary must never become a file that vanished.
+        sentence = PLACEMENT_WORDS.get(policy) if outcome == pv.PLACE else None
+        if sentence is not None and where:
+            heading = sentence.format(where=where)
+        else:
+            heading = OUTCOME_WORDS.get(outcome, outcome)
+            if where:
+                heading = f"{heading} into {where}"
         plural = "" if len(files) == 1 else "s"
         print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
         listed = files if shielded[key] else files[:NAMES_LISTED_PER_GROUP]

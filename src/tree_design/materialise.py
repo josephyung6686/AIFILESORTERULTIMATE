@@ -474,6 +474,36 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                  protected_movement_permitted=protected_movement_permitted,
                  out=out, members_out=members_out)
 
+    if ordinal == 0:
+        # This level said NOTHING about these files -- either it settled no value
+        # at all, or none of its values reach this parent's members. Skip it, the
+        # way `metadata_only` above is skipped, and let the next level try.
+        #
+        # It used to fall off the end of the function here, which took every level
+        # BENEATH it down as well: the loop was the only thing that recursed, so a
+        # level with nothing to say silently truncated the branch. That is the
+        # product discarding knowledge it HAS because of knowledge it LACKS --
+        # `ap.academic.coursework` resolves school, term, subject, work_type in
+        # that order, and a person whose files state a course code and nothing
+        # else answers only the third, so their tree came back one folder deep
+        # with `PHYS1401` sitting in the evidence unused.
+        #
+        # `00`:51 is why skipping is the reading that matches the design: the same
+        # facts may be organised `Academics/Columbia/2026-Spring/BUSIB 4300` or
+        # `Academics/BUSIB 4300/Spring 2026`. The ORDER of levels is not rigid, so
+        # a hole in it is a hole and not a floor.
+        #
+        # Nesting is still by shared files and no level is invented: the children
+        # that appear are exactly the ones a later level's own values produce, and
+        # they hang off the nearest ancestor that settled something.
+        _project(evidence, level_index=level_index + 1, parent=parent,
+                 eligible=eligible, chain=chain,
+                 plan_version_id=plan_version_id, mint_node_id=mint_node_id,
+                 handling_class_for=handling_class_for,
+                 template_context_for=template_context_for,
+                 protected_movement_permitted=protected_movement_permitted,
+                 out=out, members_out=members_out)
+
 
 #: A value that is a whole calendar day, and a value that is a whole month. Both
 #: are matched WHOLE and strictly: `2026-Spring` is a term and not a month, and a

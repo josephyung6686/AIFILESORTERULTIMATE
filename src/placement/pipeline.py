@@ -107,6 +107,64 @@ STEPS: tuple[str, ...] = (
 )
 
 
+def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval,
+                                  *, plan_version: str) -> Retrieval:
+    """Step 6's first half: an ANCESTOR of another candidate is not a rival.
+
+    A nested tree means a file's facts match its whole chain. Given
+    `Coursework/Columbia/PHYS1401/Homework`, a file settling school, subject and
+    work_type matches all three folders, and P11 scored them as competitors: they
+    tied at 0.714 apiece, `assess` returned `multiple_supported_homes`, and the
+    tie went to a model that offline mode forbids -- so the file abstained
+    `privacy_blocked`. Four personas, four one-folder trees, nothing ever filed.
+
+    They are not multiple homes. Filing something in `Columbia/PHYS1401/Homework`
+    files it in `Columbia` and in `PHYS1401` too; that is what nesting MEANS, and
+    §6.7 asks for the deepest node the evidence actually supports. So a candidate
+    that is a strict ancestor of another candidate is dropped -- not judged, not
+    rejected, superseded by a more specific form of itself.
+
+    **Only strict ancestors, and only within one chain.** Two candidates on
+    different branches are genuinely two homes and stay two homes: that is the
+    §6.10 ambiguity the model call exists for, and collapsing it would be P11
+    picking an institution for the user, which `00` forbids in as many words.
+
+    **The broad-parent case survives.** A node is a candidate only because its
+    expected values matched, so the deepest surviving candidate is supported by
+    construction. Where the tree stops shallower than the evidence reaches, the
+    parent IS the deepest candidate and is what this returns -- which is the case
+    `DecisionDepth.unsupported_levels` was written for.
+    """
+    node_ids = {candidate.node_id for candidate in retrieval.candidates}
+    if len(node_ids) < 2:
+        return retrieval
+
+    superseded: set[str] = set()
+    for node_id in node_ids:
+        cursor = entry_for(conn, plan_version=plan_version,
+                           node_id=node_id).parent_node_id
+        # Walk to the root marking every ancestor that is ALSO a candidate. A
+        # cycle cannot occur -- `build_destination_index` refuses a node whose
+        # parent the frozen tree does not contain -- and the walk is bounded by
+        # the tree's depth, which §7.2 caps.
+        while cursor is not None:
+            if cursor in node_ids:
+                superseded.add(cursor)
+            cursor = entry_for(conn, plan_version=plan_version,
+                               node_id=cursor).parent_node_id
+    if not superseded:
+        return retrieval
+
+    return Retrieval(
+        subject_ref=retrieval.subject_ref,
+        plan_version=retrieval.plan_version,
+        candidates=tuple(candidate for candidate in retrieval.candidates
+                         if candidate.node_id not in superseded),
+        conflicts=retrieval.conflicts,
+        semantic_only_node_ids=retrieval.semantic_only_node_ids,
+    )
+
+
 class ModelJudgementUnavailable(RuntimeError):
     """`run_call` came back with something that is not a verdict.
 
@@ -353,7 +411,12 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         for candidate in retrieval.candidates
     }
 
-    # Step 6.
+    # Step 6, both halves. `identify_child_parent_fallback_or_none` names the
+    # first one and it had no implementation until 2026-08-29.
+    retrieval = _without_superseded_ancestors(
+        conn, retrieval, plan_version=inputs.plan_version)
+    graphs = {node_id: graph for node_id, graph in graphs.items()
+              if node_id in {c.node_id for c in retrieval.candidates}}
     assessment = assess(retrieval, graphs, policy=inputs.policy)
 
     context = _Context(subject=subject, subject_ref=subject_ref, inputs=inputs,

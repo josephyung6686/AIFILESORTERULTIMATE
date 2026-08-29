@@ -541,7 +541,16 @@ def test_a_directory_becomes_a_placement_decision_in_one_call(result, conn):
     assert placed, "no file reached a destination P10 built"
 
     labels = {node.node_id: node.display_label for node in result.tree.tree.nodes}
-    settled = {row["canonical_value"] for row in values_in_field(conn, "school")}
+    # Every field this corpus settles, not `school` alone. The assertion is
+    # §5.4's sentence -- "the system does not invent PHYS1401 ... those names
+    # emerge from validated facts" -- and that is a claim about where the label
+    # CAME FROM, not about which level of the tree it sits at. It read only
+    # `school` while the tree was one folder deep and the deepest node a file
+    # could reach was therefore always a school; now that a level nobody answered
+    # is skipped rather than collapsing its children, files land on `Homework`
+    # and `Syllabus`, which P6 settled in `work_type` just as honestly.
+    settled = {row["canonical_value"] for field in FIELDS
+               for row in values_in_field(conn, field)}
     for decision in placed:
         assert labels[decision.destination.node_id] in settled
         assert decision.destination.node_role == pv.ORDINARY
@@ -917,22 +926,76 @@ def test_one_unclassified_file_does_not_refuse_the_whole_corpus(conn, tmp_path):
         assert by_file[name].review_policy != "blocked_pending_user"
 
 
-def test_a_dimension_with_no_settled_value_truncates_every_level_beneath_it(
+def test_a_dimension_with_no_settled_value_is_skipped_not_collapsed(
         conn, tmp_path):
-    """Not a defect -- a property worth pinning, because it decides tree shape.
+    """A level nobody answered is SKIPPED. It does not take its children with it.
 
-    `ap.academic.coursework` resolves four dimensions in order: school, term,
-    subject, work_type. `project_branch_nodes` nests by SHARED FILES, so a
-    dimension no file carries has no values and nothing below it can find a
-    parent. A corpus answering three of the four gets a one-level tree; the same
-    corpus with the fourth answered gets all four.
+    This test used to pin the opposite, and called it "not a defect -- a property
+    worth pinning". Running the product over four real persona corpora is what
+    changed the verdict: `ap.academic.coursework` resolves school, term, subject,
+    work_type IN THAT ORDER, and a person whose files state a course code and
+    nothing else answers only the THIRD. Under the old rule the empty `school`
+    collapsed everything beneath it, so a corpus that knew `PHYS1401` perfectly
+    well was told it could be given no folder at all -- the product DISCARDING
+    KNOWLEDGE IT HAS BECAUSE OF KNOWLEDGE IT LACKS.
+
+    `00`:51 is why skipping is the reading that matches the design rather than a
+    convenience: the same facts may legitimately be organised
+    `Academics/Columbia/2026-Spring/BUSIB 4300` or `Academics/BUSIB 4300/Spring
+    2026`. The ORDER of the levels is not rigid, so a gap in it is a gap, not a
+    floor.
+
+    The skip is not new machinery. `_project` already recurses past a
+    `metadata_only` level with the same parent and the same eligible set; a level
+    with no values now takes that same path instead of falling off the end of the
+    function.
     """
     shallow = run_corpus_through(conn, tmp_path)
     shallow_labels = {node.display_label for node in shallow.tree.tree.nodes}
     assert "Columbia" in shallow_labels
-    assert "PHYS1401" not in shallow_labels, (
-        "the subject level materialised over an empty `term`; the truncation "
-        "this test pins has been fixed and the shape has changed")
+    assert "PHYS1401" in shallow_labels, (
+        "the empty `term` level swallowed `subject`, which the files DID settle")
+
+
+def test_a_skipped_level_hands_its_children_to_the_level_above_it(
+        conn, tmp_path):
+    """Skipping must not silently reparent files to the root or drop the ordering.
+
+    The discriminating half of the test above: it is not enough that `PHYS1401`
+    exists somewhere in the tree. It has to hang off `Columbia` -- the level that
+    WAS settled and sits above the empty one -- because that is what "the level
+    was skipped" means, as opposed to "the tree was flattened".
+    """
+    shallow = run_corpus_through(conn, tmp_path)
+    by_id = {node.node_id: node for node in shallow.tree.tree.nodes}
+    subject = next(node for node in shallow.tree.tree.nodes
+                   if node.display_label == "PHYS1401")
+
+    parent = by_id.get(subject.parent_node_id)
+    assert parent is not None, "the subject node was reparented off the branch"
+    assert parent.display_label == "Columbia", (
+        f"`PHYS1401` hangs off {parent.display_label!r}, not off the settled "
+        "level above the skipped one")
+
+
+def test_a_corpus_that_answers_only_a_late_dimension_still_gets_that_folder(
+        conn, tmp_path):
+    """The persona case, reduced: every level empty except the third.
+
+    This is what all four personas actually looked like on 2026-08-29 -- files
+    stating a course code and nothing else -- and it is the case that produced
+    "Proposed folders: 1" for a litigator, a student, a household and a person
+    who is all three alike.
+    """
+    only_subject = run_corpus_through(
+        conn, tmp_path, fields=("subject",),
+        names=("PHYS1401 Syllabus.pdf", "PHYS1401 Homework.pdf",
+               "BUSIB4300 Syllabus.pdf"))
+    labels = {node.display_label for node in only_subject.tree.tree.nodes}
+
+    assert "PHYS1401" in labels and "BUSIB4300" in labels, (
+        f"a corpus whose files state exactly one dimension got {labels}; the "
+        "levels above it were empty and took the answered one down with them")
 
 
 def test_the_same_corpus_with_every_dimension_answered_nests_all_four(
@@ -1233,3 +1296,138 @@ def test_the_documents_own_text_is_read_here_and_can_leave_by_no_route(
     assert whole[0].observation_key not in cited, (
         "a slot claimed the whole-text observation; it is now a folder name and "
         "an unbounded model excerpt at the same time")
+
+
+
+def test_a_file_matching_a_whole_ancestor_chain_is_placed_at_the_deepest_node(
+        conn, tmp_path):
+    """An ancestor is not a rival home. It is the same home, less specific.
+
+    The seam this pins was invisible while the shipped tree was one folder deep.
+    P10 nests -- `Coursework/Columbia/PHYS1401/Homework` -- and a file whose facts
+    settle school, subject and work_type therefore matches all THREE nodes on its
+    own chain. P11 scored them as competitors, they tied at 0.714 apiece, and the
+    file abstained `multiple_supported_homes` and then `privacy_blocked` when the
+    tie was escalated to a model that offline mode forbids.
+
+    They are not multiple homes. Filing something in
+    `Columbia/PHYS1401/Homework` files it in `Columbia` and in `PHYS1401` too --
+    that is what nesting MEANS -- and §6.7 wants the deepest node the evidence
+    actually supports. `identify_child_parent_fallback_or_none` is step 6's own
+    name for this and had no implementation: `unsupported_levels=()` was
+    hardcoded at every construction site in `pipeline.py`.
+    """
+    result = run_corpus_through(conn, tmp_path, fields=DEEP_FIELDS,
+                                names=DEEP_CORPUS)
+    by_id = {node.node_id: node for node in result.tree.tree.nodes}
+    placed = [d for d in result.placement.decisions if d.outcome == pv.PLACE]
+
+    assert placed, (
+        "every file abstained; a nested tree made each file match its own "
+        f"ancestor chain and P11 read that as competing homes: "
+        f"{[(d.outcome, d.abstention_reason) for d in result.placement.decisions]}")
+
+    for decision in placed:
+        node = by_id[decision.destination.node_id]
+        children = [n for n in result.tree.tree.nodes
+                    if n.parent_node_id == node.node_id]
+        assert not children, (
+            f"placed at {node.display_label!r}, which still has children "
+            f"{[c.display_label for c in children]}; the deepest supported node "
+            "is the answer, not the first one that matched")
+
+
+def test_the_shallower_ancestor_is_not_silently_forgotten(conn, tmp_path):
+    """Dropping a rival and dropping an ancestor must not look the same.
+
+    An ancestor removed from the candidate set is removed because it is the SAME
+    destination less specific -- not because anything judged it unsuitable. The
+    decision has to keep saying which facts carried it, or a person reviewing the
+    placement cannot tell "we went deeper" from "we ruled that folder out".
+    """
+    result = run_corpus_through(conn, tmp_path, fields=DEEP_FIELDS,
+                               names=DEEP_CORPUS)
+    placed = [d for d in result.placement.decisions if d.outcome == pv.PLACE]
+    assert placed
+
+    for decision in placed:
+        fields = {fact.field for fact in decision.matching_facts}
+        assert "school" in fields, (
+            "the deepest node was chosen and the levels above it stopped being "
+            f"cited; matching facts name only {sorted(fields)}")
+        assert decision.decision_depth.node_depth == (
+            decision.decision_depth.supported_depth), (
+            "the chosen node and the evidence disagree about depth")
+
+
+# ==================================================================================
+# What "ready to file" is allowed to mean
+# ==================================================================================
+
+
+def test_a_placement_the_person_must_still_confirm_is_not_called_ready_to_file(
+        tmp_path, capsys):
+    """`place` is P11's answer about WHERE. It is not permission to move anything.
+
+    Three review policies ride on a placement -- `auto_eligible`,
+    `review_required` and `blocked_pending_user` -- and the report keyed its
+    headline on the OUTCOME alone, so a file nothing had classified, and a file
+    carrying protected material, both printed under "Ready to file into X"
+    alongside files that genuinely were.
+
+    On the `multi` persona that was eight files of ten. A person reading it would
+    have believed the product was ready to move a passport.
+    """
+    import cli
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    # Nothing in these names a schema the detector ships a rule for, so P7
+    # classifies nothing and the placements are `blocked_pending_user`. Two files
+    # rather than one, so a PHYS1401 folder really is proposed and the placement
+    # really does succeed -- the point is the WORD used for it, not an absence.
+    for name, code_text in (("notes.txt", "PHYS1401"),
+                            ("homework.txt", "PHYS1401"),
+                            ("rubric.txt", "PHYS2801"),
+                            ("solutions.txt", "PHYS2801")):
+        (corpus / name).write_text(code_text + "\n")
+
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")])
+    out = capsys.readouterr().out
+    assert code == 0, out
+
+    assert "Ready to file" not in out, (
+        "a file nothing has classified was announced as ready to move:\n" + out)
+    assert "0 ready to file" in out, (
+        "the headline count treats an unconfirmed placement as ready:\n" + out)
+
+
+def test_the_report_says_where_an_unconfirmed_file_would_go_rather_than_hiding_it(
+        tmp_path, capsys):
+    """Not being ready is not a reason to withhold the answer.
+
+    The opposite failure to the one above, and the one the north star cares about
+    more: a person whose file cannot be moved yet still wants to know where it
+    WOULD go and what is being waited on. `00`'s standing rule is that nothing is
+    silently omitted -- and a placement demoted to a warning that dropped its
+    destination would be exactly that.
+    """
+    import cli
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    for name, code_text in (("notes.txt", "PHYS1401"),
+                            ("homework.txt", "PHYS1401"),
+                            ("rubric.txt", "PHYS2801"),
+                            ("solutions.txt", "PHYS2801")):
+        (corpus / name).write_text(code_text + "\n")
+
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")])
+    out = capsys.readouterr().out
+
+    assert "PHYS1401" in out, f"the destination disappeared from the report:\n{out}"
+    assert "notes.txt" in out, f"the file itself disappeared:\n{out}"

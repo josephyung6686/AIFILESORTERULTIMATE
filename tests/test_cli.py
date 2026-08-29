@@ -129,9 +129,20 @@ UNTOUCHED = ("Nothing inside these was read, indexed, classified or moved, and "
 
 
 def _decision(*, outcome, file_id, explanation="", node_id=None,
-              protected=False, marked_state=None):
+              protected=False, marked_state=None,
+              review_policy="auto_eligible"):
+    """`review_policy` defaults to the CLEARED one, and every caller that means
+    something else must say so.
+
+    It is a required field on the real `PlacementDecision` and this double did
+    not carry it at all, which is how the report came to key its headline on the
+    outcome alone: `place` looked like the whole answer here, so "Ready to file"
+    looked like the whole word for it. `place` is P11 saying WHERE; the review
+    policy is what says whether anything may be done about it.
+    """
     return SimpleNamespace(
         outcome=outcome, explanation=explanation, marked_state=marked_state,
+        review_policy=review_policy,
         subject=SimpleNamespace(file_id=file_id, member_file_ids=()),
         destination=SimpleNamespace(node_id=node_id) if node_id else None,
         privacy=SimpleNamespace(protected=protected))
@@ -443,3 +454,41 @@ def test_the_safety_schemas_keep_their_protection_and_the_others_do_not_get_it()
     for schema_id in set(policy) - set(SAFETY_DOMAIN_IDS):
         assert policy[schema_id].protected is False, schema_id
         assert policy[schema_id].handling_class == cli.ORDINARY_CLASS, schema_id
+
+
+def test_a_placement_waiting_on_the_person_does_not_print_the_cleared_word():
+    """The three review policies must not share one headline.
+
+    `place` is P11's answer about WHERE the file belongs and is not permission to
+    move it. Keyed on the outcome alone, a file nothing had classified printed
+    "Ready to file into X" beside files that genuinely were -- eight of ten on
+    the four-role persona -- and a person would have believed the product was
+    ready to move a passport.
+    """
+    names = {"id-0": "Passport.txt"}
+    run = _fake_run(
+        nodes=[_node("node_0", "Coursework")], destinations=["node_0"],
+        decisions=[_decision(outcome="place", file_id="id-0", node_id="node_0",
+                             review_policy="blocked_pending_user")])
+    printed = _printed(run, names)
+
+    assert "Ready to file" not in printed, printed
+    # The destination is still named. Not being ready is not a reason to withhold
+    # the answer, and `00`'s standing rule is that nothing is silently omitted.
+    assert "Coursework" in printed
+    assert "Passport.txt" in printed
+    assert "0 ready to file" in printed
+
+
+def test_a_placement_the_person_may_approve_reads_differently_from_both():
+    """`review_required` is its own answer -- not cleared, and not blocked."""
+    names = {"id-0": "Efiling.txt"}
+    run = _fake_run(
+        nodes=[_node("node_0", "Coursework")], destinations=["node_0"],
+        decisions=[_decision(outcome="place", file_id="id-0", node_id="node_0",
+                             review_policy="review_required")])
+    printed = _printed(run, names)
+
+    assert "approve" in printed, printed
+    assert "Ready to file into" not in printed
+    assert "0 ready to file" in printed

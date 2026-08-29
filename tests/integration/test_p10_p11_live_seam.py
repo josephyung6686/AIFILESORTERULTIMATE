@@ -239,9 +239,20 @@ def test_a_file_is_placed_into_a_node_p10_built_out_of_p6s_own_values(corpus):
     assert decision.destination.node_id == node.node_id
     assert decision.destination.node_role == v.ORDINARY
     assert decision.confidence_class == v.EXACT_FACT_MATCH
-    # §6.10's margin was measured against a real runner-up, not bypassed: the
-    # branch's own top-level node is retrievable through the accepted group.
-    assert decision.two_condition.meets_margin == v.MARGIN_TRUE
+    # §6.10's margin is VACUOUS here, and that is the correct reading rather than
+    # a bypass. This line used to assert `MARGIN_TRUE`, on the grounds that "the
+    # branch's own top-level node is retrievable through the accepted group" --
+    # but that node is this file's own ANCESTOR, and an ancestor was never a
+    # rival home. Filing the file under `PHYS1401` files it under the branch too.
+    # Step 6's `identify_child_parent_fallback_or_none` now drops it before the
+    # margin is taken, so there is genuinely no next-best to measure against, and
+    # B8(b) says exactly that case is recorded vacuous so a reviewer and a replay
+    # can tell it from a measured one.
+    #
+    # A MEASURED margin needs two homes on DIFFERENT branches, which is the §6.10
+    # ambiguity the model call exists for; `tests/p11/` exercises that separately.
+    assert decision.two_condition.meets_margin == v.MARGIN_TRUE_VACUOUS
+    assert decision.two_condition.margin_over_next is None
     assert decision.review_policy == v.AUTO_ELIGIBLE
 
 
