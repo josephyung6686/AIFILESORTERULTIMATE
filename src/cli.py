@@ -39,7 +39,8 @@ import sys
 import textwrap
 from itertools import count
 from pathlib import Path
-from typing import Sequence
+from types import MappingProxyType
+from typing import Mapping, Sequence
 
 from database_agent.budget import set_ceiling
 from database_agent.db import DatabaseInsideCorpus, open_database
@@ -75,7 +76,10 @@ from production import (
     run_production_corpus,
 )
 from readers.deployment import macos_readers
-from recognition.detector import SAFETY_DOMAIN_HANDLING, Detector
+from facts.domains import SCHEMA_IDS
+from recognition.detector import (
+    SAFETY_DOMAIN_HANDLING, Detector, Handling,
+)
 from recognition.rules import load_rules
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.exclusion import is_protected_container
@@ -155,6 +159,36 @@ OPERATION_MODE: str = "offline"
 #: inherit a weaker floor than its contents would require.
 ORDINARY_CLASS: str = "personal_non_sensitive"
 PROTECTED_CLASS: str = "highly_sensitive_credential_bearing"
+
+#: WHICH CLASS EACH RECOGNISED SCHEMA GETS. `71` cause B: the detector recognises
+#: 23 schemas and `SAFETY_DOMAIN_HANDLING` names a class for FOUR of them, so a
+#: file recognised perfectly from its own words came back
+#: `unassigned_handling` -- "recognition is not classification" -- and the run
+#: ended with everything unclassified and nothing filed.
+#:
+#: The four safety schemas keep exactly the handling they had, protected flag and
+#: all: that map is P7's own and is imported rather than restated. The other
+#: nineteen get `ORDINARY_CLASS`, which is the class THIS FILE already declares an
+#: ordinary file to carry (it is what every tree node gets, two lines up).
+#:
+#: The basis is `detector` -- P7's closed vocabulary of three, and the honest one:
+#: it IS the detector concluding, from terms the file itself carries. `safety_domain`
+#: stays the basis of the four, because that is a different claim about a different
+#: thing.
+#:
+#: `protected=False` for those nineteen is the decision here, and it is the
+#: conservative one in the direction that matters. Marking coursework protected
+#: would refuse to file it and would tell a person their homework is sensitive --
+#: the over-protection `classifier` below records as a COLLAPSE: it "made an
+#: unreadable scan and a passport identical in P7's store". Protection is still
+#: decided by the safety schemas and by P3's container rule, neither of which this
+#: widens.
+HANDLING_POLICY: Mapping[str, Handling] = MappingProxyType({
+    **{schema_id: Handling(handling_class=ORDINARY_CLASS, protected=False,
+                           basis="detector")
+       for schema_id in SCHEMA_IDS},
+    **SAFETY_DOMAIN_HANDLING,
+})
 
 #: §1.1's root anchor -- the top of the tree the plan is written against.
 ROOT_ANCHOR: str = "root_documents"
@@ -563,7 +597,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         conn, sources=[directory], candidate_roots=[], cross_folder_moves=False,
         selected_by=user_id)
     detector = Detector(load_rules(_RECOGNITION_MANIFEST.read_text),
-                        handling_for=SAFETY_DOMAIN_HANDLING, now=now,
+                        handling_for=HANDLING_POLICY, now=now,
                         is_protected=is_protected_container)
 
     def design_authorities(release: TemplateCatalogue,
