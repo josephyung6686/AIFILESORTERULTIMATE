@@ -192,7 +192,8 @@ class Detector:
                  now: Callable[[], str],
                  is_protected: Callable[[PurePath], bool] | None = None,
                  corroborating_observations: Callable[
-                     [sqlite3.Connection, str, str], Iterable[str]] | None = None
+                     [sqlite3.Connection, str, str], Iterable[str]] | None = None,
+                 settled_by_user: Callable[[], Iterable[str]] | None = None
                  ) -> None:
         if not isinstance(rules, RecognitionRules):
             raise TypeError(
@@ -218,6 +219,11 @@ class Detector:
         #: which is not the same as "none are present" and behaves exactly as
         #: before.
         self._corroborating = corroborating_observations
+        #: Schemas the PERSON has confirmed, through P15's structural questions.
+        #: Injected for the same reason everything else here is: P15 is another
+        #: part's record and this module does not read another part's tables.
+        #: Absent means "nobody has been asked", which is not "nobody agreed".
+        self._settled_by_user = settled_by_user
         # term -> the schemas that authored it, in SCHEMA_IDS order. A term two
         # schemas authored discriminates between neither: both score it, they tie,
         # and a tie abstains. That is why no cross-schema weight is needed.
@@ -339,6 +345,44 @@ class Detector:
 
         # `never_alone`, read literally. One term is one signal and one signal
         # never activates a schema, whichever schema it is.
+        # THE PERSON'S OWN ANSWER, which is not a signal about the file.
+        #
+        # `00` requires abstention where two readings are both supported BY
+        # EVIDENCE, and that rule is untouched: this reads no evidence. `66` §13
+        # puts it in the structural column in as many words -- a structural answer
+        # "resolves a user relationship or policy fact that FILE EVIDENCE CANNOT
+        # SAFELY DETERMINE", and may "resolve role ambiguity". The file is one
+        # thing, its words support several readings, and the person knows which.
+        #
+        # It applies BEFORE the arity gate because that is where the ties actually
+        # happen: two schemas at one term each is the common case (a deposition
+        # transcript, a passport), and a resolution that only ran at two terms
+        # would never fire on the files that raised the question.
+        #
+        # Three limits, and each has a test:
+        #  * EXACTLY ONE settled reading among those tied. An answer naming both
+        #    leaves the tie a tie, because choosing between two things the person
+        #    confirmed would be the invented tie-breaker this package lacks.
+        #  * ONLY AMONG THE LEADERS. An answer naming a reading the file never
+        #    suggested decides nothing -- otherwise one confirmed schema would
+        #    reach into every unrelated file on the disk, which is §13's "reused
+        #    outside its stated scope" arriving as a recognition bug.
+        #  * NEVER FROM NOTHING. A file whose words name no schema at all reaches
+        #    `no_evidence` above and never gets here, so an answer cannot put a
+        #    reading into a file that suggested none.
+        #
+        # The person's confirmation counts as the second signal for the schema it
+        # names. `never_alone` is a rule about the DETECTOR concluding from one
+        # signal; it was never a rule about what a person may tell the product,
+        # and §13 explicitly permits a structural answer to activate a schema.
+        if len(leaders) > 1 and self._settled_by_user is not None:
+            settled = [schema_id for schema_id in leaders
+                       if schema_id in frozenset(self._settled_by_user())]
+            if len(settled) == 1:
+                leaders = settled
+                best = max(best, 2)
+                by_schema[settled[0]] = list(by_schema[settled[0]])
+
         # §2.2's OTHER kind of signal. `00` states the rule as "a course-code
         # PATTERN TOGETHER WITH academic context such as 'syllabus,' 'lecture,'
         # 'credits,' 'instructor,' or 'semester'" -- one PATTERN and one TERM.

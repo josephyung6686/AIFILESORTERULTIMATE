@@ -71,6 +71,14 @@ from placement.pipeline import PipelineInputs
 from placement.schema import create_placement_schema
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from questions.records import StructuralAnswer
+from questions.schema import create_questions_schema
+from questions.store import (
+    activated_schemas, live_answer, open_questions, record_answer,
+    record_question,
+)
+from questions.triggers import tied_readings
+from questions.vocabulary import CONFIRMED, SKIPPED
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, load_shipped_catalogue, read_packaged_library_file,
@@ -586,6 +594,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     create_grouping_schema(conn)
     create_tree_schema(conn)
     create_placement_schema(conn)
+    create_questions_schema(conn)
     for key in CEILINGS.values():
         set_ceiling(conn, key, CEILING_VALUE)
 
@@ -653,7 +662,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     detector = Detector(load_rules(_RECOGNITION_MANIFEST.read_text),
                         handling_for=HANDLING_POLICY, now=now,
                         is_protected=is_protected_container,
-                        corroborating_observations=_identifier_observations)
+                        corroborating_observations=_identifier_observations,
+                        # P15. What the PERSON has confirmed about readings their
+                        # own files could not settle. Read fresh on every call
+                        # rather than captured, so an answer given by `--answer`
+                        # earlier in this same invocation is already in force.
+                        settled_by_user=lambda: activated_schemas(conn))
 
     #: P7's store, read rather than re-derived. §5.2 and §8.4 make sensitivity
     #: P7's to own; P10 asks and never classifies.
@@ -903,7 +917,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         accepted_ids.extend(ids)
         return ids
 
-    return run_production_corpus(
+    result = run_production_corpus(
         conn, selection_id, authorities=p1_p7_authorities(now=now,
                                                           detector=detector),
         downstream=downstream,
@@ -911,6 +925,79 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
             design=design_decisions, approve_plan=approve_plan,
             set_privacy_policy=set_privacy_policy))
+    _raise_blocked_questions(conn, detector=detector, asked_at=clock)
+    return result
+
+
+def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
+                             asked_at: str) -> None:
+    """Record every question THIS corpus's own ambiguities raise (P15).
+
+    Run AFTER the corpus, not before, because `66` §12 permits a question only
+    when "a specific decision is blocked" -- and which decisions are blocked is
+    not knowable until the run has tried. A question list assembled up front would
+    be a questionnaire wearing a trigger's clothes.
+
+    Recording is idempotent by question id, so a second run over the same folder
+    re-derives the same questions from the same evidence and adds nothing: it is
+    one question asked twice, not two.
+    """
+    subject_of: dict[str, str] = {}
+    for row in conn.execute(
+            'SELECT f.file_id, v.canonical_value FROM file_facts AS f '
+            'JOIN "values" AS v ON v.value_id = f.value_id '
+            "WHERE f.field_key = 'subject' AND f.active = 1 "
+            "AND f.superseded_by IS NULL"):
+        subject_of.setdefault(row[0], row[1])
+    files = [(row[0], row[1]) for row in conn.execute(
+        "SELECT DISTINCT file_id, content_hash FROM evidence")]
+    for question in tied_readings(conn, explain=detector.explain, files=files,
+                                  subject_of=subject_of):
+        record_question(conn, question, asked_at=asked_at)
+
+
+class AnswerRefused(NotConfigured):
+    """`--answer` named something this database has never asked about."""
+
+
+def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
+                  user_id: str, recorded_at: str) -> None:
+    """Record what the person typed at `--answer`, before the run reads anything.
+
+    Applied FIRST so an answer takes effect on the very run that supplies it. A
+    person who has just been asked a question and answers it should not have to
+    run the command a third time to see what their answer did.
+
+    A `question_id` this database has not asked about is REFUSED rather than
+    ignored: the person believes they have told the product something, and a
+    silently dropped answer is the worst of both -- no effect, and no way to tell.
+    """
+    for raw in answers:
+        question_id, _, option_id = raw.partition("=")
+        if not question_id or not option_id:
+            raise AnswerRefused(
+                f"{raw!r} is not an answer. The form is "
+                "`--answer <question>=<option>`, and `--answer <question>=skip` "
+                "puts it aside without answering it.")
+        row = conn.execute(
+            "SELECT scope FROM structural_questions WHERE question_id = ?",
+            (question_id,)).fetchone()
+        if row is None:
+            raise AnswerRefused(
+                f"{question_id!r} names no question this plan has asked. Run the "
+                "command without `--answer` first: questions are raised from the "
+                "evidence in your own files, so they exist only once a run has "
+                "found the ambiguity they are about.")
+        skipped = option_id == SKIPPED or option_id == "skip"
+        previous = live_answer(conn, question_id=question_id, scope=row[0])
+        record_answer(conn, StructuralAnswer(
+            question_id=question_id,
+            option_id=None if skipped else option_id,
+            state=SKIPPED if skipped else CONFIRMED,
+            scope=row[0], user_id=user_id, recorded_at=recorded_at,
+            supersedes=None,
+            supersede_reason=("the user answered this again"
+                              if previous is not None else None)))
 
 
 # ======================================================================================
@@ -980,6 +1067,33 @@ OUTCOME_WORDS: dict[str, str] = {
 #: line here that drifts from them is a lie, so they are written next to the
 #: reasons that produced them and are checked by `tests/test_cli.py`.
 DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
+    # First, because §5.3 builds the top level "out of the accepted groups,
+    # domain memberships, existing curated folders, and user-approved labels"
+    # (`00:67`) and this command supplies exactly one of the four. `_upstream`
+    # really does read the person's folders and `horizontal_candidates` really
+    # does build each one a branch card; the selection filter then keeps only
+    # candidates whose `subject_id` appears in `branch_group_ids`, and what this
+    # command puts there is the single synthetic id minted from `--label`. A
+    # folder candidate's `subject_id` is its directory path, so not one of them
+    # can ever match. Measured: eight directories in, eight cards built, none
+    # chosen, and a tree byte-identical to the one the same ten files produce
+    # when flattened into a single directory.
+    #
+    # This line adopts nothing. `00:102` makes `existing` a node type carrying
+    # the folder's real path and `00:100` gives the person six gestures over
+    # their own folders -- attach beneath, merge into, rename to match, leave
+    # untouched -- and none of the six has a consumer, so a folder chosen today
+    # would enter as a fresh proposal wearing the folder's name, which `00:100`
+    # forbids in the same breath. Until a writer and that choice exist, the only
+    # thing owed to someone who has already organised half their disk is to be
+    # told plainly that the proposal was built without any of it.
+    ("What to do with the folders you have already made",
+     "nothing. Every folder under the one you scanned was read and offered as a "
+     "possible top-level branch, and none was adopted -- so this proposal is "
+     "built from scratch and does not contain, keep, or rename any folder of "
+     "yours. Nothing of yours was moved or altered; your structure is simply "
+     "not in this picture, and a file already sitting where it belongs is "
+     "described here as though it were not."),
     ("Which nesting to use, out of the ones your files support",
      "the first one that passed every check and actually splits the folder. A "
      "person looking at the counts and warnings would reasonably pick another."),
@@ -1063,7 +1177,8 @@ def _protected(decision, sets: Sequence) -> bool:
                 or any(item.protected for item in sets))
 
 
-def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
+def report(result: ProductionRun, names: dict[str, str], *, out=None,
+           questions: Sequence = ()) -> None:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -1077,6 +1192,11 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
 
     `names` is required rather than optional. A default would let the id-only
     report back in by nothing more than a forgotten argument.
+
+    `questions` are P15's open ones, passed IN rather than read from the database
+    here, because this function takes a finished run and a naming table and holds
+    no connection -- and giving it one so it could ask a second part a question
+    would make the report a place where new facts are discovered.
     """
     out = out if out is not None else sys.stdout
     areas = result.protected_areas
@@ -1195,6 +1315,24 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None) -> None:
                   f"{item.file_count} file(s), none of them decided here", file=out)
             print(_wrapped(item.reason_not_placed, indent="    "), file=out)
 
+    if questions:
+        # BEFORE the defaulted decisions, and after the files, because this is the
+        # one block the person can act on. `66` §12: a question must "explain the
+        # exact decision it unlocks" and "state what it will not affect", and §14
+        # requires the person to see "why the question arose" -- so all three are
+        # printed, every time, rather than being available somewhere else.
+        print("\nQuestions only you can answer:", file=out)
+        for question in questions:
+            print(f"\n  {question.prompt}", file=out)
+            print(_wrapped(question.evidence_context, indent="    "), file=out)
+            for option in question.options:
+                print(f"      --answer {question.question_id}={option.option_id}"
+                      f"   {option.label}", file=out)
+            print(f"      --answer {question.question_id}=skip"
+                  f"   Skip for now", file=out)
+            print(_wrapped(question.unlocks, indent="    "), file=out)
+            print(_wrapped(question.will_not_do, indent="    "), file=out)
+
     print("\nDecisions made for you, because nobody was at the screen to ask:",
           file=out)
     for question, answer in DEFAULTED_DECISIONS:
@@ -1239,6 +1377,12 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "may not live inside the folder being read.")
     parser.add_argument("--list-situations", action="store_true",
                         help="print every situation the shipped library carries")
+    parser.add_argument(
+        "--answer", action="append", default=[], metavar="QUESTION=OPTION",
+        help="answer one of the questions the last run printed, e.g. "
+             "--answer reading.organization:CV20261234=law_practice. Use "
+             "`=skip` to put it aside. Answers are remembered between runs and "
+             "can be given more than once.")
     args = parser.parse_args(argv)
 
     catalogue = load_shipped_catalogue(read_packaged_library_file)
@@ -1280,6 +1424,13 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         return 2
     print(f"Plan database: {database}", file=out)
     try:
+        # BEFORE the run, so an answer takes effect on the very invocation that
+        # supplies it. A person who has just been asked something and answers it
+        # should not have to run the command a third time to see what it did.
+        if args.answer:
+            _bootstrap(conn)
+            apply_answers(conn, args.answer, user_id=args.user,
+                          recorded_at=now())
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now)
     except NotConfigured as refusal:
@@ -1294,7 +1445,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
-    report(result, file_names(conn, directory), out=out)
+    report(result, file_names(conn, directory), out=out,
+           questions=open_questions(conn))
     return 0
 
 

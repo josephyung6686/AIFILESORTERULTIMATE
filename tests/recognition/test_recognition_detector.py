@@ -153,11 +153,12 @@ POLICY = {**SAFETY_DOMAIN_HANDLING,
 
 
 def detector(rules, *, handling_for=None, is_protected=None,
-             corroborating_observations=None):
+             corroborating_observations=None, settled_by_user=None):
     return Detector(
         rules, handling_for=POLICY if handling_for is None else handling_for,
         now=lambda: CLOCK, is_protected=is_protected,
-        corroborating_observations=corroborating_observations)
+        corroborating_observations=corroborating_observations,
+        settled_by_user=settled_by_user)
 
 
 def _identifier_keys(db, value):
@@ -835,3 +836,99 @@ def test_a_term_in_the_files_own_name_is_still_the_files_own(db, tmp_path):
 
     assert isinstance(outcome, Recognition), (
         f"the file's own name stopped counting as evidence about it: {outcome}")
+
+
+# --- what a person's own answer resolves (P15) ------------------------------------
+
+
+def test_a_confirmed_answer_resolves_a_tie_the_evidence_cannot(db, tmp_path):
+    """`00` requires abstention where two readings are both supported BY EVIDENCE.
+    A person's answer is not evidence about the file -- it is authority about the
+    person -- so it settles a tie without breaking that rule.
+
+    `66` §13 puts this in the structural column in as many words: a structural
+    answer "resolves a user relationship or policy fact that FILE EVIDENCE CANNOT
+    SAFELY DETERMINE", and may "resolve role ambiguity". The tie is exactly such a
+    fact: the file is one thing, the words support two readings, and the person
+    knows which.
+
+    What the person settled is the SCHEMA, not the handling class. The
+    classification's `basis` keeps saying where the HANDLING came from -- the
+    deployment's policy, so `detector` -- because overloading it with "a person
+    was involved in the recognition" would blur two different claims about the
+    file. Where the answer came from is P15's own record, which is where §13 says
+    a person goes to inspect it.
+    """
+    rules = rule_set(
+        schema_entry("academic", context=("transcript",)),
+        schema_entry("law_practice", context=("transcript",)))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="transcript and more transcript detail")
+    tied = detector(rules).explain(db, file_id, content_hash)
+    assert isinstance(tied, Abstention), tied
+
+    settled = detector(rules, settled_by_user=lambda: frozenset({"academic"}))
+    outcome = settled.explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Recognition), (
+        f"the person said which reading is right and it changed nothing: {outcome}")
+    assert outcome.schema_id == "academic"
+    assert settled(db, file_id, content_hash).handling_class == (
+        POLICY["academic"].handling_class)
+
+
+def test_an_answer_naming_neither_tied_reading_settles_nothing(db, tmp_path):
+    """The negative twin. An answer about a different corpus, or one the person
+    gave before these files existed, must not reach in and decide this tie."""
+    rules = rule_set(
+        schema_entry("academic", context=("transcript",)),
+        schema_entry("law_practice", context=("transcript",)))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="transcript and more transcript detail")
+
+    outcome = detector(
+        rules, settled_by_user=lambda: frozenset({"finance"})
+    ).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+
+
+def test_an_answer_naming_both_tied_readings_settles_nothing(db, tmp_path):
+    """The other twin, and the one that keeps `00`'s rule intact. If the person
+    has confirmed BOTH readings somewhere, the tie is still a tie -- and choosing
+    between them would be the invented tie-breaker this package exists without."""
+    # Two DISTINCT terms each, so the tie is the `ambiguous` one rather than the
+    # arity one -- the reading both branches share is that nothing breaks it.
+    rules = rule_set(
+        schema_entry("academic", context=("transcript", "witness")),
+        schema_entry("law_practice", context=("transcript", "witness")))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="transcript of the witness")
+
+    outcome = detector(
+        rules, settled_by_user=lambda: frozenset({"academic", "law_practice"})
+    ).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+    assert outcome.reason == "ambiguous"
+
+
+def test_an_answer_cannot_activate_a_schema_the_evidence_never_supported(db, tmp_path):
+    """The most important twin. A confirmed answer RESOLVES an ambiguity the file
+    raised; it does not put a reading into a file that never suggested one.
+
+    Otherwise a person who once said "Columbia is where I study" would have every
+    unrelated file on their disk read as coursework, which is `66` §13's
+    prohibition on an answer being "reused outside its stated scope" arriving as a
+    recognition bug.
+    """
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="nothing any schema authored")
+
+    outcome = detector(
+        rules, settled_by_user=lambda: frozenset({"academic"})
+    ).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+    assert outcome.reason == "no_evidence"

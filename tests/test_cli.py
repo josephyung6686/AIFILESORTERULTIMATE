@@ -9,6 +9,7 @@ whole purpose is to tell you what to pass to `--situation` cannot itself require
 from __future__ import annotations
 
 import io
+import pathlib
 import sys
 from pathlib import Path
 
@@ -537,6 +538,70 @@ def test_each_decision_made_for_the_person_says_what_was_taken():
         assert fragment in printed, f"{fragment!r} missing from:\n{printed}"
 
 
+def test_the_report_says_the_folders_the_person_already_made_were_not_used():
+    """The command reads every folder under the one it scanned, builds each a
+    top-level branch card, and adopts none of them -- and said nothing about it.
+
+    `_upstream` (`tree_design/pipeline.py:279`) reads P3's directory inventory,
+    `horizontal_candidates` (`candidates.py:299-321`) turns each folder into a
+    `BranchCandidate` carrying its file count and the sentence "An existing
+    folder holding N file(s)", and the selection filter at `pipeline.py:518-519`
+    keeps only candidates whose `subject_id` is in `branch_group_ids`. A folder
+    candidate's `subject_id` is a directory path (`candidates.py:304`); what
+    `cli.py` puts in `branch_group_ids` is the one synthetic id `review_and_accept`
+    mints from `--label` (`cli.py:498, 535, 745`). No folder can ever match, so
+    every folder card is dropped unread.
+
+    Measured on a corpus with four levels of the person's own structure and on a
+    flat copy of the same ten files, the frozen trees are identical: eight
+    directories in, eight cards built, zero chosen, zero nodes of type
+    `existing`. `00:100` says a curated folder "should be treated as a strong
+    expression of user intent" and `00:102` makes `existing` a node type in the
+    tree; neither is reachable, because nothing in `src/` writes one.
+
+    This does not adopt anybody's folder -- that needs the writer `00:102` names
+    and the choice `00:100` gives the person, and both are the owner's. It stops
+    the report implying the proposal was built with the person's work in view
+    when it was built without it. Same reason as the five decisions above: an
+    answer taken silently is one the person cannot disagree with.
+    """
+    run, names = _coursework()
+    printed = " ".join(_printed(run, names).split())
+
+    assert "folders you have already made" in printed, printed
+    assert "none was adopted" in printed, printed
+
+
+def test_the_report_does_not_claim_to_have_kept_a_folder_it_did_not_keep():
+    """The negative twin, and the one that retires the line above.
+
+    The sentence is only honest while the tree genuinely holds no folder of the
+    person's. `Node` refuses `existing_path` on any type but `existing`
+    (`records.py:209-211`) and the table refuses it too (`schema.py:66`), so the
+    day a writer for `00:102`'s `existing` node lands, this goes red and points
+    at a report line that has become false. It must be rewritten then, not
+    deleted -- a person who IS having folders adopted needs to be told which.
+    """
+    from tree_design.vocabulary import EXISTING
+
+    run, names = _coursework()
+    printed = " ".join(_printed(run, names).split())
+
+    # The claim is "not used", so the report may not also read as "used".
+    for overclaim in ("adopted your", "kept your folder", "your existing structure was used"):
+        assert overclaim not in printed, printed
+    # And the state it describes is the one the chain can actually produce: no
+    # production writer anywhere in `src/` emits this node type.
+    import tree_design.fixtures  # noqa: F401  -- the ONLY module that does
+    sources = list(pathlib.Path("src").rglob("*.py"))
+    writers = [path for path in sources
+               if "node_type=EXISTING" in path.read_text().replace(" ", "")
+               and path.name != "fixtures.py"]
+    assert writers == [], (
+        f"{[str(p) for p in writers]} now writes a {EXISTING!r} node -- the "
+        "report line about folders never being adopted is no longer true")
+
+
 # ======================================================================================
 # Who the record says decided
 # ======================================================================================
@@ -675,8 +740,15 @@ def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
 
     assert "X12345678" not in labels, (
         f"a passport number is a proposed folder: {sorted(labels)}")
-    assert "X12345678" not in printed, (
-        f"a passport number is printed as a destination:\n{printed}")
+    # In the FOLDER LIST specifically. P15 may name the value when it asks the
+    # person which of their own files is meant -- that is a question on their own
+    # screen about their own document, and `66` §4 requires protected material to
+    # be "present, not silently absent". What must never happen is the value
+    # becoming a destination: a folder name is written to the filesystem and
+    # travels in every prompt that names a place to put something.
+    folders = printed.split("Proposed folders:", 1)[1].split("Files:", 1)[0]
+    assert "X12345678" not in folders, (
+        f"a passport number is printed as a destination:\n{folders}")
     assert "CV20261234" in labels, (
         "the matter number was suppressed too, so this test would pass on a "
         f"tree that simply has no folders: {sorted(labels)}")
@@ -724,3 +796,129 @@ def test_a_value_shared_with_ordinary_files_is_still_allowed_to_name_a_folder(
     assert "CV20261234" in labels, (
         "a matter number shared with two ordinary documents was suppressed "
         f"because one file also mentioned a passport: {sorted(labels)}")
+
+
+# ======================================================================================
+# P15 -- the question loop, closed
+# ======================================================================================
+
+
+def _ambiguous_corpus(tmp_path):
+    """Files whose own words support two readings equally.
+
+    'transcript' is authored by seven schemas and 'witness' by several, so a
+    deposition is exactly the case `00` requires abstention on -- and exactly the
+    case `66` §13 says a person can settle and evidence cannot.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "Deposition.txt").write_text(
+        "Deposition Transcript\n\nDeposition of the witness in CV20261234.\n")
+    (corpus / "Second Deposition.txt").write_text(
+        "Deposition Transcript\n\nSecond transcript of a witness, CV20261234.\n")
+    (corpus / "Notes.txt").write_text(
+        "Lecture Notes\n\nLecture notes for PHYS1401.\n")
+    return corpus
+
+
+def test_the_run_asks_a_question_when_a_decision_is_actually_blocked(tmp_path):
+    """`66` §12: ask "only when a specific decision is blocked", and §14: "narrow,
+    evidence-linked", naming "the visible context and the precise consequence"."""
+    corpus = _ambiguous_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    printed = out.getvalue()
+
+    assert "CV20261234" in printed
+    joined = " ".join(printed.split())
+    assert "readings equally" in joined, printed
+    # §12: name the decision it unlocks, and what it will not do.
+    assert "will not move, rename or delete anything" in joined, printed
+    # §14: the answer must be givable, and the report must say how.
+    assert "--answer" in printed, printed
+
+
+def test_a_run_with_nothing_blocked_asks_nothing(tmp_path):
+    """The twin that keeps §12's promise. A product that always finds something to
+    ask is the questionnaire, whatever it calls itself."""
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "a.txt").write_text("Lecture Notes\n\nLecture notes for PHYS1401.\n")
+    (corpus / "b.txt").write_text("Lecture Notes\n\nMore lecture notes, PHYS2801.\n")
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+
+    assert "--answer" not in out.getvalue(), out.getvalue()
+
+
+def test_an_answer_is_remembered_and_changes_the_next_run(tmp_path):
+    """THE LOOP. This is the property `66` §12 asks for and the product had none
+    of: an answer that outlives the run that asked for it.
+
+    Run one asks. The person answers. Run two does not ask again, and the file it
+    could not read now reads as what they said it was.
+    """
+    import sqlite3
+
+    corpus = _ambiguous_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    first = io.StringIO()
+    cli.main(argv, out=first)
+    assert "--answer" in first.getvalue()
+
+    answered = io.StringIO()
+    code = cli.main(argv + ["--answer", "reading.organization:CV20261234=law_practice"],
+                    out=answered)
+    assert code == 0, answered.getvalue()
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    rows = [dict(r) for r in conn.execute(
+        "SELECT question_id, option_id, state FROM structural_answers")]
+    classes = [dict(r) for r in conn.execute(
+        "SELECT handling_class FROM classifications")]
+    conn.close()
+
+    assert rows and rows[0]["option_id"] == "law_practice", rows
+    assert rows[0]["state"] == "confirmed"
+    assert classes, (
+        "the person said what these files are and nothing was classified; the "
+        "answer was stored and never consumed")
+    # And the question does not come back.
+    assert "--answer" not in answered.getvalue(), answered.getvalue()
+
+
+def test_an_answer_naming_an_unknown_question_is_refused_rather_than_ignored(tmp_path):
+    """A typo must not read as an answer, and must not vanish silently either --
+    the person believes they have told the product something."""
+    corpus = _ambiguous_corpus(tmp_path)
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     "--answer", "reading.organization:NOPE=law_practice"], out=out)
+
+    assert code != 0
+    assert "NOPE" in out.getvalue()
+
+
+def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
+    """§14: "skip for now" is FIRST-CLASS. A skip that re-asked next run would be
+    the pressure §12 forbids, dressed as helpfulness."""
+    corpus = _ambiguous_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    cli.main(argv, out=io.StringIO())
+    after = io.StringIO()
+    cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"], out=after)
+
+    assert "--answer" not in after.getvalue(), after.getvalue()

@@ -1,0 +1,80 @@
+# src/questions/vocabulary.py
+"""P15's closed sets. `66` §13's two answer classes, and the states an answer has.
+
+Every set here is closed, and each is closed for the same reason the rest of this
+project closes its vocabularies: a value a deployment may invent is a value that
+can quietly acquire a meaning nobody designed. §13 in particular draws a boundary
+it calls a defect to cross, and a boundary with three sides is not a boundary.
+"""
+from __future__ import annotations
+
+
+class OutOfVocabulary(ValueError):
+    """A value outside one of P15's closed sets."""
+
+
+#: `66` §13's two classes and no third.
+#:
+#: STRUCTURAL: "Resolves a user relationship or policy fact that file evidence
+#: cannot safely determine." May "activate a schema, gate a template, resolve role
+#: ambiguity, allow or prohibit a category of folder label, or require review".
+#:
+#: CONTEXTUAL: "Helps the product decide what to offer, explain, or prioritize."
+#: May influence "ordering, examples, wording, and non-binding recommendations",
+#: and must not "create, remove, hide, or rename folders; gate placement;
+#: authorize movement; change privacy state; or silently become a structural
+#: rule".
+STRUCTURAL: str = "structural"
+CONTEXTUAL: str = "contextual"
+ANSWER_CLASSES: tuple[str, ...] = (STRUCTURAL, CONTEXTUAL)
+
+#: What state an asked question is in for one scope.
+#:
+#: `skipped` and `not_applicable` are here because `66` §14 requires them to be
+#: FIRST-CLASS answers: "It must preserve 'not about me' and 'skip for now' as
+#: first-class answers." First-class means they are states rather than the absence
+#: of one -- a question a person declined and a question nobody has been shown are
+#: different facts, and a product that stores them the same way will ask again.
+CONFIRMED: str = "confirmed"
+SKIPPED: str = "skipped"
+NOT_APPLICABLE: str = "not_applicable"
+REVOKED: str = "revoked"
+ANSWER_STATES: tuple[str, ...] = (CONFIRMED, SKIPPED, NOT_APPLICABLE, REVOKED)
+
+#: The states in which an answer still governs anything. A revoked answer stays on
+#: disk -- §12 requires answers to be "edited, revoked, or re-run" and a revocation
+#: that deleted the row would lose the fact that the person once said otherwise --
+#: but it decides nothing.
+BINDING_STATES: tuple[str, ...] = (CONFIRMED,)
+
+#: Where an answer applies. `66` §12 requires the scope to be RECORDED and §13
+#: forbids an answer being "reused outside its stated scope", so this is a prefix
+#: vocabulary rather than a fixed list: `corpus` is the whole run, and
+#: `organization:columbia` is one named entity the evidence actually produced.
+#: A scope naming an entity is checked for its PREFIX only, because the entity
+#: half comes from the user's own files and P15 does not hold a list of the world.
+SCOPE_CORPUS: str = "corpus"
+SCOPE_ORGANIZATION: str = "organization"
+SCOPES: tuple[str, ...] = (SCOPE_CORPUS, SCOPE_ORGANIZATION)
+
+
+def check(value: str, allowed: tuple[str, ...], *, name: str) -> str:
+    if value not in allowed:
+        raise OutOfVocabulary(f"{name} {value!r} is not one of {allowed}")
+    return value
+
+
+def check_scope(scope: str) -> str:
+    """A scope is `corpus`, or `<kind>:<entity>` for a kind P15 recognises."""
+    if not scope:
+        raise OutOfVocabulary("an answer with no scope is a global rule")
+    kind = scope.split(":", 1)[0]
+    if kind not in SCOPES:
+        raise OutOfVocabulary(
+            f"scope {scope!r} names {kind!r}, which is not one of {SCOPES}")
+    if kind != SCOPE_CORPUS and ":" not in scope:
+        raise OutOfVocabulary(
+            f"scope {scope!r} names a kind and no entity; an organization scope "
+            "that names no organization applies everywhere, which is the one "
+            "thing a scope exists to prevent")
+    return scope
