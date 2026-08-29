@@ -216,6 +216,66 @@ README still said no application code; older audit text said P8/P9 are plans onl
 
 ---
 
+## Detailed Done-means findings (second pass)
+
+These refine the scorecard above. **HOLDS** below often means “package + part tests”; check the CLI column.
+
+### Highest-signal drifts (fix these first)
+
+| # | Part | Done means | Verdict | Why |
+|---|------|------------|---------|-----|
+| 1 | P4 | #5 (fixtures cover all zones/source types) | **DRIFTS** | 19 fixtures but only ~10/15 zones and ~13/14 source types; shortfall documented as `ZONES_WITHOUT_A_WORKED_EXAMPLE` in `evidence_shape/fixtures.py` |
+| 2 | P1 | #14 (budget ceiling keys) | **DRIFTS** | SPEC says fifteen keys; `budget.CEILING_KEYS` has seventeen |
+| 3 | P6 | #2 (closed field catalogue / career empty) | **DRIFTS** | `fields.FIELD_ROWS` expanded with career + many professional schemas beyond SPEC’s closed launch set |
+| 4 | P5 | #6–#8 on product path | **PACKAGE ONLY** | DOCX/HEIC/archive extractors exist; `readers/deployment.py` wires `_no_reader` |
+| 5 | P9 | #6 (purpose fixture §4.7) | **NOT IMPLEMENTED** | No purpose-packet builder/fixture under `src/grouping` / `tests/p9` matching SPEC DM6 |
+| 6 | P2 / P7 egress | eval + Gate.release on CLI | **PACKAGE ONLY** | `cli.py`: `evaluation=None`, `p8_run_call=None` |
+| 7 | P12 / P13 | all | **MISSING** | SPECs present; no `src/mutation/`, no `src/review_surface/` |
+
+### P1–P7 (package vs CLI)
+
+| Part | Mostly | CLI notes |
+|------|--------|-----------|
+| P1 | **HOLDS** (identity, events, supersede, V1–V4, learning, scan_usage) | Budget key-count **DRIFTS** (#14) |
+| P2 | **HOLDS** in package | Bundle sealed on CLI; **evaluate / shadow / adversarial not wired** (`evaluation=None`) |
+| P3 | **HOLDS** | Scan/exclusions/REUSE on product path; P2-from-bundle eval package-only |
+| P4 | **HOLDS** except fixture coverage **DRIFTS** (#5) | — |
+| P5 | **HOLDS** for PDF+OCR routing/shape | DOCX/HEIC/archive **unwired** on default readers |
+| P6 | **HOLDS** many deterministic DM | Direct resolver on CLI; rule/LLM unused; catalogue **DRIFTS** (#2) |
+| P7 | **HOLDS** classify + local-first offline | Classification on CLI; **Gate.release / transport never called** on default path; `delete_derived` still refuses (P13 tombstone) |
+
+### P8–P11 (package vs CLI)
+
+| Part | Package | Live CLI |
+|------|---------|----------|
+| P8 (13 DM) | ~10 **HOLDS**; egress/`may_propose` end-to-end **PACKAGE ONLY** | **Off** (`p8_run_call=None`) — none of DM 1–13 exercised by shipped command |
+| P9 (11 DM) | ~9 **HOLDS**; privacy-before-model **PACKAGE ONLY**; **DM6 purpose missing** | Deterministic grouping + acceptance **HOLDS**; embeddings/P8 off |
+| P10 (17 DM) | ~16 **HOLDS**; P2 stage emit **PACKAGE ONLY** | Design/freeze path **HOLDS**; residual enablement depends on library wiring |
+| P11 (incl 10b) | ~15 **HOLDS**; P2 scoring / model residual **PACKAGE ONLY** | Deterministic place/abstain **HOLDS**; no model residual |
+
+### Cross-cutting CLI map (quick)
+
+| Area | On `cli.run`? |
+|------|----------------|
+| P1 identity / events / budgets / scan usage | Yes |
+| P2 seal bundle | Yes |
+| P2 evaluate / shadow / adversarial | No |
+| P3 scan | Yes |
+| P5 PDF + OCR | Yes |
+| P5 DOCX / HEIC / archive | No |
+| P6 direct facts | Yes |
+| P6 rules / LLM facts | No |
+| P7 classify + offline policy | Yes |
+| P7 Gate.release | No |
+| P8 harness | No |
+| P9 deterministic group | Yes |
+| P10 design/freeze | Yes |
+| P11 deterministic place | Yes |
+| P12 move / undo | No package |
+| P13 review surface | No package |
+
+---
+
 ## Concrete hotspots for Joseph (fix targets)
 
 Priority is **wiring and missing parts**, not rewriting healthy package interiors.
