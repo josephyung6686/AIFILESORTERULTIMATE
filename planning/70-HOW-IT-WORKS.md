@@ -196,6 +196,29 @@ Section 1 has the full account. Naming the members is a deployment decision and 
 wants a person's approval rather than an agent's catalogue — but nothing else in this document
 matters as much.
 
+**And the second.** P4's `completeness` vocabulary has nine values, and on a shipped run **five
+of them are unreachable** — `unreadable` and `metadata_only` are written only in
+`evidence_shape/fixtures.py:234,242`, `partial` and `dataless` are written nowhere at all, and
+`deferred` lives in `extractors/budgets.py`, which nothing imports. Five of the six native
+extractors hardcode `completeness="complete"` (`pdf.py:178`, `docx.py:213`,
+`structured_text.py:185`, `image.py:206`, `long_tail.py:328`), and the PDF one also claims full
+page coverage while doing it.
+
+That matters because of what `runs.py:16-18` says the value MEANS: *"A `complete` run that emitted
+no `metadata` observations IS the record that the file carried nothing."* So an image-only PDF, in
+a deployment with no OCR engine, is recorded as **read completely and containing nothing** — which
+is false, and is precisely the *"understood and found unimportant"* impression the design exists to
+prevent. `00` §2.9 requires "indexed-but-unreadable" as a state; no production extractor can write
+it. `66` §4 requires Find to say "unreadable" and "unsupported format" as distinct states; one of
+those two cannot be reached.
+
+This is the same family as two defects fixed on 2026-08-29 — a refusal that blamed the step that
+worked, and "unclassified" reported as "unreadable". The pattern is a claim the database makes that
+is stronger than what actually happened. As with the protection list, the mechanical half is
+obvious (an extractor that produced nothing from a document with pages must not assert full
+coverage and `complete`) and the choice of replacement value belongs to P5's contract, so it wants
+a person's ruling rather than an agent's guess.
+
 **The product's current terminal state is the same for everybody.** Four personas — a litigator, a
 student who also teaches, a two-child household, and one person who is all three — were run through
 the shipped command on 2026-08-29. All four ended identically: **zero files ready to file, a
