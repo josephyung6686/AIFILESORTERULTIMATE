@@ -94,7 +94,7 @@ from tree_design.pipeline import (
 )
 from tree_design.store import ReviewActionRefused
 from tree_design.templates import CompositionConflict
-from tree_design.upstream import UpstreamUnavailable
+from tree_design.upstream import UpstreamUnavailable, handling_class_for
 from tree_design.schema import create_tree_schema
 from tree_design.vocabulary import (
     MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE,
@@ -159,6 +159,18 @@ OPERATION_MODE: str = "offline"
 #: inherit a weaker floor than its contents would require.
 ORDINARY_CLASS: str = "personal_non_sensitive"
 PROTECTED_CLASS: str = "highly_sensitive_credential_bearing"
+
+#: EVERY class this deployment treats as protected, strongest first. P7 publishes
+#: `HANDLING_CLASSES` as a set with no ordering and `protected` as a separate flag
+#: it tells neighbours to consume rather than infer, so which classes carry the
+#: flag HERE is this file's to state: the marked containers above, and
+#: `sensitive_personal`, which is what `SAFETY_DOMAIN_HANDLING` gives finance,
+#: identity, medical and legal material.
+#:
+#: Naming only the first left every safety-domain file looking ordinary to P10.
+PROTECTED_CLASSES: frozenset[str] = frozenset(
+    {PROTECTED_CLASS, "sensitive_personal"})
+_PROTECTED_ORDER: tuple[str, ...] = (PROTECTED_CLASS, "sensitive_personal")
 
 #: WHICH CLASS EACH RECOGNISED SCHEMA GETS. `71` cause B: the detector recognises
 #: 23 schemas and `SAFETY_DOMAIN_HANDLING` names a class for FOUR of them, so a
@@ -610,6 +622,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                         handling_for=HANDLING_POLICY, now=now,
                         is_protected=is_protected_container)
 
+    #: P7's store, read rather than re-derived. §5.2 and §8.4 make sensitivity
+    #: P7's to own; P10 asks and never classifies.
+    classifications = ClassificationStore(conn)
+
     def design_authorities(release: TemplateCatalogue,
                            accepted: Sequence[str]) -> TreeDesignAuthorities:
         # The counter starts PAST what this database already holds, so a second
@@ -650,16 +666,42 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # own order and this deployment has no telemetry to re-rank them with,
             # so it keeps that order rather than inventing a score.
             rank_candidates=lambda candidates: list(candidates),
-            handling_class_for_member=lambda member: ORDINARY_CLASS,
-            collapse_handling_classes=lambda classes: (
-                PROTECTED_CLASS if PROTECTED_CLASS in classes else ORDINARY_CLASS),
+            # P7's OWN class for the file, read through the accessor P10's
+            # docstring names -- "the caller passes `upstream.handling_class_for`
+            # already bound to a `ClassificationStore`". This answered a flat
+            # `ORDINARY_CLASS` instead, which told P10 that nothing in the corpus
+            # was sensitive and made its isolation of protected files unreachable.
+            # The price was a client's passport number proposed as a FOLDER.
+            handling_class_for_member=lambda member: handling_class_for(
+                classifications, file_id=member.file_id,
+                content_hash=member.content_hash),
+            collapse_handling_classes=lambda classes: next(
+                (cls for cls in _PROTECTED_ORDER if cls in classes),
+                ORDINARY_CLASS),
             handling_class_for_area=lambda area: PROTECTED_CLASS,
-            protected_handling_classes=frozenset({PROTECTED_CLASS}),
+            # BOTH classes that carry §8.4's flag in this deployment, not just the
+            # strongest. `SAFETY_DOMAIN_HANDLING` gives finance, identity, medical
+            # and legal material `sensitive_personal` with `protected=True`, so a
+            # set holding only `highly_sensitive_credential_bearing` left every
+            # safety-domain file looking ordinary to P10 -- the flag was raised and
+            # nothing read it.
+            protected_handling_classes=PROTECTED_CLASSES,
             collector_field_keys=COLLECTOR_FIELD_KEYS,
-            # §5.11's disclosure test. This deployment ships no detector for it and
-            # answers `False`, which means a value is never suppressed for
-            # disclosure -- stated rather than silent, because the alternative
-            # (answering `True`) would suppress every label in the tree.
+            # §5.11's disclosure test. It asks whether a DIMENSION would expose
+            # protected material -- `00`:97 lists it among the structural faults
+            # of a proposed template -- and `_v5` refuses the WHOLE candidate when
+            # it fires. `subject` is not such a dimension: a course code and a
+            # matter number are ordinary folder names, and answering `True`
+            # because one value in the level is a passport number would take the
+            # person's whole organisation away to hide one folder. That is the
+            # failure V5's own docstring records ("the user lost the organisation
+            # and kept none of the protection"), arriving from the other side.
+            #
+            # A single disclosing VALUE is handled where V5's docstring says it is
+            # -- protected files are ISOLATED in `materialise_branch`, so the
+            # value never reaches the level at all -- which is why the detector
+            # below marks a file protected when its evidence names a safety
+            # domain, and why nothing needs to be answered here.
             value_discloses_protected_material=lambda field_ref, value: False,
             template_context_for=lambda field_ref, order_index: None,
             mint_node_id=lambda: f"node_{next(ids)}",

@@ -405,6 +405,76 @@ class Detector:
         return Recognition(schema_id=schema_id, matches=found,
                            evidence_refs=tuple(refs))
 
+    def _precaution(self, conn: sqlite3.Connection, outcome: "Abstention", *,
+                    file_id: str, content_hash: str
+                    ) -> ClassificationRecord | None:
+        """The file is not recognised, and it is still protected.
+
+        **Corroboration governs what we CLAIM. Precaution governs what we
+        EXPOSE.** `never_alone` is a rule about ACTIVATING A SCHEMA, and applying
+        it to protection as well is what left a passport unprotected: "Passport
+        number X12345678. Client identity document." matches `identity` on
+        'passport' and `creative` on 'client', ties at one term each, abstains --
+        and the file came back unclassified, unprotected, with its number free to
+        become a folder name.
+
+        `00`:52 states the opposite requirement for exactly these four domains:
+        finance, identity, medical and legal are *"detected and protected BEFORE
+        any cloud or automated placement decision is allowed"*, and `00`:185 says
+        such material *"should enter a protected state immediately"*. Neither
+        sentence asks for corroboration first.
+
+        So the two questions get two answers about the same file, and that is
+        correct: `explain` still ABSTAINS -- no schema is activated, the file
+        stays honestly unrecognised, and nothing claims to know what it is --
+        while the classification carries the safety domain's own handling with
+        `basis='safety_domain'` saying exactly why.
+
+        **This is not the over-protection collapse.** That one answered EVERY
+        abstention with `highly_sensitive_credential_bearing, protected=True`, and
+        `cli.py`'s `classifier` records the cost: it "made an unreadable scan and
+        a passport identical in P7's store". This fires only where a safety-domain
+        term is actually present in the file's own evidence. A file carrying no
+        term at all is untouched -- "we deliberately did not look" and "we could
+        not tell" stay different answers.
+
+        The protected-container refusal is never overridden: `explain` returns
+        that abstention before reading any evidence, so `_matches` below is
+        reached only for a file that was already open to being read.
+        """
+        if outcome.reason == "protected_container":
+            return None
+        readings = [schema_id for schema_id
+                    in (outcome.schema_id, *outcome.tied_schema_ids)
+                    if schema_id in SAFETY_DOMAIN_IDS]
+        if not readings:
+            return None
+        # `SCHEMA_IDS` order, so two safety readings resolve the same way twice
+        # rather than by whichever the abstention happened to name first.
+        schema_id = min(readings, key=SCHEMA_IDS.index)
+        handling = self._handling.get(schema_id)
+        if handling is None:
+            # The caller's policy states no class for this safety domain. `00`
+            # supplies the FLAG and never the class, so inventing one here would
+            # be this package authoring the design.
+            return None
+        # The evidence is the safety domain's own terms, not the whole file's:
+        # a protection cites what raised it. `_matches` is re-run rather than
+        # threaded through `Abstention`, which is a record of a RECOGNITION
+        # decision and gains nothing by carrying a classification's citations.
+        matches, _ = self._matches(conn, file_id, content_hash)
+        refs: list[str] = []
+        for match in matches:
+            if match.schema_id == schema_id and match.observation_key not in refs:
+                refs.append(match.observation_key)
+        if not refs:
+            return None
+        return ClassificationRecord(
+            file_id=file_id, content_hash=content_hash,
+            handling_class=handling.handling_class, protected=handling.protected,
+            basis=handling.basis, evidence_refs=tuple(refs),
+            reliability_state=RELIABILITY, observed_at=self._now())
+
     def _readings(self, schema_id: str) -> tuple[str, ...]:
         schema = self._rules.schemas.get(schema_id)
         return () if schema is None else schema.deferred_readings
@@ -416,7 +486,8 @@ class Detector:
         """`orchestrator.ClassificationProducer`. A candidate, or an abstention."""
         outcome = self.explain(conn, file_id, content_hash)
         if isinstance(outcome, Abstention):
-            return None
+            return self._precaution(conn, outcome, file_id=file_id,
+                                    content_hash=content_hash)
         handling = self._handling[outcome.schema_id]
         return ClassificationRecord(
             file_id=file_id, content_hash=content_hash,

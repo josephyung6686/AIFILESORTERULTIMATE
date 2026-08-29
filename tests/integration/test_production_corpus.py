@@ -74,6 +74,7 @@ from tree_design.config import TreeLimits
 from tree_design.pipeline import (
     SharedMaterialAnswer, TreeDesignAuthorities, TreeDesignDecisions,
 )
+from tree_design.upstream import handling_class_for
 from tree_design.schema import create_tree_schema
 from tree_design.vocabulary import MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE
 
@@ -265,6 +266,28 @@ def _classify(conn, file_id, content_hash):
         evidence_refs=(ref[0],), reliability_state="direct", observed_at=CLOCK)
 
 
+def _classify_passport_protected(conn, file_id, content_hash):
+    """Ordinary, except the passport, which P7 marks protected.
+
+    Written as a classifier rather than by widening `_classify`, because what is
+    under test is P10's behaviour given a protected member -- not the detector's
+    route to deciding one is.
+    """
+    row = conn.execute("SELECT current_path FROM files WHERE file_id = ?",
+                       (file_id,)).fetchone()
+    protected = row is not None and "Passport" in row[0]
+    ref = conn.execute(
+        "SELECT observation_key FROM evidence WHERE file_id = ? "
+        "ORDER BY rowid LIMIT 1", (file_id,)).fetchone()
+    if ref is None:
+        return None
+    return ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class=PROTECTED_CLASS if protected else ORDINARY_CLASS,
+        protected=protected, basis="safety_domain" if protected else "detector",
+        evidence_refs=(ref[0],), reliability_state="direct", observed_at=CLOCK)
+
+
 def _p1_p7(fields, *, classify=_classify) -> P1P7Authorities:
     return P1P7Authorities(
         native_resolver=_resolver(fields,
@@ -386,8 +409,16 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             satisfies_purpose_profile=lambda ref, groups: True,
             detection_signals_for=lambda group: frozenset({SIGNAL}),
             rank_candidates=lambda candidates: list(candidates),
-            handling_class_for_member=lambda member: ORDINARY_CLASS,
-            collapse_handling_classes=lambda classes: ORDINARY_CLASS,
+            # P7's own class, exactly as `cli.py` reads it. This harness used to
+            # hardcode ORDINARY_CLASS, which told P10 nothing in the corpus was
+            # sensitive and made every protected-member path unreachable from
+            # here -- the same defect the composition root had.
+            handling_class_for_member=lambda member: handling_class_for(
+                ClassificationStore(conn), file_id=member.file_id,
+                content_hash=member.content_hash),
+            collapse_handling_classes=lambda classes: (
+                PROTECTED_CLASS if PROTECTED_CLASS in classes
+                else ORDINARY_CLASS),
             handling_class_for_area=lambda area: PROTECTED_CLASS,
             protected_handling_classes=frozenset({PROTECTED_CLASS}),
             collector_field_keys=frozenset({"authored_by", "organization"}),
@@ -1431,3 +1462,40 @@ def test_the_report_says_where_an_unconfirmed_file_would_go_rather_than_hiding_i
 
     assert "PHYS1401" in out, f"the destination disappeared from the report:\n{out}"
     assert "notes.txt" in out, f"the file itself disappeared:\n{out}"
+
+
+def test_a_value_only_protected_files_carry_never_mints_a_folder(conn, tmp_path):
+    """Marked, counted, never opened -- and never SPOKEN.
+
+    A folder name is public: it is visible in the filesystem and in every prompt
+    that names a destination. A name derived from nothing but protected material
+    publishes that material, and `X12345678` -- a client's passport number -- was
+    a proposed folder on the litigator's corpus.
+
+    Neither existing lever can close this. `protected_handling_classes` MARKS
+    rather than removes, deliberately: "a file dropped out of the evidence is
+    uncounted, and uncounted is worse than present-but-untouched". V5 refuses the
+    WHOLE composition, which is the failure its own docstring records -- "the
+    user lost the organisation and kept none of the protection".
+
+    So the rule is stated where a NAME is minted, and it separates the two things
+    the standing rule keeps together: the file stays a member and stays counted;
+    what it stops doing is contributing a folder name. A value ANY ordinary file
+    also carries is untouched, because then the name is not derived from
+    protected material.
+    """
+    result = run_corpus_through(
+        conn, tmp_path, fields=("subject",),
+        names=("PHYS1401 Notes.pdf", "PHYS1401 Homework.pdf",
+               "X12345678 Passport.pdf"),
+        classify=_classify_passport_protected)
+    labels = {node.display_label for node in result.tree.tree.nodes}
+
+    assert "PHYS1401" in labels, f"the ordinary level did not survive: {labels}"
+    assert "X12345678" not in labels, (
+        f"a value only a protected file carries became a folder: {labels}")
+
+    # And the file is still counted, not dropped -- the omission the rule forbids.
+    decided = {d.subject.file_id for d in result.placement.decisions}
+    assert len(decided) == 3, (
+        f"a protected file fell out of the run entirely: {len(decided)} of 3")

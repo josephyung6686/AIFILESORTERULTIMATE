@@ -429,6 +429,30 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
         members = level.members_by_value[value] & eligible
         if not members:
             continue
+        if members <= evidence.protected_file_ids:
+            # MARKED, COUNTED, NEVER OPENED -- and never SPOKEN. A folder name is
+            # public: visible in the filesystem and in every prompt that names a
+            # destination. A name carried by NOTHING BUT protected material
+            # publishes that material, and `X12345678`, a client's passport
+            # number, was a proposed folder on a real corpus.
+            #
+            # This does not remove the file and does not uncount it. Its members
+            # stay in `eligible`, so they stay under this parent, stay in its
+            # counts, and stay in `protected_file_ids` for §5.9 to report -- the
+            # standing rule's "never silently omitted" is about the FILE, and the
+            # file is still here. What it loses is a NAME of its own.
+            #
+            # Neither existing lever could do this. `protected_handling_classes`
+            # marks rather than removes on purpose -- "uncounted is worse than
+            # present-but-untouched" -- and V5 refuses the WHOLE composition,
+            # which is the failure its own docstring records: "the user lost the
+            # organisation and kept none of the protection".
+            #
+            # `<=`, not `&`: a value ANY ordinary file also carries is untouched,
+            # because then the name is not derived from protected material. A
+            # matter number shared with four ordinary documents stays a folder;
+            # a passport number that appears nowhere else does not.
+            continue
         node_id = mint_node_id()
         label = level.display_labels.get(value, value)
         # Contract W4.2-4.3: a template-local level writes NO expected value.

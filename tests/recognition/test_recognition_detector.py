@@ -587,3 +587,79 @@ def test_a_single_unambiguous_reading_still_records_no_tie(db, tmp_path):
     assert outcome.schema_id == "identity"
     assert outcome.tied_schema_ids == (), (
         "one reading is not a tie and must not be recorded as one")
+
+
+def test_a_tie_that_includes_a_safety_domain_still_protects_the_file(db, tmp_path):
+    """Corroboration governs what we CLAIM. Precaution governs what we EXPOSE.
+
+    `never_alone` is a rule about ACTIVATING A SCHEMA, and the detector applied it
+    to protection as well -- so "Passport number X12345678. Client identity
+    document." matched `creative` ('client') and `identity` ('passport'), tied at
+    one term each, abstained, and the file came back unclassified and UNPROTECTED.
+    Its number then became a proposed folder name on the litigator's corpus.
+
+    `00`:52 states the opposite requirement for exactly these four domains:
+    finance, identity, medical and legal are "detected and protected BEFORE any
+    cloud or automated placement decision is allowed", and `00`:185 says such
+    material "should enter a protected state immediately". Neither sentence asks
+    for corroboration first; both are about precaution.
+
+    So the two questions are answered separately, and the answers differ:
+    `explain` still ABSTAINS -- no schema is activated, the file is honestly
+    unrecognised -- while the classification carries the safety domain's own
+    handling, with `basis='safety_domain'` saying exactly why.
+    """
+    rules = rule_set(
+        schema_entry("creative", context=("client",)),
+        schema_entry("identity", context=("passport",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Client Passport.pdf",
+        body="Passport number X12345678. Client identity document.")
+    det = detector(rules)
+
+    # Recognition is unchanged: it still declines to say what the file IS.
+    assert isinstance(det.explain(db, file_id, content_hash), Abstention)
+
+    record = det(db, file_id, content_hash)
+    assert record is not None, (
+        "a file whose evidence names a safety domain came back unclassified and "
+        "unprotected, so nothing downstream could keep its number off the disk")
+    assert record.protected is True
+    assert record.basis == "safety_domain"
+    assert record.evidence_refs, "a protection with no evidence behind it"
+
+
+def test_a_tie_with_no_safety_domain_in_it_is_still_simply_unclassified(
+        db, tmp_path):
+    """The negative twin, and the guard against the collapse this project already
+    made once.
+
+    `cli.py`'s `classifier` records what happened last time an abstention was
+    answered with protection: it "made an unreadable scan and a passport
+    identical in P7's store -- same class, same flag, same sentence to the user".
+    The rule above must fire ONLY on a safety-domain reading, never on a tie in
+    general, or that collapse comes straight back.
+    """
+    rules = rule_set(
+        schema_entry("creative", context=("client",)),
+        schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="client syllabus")
+    det = detector(rules)
+
+    assert isinstance(det.explain(db, file_id, content_hash), Abstention)
+    assert det(db, file_id, content_hash) is None, (
+        "an ordinary unrecognised file was marked protected; that is the "
+        "over-protection collapse, not a precaution")
+
+
+def test_a_file_carrying_no_term_at_all_is_never_protected(db, tmp_path):
+    """The other twin. Precaution keys on EVIDENCE PRESENT, never on absence --
+    "we deliberately did not look" and "we could not tell" are different answers
+    and must not become the same one."""
+    rules = rule_set(schema_entry("identity", context=("passport",)))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="nothing any schema authored")
+    det = detector(rules)
+
+    assert det(db, file_id, content_hash) is None

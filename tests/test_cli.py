@@ -624,3 +624,103 @@ def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
     assert rows, "the label the person typed is not on any group"
     assert all(r["label_source"] == "user-edited" for r in rows), rows
     assert any(r["user_edited_label"] == "Coursework" for r in edited), edited
+
+
+def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
+    """§5.11's V5, with the input it needs. A folder name is public.
+
+    A folder name is visible in the filesystem and in every prompt that names a
+    destination, so naming one after a passport number publishes the passport
+    number. `X12345678` was a proposed folder on the litigator's corpus and on
+    the four-role corpus.
+
+    V5's own docstring settles the shape of the test: it asks about the VALUE
+    STRING, not about the files under it -- "a university's name is not protected
+    material; the passport is". So a value is suppressed only when EVERY file it
+    came from carries safety-domain evidence. A course code shared with ordinary
+    files stays a folder.
+
+    The file is NOT classified and this does not classify it: `never_alone` still
+    holds and the readings are still tied. Corroboration governs what the product
+    CLAIMS; precaution governs what it EXPOSES.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    # The litigator's real corpus shape: several ordinary documents sharing one
+    # matter number, and one passport carrying its own. Two values, so the level
+    # really forms -- a one-value level is refused as a "meaningless one-child
+    # level" (`00`:97) and would make this test pass for the wrong reason.
+    (corpus / "Client Passport.txt").write_text(
+        "Passport\n\nPassport number X12345678. Client identity document.\n")
+    (corpus / "Motion.txt").write_text(
+        "Motion to Compel\n\nIn re CV20261234. Plaintiff moves to compel "
+        "discovery responses.\n")
+    (corpus / "Privilege Log.txt").write_text(
+        "Privilege Log\n\nPrivilege log for CV20261234.\n")
+    (corpus / "Deposition.txt").write_text(
+        "Deposition Transcript\n\nDeposition of the witness in CV20261234.\n")
+    database = tmp_path / "plan.sqlite"
+
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Matters", "--user", "jy",
+              "--database", str(database)], out=out)
+    printed = out.getvalue()
+
+    conn = sqlite3.connect(database)
+    labels = {r[0] for r in conn.execute("SELECT display_label FROM tree_nodes")}
+    conn.close()
+
+    assert "X12345678" not in labels, (
+        f"a passport number is a proposed folder: {sorted(labels)}")
+    assert "X12345678" not in printed, (
+        f"a passport number is printed as a destination:\n{printed}")
+    assert "CV20261234" in labels, (
+        "the matter number was suppressed too, so this test would pass on a "
+        f"tree that simply has no folders: {sorted(labels)}")
+
+
+def test_a_value_shared_with_ordinary_files_is_still_allowed_to_name_a_folder(
+        tmp_path):
+    """The negative twin, and the failure V5's docstring records by name.
+
+    V5 "used to read `handling_classes_by_value`, the union of every member
+    file's class, which meant one passport scan under `Columbia` gave the string
+    'Columbia' a protected class and V5 refused the branch. A university's name
+    is not protected material; the passport is. The user lost the organisation
+    and kept none of the protection."
+
+    A rule that suppressed any value appearing in ANY safety-touched file would
+    walk straight back into that. `CV20261234` above appears in two ordinary
+    legal documents as well, so it stays.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    # Same corpus, one change: the passport names the SAME matter number the
+    # ordinary documents do. A second value keeps the level alive.
+    (corpus / "Client Passport.txt").write_text(
+        "Passport\n\nPassport number CV20261234. Client identity document.\n")
+    (corpus / "Motion.txt").write_text(
+        "Motion to Compel\n\nIn re CV20261234. Plaintiff moves to compel "
+        "discovery responses.\n")
+    (corpus / "Privilege Log.txt").write_text(
+        "Privilege Log\n\nPrivilege log for CV20261234.\n")
+    (corpus / "Filing.txt").write_text(
+        "Efiling Confirmation\n\nCourt e-filing receipt for AB99887.\n")
+    database = tmp_path / "plan.sqlite"
+
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Matters", "--user", "jy",
+              "--database", str(database)], out=io.StringIO())
+
+    conn = sqlite3.connect(database)
+    labels = {r[0] for r in conn.execute("SELECT display_label FROM tree_nodes")}
+    conn.close()
+
+    assert "CV20261234" in labels, (
+        "a matter number shared with two ordinary documents was suppressed "
+        f"because one file also mentioned a passport: {sorted(labels)}")
