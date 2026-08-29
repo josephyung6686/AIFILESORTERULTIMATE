@@ -39,7 +39,7 @@ import sys
 import uuid
 import textwrap
 from itertools import count
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
@@ -1086,6 +1086,43 @@ PLACEMENT_WORDS: dict[str, str] = {
     pv.BLOCKED_PENDING_USER: "Would go into {where}, once you say what these are",
 }
 
+#: What to say when the file is ALREADY in a folder of the destination's name.
+#:
+#: `00`:100: "Existing folders must not be automatically flattened, renamed, or
+#: reorganized simply because a template would produce a different structure." A
+#: person with `Uni/PHYS1401/lab-report.txt` was told "Ready to file into
+#: PHYS1401" -- the flattening that sentence forbids, announced as progress.
+#:
+#: This decides NOTHING. Which of `00`:100's six gestures applies to a folder the
+#: person already made is their choice and the design states no default, so it
+#: stays open and the "Decisions made for you" block says so. What changes is that
+#: the report stops describing a no-op as an action. The fact is one the run
+#: already holds: the file's immediate parent is named what the destination is
+#: named.
+ALREADY_THERE: dict[str, str] = {
+    pv.AUTO_ELIGIBLE: "Already in a folder called {where} -- nothing to do",
+    pv.REVIEW_REQUIRED: (
+        "Already in a folder called {where}; the plan would put it in the one it "
+        "proposes"),
+    pv.BLOCKED_PENDING_USER: (
+        "Already in a folder called {where}, and waiting on you to say what "
+        "these are"),
+}
+
+
+def _already_in(name: str, where: str | None) -> bool:
+    """Whether this file's own parent folder is already named `where`.
+
+    Compared on the IMMEDIATE parent only, and case-insensitively. A grandparent
+    of the same name is not the same claim -- `Coursework/PHYS1401/old/x.txt` is
+    not already filed under `PHYS1401` in the sense a person means -- and a
+    filename that happens to match is not a folder at all.
+    """
+    if not where:
+        return False
+    parts = PurePosixPath(name).parts
+    return len(parts) > 1 and parts[-2].casefold() == where.casefold()
+
 OUTCOME_WORDS: dict[str, str] = {
     pv.PLACE: "Ready to file",
     pv.LEAVE_IN_PLACE: "Staying exactly where they are",
@@ -1280,13 +1317,26 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     labels = {node.node_id: node.display_label for node in tree.nodes}
     decisions = result.placement.decisions
+    def _is_move(decision) -> bool:
+        """A placement that would actually MOVE something.
+
+        A file already sitting in a folder of the destination's name is not one:
+        counting it as ready to file makes the headline promise an action the
+        body then describes as "nothing to do".
+        """
+        label = (labels.get(decision.destination.node_id)
+                 if decision.destination else None)
+        return not all(_already_in(names.get(file_id, file_id), label)
+                       for file_id in _files_of(decision))
+
     # "Ready to file" counts the files something may actually be DONE with, which
-    # is the placements the review policy clears. Counting every `place` here put
-    # ten on this line for the four-role persona when eight of them were waiting
-    # on the person -- the same overstatement `PLACEMENT_WORDS` above fixes in
-    # the headlines, and the two must not disagree.
+    # is the placements the review policy clears MINUS the ones already there.
+    # Counting every `place` here put ten on this line for the four-role persona
+    # when eight were waiting on the person -- the same overstatement
+    # `PLACEMENT_WORDS` fixes in the headlines, and the two must not disagree.
     placed = sum(1 for d in decisions
-                 if d.outcome == pv.PLACE and d.review_policy == pv.AUTO_ELIGIBLE)
+                 if d.outcome == pv.PLACE and d.review_policy == pv.AUTO_ELIGIBLE
+                 and _is_move(d))
     sets_by_file: dict[str, list] = {}
     for item in result.placement.residual_sets:
         for file_id in item.member_file_ids:
@@ -1309,13 +1359,18 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         where = (labels.get(decision.destination.node_id,
                             decision.destination.node_id)
                  if decision.destination else None)
+        # Grouped by whether the file is already there, so the two never share a
+        # heading: four files moving and one staying put is two facts.
+        settled = all(_already_in(names.get(file_id, file_id), where)
+                      for file_id in _files_of(decision))
         # A placement's folder is its whole answer; every other outcome owes the
         # person the sentence saying why it stopped.
         reason = "" if decision.outcome == pv.PLACE else decision.explanation
         review = tuple(f'Held for review as "{item.label}": {item.reason_not_placed}'
                        for item in sets)
         key = (decision.outcome, where, reason, review,
-               decision.review_policy if decision.outcome == pv.PLACE else None)
+               decision.review_policy if decision.outcome == pv.PLACE else None,
+               settled)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or _protected(decision, sets)
 
@@ -1326,14 +1381,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file", file=out)
     for key in ordered:
-        outcome, where, reason, review, policy = key
+        outcome, where, reason, review, policy, settled = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
         # falls back to the outcome's word rather than to silence, for the same
         # reason `OUTCOME_WORDS` prints an unknown outcome's own name: a gap in
         # this deployment's vocabulary must never become a file that vanished.
-        sentence = PLACEMENT_WORDS.get(policy) if outcome == pv.PLACE else None
+        words = ALREADY_THERE if settled else PLACEMENT_WORDS
+        sentence = words.get(policy) if outcome == pv.PLACE else None
         if sentence is not None and where:
             heading = sentence.format(where=where)
         else:

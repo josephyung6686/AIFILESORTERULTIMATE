@@ -922,3 +922,53 @@ def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
     cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"], out=after)
 
     assert "--answer" not in after.getvalue(), after.getvalue()
+
+
+def test_a_file_already_in_a_folder_of_that_name_is_not_announced_as_a_move():
+    """`00`:100: "Existing folders must not be automatically flattened, renamed, or
+    reorganized simply because a template would produce a different structure."
+
+    A person with `Uni/PHYS1401/lab-report.txt` runs this and is told "Ready to
+    file into PHYS1401". The file is ALREADY in a folder of that name. Proposing
+    to move it into a new one is the flattening `00`:100 forbids, and saying
+    "ready to file" about it is the report describing a no-op as an action.
+
+    This does not decide the owner's question -- whether an existing folder or a
+    proposed branch wins is `00`:100's six gestures and it states no default. It
+    reports a FACT the run already has: the file's immediate parent is named what
+    the destination is named. No new state, no new vocabulary, no decision
+    changed; the placement is what it was, described truthfully.
+    """
+    names = {"id-0": "Uni/PHYS1401/lab-report.txt"}
+    run = _fake_run(
+        nodes=[_node("node_0", "PHYS1401")], destinations=["node_0"],
+        decisions=[_decision(outcome="place", file_id="id-0", node_id="node_0")])
+    printed = _printed(run, names)
+
+    assert "Ready to file into PHYS1401" not in printed, printed
+    assert "already" in printed.lower(), printed
+    assert "PHYS1401" in printed
+
+
+def test_a_file_somewhere_else_entirely_is_still_announced_as_a_move():
+    """The negative twin. A file that really would move must still say so, or the
+    fix hides every genuine proposal behind a reassurance."""
+    names = {"id-0": "Downloads/lab-report.txt"}
+    run = _fake_run(
+        nodes=[_node("node_0", "PHYS1401")], destinations=["node_0"],
+        decisions=[_decision(outcome="place", file_id="id-0", node_id="node_0")])
+    printed = _printed(run, names)
+
+    assert "Ready to file into PHYS1401" in printed, printed
+
+
+def test_a_file_loose_in_the_scanned_folder_is_a_move_not_a_no_op():
+    """The other twin, and the one a naive implementation gets wrong: a file with
+    no parent folder at all shares no name with anything and is a real move."""
+    names = {"id-0": "lab-report.txt"}
+    run = _fake_run(
+        nodes=[_node("node_0", "PHYS1401")], destinations=["node_0"],
+        decisions=[_decision(outcome="place", file_id="id-0", node_id="node_0")])
+    printed = _printed(run, names)
+
+    assert "Ready to file into PHYS1401" in printed, printed
