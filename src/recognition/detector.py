@@ -39,6 +39,7 @@ explanation rather than an error or a silent skip.
 """
 from __future__ import annotations
 
+import json as _json
 import sqlite3
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -189,7 +190,10 @@ class Detector:
     def __init__(self, rules: RecognitionRules, *,
                  handling_for: Mapping[str, Handling],
                  now: Callable[[], str],
-                 is_protected: Callable[[PurePath], bool] | None = None) -> None:
+                 is_protected: Callable[[PurePath], bool] | None = None,
+                 corroborating_observations: Callable[
+                     [sqlite3.Connection, str, str], Iterable[str]] | None = None
+                 ) -> None:
         if not isinstance(rules, RecognitionRules):
             raise TypeError(
                 "the compiled rule set is `recognition.rules.load_rules`'s output; "
@@ -207,6 +211,13 @@ class Detector:
         self._handling = dict(handling_for)
         self._now = now
         self._is_protected = is_protected
+        #: WHICH of this file's observations are structured identifiers. Injected,
+        #: because the DEPLOYMENT owns the patterns -- P5's SPEC puts them in its
+        #: Deferred table and `src/recognition/` ships none -- and `SchemaRules`
+        #: has no pattern field at all. Absent means "this deployment finds none",
+        #: which is not the same as "none are present" and behaves exactly as
+        #: before.
+        self._corroborating = corroborating_observations
         # term -> the schemas that authored it, in SCHEMA_IDS order. A term two
         # schemas authored discriminates between neither: both score it, they tie,
         # and a tie abstains. That is why no cross-schema weight is needed.
@@ -328,6 +339,50 @@ class Detector:
 
         # `never_alone`, read literally. One term is one signal and one signal
         # never activates a schema, whichever schema it is.
+        # §2.2's OTHER kind of signal. `00` states the rule as "a course-code
+        # PATTERN TOGETHER WITH academic context such as 'syllabus,' 'lecture,'
+        # 'credits,' 'instructor,' or 'semester'" -- one PATTERN and one TERM.
+        # This module required two TERMS, and since `SchemaRules` carries no
+        # pattern the course code contributed exactly zero: the sentence `00`
+        # uses to define the whole mechanism described something the product
+        # could not do.
+        #
+        # `never_alone` is unchanged and still literal -- one SIGNAL never
+        # activates a schema. What changes is that a signal stops being assumed
+        # to be a term.
+        #
+        # **A pattern CORROBORATES and never NOMINATES.** The identifier pattern
+        # a deployment ships is schema-agnostic: `PHYS1401` and `X12345678` are
+        # the same shape to it, so it cannot say WHICH schema a file belongs to
+        # and is never allowed to try. It may only second a schema exactly one
+        # term already named. That is what keeps it from inventing: a file whose
+        # terms name two schemas still abstains, however many codes it carries.
+        #
+        # The identifier must also be an observation NO term matched, or a schema
+        # whose authored term happens to be an identifier would corroborate
+        # itself out of a single signal.
+        if best < 2 and len(leaders) == 1 and self._corroborating is not None:
+            matched_keys = {match.observation_key for match in matches}
+            # The nominating term must come from the file ITSELF -- its text, its
+            # own name -- and not from the absolute path it happens to sit under.
+            # Found by running it: a corpus in a directory called
+            # `.../test_a_placement_the_person_mu0/` matched the authored term
+            # 'placement' out of the PATH observation, and an identifier in the
+            # body then confirmed it, so four contentless files classified as
+            # `creative`. Every file on a disk sits under some words, and none of
+            # them are the file's own.
+            #
+            # §2.2 ranks "a filename, title, or page-one heading" as meaningful
+            # evidence and says nothing about the machine's directory chain. This
+            # narrows only CORROBORATION: the two-term rule is untouched, because
+            # widening or narrowing that is a different question from this one.
+            nominating = [match for match in by_schema[leaders[0]]
+                          if match.observation_key not in self._path_keys(
+                              conn, file_id, content_hash)]
+            if nominating and any(key not in matched_keys for key in
+                                  self._corroborating(conn, file_id, content_hash)):
+                best = 2
+
         if best < 2:
             schema_id = leaders[0]
             # `leaders` is SORTED, so `leaders[0]` is the alphabetically first of
@@ -474,6 +529,22 @@ class Detector:
             handling_class=handling.handling_class, protected=handling.protected,
             basis=handling.basis, evidence_refs=tuple(refs),
             reliability_state=RELIABILITY, observed_at=self._now())
+
+    def _path_keys(self, conn: sqlite3.Connection, file_id: str,
+                   content_hash: str) -> frozenset[str]:
+        """Observations that are the file's absolute PATH rather than the file.
+
+        P4's `path` locator holds the whole ancestor chain, so every word in
+        every directory above a file is evidence about it unless something says
+        otherwise. For a two-term match that is arguable; for a single term about
+        to be confirmed by a code it is not.
+        """
+        return frozenset(
+            row["observation_key"] for row in conn.execute(
+                "SELECT observation_key, location FROM evidence "
+                "WHERE file_id = ? AND content_hash = ? AND superseded_by IS NULL",
+                (file_id, content_hash))
+            if _json.loads(row["location"]).get("locator") == "path")
 
     def _readings(self, schema_id: str) -> tuple[str, ...]:
         schema = self._rules.schemas.get(schema_id)

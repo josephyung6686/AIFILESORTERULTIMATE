@@ -45,6 +45,7 @@ from typing import Mapping, Sequence
 from database_agent.budget import set_ceiling
 from database_agent.db import DatabaseInsideCorpus, open_database
 from extractors.reading import StructuredString
+from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.safety import SafetyPolicy
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.discount import MetadataScreen
@@ -607,6 +608,37 @@ def _validate_situation(catalogue: TemplateCatalogue, situation: str) -> str:
     return ref
 
 
+def _identifier_observations(conn: sqlite3.Connection, file_id: str,
+                             content_hash: str) -> frozenset[str]:
+    """Which of this file's observations are structured identifiers.
+
+    `00` states the recognition rule as "a course-code PATTERN TOGETHER WITH
+    academic context such as 'syllabus,' 'lecture,' 'credits,' 'instructor,' or
+    'semester'" -- one pattern and one term. The detector could only count TERMS,
+    and `SchemaRules` carries no patterns, so a course code contributed exactly
+    zero and `00`'s own worked example could not execute.
+
+    THIS FILE owns the pattern: `_STRUCTURED` above is the only one that ships,
+    and P5's SPEC keeps patterns in its Deferred table precisely so that no part
+    holds one. So the detector is TOLD which observations are identifiers rather
+    than working it out, which is the same seam `find_structured_strings` already
+    is.
+
+    Identified by the extractor that emitted them and by carrying a text span:
+    the structured-string pass writes one observation per identifier, spanned
+    inside the body, beside the span-less whole-body observation that is the
+    document's own text. A locator test rather than a re-run of the regex, so
+    this cannot disagree with what P4 actually recorded.
+    """
+    return frozenset(
+        row[0] for row in conn.execute(
+            "SELECT observation_key, location FROM evidence "
+            "WHERE file_id = ? AND content_hash = ? "
+            "AND extractor_name = ? AND superseded_by IS NULL",
+            (file_id, content_hash, STRUCTURED_EXTRACTOR))
+        if json.loads(row[1]).get("text_span") is not None)
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition."""
@@ -620,7 +652,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         selected_by=user_id)
     detector = Detector(load_rules(_RECOGNITION_MANIFEST.read_text),
                         handling_for=HANDLING_POLICY, now=now,
-                        is_protected=is_protected_container)
+                        is_protected=is_protected_container,
+                        corroborating_observations=_identifier_observations)
 
     #: P7's store, read rather than re-derived. §5.2 and §8.4 make sensitivity
     #: P7's to own; P10 asks and never classifies.

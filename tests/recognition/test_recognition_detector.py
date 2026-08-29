@@ -92,7 +92,7 @@ def db(conn):
 
 def a_file(db, tmp_path, filename: str, *, body: str | None = None,
            source_type: str = "text_document", extension: str = ".pdf",
-           subdirectory: str = ""):
+           subdirectory: str = "", identifier: str | None = None):
     """One `files` row and its real P4 observations, through the real writers."""
     directory = tmp_path / subdirectory if subdirectory else tmp_path
     directory.mkdir(parents=True, exist_ok=True)
@@ -121,6 +121,17 @@ def a_file(db, tmp_path, filename: str, *, body: str | None = None,
             source_type=source_type, raw_value=body,
             location=location(zone="body"),
             observed_at=CLOCK, reliability="possible"))
+    if identifier:
+        # A structured string is its OWN observation, spanned inside the body --
+        # which is what `extractors/structured_text.py` emits on a real run, and
+        # what lets a corroborating signal be told apart from the term matches
+        # that named the schema.
+        observations.append(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="text.structured", extractor_version="0.1.0",
+            source_type=source_type, raw_value=identifier,
+            location=location(zone="body"),
+            observed_at=CLOCK, reliability="possible"))
     RunWriter(db, author="P5").write(ExtractionResult(
         run=run(file_id=file_id, content_hash=content_hash,
                 extractor_name="filesystem.record", extractor_version="0.1.0",
@@ -141,10 +152,30 @@ POLICY = {**SAFETY_DOMAIN_HANDLING,
           "academic": Handling("personal_non_sensitive", False, "detector")}
 
 
-def detector(rules, *, handling_for=None, is_protected=None):
+def detector(rules, *, handling_for=None, is_protected=None,
+             corroborating_observations=None):
     return Detector(
         rules, handling_for=POLICY if handling_for is None else handling_for,
-        now=lambda: CLOCK, is_protected=is_protected)
+        now=lambda: CLOCK, is_protected=is_protected,
+        corroborating_observations=corroborating_observations)
+
+
+def _identifier_keys(db, value):
+    """The deployment's answer to "which observations are structured identifiers".
+
+    The DEPLOYMENT owns the pattern -- `cli.py` holds the only one that ships --
+    so the detector is told which observations are identifiers rather than
+    working it out. Here that is spelled by value, which is all these tests need.
+    """
+
+    def observations(conn, file_id, content_hash):
+        return frozenset(
+            row[0] for row in conn.execute(
+                "SELECT observation_key FROM evidence WHERE file_id = ? "
+                "AND content_hash = ? AND raw_value = ? "
+                "AND superseded_by IS NULL", (file_id, content_hash, value)))
+
+    return observations
 
 
 # --- the standing security rule, checked before anything is read ------------------
@@ -663,3 +694,144 @@ def test_a_file_carrying_no_term_at_all_is_never_protected(db, tmp_path):
     det = detector(rules)
 
     assert det(db, file_id, content_hash) is None
+
+
+def test_a_structured_identifier_corroborates_the_one_term_that_named_a_schema(
+        db, tmp_path):
+    """`00`'s own worked example, which could not execute until now.
+
+    `00` states the rule as: "BUSIB 4300 becomes a course fact only when the
+    engine finds a course-code PATTERN TOGETHER WITH academic context such as
+    'syllabus,' 'lecture,' 'credits,' 'instructor,' or 'semester.'" That is ONE
+    PATTERN and ONE TERM.
+
+    The implementation required TWO TERMS, and `SchemaRules` has no pattern field
+    at all, so a course code contributed exactly zero to recognition. The
+    sentence `00` uses to define the whole mechanism described something the
+    product could not do.
+
+    `never_alone` is unchanged and still literal: one SIGNAL never activates a
+    schema. What changes is that a signal stops being assumed to be a term.
+
+    **A pattern corroborates and never nominates.** The deployment's identifier
+    pattern is schema-AGNOSTIC -- `PHYS1401` and `X12345678` are the same shape to
+    it -- so it cannot say WHICH schema a file belongs to and is never allowed to
+    try. It can only second a schema that a term already named, which is why this
+    adds no false positive: a file whose terms name two schemas still abstains.
+    """
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(db, tmp_path, "Syllabus.pdf",
+                                   body="Syllabus for BUSIB 4300.",
+                                   identifier="BUSIB 4300")
+    identifiers = _identifier_keys(db, "BUSIB 4300")
+
+    outcome = detector(rules, corroborating_observations=identifiers).explain(
+        db, file_id, content_hash)
+
+    assert isinstance(outcome, Recognition), (
+        f"`00`'s own example still does not recognise: {outcome}")
+    assert outcome.schema_id == "academic"
+
+
+def test_a_structured_identifier_cannot_break_a_tie_between_two_schemas(
+        db, tmp_path):
+    """The negative twin that matters most, and the reason this is not the
+    declared-situation shortcut.
+
+    An identifier says "this file carries a structured code". It does not say
+    WHICH schema authored that code -- the shipped pattern matches a course code,
+    a claim number and a passport number identically. So it may second a schema a
+    term already named and may never choose between two. A deposition transcript
+    whose only term is authored by seven schemas must still abstain.
+    """
+    rules = rule_set(
+        schema_entry("law_practice", context=("transcript",)),
+        schema_entry("academic", context=("transcript",)))
+    file_id, content_hash = a_file(db, tmp_path, "Deposition.pdf",
+                                   body="Transcript in re CV20261234.",
+                                   identifier="CV20261234")
+    identifiers = _identifier_keys(db, "CV20261234")
+
+    outcome = detector(rules, corroborating_observations=identifiers).explain(
+        db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention), (
+        f"a schema-agnostic pattern chose between two readings: {outcome}")
+    assert outcome.reason == "no_corroboration"
+
+
+def test_a_file_with_an_identifier_and_no_term_still_recognises_nothing(
+        db, tmp_path):
+    """The other twin. A pattern alone is one signal, and `never_alone` holds:
+    a corroborating signal with nothing to corroborate activates nothing."""
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
+                                   body="PHYS1401 and nothing else.",
+                                   identifier="PHYS1401")
+    identifiers = _identifier_keys(db, "PHYS1401")
+
+    outcome = detector(rules, corroborating_observations=identifiers).explain(
+        db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+    assert outcome.reason == "no_evidence"
+
+
+def test_a_deployment_that_supplies_no_identifier_reader_is_unchanged(
+        db, tmp_path):
+    """The authority is injected and absent means "this deployment finds none",
+    which must behave exactly as before rather than as "none present"."""
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(db, tmp_path, "Syllabus.pdf",
+                                   body="Syllabus for BUSIB 4300.")
+
+    outcome = detector(rules).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention)
+    assert outcome.reason == "no_corroboration"
+
+
+def test_a_term_from_the_absolute_path_alone_cannot_be_corroborated(db, tmp_path):
+    """Every file on a disk sits under some words, and none of them are its own.
+
+    Found by running the product, not by reading it. A corpus in a directory
+    called `.../test_a_placement_the_person_mu0/` matched the authored term
+    'placement' out of the PATH observation -- P4's `path` locator holds the whole
+    ancestor chain -- and a structured identifier in the body then confirmed it,
+    so four files containing nothing but a meaningless code classified as
+    `creative`.
+
+    §2.2 ranks "a filename, title, or page-one heading" as meaningful evidence and
+    says nothing about the machine's directory chain. So corroboration requires a
+    nominating term from the file ITSELF. The two-term rule is deliberately
+    untouched: whether a path may supply both terms is a different question from
+    this one, and answering it here would be widening the change under cover of a
+    fix.
+    """
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "a.txt", subdirectory="syllabus_backups",
+        body="QQQ1111 and nothing else.", identifier="QQQ1111")
+    identifiers = _identifier_keys(db, "QQQ1111")
+
+    outcome = detector(rules, corroborating_observations=identifiers).explain(
+        db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention), (
+        f"a word in a parent directory named this file's schema: {outcome}")
+
+
+def test_a_term_in_the_files_own_name_is_still_the_files_own(db, tmp_path):
+    """The negative twin. §2.2 names the FILENAME as meaningful evidence, so
+    narrowing this to body text only would throw away the case `00` calls out."""
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Syllabus.pdf", body="QQQ1111 and nothing else.",
+        identifier="QQQ1111")
+    identifiers = _identifier_keys(db, "QQQ1111")
+
+    outcome = detector(rules, corroborating_observations=identifiers).explain(
+        db, file_id, content_hash)
+
+    assert isinstance(outcome, Recognition), (
+        f"the file's own name stopped counting as evidence about it: {outcome}")

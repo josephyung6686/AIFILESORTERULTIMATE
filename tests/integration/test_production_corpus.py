@@ -1417,10 +1417,13 @@ def test_a_placement_the_person_must_still_confirm_is_not_called_ready_to_file(
     # classifies nothing and the placements are `blocked_pending_user`. Two files
     # rather than one, so a PHYS1401 folder really is proposed and the placement
     # really does succeed -- the point is the WORD used for it, not an absence.
-    for name, code_text in (("notes.txt", "PHYS1401"),
-                            ("homework.txt", "PHYS1401"),
-                            ("rubric.txt", "PHYS2801"),
-                            ("solutions.txt", "PHYS2801")):
+    # Neutral NAMES as well as neutral contents. A filename is evidence like any
+    # other -- `filesystem.record` writes it as an observation -- so "rubric.txt"
+    # and "solutions.txt" carry authored academic terms, and once a structured
+    # identifier can corroborate a single term those files classify correctly and
+    # really are ready. The point here is the word used for a file that is NOT.
+    for name, code_text in (("a.txt", "QQQ1111"), ("b.txt", "QQQ1111"),
+                            ("c.txt", "QQQ2222"), ("d.txt", "QQQ2222")):
         (corpus / name).write_text(code_text + "\n")
 
     code = cli.main([str(corpus), "--situation", "academic.coursework",
@@ -1449,10 +1452,8 @@ def test_the_report_says_where_an_unconfirmed_file_would_go_rather_than_hiding_i
 
     corpus = tmp_path / "corpus"
     corpus.mkdir()
-    for name, code_text in (("notes.txt", "PHYS1401"),
-                            ("homework.txt", "PHYS1401"),
-                            ("rubric.txt", "PHYS2801"),
-                            ("solutions.txt", "PHYS2801")):
+    for name, code_text in (("a.txt", "QQQ1111"), ("b.txt", "QQQ1111"),
+                            ("c.txt", "QQQ2222"), ("d.txt", "QQQ2222")):
         (corpus / name).write_text(code_text + "\n")
 
     cli.main([str(corpus), "--situation", "academic.coursework",
@@ -1460,8 +1461,8 @@ def test_the_report_says_where_an_unconfirmed_file_would_go_rather_than_hiding_i
               "--database", str(tmp_path / "plan.sqlite")])
     out = capsys.readouterr().out
 
-    assert "PHYS1401" in out, f"the destination disappeared from the report:\n{out}"
-    assert "notes.txt" in out, f"the file itself disappeared:\n{out}"
+    assert "QQQ1111" in out, f"the destination disappeared from the report:\n{out}"
+    assert "a.txt" in out, f"the file itself disappeared:\n{out}"
 
 
 def test_a_value_only_protected_files_carry_never_mints_a_folder(conn, tmp_path):
